@@ -1,150 +1,284 @@
-<main class="main-viewport tours-page-compact">
-    <!-- BANNERS SECTION -->
-    <section class="tours-banners-section">
-        <div class="dest-banner-card" (click)="filterByDestination('Đà Lạt')">
-            <img src="image/1dc8619487310884c9d631d689ece1e7.jpg" alt="Đà Lạt">
-            <div class="dest-banner-overlay">
-                <h3>Đà Lạt</h3>
-                <p>Điểm đến xanh</p>
-            </div>
-        </div>
-        <div class="dest-banner-card" (click)="filterByDestination('Phú Yên')">
-            <img src="image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg" alt="Phú Yên">
-            <div class="dest-banner-overlay">
-                <h3>Phú Yên</h3>
-                <p>Xứ Nẫu bình dị</p>
-            </div>
-        </div>
-        <div class="dest-banner-card" (click)="filterByDestination('Đà Nẵng')">
-            <img src="image/Viet Nam.png" alt="Đà Nẵng">
-            <div class="dest-banner-overlay">
-                <h3>Đà Nẵng</h3>
-                <p>Thành phố đáng sống</p>
-            </div>
-        </div>
-    </section>
+<main class="shopco-main pb-20">
+  <div class="shopco-container">
+    <!-- Breadcrumb (Shop.co style) -->
+    <div class="shopco-breadcrumb">
+      <a routerLink="/" class="breadcrumb-link">Trang chủ</a>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-curr">Dịch vụ</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-active">{{ getCategoryBreadcrumb() }}</span>
+    </div>
 
-    <!-- FILTER BAR SECTION -->
-    <section class="tours-filter-section">
-        <div class="tours-filter-header">
-            <div class="search-input-wrapper">
-                <i class="bi bi-search"></i>
-                <input type="text" id="servicesSearchInput" [(ngModel)]="searchQuery" (input)="filterServices()" placeholder="Tìm kiếm dịch vụ...">
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="tours-count-badge">Tìm thấy {{ filteredServices.length }} dịch vụ</span>
-                <button *ngIf="filterDest !== 'all' || filterPrice !== 'all' || filterRating !== 'all' || searchQuery"
-                        (click)="resetFilters()"
-                        class="reset-filters-btn"
-                        style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #10B981; background: #ECFDF5; color: #047857; cursor: pointer; transition: all 0.2s;">
-                    Xem tất cả
-                </button>
-            </div>
+    <!-- Main Content 2-column Wrapper -->
+    <div class="shopco-content-wrapper">
+      <!-- Left Sidebar Filters -->
+      <aside class="shopco-filter-sidebar" [class.mobile-open]="isMobileFilterOpen">
+        <!-- Filter Header -->
+        <div class="filter-header">
+          <div class="filter-header-left">
+            <span class="filter-title">Bộ Lọc</span>
+            <i class="bi bi-sliders filter-icon"></i>
+          </div>
+          <button (click)="resetFilters()" class="reset-filter-link">
+            Đặt lại
+          </button>
         </div>
-        
-        <div class="tours-filters-row">
-            <select id="filterDestSelect" [(ngModel)]="filterDest" (change)="filterServices()">
-                <option value="all">Tất cả điểm đến</option>
-                <option value="Đà Lạt">Đà Lạt</option>
-                <option value="Phú Yên">Phú Yên</option>
-                <option value="Đà Nẵng">Đà Nẵng - Hội An</option>
-            </select>
 
-            <select id="filterPriceSelect" [(ngModel)]="filterPrice" (change)="filterServices()">
-                <option value="all">Tất cả mức giá</option>
-                <option value="under500k">Dưới 500.000đ</option>
-                <option value="500k-1.5M">500.000đ - 1.500.000đ</option>
-                <option value="above1.5M">Trên 1.500.000đ</option>
-            </select>
+        <hr class="shopco-divider" />
 
-            <select id="filterRatingSelect" [(ngModel)]="filterRating" (change)="filterServices()">
-                <option value="all">Tất cả đánh giá</option>
-                <option value="above4.5">Từ 4.5★ trở lên</option>
-                <option value="above4.0">Từ 4.0★ trở lên</option>
-            </select>
+        <!-- 1. Categories Section (Shop.co CategoriesSection) -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Danh Mục Dịch Vụ</h4>
+          <div class="categories-list">
+            <div *ngFor="let cat of categories" 
+                 (click)="selectCategory(cat)"
+                 class="category-item" 
+                 [class.active]="(cat.type && cat.type === serviceType) || (!cat.type && cat.id === 'tours' && router.url.includes('/tours'))">
+              <span class="category-name">{{ cat.name }}</span>
+              <i class="bi bi-chevron-right chevron-icon"></i>
+            </div>
+          </div>
+        </div>
 
-            <select id="sortSelect" [(ngModel)]="sortOrder" (change)="filterServices()">
+        <hr class="shopco-divider" />
+
+        <!-- 2. Destination Section -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Điểm Đến</h4>
+          <div class="destinations-pill-list">
+            <button *ngFor="let dest of destinations"
+                    type="button"
+                    (click)="filterByDestination(dest)"
+                    class="dest-pill-btn"
+                    [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
+              <span>{{ dest }}</span>
+            </button>
+          </div>
+        </div>
+
+        <hr class="shopco-divider" />
+
+        <!-- 3. Price Range Section -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Khoảng Giá</h4>
+          <div class="price-options-list">
+            <label *ngFor="let p of priceRanges" class="price-radio-label">
+              <input type="radio" name="priceRange" [value]="p.id" [(ngModel)]="filterPrice" (change)="filterServices()">
+              <span class="custom-radio"></span>
+              <span class="price-label-text">{{ p.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <hr class="shopco-divider" />
+
+        <!-- 4. Eco Badges Section (Shop.co SizeSection pill style) -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Tiêu Chuẩn Net-Zero</h4>
+          <div class="eco-pills-wrap">
+            <button *ngFor="let badge of ecoBadgesList"
+                    type="button"
+                    (click)="toggleEcoBadge(badge)"
+                    class="eco-tag-pill"
+                    [class.active]="selectedEcoBadge === badge">
+              {{ badge }}
+            </button>
+          </div>
+        </div>
+
+        <hr class="shopco-divider" />
+
+        <!-- 5. Rating Section -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Đánh Giá Sao</h4>
+          <div class="rating-options-list">
+            <label *ngFor="let r of ratingOptions" class="rating-radio-label">
+              <input type="radio" name="ratingFilter" [value]="r.id" [(ngModel)]="filterRating" (change)="filterServices()">
+              <span class="custom-radio"></span>
+              <span class="rating-label-text">{{ r.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="button" (click)="filterServices(); isMobileFilterOpen = false" class="apply-filter-btn">
+          Áp Dụng Bộ Lọc
+        </button>
+      </aside>
+
+      <!-- Right Main Column -->
+      <div class="shopco-main-column">
+        <!-- Top Toolbar -->
+        <div class="shopco-toolbar">
+          <div class="toolbar-title-box">
+            <h1 class="shopco-page-title">{{ getCategoryTitle() }}</h1>
+            <button class="mobile-filter-trigger" (click)="toggleMobileFilter()">
+              <i class="bi bi-sliders"></i>
+              <span>Bộ lọc</span>
+            </button>
+          </div>
+
+          <div class="toolbar-controls-box">
+            <span class="results-count-text">
+              Hiển thị {{ paginatedServices.length }} trên {{ filteredServices.length }} dịch vụ
+            </span>
+            <div class="sort-by-wrapper">
+              <span class="sort-by-label">Sắp xếp theo:</span>
+              <select [(ngModel)]="sortOrder" (change)="filterServices()" class="shopco-sort-select">
                 <option value="popular">Phổ biến nhất</option>
-                <option value="rating">Đánh giá tốt nhất</option>
-                <option value="cost_asc">Giá từ thấp đến cao</option>
-                <option value="cost_desc">Giá từ cao đến thấp</option>
-            </select>
-        </div>
-    </section>
-
-    <!-- MAIN SERVICES GRID -->
-    <section class="tours-grid-section">
-        <div style="margin-bottom: 24px;">
-            <span style="font-size: 0.75rem; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px;">{{ getCategoryTitle() }}</span>
-            <h2 style="font-size: 1.5rem; font-weight: 900; color: #111827; margin: 0; line-height: 1.2;">{{ getCategorySub() }}</h2>
+                <option value="cost_asc">Giá: Thấp đến cao</option>
+                <option value="cost_desc">Giá: Cao đến thấp</option>
+                <option value="rating">Đánh giá cao nhất</option>
+                <option value="carbon">Giảm CO₂ nhiều nhất</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="tours-grid">
-            <!-- Skeleton cards when loading -->
-            <ng-container *ngIf="isPageLoading">
-              <div class="tour-card" style="padding: 0; background: white; border-radius: 12px;" *ngFor="let s of [1, 2, 3, 4, 5]">
-                <div class="skeleton" style="width: 100%; height: 180px; border-top-left-radius: 12px; border-top-right-radius: 12px;"></div>
-                <div style="padding: 16px;">
-                  <div class="skeleton skeleton-text" style="width: 40%; height: 12px; margin-bottom: 12px;"></div>
-                  <div class="skeleton skeleton-title" style="width: 85%; height: 18px; margin-bottom: 12px;"></div>
-                  <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <div class="skeleton" style="width: 60px; height: 20px; border-radius: 9999px;"></div>
-                    <div class="skeleton" style="width: 60px; height: 20px; border-radius: 9999px;"></div>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div class="skeleton skeleton-text" style="width: 30%; height: 12px; margin-bottom: 0;"></div>
-                    <div class="skeleton skeleton-text" style="width: 25%; height: 12px; margin-bottom: 0;"></div>
-                  </div>
+        <!-- Search Input Bar -->
+        <div class="shopco-search-bar">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" 
+                 [(ngModel)]="searchQuery" 
+                 (input)="filterServices()" 
+                 placeholder="Tìm kiếm theo tên dịch vụ, điểm đến hoặc tiện ích..." 
+                 class="search-input">
+          <button *ngIf="searchQuery" (click)="searchQuery = ''; filterServices()" class="clear-search-btn" type="button">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+
+        <!-- Active Filter Badges -->
+        <div *ngIf="filterDest !== 'all' || filterPrice !== 'all' || filterRating !== 'all' || selectedEcoBadge !== 'all' || searchQuery" class="active-chips-row">
+          <span class="active-chips-label">Đang lọc:</span>
+          <span *ngIf="filterDest !== 'all'" class="filter-chip">
+            {{ filterDest }}
+            <i class="bi bi-x" (click)="filterDest = 'all'; filterServices()"></i>
+          </span>
+          <span *ngIf="selectedEcoBadge !== 'all'" class="filter-chip">
+            {{ selectedEcoBadge }}
+            <i class="bi bi-x" (click)="selectedEcoBadge = 'all'; filterServices()"></i>
+          </span>
+          <span *ngIf="filterPrice !== 'all'" class="filter-chip">
+            Giá lọc
+            <i class="bi bi-x" (click)="filterPrice = 'all'; filterServices()"></i>
+          </span>
+          <span *ngIf="filterRating !== 'all'" class="filter-chip">
+            Từ {{ filterRating }}★
+            <i class="bi bi-x" (click)="filterRating = 'all'; filterServices()"></i>
+          </span>
+          <button (click)="resetFilters()" class="clear-all-chips">Xóa tất cả</button>
+        </div>
+
+        <!-- Product Cards Grid (Shop.co 3-column Grid) -->
+        <div *ngIf="paginatedServices.length > 0; else noResults" class="shopco-products-grid">
+          <div *ngFor="let s of paginatedServices" class="shopco-product-card">
+            <!-- Image Container -->
+            <div class="card-img-container" [routerLink]="['/tour-detail', s.id]">
+              <img [src]="s.image_url || 'image/services/stay_homestay_dalat.png'" 
+                   [alt]="s.name" 
+                   class="card-img" 
+                   onerror="this.src='image/Viet Nam.png'">
+              
+              <!-- Floating Top Badges -->
+              <div class="card-floating-badges">
+                <span class="eco-carbon-badge">
+                  <i class="bi bi-leaf-fill"></i> -{{ s.carbon || 0 }}kg CO₂
+                </span>
+                <span class="rating-badge">
+                  <i class="bi bi-star-fill star-icon"></i> {{ s.rating || 5.0 }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Card Body Info -->
+            <div class="card-body">
+              <div class="card-dest-row">
+                <span class="card-dest-tag">{{ s.destination }}</span>
+                <span *ngIf="s.isRecommended" class="recommended-badge">
+                  <i class="bi bi-sparkles"></i> Gợi ý
+                </span>
+              </div>
+
+              <h3 class="card-title" [routerLink]="['/tour-detail', s.id]" [title]="s.name">
+                {{ s.name }}
+              </h3>
+
+              <!-- Rating Row -->
+              <div class="card-rating-row">
+                <div class="stars-box">
+                  <i *ngFor="let star of [1,2,3,4,5]" 
+                     class="bi" 
+                     [class.bi-star-fill]="star <= (s.rating || 5.0)" 
+                     [class.bi-star-half]="star - 0.5 === (s.rating || 5.0)"
+                     [class.bi-star]="star > (s.rating || 5.0)">
+                  </i>
                 </div>
-              </div>
-            </ng-container>
-
-            <!-- Real cards when not loading -->
-            <ng-container *ngIf="!isPageLoading">
-              <!-- Service cards rendered dynamically -->
-              <div class="tour-card" *ngFor="let svc of filteredServices" [routerLink]="['/services', getServiceRouteType(svc), svc.id]" style="cursor: pointer;">
-                  <div class="tour-img-container" style="position: relative;">
-                      <!-- AI Recommended Badge -->
-                      <div *ngIf="svc.isRecommended" style="position: absolute; top: 12px; left: 12px; background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: white; padding: 4px 10px; font-size: 0.65rem; font-weight: 700; border-radius: 4px; box-shadow: 0 4px 8px rgba(4,120,87,0.25); display: flex; align-items: center; gap: 4px; z-index: 10; text-transform: uppercase;">
-                          <i class="bi bi-patch-check-fill animate-pulse"></i> Gợi ý cho bạn
-                      </div>
-                      
-                      <img [src]="svc.image_url || 'image/Viet Nam.png'" [alt]="svc.name">
-                      
-                      <div class="price-pill-overlay">
-                          <span class="price-new">{{ svc.cost | number:'1.0-0':'vi-VN' }}đ</span>
-                      </div>
-                  </div>
-                  
-                  <div class="tour-info">
-                      <div class="tour-region">{{ svc.destination }} • Dịch vụ</div>
-                      <h3 class="tour-title">{{ svc.name }}</h3>
-                      
-                      <div class="tour-tags-row">
-                          <span class="tour-tag-pill">{{ getCategoryTitle().replace('Không gian ', '').replace('Phương Tiện ', '').replace('Ẩm Thực ', '').replace('Điểm Tham Quan & ', '') }}</span>
-                          <span class="tour-tag-pill" *ngFor="let badge of svc.badges">{{ badge }}</span>
-                      </div>
-
-                      <div class="tour-rating-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                          <span>
-                              <span class="tour-stars"><i class="bi bi-star-fill"></i> {{ svc.rating || 5.0 }}</span>
-                              <span class="tour-votes">({{ svc.bookings_count || 0 }})</span>
-                          </span>
-                          <span style="font-size: 0.7rem; font-weight: 750; color: #059669; background: #eef7f1; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
-                              <i class="bi bi-leaf-fill"></i> -{{ svc.carbon || 0 }} kg CO₂
-                          </span>
-                      </div>
-                  </div>
+                <span class="rating-number">{{ s.rating || 5.0 }}<span class="rating-total">/5</span></span>
+                <span class="reviews-count">({{ s.reviews_count || s.bookings_count || 12 }})</span>
               </div>
 
-              <!-- Empty view when no results found -->
-              <div *ngIf="filteredServices.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1.5px dashed #E5E7EB; display: flex; flex-direction: column; align-items: center;">
-                  <i class="bi bi-search-heart" style="font-size: 3.5rem; color: #10B981; margin-bottom: 1rem;"></i>
-                  <h3 style="font-size: 1.25rem; font-weight: 800; color: #111827; margin: 0 0 8px 0;">Không tìm thấy dịch vụ phù hợp</h3>
-                  <p style="color: #6B7280; margin: 0 0 16px 0;">Hãy thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm để khám phá thêm dịch vụ.</p>
-                  <button (click)="resetFilters()" style="background: #10B981; color: white; font-weight: 700; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s;">Xem tất cả dịch vụ</button>
+              <!-- Eco Highlights -->
+              <div class="card-eco-desc" *ngIf="s.ecoFeature || s.description">
+                <i class="bi bi-check-circle-fill check-icon"></i>
+                <span class="eco-desc-text">{{ s.ecoFeature || s.description }}</span>
               </div>
-            </ng-container>
+
+              <!-- Price Row (Shop.co signature layout) -->
+              <div class="card-price-row">
+                <span class="current-price">{{ (s.cost || 0) | number:'1.0-0' }}đ</span>
+                <span *ngIf="s.oldCost && s.oldCost > s.cost" class="old-price">
+                  {{ s.oldCost | number:'1.0-0' }}đ
+                </span>
+                <span *ngIf="s.discountPercent && s.discountPercent > 0" class="discount-pill">
+                  -{{ s.discountPercent }}%
+                </span>
+              </div>
+
+              <!-- Action button -->
+              <button [routerLink]="['/tour-detail', s.id]" class="card-action-btn">
+                <span>Xem Chi Tiết</span>
+                <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
         </div>
-    </section>
+
+        <!-- No Results Fallback -->
+        <ng-template #noResults>
+          <div class="no-results-box">
+            <i class="bi bi-search no-results-icon"></i>
+            <h3>Không tìm thấy dịch vụ phù hợp</h3>
+            <p>Vui lòng thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
+            <button (click)="resetFilters()" class="btn-reset-large">
+              Khôi phục tất cả bộ lọc
+            </button>
+          </div>
+        </ng-template>
+
+        <hr class="shopco-divider mt-8" />
+
+        <!-- Pagination (Shop.co Pagination Style) -->
+        <div class="shopco-pagination" *ngIf="totalPages > 1">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" class="pagination-btn pagination-prev">
+            <i class="bi bi-arrow-left"></i>
+            <span>Trước</span>
+          </button>
+
+          <div class="pagination-numbers">
+            <button *ngFor="let page of pagesArray" 
+                    (click)="setPage(page)"
+                    class="page-number-btn"
+                    [class.active]="currentPage === page">
+              {{ page }}
+            </button>
+          </div>
+
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn pagination-next">
+            <span>Sau</span>
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>

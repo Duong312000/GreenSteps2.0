@@ -1,1 +1,832 @@
-/* Services styling is fully inherited from the global styles.css to match the Package Tours interface exactly. */
+/* ==========================================================================
+   Shop.co Inspired Layout & Aesthetics for GreenSteps Travel Services
+   ========================================================================== */
+
+:host {
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
+  background-color: #fafbfa;
+}
+
+.shopco-main {
+  min-height: 85vh;
+  padding-bottom: 5rem;
+}
+
+.shopco-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+/* 1. Breadcrumb */
+.shopco-breadcrumb {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.breadcrumb-link {
+  color: rgba(0, 0, 0, 0.6);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  color: #1b5e20;
+}
+
+.breadcrumb-sep {
+  margin: 0 0.5rem;
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.breadcrumb-curr {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.breadcrumb-active {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+/* 2. Main 2-Column Wrapper */
+.shopco-content-wrapper {
+  display: flex;
+  gap: 1.75rem;
+  align-items: flex-start;
+}
+
+/* 3. Left Sidebar (Filters) */
+.shopco-filter-sidebar {
+  width: 295px;
+  min-width: 295px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  position: sticky;
+  top: 90px;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.filter-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000000;
+}
+
+.filter-icon {
+  font-size: 1.25rem;
+  color: #1b5e20;
+}
+
+.reset-filter-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2e7d32;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.shopco-divider {
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 1rem 0;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.75rem 0;
+}
+
+/* Categories List */
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-item:hover {
+  background: #f0f7f0;
+  color: #1b5e20;
+  padding-left: 1rem;
+}
+
+.category-item.active {
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-weight: 700;
+}
+
+.chevron-icon {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.category-item.active .chevron-icon {
+  color: #1b5e20;
+}
+
+/* Destinations Pills */
+.destinations-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dest-pill-btn {
+  background: #f0f0f0;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dest-pill-btn:hover {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.dest-pill-btn.active {
+  background: #1b5e20;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Price Radios */
+.price-options-list, .rating-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-radio-label, .rating-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.price-radio-label input, .rating-radio-label input {
+  accent-color: #1b5e20;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Eco Badges (Pills styled like Shop.co SizeSection) */
+.eco-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.eco-tag-pill {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.eco-tag-pill:hover {
+  background: #e2ede2;
+  color: #1b5e20;
+}
+
+.eco-tag-pill.active {
+  background: #1b5e20;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Apply Filter Button */
+.apply-filter-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 1.25rem;
+  background: #1b5e20;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+}
+
+.apply-filter-btn:hover {
+  background: #2e7d32;
+}
+
+/* 4. Right Main Column */
+.shopco-main-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Toolbar */
+.shopco-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .shopco-toolbar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.toolbar-title-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shopco-page-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 1024px) {
+  .shopco-page-title {
+    font-size: 2rem;
+  }
+}
+
+.mobile-filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .mobile-filter-trigger {
+    display: none;
+  }
+}
+
+.toolbar-controls-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.results-count-text {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.sort-by-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sort-by-label {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.shopco-sort-select {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Search Bar */
+.shopco-search-bar {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 9999px;
+  padding: 0.65rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.search-icon {
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.4);
+  margin-right: 0.75rem;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: transparent;
+}
+
+.clear-search-btn {
+  background: transparent;
+  border: none;
+  color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+/* Active Chips */
+.active-chips-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.active-chips-label {
+  font-size: 0.8125rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.filter-chip i {
+  cursor: pointer;
+}
+
+.clear-all-chips {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e53935;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 5. Products Grid (Shop.co 3-column Grid) */
+.shopco-products-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .shopco-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .shopco-products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* Card */
+.shopco-product-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 0.75rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.shopco-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border-color: rgba(27, 94, 32, 0.2);
+}
+
+/* Card Image Container (Square-ish like Shop.co) */
+.card-img-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #f4f6f4;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.shopco-product-card:hover .card-img {
+  transform: scale(1.08);
+}
+
+.card-floating-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.eco-carbon-badge {
+  background: rgba(27, 94, 32, 0.88);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rating-badge {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.star-icon {
+  color: #f59e0b;
+}
+
+/* Card Body */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.25rem 0.25rem 0.25rem;
+  flex: 1;
+}
+
+.card-dest-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.card-dest-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #2e7d32;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recommended-badge {
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+  margin: 0 0 0.45rem 0;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+.card-title:hover {
+  color: #1b5e20;
+}
+
+/* Star Rating */
+.card-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.stars-box {
+  display: flex;
+  gap: 2px;
+  color: #f59e0b;
+  font-size: 0.8125rem;
+}
+
+.rating-number {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.rating-total {
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 400;
+}
+
+.reviews-count {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* Eco Desc snippet */
+.card-eco-desc {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
+}
+
+.check-icon {
+  font-size: 0.75rem;
+  color: #1b5e20;
+  margin-top: 1px;
+}
+
+.eco-desc-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Price Row (Shop.co signature layout) */
+.card-price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  margin-bottom: 0.85rem;
+}
+
+.current-price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.old-price {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.38);
+  text-decoration: line-through;
+}
+
+.discount-pill {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* Action button */
+.card-action-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  height: 40px;
+  background: #f0f7f0;
+  color: #1b5e20;
+  border: 1px solid rgba(27, 94, 32, 0.2);
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-action-btn:hover {
+  background: #1b5e20;
+  color: #ffffff;
+  border-color: #1b5e20;
+}
+
+/* 6. No Results Fallback */
+.no-results-box {
+  background: #ffffff;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.no-results-icon {
+  font-size: 3rem;
+  color: #d1d5db;
+  margin-bottom: 1rem;
+}
+
+.no-results-box h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.no-results-box p {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-reset-large {
+  background: #1b5e20;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.65rem 1.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+}
+
+/* 7. Pagination (Shop.co style) */
+.shopco-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: #1b5e20;
+  color: #1b5e20;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.page-number-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-number-btn:hover {
+  background: #f0f7f0;
+  color: #1b5e20;
+}
+
+.page-number-btn.active {
+  background: #1b5e20;
+  color: #ffffff;
+}
+
+/* Mobile Filter Drawer */
+@media (max-width: 767px) {
+  .shopco-filter-sidebar {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    min-width: 100%;
+    z-index: 9999;
+    border-radius: 0;
+    overflow-y: auto;
+  }
+
+  .shopco-filter-sidebar.mobile-open {
+    display: block;
+  }
+}

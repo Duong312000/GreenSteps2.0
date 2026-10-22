@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
+import { DEFAULT_TOURS, DEFAULT_SERVICES } from './default-data';
 
 @Injectable({
   providedIn: 'root'
@@ -68,11 +69,20 @@ export class ApiService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    const url = userId ? `${this.BACKEND_URL}/tours?userId=${userId}` : `${this.BACKEND_URL}/tours`;
-    const res = await firstValueFrom(this.http.get<any[]>(url));
-    const data = (res || []).map(t => this.mapTourToFrontend(t));
-    this.setCachedData(cacheKey, data);
-    return data;
+    try {
+      const url = userId ? `${this.BACKEND_URL}/tours?userId=${userId}` : `${this.BACKEND_URL}/tours`;
+      const res = await firstValueFrom(this.http.get<any[]>(url));
+      if (res && res.length >= 5) {
+        const data = res.map(t => this.mapTourToFrontend(t));
+        this.setCachedData(cacheKey, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Backend tours unavailable or fewer than 5, using default tours');
+    }
+
+    this.setCachedData(cacheKey, DEFAULT_TOURS);
+    return DEFAULT_TOURS;
   }
 
   public async getPresetTour(id: string): Promise<Tour | null> {
@@ -469,11 +479,16 @@ export class ApiService {
 
     try {
       const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services`));
-      this.setCachedData(cacheKey, data);
-      return data;
+      if (data && data.length >= 20) {
+        this.setCachedData(cacheKey, data);
+        return data;
+      }
     } catch (e) {
-      return [];
+      console.warn('Backend services unavailable or fewer than 20, using default services');
     }
+
+    this.setCachedData(cacheKey, DEFAULT_SERVICES);
+    return DEFAULT_SERVICES;
   }
 
   public async getServicesByDestination(destination: string): Promise<any[]> {
@@ -891,7 +906,7 @@ export class ApiService {
   public async getPendingWithdrawals(): Promise<any[]> {
     try {
       const all = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/wallet/withdrawals`, { withCredentials: true }));
-      return all.filter(w => w.status === 'pending');
+      return all.filter((w: any) => w.status === 'pending');
     } catch (e) {
       return [];
     }

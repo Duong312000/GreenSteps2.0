@@ -44,6 +44,8 @@ export interface Tour {
   rating?: number;
   votes?: number;
   votes_count?: number;
+  discountPercent?: number;
+  ecoFeature?: string;
   badges?: string[];
   tags?: string[];
   data: Activity[][];
@@ -85,6 +87,12 @@ export interface Service {
   status: string;
   views_count?: number;
   rating?: number;
+  oldCost?: number;
+  old_cost?: number;
+  discountPercent?: number;
+  ecoFeature?: string;
+  description?: string;
+  reviews_count?: number;
   bookings_count?: number;
   bookingsCount?: number;
   badges?: string[];
