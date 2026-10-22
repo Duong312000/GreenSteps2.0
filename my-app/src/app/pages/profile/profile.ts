@@ -7,14 +7,14 @@ import { ApiService } from '../../services/api.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { User, WalletTransaction } from '../../models/models';
 
-type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet';
+type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map';
 
 type ProfileSidebarItem = {
   icon: string;
   label: string;
   section?: ProfileSection;
   route?: string;
-  action?: 'planner';
+  action?: 'planner' | 'logout' | 'upcomingTrip';
   badge?: string;
 };
 
@@ -59,6 +59,7 @@ type TravelPreferenceQuestion = {
 })
 export class ProfileComponent implements OnInit {
   public activeSection: ProfileSection = 'overview';
+  public selectedSubSection: string = '';
   public currentUser: User | null = null;
   public profileUser: User = {
     id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d',
@@ -79,6 +80,19 @@ export class ProfileComponent implements OnInit {
   public savedItinerariesCount = 0;
   public bookedToursCount = 0;
   public userGreenPoints = 0;
+  public upcomingTrip: {
+    id: string;
+    title: string;
+    destination: string;
+    dates: string;
+    guests: number;
+    cost: number;
+    daysLeftText: string;
+    statusText: string;
+    image: string;
+    type: 'booking' | 'itinerary';
+    link: string;
+  } | null = null;
 
   public isQrModalOpen = false;
   public isDepositModalOpen = false;
@@ -172,16 +186,16 @@ export class ProfileComponent implements OnInit {
       heading: 'CHUYẾN ĐI CỦA TÔI',
       items: [
         { icon: 'bi-calendar2-week', label: 'Lịch trình của tôi', route: '/schedule' },
-        { icon: 'bi-ticket-perforated', label: 'Tour đã đặt', route: '/tours' },
-        { icon: 'bi-credit-card', label: 'Vé & thanh toán' },
-        { icon: 'bi-heart', label: 'Địa điểm yêu thích' }
+        { icon: 'bi-ticket-perforated', label: 'Tour đã đặt', action: 'upcomingTrip' },
+        { icon: 'bi-credit-card', label: 'Vé & thanh toán', section: 'tickets' },
+        { icon: 'bi-heart', label: 'Địa điểm yêu thích', section: 'favorites' }
       ]
     },
     {
       heading: 'CÔNG CỤ HỮU ÍCH',
       items: [
         { icon: 'bi-stars', label: 'Thiết kế lịch trình AI', action: 'planner' },
-        { icon: 'bi-geo-alt', label: 'Bản đồ tương tác' },
+        { icon: 'bi-geo-alt', label: 'Bản đồ tương tác', section: 'map' },
         { icon: 'bi-chat-dots', label: 'Chatbot hỗ trợ', badge: 'AI' }
       ]
     },
@@ -192,8 +206,9 @@ export class ProfileComponent implements OnInit {
         { icon: 'bi-shield-lock', label: 'Bảo mật tài khoản', section: 'security' },
         { icon: 'bi-bell', label: 'Thông báo', section: 'notifications', badge: '3' },
         { icon: 'bi-wallet2', label: 'Ví GreenSteps', section: 'wallet' },
-        { icon: 'bi-gift', label: 'Chương trình ưu đãi' },
-        { icon: 'bi-gear', label: 'Cài đặt' }
+        { icon: 'bi-gift', label: 'Chương trình ưu đãi', section: 'promotions' },
+        { icon: 'bi-gear', label: 'Cài đặt', section: 'settings' },
+        { icon: 'bi-box-arrow-right', label: 'Đăng xuất', action: 'logout' }
       ]
     }
   ];
@@ -342,6 +357,7 @@ export class ProfileComponent implements OnInit {
     if (existingUser) {
       this.applyProfileUser(existingUser);
       this.loadProfileNotifications();
+      this.loadWalletAndTransactions();
       this.authService.refreshProfile().catch(() => {});
     }
 
@@ -358,9 +374,12 @@ export class ProfileComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       if (params['section']) {
         const sec = params['section'] as ProfileSection;
-        if (['overview', 'personal', 'security', 'notifications', 'wallet'].includes(sec)) {
+        if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'promotions', 'settings', 'map'].includes(sec)) {
           this.activeSection = sec;
         }
+      }
+      if (params['sub'] === 'upcomingTrip') {
+        this.scrollToUpcomingTrip();
       }
     });
   }
@@ -431,30 +450,161 @@ export class ProfileComponent implements OnInit {
   private async loadWalletAndTransactions() {
     if (!this.currentUser) return;
     const userId = this.currentUser.id || this.currentUser._id || '';
-    const wallet = await this.apiService.getWalletInfo(userId);
-    this.walletRegistered = wallet.registered;
-    this.walletBalance = wallet.balance;
-    this.userGreenPoints = wallet.green_points || 0;
-    this.transactions = await this.apiService.getTransactions(userId);
-
     try {
-      const itineraries = await this.apiService.getItineraries(userId);
-      this.savedItinerariesCount = itineraries.length;
+      const wallet = await this.apiService.getWalletInfo(userId);
+      this.walletRegistered = wallet.registered;
+      this.walletBalance = wallet.balance;
+      this.userGreenPoints = wallet.green_points || 0;
     } catch (e) {
-      this.savedItinerariesCount = 0;
+      this.walletBalance = 0;
+      this.userGreenPoints = 0;
     }
 
     try {
-      const bookings = await this.apiService.getBookings(undefined, userId);
-      this.bookedToursCount = bookings.length;
+      this.transactions = await this.apiService.getTransactions(userId);
+    } catch (e) {
+      this.transactions = [];
+    }
+
+    await this.loadUpcomingTripData(userId);
+    this.cdr.detectChanges();
+  }
+
+  private async loadUpcomingTripData(userId: string) {
+    let userBookings: any[] = [];
+    let userItineraries: any[] = [];
+
+    try {
+      userBookings = await this.apiService.getBookings(undefined, userId);
+      this.bookedToursCount = userBookings.length;
     } catch (e) {
       this.bookedToursCount = 0;
     }
 
-    this.cdr.detectChanges();
+    try {
+      userItineraries = await this.apiService.getItineraries(userId);
+      this.savedItinerariesCount = userItineraries.length;
+    } catch (e) {
+      this.savedItinerariesCount = 0;
+    }
+
+    // 1. Ưu tiên kiểm tra đơn đặt tour / dịch vụ (Bookings) thực tế trong CSDL
+    const validBookings = userBookings.filter(b => b.booking_status !== 'cancelled' && b.booking_status !== 'rejected');
+    if (validBookings.length > 0) {
+      const b = validBookings[0];
+      const target = b.target || {};
+      const bookingDate = b.booking_date || '';
+      const checkOutDate = b.check_out_date || '';
+
+      let dateDisplay = bookingDate;
+      if (bookingDate && checkOutDate) {
+        dateDisplay = `${this.formatDisplayDate(bookingDate)} - ${this.formatDisplayDate(checkOutDate)}`;
+      } else if (bookingDate) {
+        dateDisplay = `Khởi hành: ${this.formatDisplayDate(bookingDate)}`;
+      }
+
+      let daysLeftText = 'Sắp khởi hành';
+      if (bookingDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const bDate = new Date(bookingDate);
+        bDate.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((bDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > 0) {
+          daysLeftText = `Còn ${diffDays} ngày nữa`;
+        } else if (diffDays === 0) {
+          daysLeftText = 'Khởi hành hôm nay';
+        } else {
+          daysLeftText = 'Đang diễn ra';
+        }
+      }
+
+      let statusText = 'Sắp khởi hành';
+      if (b.booking_status === 'confirmed') statusText = 'Sắp khởi hành';
+      else if (b.booking_status === 'deposit') statusText = 'Đã đặt cọc';
+      else if (b.booking_status === 'completed') statusText = 'Đã hoàn thành';
+      else statusText = 'Đang chuẩn bị';
+
+      let tripImg = target.image || target.image_url || b.image_url || this.tripImage;
+      if (tripImg && tripImg.startsWith('/images/')) {
+        tripImg = `http://localhost:5055${tripImg}`;
+      }
+
+      this.upcomingTrip = {
+        id: b.id || b._id,
+        title: target.title || target.name || b.tour_name || b.title || (b.kind === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái'),
+        destination: target.destination || b.destination || 'Việt Nam',
+        dates: dateDisplay || 'Lịch trình sắp xếp',
+        guests: b.guests || 2,
+        cost: b.value || target.cost || 0,
+        daysLeftText,
+        statusText,
+        image: tripImg,
+        type: 'booking',
+        link: '/tours'
+      };
+    } else if (userItineraries.length > 0) {
+      // 2. Nếu chưa có đơn đặt nhưng có lịch trình tự thiết kế lưu trong CSDL
+      const iti = userItineraries[0];
+      let dateDisplay = iti.start_date
+        ? `${this.formatDisplayDate(iti.start_date)} - ${this.formatDisplayDate(iti.end_date)}`
+        : `${iti.days || 1} ngày trải nghiệm`;
+
+      let tripImg = iti.imageUrl;
+      if (!tripImg) {
+        const dest = (iti.destination || '').toLowerCase();
+        if (dest.includes('hội an') || dest.includes('hoi an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
+        else if (dest.includes('phú yên') || dest.includes('phu yen')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
+        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
+      }
+
+      this.upcomingTrip = {
+        id: iti.id || iti._id,
+        title: iti.name || `Lịch trình sinh thái ${iti.destination}`,
+        destination: iti.destination || 'Việt Nam',
+        dates: dateDisplay,
+        guests: 2,
+        cost: iti.totalCost || 0,
+        daysLeftText: 'Lịch trình đã lưu',
+        statusText: 'Đang lên kế hoạch',
+        image: tripImg,
+        type: 'itinerary',
+        link: `/schedule?id=${iti.id || iti._id}`
+      };
+    } else {
+      // 3. Tài khoản chưa có dữ liệu nào trong database
+      this.upcomingTrip = null;
+    }
+  }
+
+  private formatDisplayDate(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const daysOfWeek = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+      const dayName = daysOfWeek[d.getDay()];
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${dayName}, ${day}/${month}/${year}`;
+    } catch {
+      return dateStr;
+    }
+  }
+
+  public onTripImageError(event: any) {
+    if (event && event.target) {
+      event.target.src = this.tripImage;
+    }
   }
 
   public handleSidebarItem(item: ProfileSidebarItem) {
+    if (item.action === 'upcomingTrip') {
+      this.scrollToUpcomingTrip();
+      return;
+    }
+    this.selectedSubSection = '';
     if (item.section) {
       this.activeSection = item.section;
       return;
@@ -464,10 +614,33 @@ export class ProfileComponent implements OnInit {
       return;
     }
     if (item.action === 'planner') this.router.navigate(['/schedule']);
+    if (item.action === 'logout') this.handleLogout();
   }
 
   public isSidebarItemActive(item: ProfileSidebarItem): boolean {
+    if (item.action === 'upcomingTrip') {
+      return this.activeSection === 'overview' && this.selectedSubSection === 'upcomingTrip';
+    }
+    if (item.section === 'overview') {
+      return this.activeSection === 'overview' && this.selectedSubSection !== 'upcomingTrip';
+    }
     return item.section === this.activeSection;
+  }
+
+  public scrollToUpcomingTrip(event?: Event) {
+    if (event) {
+      event.preventDefault();
+    }
+    this.activeSection = 'overview';
+    this.selectedSubSection = 'upcomingTrip';
+    setTimeout(() => {
+      const el = document.getElementById('upcoming-trip-card');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlight-upcoming-trip');
+        setTimeout(() => el.classList.remove('highlight-upcoming-trip'), 2500);
+      }
+    }, 100);
   }
 
   public showPersonalInfo() {
