@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 
+const replySchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  text: { type: String, required: true },
+  created_at: { type: Date, default: Date.now }
+}, { _id: true });
+
 const reviewSchema = new mongoose.Schema({
   booking_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
   service_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
@@ -12,6 +18,9 @@ const reviewSchema = new mongoose.Schema({
     reply_text: { type: String, default: '' },
     replied_at: { type: Date }
   },
+  replies: { type: [replySchema], default: [] },
+  likes_count: { type: Number, default: 0 },
+  liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   internal_notes: { type: String, default: '' },
   is_reported: { type: Boolean, default: false },
   report_reason: { type: String, default: '' }

@@ -21,6 +21,7 @@
   "scripts": {
     "start": "nodemon index.js",
     "seed": "node scripts/seed.js",
+    "seed:public": "node scripts/import_public_catalog_seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

@@ -1,0 +1,1861 @@
+{
+  "generated_from": "sanitized public catalogue snapshot",
+  "collections": {
+    "services": [
+      {
+        "_id": "6ad9ea44fba1913e97268573",
+        "name": "Check-in Hải đăng Mũi Điện - Bãi Môn",
+        "type": "attraction",
+        "destination": "Phú Yên",
+        "cost": 50000,
+        "carbon": -1,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-mui-dien-bai-mon-01.jpg"
+        ],
+        "rating": 4.7,
+        "reviews_count": 204,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268574",
+        "name": "bep gia dinh",
+        "type": "stay",
+        "destination": "Đà Lạt",
+        "cost": 1000000,
+        "carbon": 4.5,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_green_boutique.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268575",
+        "name": "Bán đảo Sơn Trà - Chùa Linh Ứng",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 50000,
+        "carbon": -1,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg"
+        ],
+        "rating": 4.68,
+        "reviews_count": 154,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268576",
+        "name": "Vườn hoa Thành phố Đà Lạt (Bản sao)",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 50000,
+        "carbon": 1,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-quang-truong-lam-vien-02.jpg"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "pending"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268577",
+        "name": "cơm chiên",
+        "type": "food",
+        "destination": "Đà Lạt",
+        "cost": 25000,
+        "carbon": 1.1,
+        "capacity": 1,
+        "images": [
+          "image/da-lat/da-lat-diem-ngam-thanh-pho-01.jpg"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268578",
+        "name": "Homestay làng chài Hòn Yến giảm nhựa",
+        "type": "stay",
+        "destination": "Phú Yên",
+        "cost": 480000,
+        "carbon": -2.4,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_hon_yen.png"
+        ],
+        "rating": 4.61,
+        "reviews_count": 74,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268579",
+        "name": "Trekking Langbiang cùng hướng dẫn viên bản địa",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 250000,
+        "carbon": -1.8,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-rung-thong-01.jpg"
+        ],
+        "rating": 4.76,
+        "reviews_count": 168,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857a",
+        "name": "Tham quan Chùa Linh Phước",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 0,
+        "carbon": -0.4,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-chua-linh-phuoc-01.jpg"
+        ],
+        "rating": 4.6,
+        "reviews_count": 177,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857b",
+        "name": "Homestay Xanh Đà Lạt",
+        "type": "stay",
+        "destination": "Đà Lạt",
+        "cost": 850000,
+        "carbon": 2.5,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_homestay_dalat.png"
+        ],
+        "rating": 4.7,
+        "reviews_count": 3,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857c",
+        "name": "Khám phá Ngũ Hành Sơn",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 70000,
+        "carbon": -0.9,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/da-nang-ba-na-hills-tuong-da-01.jpg"
+        ],
+        "rating": 4.66,
+        "reviews_count": 166,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857d",
+        "name": "Thuyền thúng rừng dừa Bảy Mẫu",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 180000,
+        "carbon": -1.4,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg"
+        ],
+        "rating": 4.73,
+        "reviews_count": 205,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857e",
+        "name": "Eco homestay gần phố cổ Hội An",
+        "type": "stay",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 720000,
+        "carbon": -2.7,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_hoi_an_eco.png"
+        ],
+        "rating": 4.81,
+        "reviews_count": 102,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726857f",
+        "name": "Trekking nhẹ Bãi Xép - Ghềnh Ông",
+        "type": "attraction",
+        "destination": "Phú Yên",
+        "cost": 45000,
+        "carbon": -1.1,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-bai-xep-checkin-01.jpg"
+        ],
+        "rating": 4.58,
+        "reviews_count": 145,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268580",
+        "name": "Hồ Xuân Hương",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 0,
+        "carbon": 1,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-ho-xuan-huong-01.jpg"
+        ],
+        "rating": 4,
+        "reviews_count": 1,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268581",
+        "name": "Cắm Trại Đồi Mây Đà Lạt",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 250000,
+        "carbon": 8,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-rung-thong-san-may-01.jpg"
+        ],
+        "rating": 5,
+        "reviews_count": 1,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268582",
+        "name": "Bếp Chay Lá Phong",
+        "type": "food",
+        "destination": "Đà Lạt",
+        "cost": 150000,
+        "carbon": 2,
+        "capacity": 10,
+        "images": [
+          "image/services/food_organic_vietnamese.png"
+        ],
+        "rating": 5,
+        "reviews_count": 1,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268583",
+        "name": "Homestay Rừng Thông Linh Kiên",
+        "type": "stay",
+        "destination": "Đà Lạt",
+        "cost": 1000000000,
+        "carbon": 10,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_mountain_cabin.png"
+        ],
+        "rating": 4.8,
+        "reviews_count": 35,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268584",
+        "name": "Vé tham quan Gành Đá Đĩa",
+        "type": "attraction",
+        "destination": "Phú Yên",
+        "cost": 60000,
+        "carbon": -1.2,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-bien-trong-01.jpg"
+        ],
+        "rating": 4.8,
+        "reviews_count": 232,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268585",
+        "name": "Đạp xe quanh Hồ Xuân Hương",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 80000,
+        "carbon": -2.1,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-doc-pho-01.jpg"
+        ],
+        "rating": 4.86,
+        "reviews_count": 251,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268586",
+        "name": "Check-in Quảng trường Lâm Viên",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 0,
+        "carbon": -0.5,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-quang-truong-lam-vien-01.jpg"
+        ],
+        "rating": 4.69,
+        "reviews_count": 310,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268587",
+        "name": "Chèo SUP hồ Tuyền Lâm",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 180000,
+        "carbon": -1.4,
+        "capacity": 10,
+        "images": [
+          "image/services/attraction_kayaking.png"
+        ],
+        "rating": 4.78,
+        "reviews_count": 192,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268588",
+        "name": "Tham quan Thiền viện Trúc Lâm",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 30000,
+        "carbon": -0.7,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-kien-truc-co-01.jpg"
+        ],
+        "rating": 4.65,
+        "reviews_count": 203,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268589",
+        "name": "Workshop cà phê Cầu Đất & nông trại hữu cơ",
+        "type": "food",
+        "destination": "Đà Lạt",
+        "cost": 160000,
+        "carbon": -1.6,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg"
+        ],
+        "rating": 4.72,
+        "reviews_count": 129,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858a",
+        "name": "Thuê xe đạp/xe điện Đà Lạt",
+        "type": "transport",
+        "destination": "Đà Lạt",
+        "cost": 120000,
+        "carbon": -3,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/hoi-an-pho-co-xe-dap-01.jpg"
+        ],
+        "rating": 4.51,
+        "reviews_count": 119,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858b",
+        "name": "Lưu trú xanh ven hồ Tuyền Lâm",
+        "type": "stay",
+        "destination": "Đà Lạt",
+        "cost": 650000,
+        "carbon": -2.8,
+        "capacity": 10,
+        "images": [
+          "image/services/stay_tuyen_lam_lake.png"
+        ],
+        "rating": 4.74,
+        "reviews_count": 86,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858c",
+        "name": "Thuê Xe Đạp Điện Đà Lạt Xanh",
+        "type": "transport",
+        "destination": "Đà Lạt",
+        "cost": 120000,
+        "carbon": 1.5,
+        "capacity": 10,
+        "images": [
+          "image/services/transport_green_bike.png"
+        ],
+        "rating": 4.6,
+        "reviews_count": 120,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858d",
+        "name": "Trà Chiều Hữu Cơ Cầu Đất",
+        "type": "food",
+        "destination": "Đà Lạt",
+        "cost": 95000,
+        "carbon": 2,
+        "capacity": 10,
+        "images": [
+          "image/services/food_local_cafe.png"
+        ],
+        "rating": 4.5,
+        "reviews_count": 15,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858e",
+        "name": "Phố cổ Hội An buổi tối",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 120000,
+        "carbon": -1.1,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg"
+        ],
+        "rating": 4.9,
+        "reviews_count": 396,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726858f",
+        "name": "Lớp nấu ăn làng rau Trà Quế",
+        "type": "food",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 350000,
+        "carbon": -1.6,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg"
+        ],
+        "rating": 4.79,
+        "reviews_count": 133,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268590",
+        "name": "Cù Lao Chàm snorkeling ít rác",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 650000,
+        "carbon": -2.2,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg"
+        ],
+        "rating": 4.77,
+        "reviews_count": 118,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268591",
+        "name": "Xe điện/xe ghép Đà Nẵng - Hội An",
+        "type": "transport",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 220000,
+        "carbon": -4.2,
+        "capacity": 10,
+        "images": [
+          "image/services/transport_electric_car.png"
+        ],
+        "rating": 4.57,
+        "reviews_count": 143,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268592",
+        "name": "Ngắm san hô Hòn Yến khi thủy triều xuống",
+        "type": "attraction",
+        "destination": "Phú Yên",
+        "cost": 120000,
+        "carbon": -1.7,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-bai-da-ven-bien-01.jpg"
+        ],
+        "rating": 4.67,
+        "reviews_count": 96,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268593",
+        "name": "Xe điện nhóm nhỏ Tuy Hòa - Tuy An",
+        "type": "transport",
+        "destination": "Phú Yên",
+        "cost": 180000,
+        "carbon": -3.2,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-duong-ven-bien-01.jpg"
+        ],
+        "rating": 4.55,
+        "reviews_count": 121,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268594",
+        "name": "Vườn hoa Thành phố Đà Lạt",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 50000,
+        "carbon": 1,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-vuon-hoa-01.jpg"
+        ],
+        "rating": 5,
+        "reviews_count": 1,
+        "status": "pending"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268595",
+        "name": "Khách Sạn Sinh Thái Đồi Mai Anh Đào",
+        "type": "stay",
+        "destination": "Đà lạt",
+        "cost": 100000,
+        "carbon": 2.7,
+        "capacity": 2,
+        "images": [
+          "image/services/stay_mai_anh_dao.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268596",
+        "name": "Linh Kiên Pine Hill Forest Retreat",
+        "type": "stay",
+        "destination": "Đà lạt",
+        "cost": 100000,
+        "carbon": 2.7,
+        "capacity": 2,
+        "images": [
+          "image/services/stay_pine_hill.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268597",
+        "name": "Homestay Hoa Dã Quỳ Đà Lạt",
+        "type": "stay",
+        "destination": "Đà lạt",
+        "cost": 100000,
+        "carbon": 2.7,
+        "capacity": 2,
+        "images": [
+          "image/services/stay_hoa_da_quy.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268598",
+        "name": "Eco Homestay Rừng Thông Đà Lạt",
+        "type": "stay",
+        "destination": "Đà lạt",
+        "cost": 100000,
+        "carbon": 2.7,
+        "capacity": 2,
+        "images": [
+          "image/services/stay_rung_thong.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268599",
+        "name": "Biệt Thự Xanh Tuyền Lâm",
+        "type": "stay",
+        "destination": "Đà lạt",
+        "cost": 100000,
+        "carbon": 2.7,
+        "capacity": 2,
+        "images": [
+          "image/services/stay_villa_tuyen_lam.png"
+        ],
+        "rating": 5,
+        "reviews_count": 0,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726859a",
+        "name": "Bữa hải sản đầm Ô Loan không nhựa dùng một lần",
+        "type": "food",
+        "destination": "Phú Yên",
+        "cost": 220000,
+        "carbon": -0.8,
+        "capacity": 10,
+        "images": [
+          "image/phu-yen/phu-yen-lang-chai-vung-ro-01.jpg"
+        ],
+        "rating": 4.72,
+        "reviews_count": 181,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726859b",
+        "name": "Thác Datanla máng trượt",
+        "type": "attraction",
+        "destination": "Đà Lạt",
+        "cost": 200000,
+        "carbon": 4,
+        "capacity": 10,
+        "images": [
+          "image/da-lat/da-lat-thac-nuoc-01.jpg"
+        ],
+        "rating": 2.5,
+        "reviews_count": 2,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726859c",
+        "name": "Dạo Cầu Rồng & sông Hàn buổi tối",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 0,
+        "carbon": -0.5,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg"
+        ],
+        "rating": 4.84,
+        "reviews_count": 342,
+        "status": "active"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726859d",
+        "name": "Vé Cầu Vàng - Bà Nà Hills",
+        "type": "attraction",
+        "destination": "Đà Nẵng - Hội An",
+        "cost": 950000,
+        "carbon": -0.8,
+        "capacity": 10,
+        "images": [
+          "image/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg"
+        ],
+        "rating": 4.71,
+        "reviews_count": 288,
+        "status": "active"
+      }
+    ],
+    "schedules": [
+      {
+        "_id": "6ad9ea44fba1913e972685a3",
+        "tour_name": "Phú Yên xanh: Gành Đá Đĩa - Đầm Ô Loan",
+        "destination": "Phú Yên",
+        "days": 2,
+        "total_cost": 2490000,
+        "total_carbon": -7.1,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2830000,
+          "rating": 4.75,
+          "votes_count": 126,
+          "image_url": "/image/greensteps/phu-yen/phu-yen-bai-da-ven-bien-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "07:30",
+            "name": "Đón khách tại Tuy Hòa bằng xe điện nhóm nhỏ",
+            "cost": 180000,
+            "carbon": -3.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268593",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:00",
+            "name": "Tham quan Gành Đá Đĩa và chụp ảnh bờ đá bazan",
+            "cost": 60000,
+            "carbon": -1.2,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268584",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:00",
+            "name": "Ăn trưa hải sản đầm Ô Loan, hạn chế nhựa dùng một lần",
+            "cost": 220000,
+            "carbon": -0.8,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e9726859a",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "15:30",
+            "name": "Ghé nhà thờ Mằng Lăng và nghe chuyện địa phương",
+            "cost": 40000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "07:30",
+            "name": "Đi bộ nhẹ Bãi Xép - Ghềnh Ông",
+            "cost": 45000,
+            "carbon": -1.1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726857f",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "11:00",
+            "name": "Tổng kết điểm xanh và trả khách tại Tuy Hòa",
+            "cost": 0,
+            "carbon": -0.2,
+            "type": "attraction",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685a5",
+        "tour_name": "Bình minh Mũi Điện - Bãi Môn - Vũng Rô",
+        "destination": "Phú Yên",
+        "days": 2,
+        "total_cost": 2690000,
+        "total_carbon": -9.3,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2924000,
+          "rating": 4.68,
+          "votes_count": 98,
+          "image_url": "/image/greensteps/phu-yen/phu-yen-mui-dien-bai-mon-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "04:45",
+            "name": "Xuất phát sớm đi Mũi Điện ngắm bình minh",
+            "cost": 50000,
+            "carbon": -1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268573",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "07:00",
+            "name": "Tắm Bãi Môn và dọn rác mini 15 phút",
+            "cost": 0,
+            "carbon": -1.4,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "10:30",
+            "name": "Tham quan Vũng Rô và nghe câu chuyện tàu không số",
+            "cost": 60000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "18:00",
+            "name": "Nhận phòng homestay địa phương",
+            "cost": 480000,
+            "carbon": -2.4,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e97268578",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:00",
+            "name": "Bữa sáng hải sản địa phương và cà phê Tuy Hòa",
+            "cost": 180000,
+            "carbon": -0.7,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e9726859a",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "13:00",
+            "name": "Xe điện về trung tâm, trả khách",
+            "cost": 180000,
+            "carbon": -3.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268593",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685a7",
+        "tour_name": "Bãi Xép - Ghềnh Ông - Tháp Nhạn 1 ngày",
+        "destination": "Phú Yên",
+        "days": 1,
+        "total_cost": 890000,
+        "total_carbon": -5.2,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 937000,
+          "rating": 4.55,
+          "votes_count": 84,
+          "image_url": "/image/greensteps/phu-yen/phu-yen-bai-xep-checkin-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "08:00",
+            "name": "Trekking nhẹ Bãi Xép - Ghềnh Ông",
+            "cost": 45000,
+            "carbon": -1.1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726857f",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "10:30",
+            "name": "Check-in Tháp Nhạn và tìm hiểu văn hóa Chăm",
+            "cost": 30000,
+            "carbon": -0.5,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:00",
+            "name": "Ăn trưa đặc sản mắt cá ngừ đại dương",
+            "cost": 180000,
+            "carbon": -0.4,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "15:30",
+            "name": "Xe điện dạo ven biển Tuy Hòa",
+            "cost": 180000,
+            "carbon": -3.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268593",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685a8",
+        "tour_name": "Hòn Yến - Nhất Tự Sơn - làng chài xanh",
+        "destination": "Phú Yên",
+        "days": 3,
+        "total_cost": 4590000,
+        "total_carbon": -10.2,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 5100000,
+          "rating": 4.7,
+          "votes_count": 112,
+          "image_url": "/image/greensteps/phu-yen/phu-yen-bien-trong-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "17:30",
+            "name": "Nhận phòng homestay làng chài Hòn Yến",
+            "cost": 480000,
+            "carbon": -2.4,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e97268578",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "07:30",
+            "name": "Di chuyển Nhất Tự Sơn, đi bộ theo con đường cát khi thủy triều phù hợp",
+            "cost": 120000,
+            "carbon": -1.2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "14:30",
+            "name": "Xe điện về Tuy Hòa nghỉ ngơi",
+            "cost": 180000,
+            "carbon": -3.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268593",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:00",
+            "name": "Ngắm san hô Hòn Yến khi thủy triều xuống",
+            "cost": 120000,
+            "carbon": -1.7,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268592",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:30",
+            "name": "Ăn trưa làng chài, nhắc không khai thác san hô",
+            "cost": 190000,
+            "carbon": -0.9,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "08:30",
+            "name": "Bữa sáng đầm Ô Loan và tổng kết hành trình xanh",
+            "cost": 220000,
+            "carbon": -0.8,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e9726859a",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685ae",
+        "tour_name": "Hồ Tuyền Lâm - Thiền viện Trúc Lâm - thác Datanla",
+        "destination": "Đà Lạt",
+        "days": 2,
+        "total_cost": 2790000,
+        "total_carbon": -9.6,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 3135000,
+          "rating": 4.78,
+          "votes_count": 149,
+          "image_url": "/image/greensteps/da-lat/da-lat-ho-tuyen-lam-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "08:00",
+            "name": "Chèo SUP hồ Tuyền Lâm",
+            "cost": 180000,
+            "carbon": -1.4,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268587",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "10:30",
+            "name": "Tham quan Thiền viện Trúc Lâm",
+            "cost": 30000,
+            "carbon": -0.7,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268588",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "14:00",
+            "name": "Trải nghiệm thác Datanla và alpine coaster",
+            "cost": 250000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "18:00",
+            "name": "Nghỉ ven hồ Tuyền Lâm",
+            "cost": 650000,
+            "carbon": -2.8,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e9726858b",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:30",
+            "name": "Đi bộ rừng thông và picnic không rác",
+            "cost": 120000,
+            "carbon": -1.1,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "14:00",
+            "name": "Xe điện/xe đạp về trung tâm Đà Lạt",
+            "cost": 120000,
+            "carbon": -3,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e9726858a",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685af",
+        "tour_name": "Săn mây Cầu Đất - Chùa Linh Phước - vườn hoa",
+        "destination": "Đà Lạt",
+        "days": 2,
+        "total_cost": 2490000,
+        "total_carbon": -6.8,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2649000,
+          "rating": 4.6,
+          "votes_count": 101,
+          "image_url": "/image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "04:45",
+            "name": "Săn mây Cầu Đất và thưởng trà nóng",
+            "cost": 160000,
+            "carbon": -1.6,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e97268589",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:30",
+            "name": "Tham quan Chùa Linh Phước",
+            "cost": 0,
+            "carbon": -0.4,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726857a",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:00",
+            "name": "Ăn trưa tại Trại Mát",
+            "cost": 150000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "16:00",
+            "name": "Tham quan vườn hoa theo mùa",
+            "cost": 100000,
+            "carbon": -0.7,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:00",
+            "name": "Đạp xe chậm quanh trung tâm",
+            "cost": 120000,
+            "carbon": -3,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e9726858a",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "11:00",
+            "name": "Tổng kết hành trình tại Quảng trường Lâm Viên",
+            "cost": 0,
+            "carbon": -0.5,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268586",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685b0",
+        "tour_name": "Đà Nẵng biển xanh: Sơn Trà - Linh Ứng - Cầu Rồng",
+        "destination": "Đà Nẵng - Hội An",
+        "days": 2,
+        "total_cost": 2990000,
+        "total_carbon": -8,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 3322000,
+          "rating": 4.81,
+          "votes_count": 178,
+          "image_url": "/image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-toan-canh-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "08:00",
+            "name": "Bán đảo Sơn Trà - Chùa Linh Ứng",
+            "cost": 50000,
+            "carbon": -1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268575",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:00",
+            "name": "Ăn trưa hải sản Đà Nẵng, chọn quán giảm nhựa",
+            "cost": 220000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "16:30",
+            "name": "Tắm biển Mỹ Khê và dọn rác mini 15 phút",
+            "cost": 0,
+            "carbon": -1.2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "20:00",
+            "name": "Dạo Cầu Rồng và sông Hàn buổi tối",
+            "cost": 0,
+            "carbon": -0.5,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726859c",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "09:00",
+            "name": "Xe ghép/xe điện di chuyển nội đô",
+            "cost": 220000,
+            "carbon": -4.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268591",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "11:30",
+            "name": "Ăn trưa địa phương, trả khách",
+            "cost": 180000,
+            "carbon": -0.5,
+            "type": "attraction",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685b1",
+        "tour_name": "Bà Nà Hills - Cầu Vàng trong mây",
+        "destination": "Đà Nẵng - Hội An",
+        "days": 1,
+        "total_cost": 1590000,
+        "total_carbon": -9.6,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 1728000,
+          "rating": 4.66,
+          "votes_count": 203,
+          "image_url": "/image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "07:30",
+            "name": "Xe ghép đi Bà Nà Hills",
+            "cost": 220000,
+            "carbon": -4.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268591",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:30",
+            "name": "Tham quan Cầu Vàng trong mây",
+            "cost": 950000,
+            "carbon": -0.8,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726859d",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:30",
+            "name": "Ăn trưa buffet trong khu du lịch",
+            "cost": 350000,
+            "carbon": -0.4,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "16:30",
+            "name": "Xe ghép về trung tâm Đà Nẵng",
+            "cost": 220000,
+            "carbon": -4.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268591",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685b2",
+        "tour_name": "Hội An di sản - rừng dừa Bảy Mẫu - Trà Quế",
+        "destination": "Đà Nẵng - Hội An",
+        "days": 2,
+        "total_cost": 3290000,
+        "total_carbon": -11.6,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 3739000,
+          "rating": 4.88,
+          "votes_count": 221,
+          "image_url": "/image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:00",
+            "name": "Lớp làm vườn và nấu ăn làng rau Trà Quế",
+            "cost": 350000,
+            "carbon": -1.6,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e9726858f",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "14:00",
+            "name": "Thuyền thúng rừng dừa Bảy Mẫu",
+            "cost": 180000,
+            "carbon": -1.4,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726857d",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "19:00",
+            "name": "Dạo phố cổ Hội An buổi tối",
+            "cost": 120000,
+            "carbon": -1.1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726858e",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "21:00",
+            "name": "Nhận phòng eco homestay gần phố cổ",
+            "cost": 720000,
+            "carbon": -2.7,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e9726857e",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:00",
+            "name": "Đi bộ chợ Hội An và thử cà phê địa phương",
+            "cost": 120000,
+            "carbon": -0.6,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "13:00",
+            "name": "Xe ghép về Đà Nẵng",
+            "cost": 220000,
+            "carbon": -4.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268591",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685b3",
+        "tour_name": "Ngũ Hành Sơn - Cù Lao Chàm - phố Hội",
+        "destination": "Đà Nẵng - Hội An",
+        "days": 3,
+        "total_cost": 5790000,
+        "total_carbon": -13.5,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 6433000,
+          "rating": 4.76,
+          "votes_count": 167,
+          "image_url": "/image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "19:00",
+            "name": "Dạo phố cổ Hội An",
+            "cost": 120000,
+            "carbon": -1.1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726858e",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:00",
+            "name": "Khám phá Ngũ Hành Sơn",
+            "cost": 70000,
+            "carbon": -0.9,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e9726857c",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "13:00",
+            "name": "Xe ghép đi Hội An",
+            "cost": 220000,
+            "carbon": -4.2,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e97268591",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "21:00",
+            "name": "Nghỉ eco homestay Hội An",
+            "cost": 720000,
+            "carbon": -2.7,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e9726857e",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "07:30",
+            "name": "Cù Lao Chàm snorkeling ít rác, không chạm san hô",
+            "cost": 650000,
+            "carbon": -2.2,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268590",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "17:30",
+            "name": "Ăn tối hải sản địa phương",
+            "cost": 260000,
+            "carbon": -0.8,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "08:30",
+            "name": "Lớp nấu ăn Trà Quế và tổng kết hành trình xanh",
+            "cost": 350000,
+            "carbon": -1.6,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e9726858f",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685b4",
+        "tour_name": "Langbiang - làng Cù Lần - nông trại cà phê",
+        "destination": "Đà Lạt",
+        "days": 2,
+        "total_cost": 2590000,
+        "total_carbon": -10.8,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2846000,
+          "rating": 4.73,
+          "votes_count": 134,
+          "image_url": "/image/greensteps/da-lat/da-lat-toan-canh-thanh-pho-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "07:30",
+            "name": "Trekking Langbiang cùng hướng dẫn viên bản địa",
+            "cost": 250000,
+            "carbon": -1.8,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268579",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:30",
+            "name": "Ăn trưa món cao nguyên tại Lạc Dương",
+            "cost": 170000,
+            "carbon": -0.7,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "15:00",
+            "name": "Ghé làng Cù Lần, tìm hiểu văn hóa bản địa",
+            "cost": 120000,
+            "carbon": -0.9,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "19:00",
+            "name": "Nhận phòng homestay xanh ven rừng thông",
+            "cost": 650000,
+            "carbon": -2.8,
+            "type": "lodging",
+            "service_id": "6ad9ea44fba1913e9726858b",
+            "is_shared": true
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:30",
+            "name": "Workshop cà phê và nông trại hữu cơ",
+            "cost": 160000,
+            "carbon": -1.6,
+            "type": "dining",
+            "service_id": "6ad9ea44fba1913e97268589",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "14:00",
+            "name": "Di chuyển xe điện/xe đạp về trung tâm",
+            "cost": 120000,
+            "carbon": -3,
+            "type": "transport",
+            "service_id": "6ad9ea44fba1913e9726858a",
+            "is_shared": true
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685bd",
+        "tour_name": "Tour Sinh Thái Đà Lạt Lãng Mạn 3N2Đ",
+        "destination": "Đà Lạt",
+        "days": 3,
+        "total_cost": 1950000,
+        "total_carbon": -15.5,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2200000,
+          "rating": 4.8,
+          "votes_count": 18,
+          "image_url": "image/cb4fbf769d60d911e13c255f7fb39dcc.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "08:00",
+            "name": "Đón khách tại sân bay Liên Khương bằng xe điện",
+            "cost": 0,
+            "carbon": 0.2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "10:30",
+            "name": "Nhận phòng Homestay Rừng Thông Eco",
+            "cost": 450000,
+            "carbon": -2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "14:00",
+            "name": "Tản bộ ngắm cảnh Hồ Xuân Hương trong lành",
+            "cost": 0,
+            "carbon": 0,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "08:30",
+            "name": "Tham quan và hái dâu tại vườn sinh học hữu cơ",
+            "cost": 150000,
+            "carbon": -1.5,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "12:00",
+            "name": "Ăn trưa cơm chay thực dưỡng Đà Lạt",
+            "cost": 120000,
+            "carbon": -0.8,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "15:00",
+            "name": "Khám phá KDL Thác Datanla & trượt máng sinh thái",
+            "cost": 250000,
+            "carbon": 0.5,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "09:00",
+            "name": "Săn mây đồi chè Cầu Đất organic",
+            "cost": 80000,
+            "carbon": -1.2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "14:30",
+            "name": "Tiễn khách ra sân bay / Bến xe",
+            "cost": 0,
+            "carbon": 0.2,
+            "type": "attraction",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685be",
+        "tour_name": "Tour Phú Yên Hoang Sơ Gành Đá Đĩa 3N2Đ",
+        "destination": "Phú Yên",
+        "days": 3,
+        "total_cost": 2450000,
+        "total_carbon": -22.4,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 2800000,
+          "rating": 4.7,
+          "votes_count": 22,
+          "image_url": "image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "09:00",
+            "name": "Đón khách tại sân bay Tuy Hòa",
+            "cost": 0,
+            "carbon": 0.3,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "11:00",
+            "name": "Nhận phòng Bungalow Tre Việt sát biển",
+            "cost": 600000,
+            "carbon": -3,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "16:00",
+            "name": "Check-in Tháp Nhạn cổ kính",
+            "cost": 20000,
+            "carbon": 0.1,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "04:30",
+            "name": "Săn bình minh đầu tiên tại Mũi Điện cực Đông",
+            "cost": 120000,
+            "carbon": 0.2,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "12:00",
+            "name": "Ăn trưa hải sản tươi sống Đầm Ô Loan sinh thái",
+            "cost": 350000,
+            "carbon": 1.5,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 2,
+            "time": "14:30",
+            "name": "Khám phá danh thắng quốc gia Gành Đá Đĩa",
+            "cost": 100000,
+            "carbon": 0,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "08:30",
+            "name": "Trải nghiệm chèo thuyền kayak sinh thái Bãi Xép",
+            "cost": 150000,
+            "carbon": 0,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 3,
+            "time": "14:00",
+            "name": "Mua sắm đặc sản Tuy Hòa & Tiễn sân bay",
+            "cost": 0,
+            "carbon": 0.3,
+            "type": "attraction",
+            "is_shared": false
+          }
+        ]
+      },
+      {
+        "_id": "6ad9ea44fba1913e972685c4",
+        "tour_name": "Đà Lạt chill: Hồ Xuân Hương - Quảng trường Lâm Viên",
+        "destination": "Đà Lạt",
+        "days": 1,
+        "total_cost": 790000,
+        "total_carbon": -3.7,
+        "is_sample": true,
+        "sample_details": {
+          "old_cost": 849000,
+          "rating": 4.82,
+          "votes_count": 156,
+          "image_url": "/image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg"
+        },
+        "activities": [
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "08:00",
+            "name": "Đạp xe quanh Hồ Xuân Hương",
+            "cost": 80000,
+            "carbon": -2.1,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268585",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "10:00",
+            "name": "Check-in Quảng trường Lâm Viên",
+            "cost": 0,
+            "carbon": -0.5,
+            "type": "attraction",
+            "service_id": "6ad9ea44fba1913e97268586",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "12:00",
+            "name": "Ăn trưa món Đà Lạt, ưu tiên quán dùng vật liệu tái sử dụng",
+            "cost": 150000,
+            "carbon": -0.7,
+            "type": "attraction",
+            "is_shared": false
+          },
+          {
+            "_id": "undefined",
+            "day_number": 1,
+            "time": "18:30",
+            "name": "Dạo chợ đêm Đà Lạt và mua đặc sản địa phương",
+            "cost": 80000,
+            "carbon": -0.4,
+            "type": "attraction",
+            "is_shared": false
+          }
+        ]
+      }
+    ],
+    "badges": [
+      {
+        "_id": "6ad9ea44fba1913e9726865a",
+        "name": "green",
+        "icon_url": "",
+        "description": "Chứng nhận sinh thái xanh thân thiện môi trường",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726865b",
+        "name": "budget",
+        "icon_url": "",
+        "description": "Giá cả tiết kiệm, phù hợp ngân sách học sinh sinh viên",
+        "scope": "user"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726865c",
+        "name": "bestseller",
+        "icon_url": "",
+        "description": "Sản phẩm/dịch vụ lữ hành bán chạy nhất hệ thống",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726865d",
+        "name": "BADGE_ECO_LOWCO2",
+        "icon_url": "",
+        "description": "Lịch trình/dịch vụ có chỉ số giảm phát thải tốt, ưu tiên đi bộ, xe điện hoặc hoạt động ít rác.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726865e",
+        "name": "BADGE_LOCAL_CULTURE",
+        "icon_url": "",
+        "description": "Tôn trọng văn hóa bản địa, có hoạt động với cộng đồng địa phương.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e9726865f",
+        "name": "BADGE_GREEN_TRANSPORT",
+        "icon_url": "",
+        "description": "Ưu tiên phương tiện xanh: xe điện, xe đạp, đi bộ hoặc chia sẻ xe.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268660",
+        "name": "BADGE_NATURE_PROTECT",
+        "icon_url": "",
+        "description": "Gắn với bảo tồn thiên nhiên, hạn chế nhựa dùng một lần và giữ cảnh quan sạch.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268661",
+        "name": "BADGE_SEA_CLEAN",
+        "icon_url": "",
+        "description": "Phù hợp du lịch biển xanh, nhắc nhở không xả rác và không chạm san hô.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268662",
+        "name": "BADGE_SLOW_TRAVEL",
+        "icon_url": "",
+        "description": "Lịch trình chậm, ít di chuyển dồn dập, tăng trải nghiệm địa phương.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268663",
+        "name": "BADGE_FAMILY_FRIENDLY",
+        "icon_url": "",
+        "description": "Phù hợp gia đình, hoạt động nhẹ và an toàn.",
+        "scope": "schedule"
+      },
+      {
+        "_id": "6ad9ea44fba1913e97268664",
+        "name": "BADGE_STAY_GREEN",
+        "icon_url": "",
+        "description": "Lưu trú xanh hoặc ưu tiên cơ sở giảm nhựa, tiết kiệm năng lượng.",
+        "scope": "schedule"
+      }
+    ],
+    "adcampaigns": [
+      {
+        "_id": "6ad9ea44fba1913e97268665",
+        "campaign_name": "Chiến dịch du lịch mùa hè rực rỡ",
+        "campaign_type": "top_recommend",
+        "duration_days": 30,
+        "start_date": "2026-05-31T17:00:00.000Z",
+        "end_date": "2026-06-30T17:00:00.000Z",
+        "discount_percent": 10,
+        "status": "active",
+        "service_id": "6ad9ea44fba1913e9726857b",
+        "created_at": "2026-07-07T13:44:29.742Z",
+        "updated_at": "2026-07-07T13:44:29.742Z"
+      }
+    ]
+  }
+}\n
