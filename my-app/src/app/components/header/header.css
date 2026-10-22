@@ -22,13 +22,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #184a37;
   text-decoration: none;
   padding: 0.5rem 0.25rem;
   transition: color 0.25s ease;
   cursor: pointer;
+  white-space: nowrap !important;
+  flex-shrink: 0;
 }
 
 .nav-tab-item:hover,

@@ -6,15 +6,15 @@
     <!-- ════════════════════════════════════════════════════════
          MAIN HEADER ROW — 3 độc lập divs: Logo | Nav | Controls
     ════════════════════════════════════════════════════════ -->
-    <div #headerWrapper class="mx-auto flex max-w-[1720px] px-6 lg:px-12" style="height: 88px;">
+    <div #headerWrapper class="mx-auto flex max-w-[1720px] items-center justify-between px-6 lg:px-10" style="height: 88px;">
 
-        <!-- ── DIV 1: LOGO (cố định, flex-shrink-0) ── -->
-        <div class="flex items-center flex-shrink-0" style="width: 300px;">
+        <!-- ── DIV 1: LOGO (flex-shrink-0) ── -->
+        <div class="flex items-center flex-shrink-0 mr-4 lg:mr-8">
             <a routerLink="/home"
                class="flex items-center gap-3 px-1 py-1 transition-all duration-300 hover:opacity-90"
                style="text-decoration: none;">
                 <img src="image/greensteps_logo_header.png"
-                     class="h-14 w-14 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)] transition-all duration-300"
+                     class="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)] transition-all duration-300"
                      alt="GreenSteps">
                 <span class="flex flex-col leading-none">
                     <span class="text-[20px] font-extrabold tracking-normal drop-shadow-[0_1px_3px_rgba(0,0,0,0.26)] transition-colors duration-300"
@@ -29,158 +29,155 @@
             </a>
         </div>
 
-        <!-- ── DIV 2: NAV TABS (Shop.co Navigation Menu) ── -->
-        <div class="flex-1 flex items-center justify-start lg:justify-center overflow-visible"
+        <!-- ── DIV 2: NAV TABS (flex-shrink-0, Shop.co Navigation Menu) ── -->
+        <nav #navContainer
+             class="hidden md:flex items-center gap-5 xl:gap-7 flex-shrink-0"
              style="height: 88px;">
-            <nav #navContainer
-                 class="header-main-nav flex items-center gap-6"
-                 style="height: 88px; flex-wrap: nowrap;">
 
-                <!-- 1. Cộng đồng -->
-                <a routerLink="/community"
-                   routerLinkActive="active-nav-tab"
+            <!-- 1. Cộng đồng -->
+            <a routerLink="/community"
+               routerLinkActive="active-nav-tab"
+               class="nav-tab-item"
+               [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                Cộng đồng
+            </a>
+
+            <!-- 2. Chuyến đi trọn gói (Tours) -->
+            <a routerLink="/tours"
+               routerLinkActive="active-nav-tab"
+               class="nav-tab-item"
+               [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                Chuyến đi trọn gói
+            </a>
+
+            <!-- 3. Dịch vụ du lịch (Shop.co Mega Dropdown Menu) -->
+            <div class="nav-dropdown-group">
+                <a routerLink="/services"
+                   [class.active-nav-tab]="isServicesActive()"
                    class="nav-tab-item"
                    [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
-                    Cộng đồng
+                    <span>Dịch vụ du lịch</span>
+                    <i class="bi bi-chevron-down chevron-icon"></i>
                 </a>
 
-                <!-- 2. Chuyến đi trọn gói (Tours) -->
-                <a routerLink="/tours"
-                   routerLinkActive="active-nav-tab"
-                   class="nav-tab-item"
-                   [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
-                    Chuyến đi trọn gói
-                </a>
+                <!-- Mega Dropdown Panel (Shop.co NavigationMenuContent) -->
+                <div class="mega-dropdown-menu">
+                    <div class="mega-menu-grid">
+                        <!-- Stay -->
+                        <a routerLink="/services" [queryParams]="{ type: 'stay' }" class="mega-menu-item">
+                            <div class="mega-menu-icon-box">
+                                <i class="bi bi-house-door-fill"></i>
+                            </div>
+                            <div class="mega-menu-content">
+                                <span class="mega-menu-title">Lưu Trú Sinh Thái</span>
+                                <p class="mega-menu-desc">Resort, Ecolodge & Homestay Net-Zero tiết kiệm năng lượng</p>
+                            </div>
+                        </a>
 
-                <!-- 3. Dịch vụ du lịch (Shop.co Mega Dropdown Menu) -->
-                <div class="nav-dropdown-group">
-                    <a routerLink="/services"
-                       [class.active-nav-tab]="isServicesActive()"
-                       class="nav-tab-item"
-                       [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
-                        <span>Dịch vụ du lịch</span>
-                        <i class="bi bi-chevron-down chevron-icon"></i>
-                    </a>
+                        <!-- Transport -->
+                        <a routerLink="/services" [queryParams]="{ type: 'transport' }" class="mega-menu-item">
+                            <div class="mega-menu-icon-box">
+                                <i class="bi bi-lightning-charge-fill"></i>
+                            </div>
+                            <div class="mega-menu-content">
+                                <span class="mega-menu-title">Di Chuyển Xanh</span>
+                                <p class="mega-menu-desc">Xe buýt điện, xe đạp tre sinh thái và tàu mặt trời</p>
+                            </div>
+                        </a>
 
-                    <!-- Mega Dropdown Panel (Shop.co NavigationMenuContent) -->
-                    <div class="mega-dropdown-menu">
-                        <div class="mega-menu-grid">
-                            <!-- Stay -->
-                            <a routerLink="/services" [queryParams]="{ type: 'stay' }" class="mega-menu-item">
-                                <div class="mega-menu-icon-box">
-                                    <i class="bi bi-house-door-fill"></i>
-                                </div>
-                                <div class="mega-menu-content">
-                                    <span class="mega-menu-title">Lưu Trú Sinh Thái</span>
-                                    <p class="mega-menu-desc">Resort, Ecolodge & Homestay Net-Zero tiết kiệm năng lượng</p>
-                                </div>
-                            </a>
+                        <!-- Food -->
+                        <a routerLink="/services" [queryParams]="{ type: 'food' }" class="mega-menu-item">
+                            <div class="mega-menu-icon-box">
+                                <i class="bi bi-egg-fried"></i>
+                            </div>
+                            <div class="mega-menu-content">
+                                <span class="mega-menu-title">Ẩm Thực Hữu Cơ</span>
+                                <p class="mega-menu-desc">Thực dưỡng chay thanh tịnh, nông sản Farm-to-Table</p>
+                            </div>
+                        </a>
 
-                            <!-- Transport -->
-                            <a routerLink="/services" [queryParams]="{ type: 'transport' }" class="mega-menu-item">
-                                <div class="mega-menu-icon-box">
-                                    <i class="bi bi-lightning-charge-fill"></i>
-                                </div>
-                                <div class="mega-menu-content">
-                                    <span class="mega-menu-title">Di Chuyển Xanh</span>
-                                    <p class="mega-menu-desc">Xe buýt điện, xe đạp tre sinh thái và tàu mặt trời</p>
-                                </div>
-                            </a>
-
-                            <!-- Food -->
-                            <a routerLink="/services" [queryParams]="{ type: 'food' }" class="mega-menu-item">
-                                <div class="mega-menu-icon-box">
-                                    <i class="bi bi-egg-fried"></i>
-                                </div>
-                                <div class="mega-menu-content">
-                                    <span class="mega-menu-title">Ẩm Thực Hữu Cơ</span>
-                                    <p class="mega-menu-desc">Thực dưỡng chay thanh tịnh, nông sản Farm-to-Table</p>
-                                </div>
-                            </a>
-
-                            <!-- Attraction -->
-                            <a routerLink="/services" [queryParams]="{ type: 'attraction' }" class="mega-menu-item">
-                                <div class="mega-menu-icon-box">
-                                    <i class="bi bi-compass-fill"></i>
-                                </div>
-                                <div class="mega-menu-content">
-                                    <span class="mega-menu-title">Trải Nghiệm Sinh Thái</span>
-                                    <p class="mega-menu-desc">Vườn quốc gia, khu bảo tồn và hoạt động thiện nguyện</p>
-                                </div>
-                            </a>
-                        </div>
-
-                        <div class="mega-menu-footer">
-                            <span class="text-xs text-gray-500 font-medium">Cam kết Net-Zero & Giảm phát thải CO₂</span>
-                            <a routerLink="/services" class="mega-menu-footer-link">
-                                <span>Khám phá 20+ dịch vụ</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </a>
-                        </div>
+                        <!-- Attraction -->
+                        <a routerLink="/services" [queryParams]="{ type: 'attraction' }" class="mega-menu-item">
+                            <div class="mega-menu-icon-box">
+                                <i class="bi bi-compass-fill"></i>
+                            </div>
+                            <div class="mega-menu-content">
+                                <span class="mega-menu-title">Trải Nghiệm Sinh Thái</span>
+                                <p class="mega-menu-desc">Vườn quốc gia, khu bảo tồn và hoạt động thiện nguyện</p>
+                            </div>
+                        </a>
                     </div>
-                </div>
 
-                <!-- 4. Lịch trình của tôi -->
-                <a (click)="handleAiPlannerClick()"
-                   [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
-                   class="nav-tab-item"
-                   [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
-                    Lịch trình của tôi
-                </a>
-
-                <!-- Provider / Admin Specific Tabs (if logged in) -->
-                <ng-container *ngIf="currentUser && currentUser.role === 'provider'">
-                    <a routerLink="/partner-dashboard" routerLinkActive="active-nav-tab" class="nav-tab-item text-[#184A37]">
-                        Đối tác
-                    </a>
-                </ng-container>
-                <ng-container *ngIf="currentUser && currentUser.role === 'admin'">
-                    <a routerLink="/admin" routerLinkActive="active-nav-tab" class="nav-tab-item text-[#184A37]">
-                        Quản trị
-                    </a>
-                </ng-container>
-            </nav>
-        </div>
-
-        <!-- ── DIV 3: SEARCH PILL + PROFILE (Shop.co InputGroup & Actions) ── -->
-        <div class="flex items-center justify-end gap-3 flex-shrink-0" style="width: 480px;">
-
-            <!-- Shop.co Pill Search Bar -->
-            <div class="hidden xl:flex items-center shopco-header-search max-w-[260px]">
-                <div class="shopco-search-pill">
-                    <i class="bi bi-search text-gray-400 text-sm"></i>
-                    <input type="text"
-                           [(ngModel)]="smartSearchQuery"
-                           (focus)="isSearchDropdownActive = true"
-                           (keypress)="onSearchKeypress($event)"
-                           placeholder="Tìm tour, điểm đến...">
-                    <button *ngIf="smartSearchQuery" (click)="smartSearchQuery = ''" class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0">
-                        <i class="bi bi-x-circle-fill text-xs"></i>
-                    </button>
-                </div>
-
-                <!-- Search Suggestions -->
-                <div *ngIf="isSearchDropdownActive && smartSearchQuery"
-                     class="shopco-search-suggestions">
-                    <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3 py-1">Gợi ý nhanh</div>
-                    <div (click)="selectSearchDest('Đà Lạt')" class="search-suggestion-item">
-                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                        <span>Đà Lạt - Rừng thông Net-Zero</span>
-                    </div>
-                    <div (click)="selectSearchDest('Phú Yên')" class="search-suggestion-item">
-                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                        <span>Phú Yên - Hoa vàng cỏ xanh</span>
-                    </div>
-                    <div (click)="selectSearchDest('Hội An')" class="search-suggestion-item">
-                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                        <span>Hội An - Di sản không rác thải</span>
-                    </div>
-                    <div (click)="triggerSearch()" class="search-all-action">
-                        <i class="bi bi-search"></i>
-                        <span>Tìm kiếm cho "{{ smartSearchQuery }}"</span>
+                    <div class="mega-menu-footer">
+                        <span class="text-xs text-gray-500 font-medium">Cam kết Net-Zero & Giảm phát thải CO₂</span>
+                        <a routerLink="/services" class="mega-menu-footer-link">
+                            <span>Khám phá 20+ dịch vụ</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
+
+            <!-- 4. Lịch trình của tôi -->
+            <a (click)="handleAiPlannerClick()"
+               [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
+               class="nav-tab-item"
+               [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                Lịch trình của tôi
+            </a>
+
+            <!-- Provider / Admin Specific Tabs (if logged in) -->
+            <ng-container *ngIf="currentUser && currentUser.role === 'provider'">
+                <a routerLink="/partner-dashboard" routerLinkActive="active-nav-tab" class="nav-tab-item text-[#184A37]">
+                    Đối tác
+                </a>
+            </ng-container>
+            <ng-container *ngIf="currentUser && currentUser.role === 'admin'">
+                <a routerLink="/admin" routerLinkActive="active-nav-tab" class="nav-tab-item text-[#184A37]">
+                    Quản trị
+                </a>
+            </ng-container>
+        </nav>
+
+        <!-- ── DIV 3: SEARCH PILL (Shop.co style, flex-1 max-w-[260px]) ── -->
+        <div class="hidden xl:flex items-center flex-1 max-w-[260px] mx-4 shopco-header-search">
+            <div class="shopco-search-pill">
+                <i class="bi bi-search text-gray-400 text-sm"></i>
+                <input type="text"
+                       [(ngModel)]="smartSearchQuery"
+                       (focus)="isSearchDropdownActive = true"
+                       (keypress)="onSearchKeypress($event)"
+                       placeholder="Tìm tour, điểm đến...">
+                <button *ngIf="smartSearchQuery" (click)="smartSearchQuery = ''" class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0">
+                    <i class="bi bi-x-circle-fill text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Search Suggestions -->
+            <div *ngIf="isSearchDropdownActive && smartSearchQuery"
+                 class="shopco-search-suggestions">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3 py-1">Gợi ý nhanh</div>
+                <div (click)="selectSearchDest('Đà Lạt')" class="search-suggestion-item">
+                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                    <span>Đà Lạt - Rừng thông Net-Zero</span>
+                </div>
+                <div (click)="selectSearchDest('Phú Yên')" class="search-suggestion-item">
+                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                    <span>Phú Yên - Hoa vàng cỏ xanh</span>
+                </div>
+                <div (click)="selectSearchDest('Hội An')" class="search-suggestion-item">
+                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                    <span>Hội An - Di sản không rác thải</span>
+                </div>
+                <div (click)="triggerSearch()" class="search-all-action">
+                    <i class="bi bi-search"></i>
+                    <span>Tìm kiếm cho "{{ smartSearchQuery }}"</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── DIV 4: CONTROLS (flex-shrink-0, Notifications + Profile / Login) ── -->
+        <div class="flex items-center justify-end gap-3 flex-shrink-0 ml-auto">
 
             <!-- Notifications -->
             <div class="relative">
