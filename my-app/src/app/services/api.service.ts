@@ -90,7 +90,7 @@ export class ApiService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    if (id && (id.toLowerCase().startsWith('srv_') || id.startsWith('SRV_'))) {
+    if (id && (id.toLowerCase().startsWith('srv_') || id.toLowerCase().startsWith('srv-') || id.startsWith('SRV_') || id.startsWith('SRV-'))) {
       try {
         const s = await this.getServiceDetails(id);
         if (s) {
@@ -152,7 +152,9 @@ export class ApiService {
       console.warn('Failed to fetch preset tour details, falling back:', e);
       const cleanId = String(id).replace('preset_', '');
       const tours = await this.getPresetTours();
-      const tour = tours.find(t => t.id === id || String(t.id).replace('preset_', '') === cleanId) || null;
+      const tour = tours.find(t => t.id === id || String(t.id).replace('preset_', '') === cleanId || String(t.id) === cleanId)
+        || DEFAULT_TOURS.find(t => t.id === id || String(t.id).replace('preset_', '') === cleanId || String(t.id) === cleanId)
+        || null;
       if (tour) {
         this.setCachedData(cacheKey, tour);
       }
@@ -999,10 +1001,14 @@ export class ApiService {
   // Cải tiến Quản trị Đối tác (Partner Dashboard Upgrades)
   public async getServiceDetails(id: string): Promise<any> {
     try {
-      return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/services/${id}`, { withCredentials: true }));
+      const res = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/services/${id}`, { withCredentials: true }));
+      if (res) return res;
     } catch (e) {
-      return null;
+      // ignore
     }
+    const cleanId = String(id).toLowerCase();
+    const fallback = DEFAULT_SERVICES.find(s => s.id === id || String(s.id).toLowerCase() === cleanId) || null;
+    return fallback;
   }
 
   public async getServiceAsTour(id: string): Promise<Tour | null> {

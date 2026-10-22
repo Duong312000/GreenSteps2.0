@@ -145,20 +145,39 @@ export class TourDetailComponent implements OnInit {
     const liked = JSON.parse(localStorage.getItem('greensteps_liked_reviews') || '[]');
     this.likedReviewsSet = new Set<string>(liked);
 
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.isServiceDetail = this.route.snapshot.routeConfig?.path?.startsWith('services') || false;
-      this.activeTour = this.isServiceDetail ? await this.apiService.getServiceAsTour(id) : await this.apiService.getPresetTour(id);
-      this.isServiceDetail = this.isServiceDetail || !!this.activeTour?.isService;
-      if (this.activeTour) {
-        this.setupSlides();
-        await this.loadReviews(id);
+    this.route.paramMap.subscribe(async (params) => {
+      const id = params.get('id');
+      if (id) {
+        this.isPageLoading = true;
+        const isService = this.route.snapshot.routeConfig?.path?.startsWith('services') ||
+                          this.route.snapshot.routeConfig?.path?.startsWith('service-detail') ||
+                          id.toLowerCase().startsWith('srv_') ||
+                          id.toLowerCase().startsWith('srv-');
+
+        if (isService) {
+          this.activeTour = await this.apiService.getServiceAsTour(id);
+          if (!this.activeTour) {
+            this.activeTour = await this.apiService.getPresetTour(id);
+          }
+        } else {
+          this.activeTour = await this.apiService.getPresetTour(id);
+          if (!this.activeTour) {
+            this.activeTour = await this.apiService.getServiceAsTour(id);
+          }
+        }
+
+        this.isServiceDetail = !!this.activeTour?.isService || isService;
+        if (this.activeTour) {
+          this.setupSlides();
+          await this.loadReviews(id);
+        }
+        this.isPageLoading = false;
+        this.cdr.detectChanges();
+      } else {
+        this.isPageLoading = false;
+        this.cdr.detectChanges();
       }
-      this.isPageLoading = false;
-      this.cdr.detectChanges();
-    } else {
-      this.isPageLoading = false;
-    }
+    });
   }
 
 
@@ -170,7 +189,15 @@ export class TourDetailComponent implements OnInit {
     let rawImages = [coverImage, ...galleryImages];
 
     if (this.activeTour.isService) {
+      if (galleryImages.length === 0) {
+        const dest = this.activeTour.destination || 'Đà Lạt';
+        const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
+        rawImages = [coverImage, ...destImgs.slice(0, 4)];
+      }
       this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img));
+      if (this.slideImages.length === 0) {
+        this.slideImages = [coverImage];
+      }
       this.activeSlideIndex = 0;
       return;
     }
@@ -375,7 +402,7 @@ export class TourDetailComponent implements OnInit {
 
   // REVIEWS & COMMENTS FEATURE INTEGRATION
   public async loadReviews(tourId: string) {
-    if (this.activeTour?.isService || (tourId && (tourId.toLowerCase().startsWith('srv_') || tourId.startsWith('SRV_')))) {
+    if (this.activeTour?.isService || (tourId && (tourId.toLowerCase().startsWith('srv_') || tourId.toLowerCase().startsWith('srv-') || tourId.startsWith('SRV_')))) {
       this.reviewsList = await this.apiService.getServiceReviews(tourId);
     } else {
       this.reviewsList = await this.apiService.getTourReviews(tourId);

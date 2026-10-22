@@ -155,9 +155,9 @@
 
         <!-- Product Cards Grid (Shop.co 3-column Grid) -->
         <div *ngIf="paginatedServices.length > 0; else noResults" class="shopco-products-grid">
-          <div *ngFor="let s of paginatedServices" class="shopco-product-card">
+          <div *ngFor="let s of paginatedServices" class="shopco-product-card" [routerLink]="['/tour-detail', s.id]" style="cursor: pointer;">
             <!-- Image Container -->
-            <div class="card-img-container" [routerLink]="['/tour-detail', s.id]">
+            <div class="card-img-container">
               <img [src]="s.image_url || 'image/services/stay_homestay_dalat.png'" 
                    [alt]="s.name" 
                    class="card-img" 

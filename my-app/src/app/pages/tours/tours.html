@@ -152,9 +152,9 @@
 
         <!-- Product Cards Grid (Shop.co 3-column Grid) -->
         <div *ngIf="paginatedTours.length > 0; else noResults" class="shopco-products-grid">
-          <div *ngFor="let tour of paginatedTours" class="shopco-product-card">
+          <div *ngFor="let tour of paginatedTours" class="shopco-product-card" [routerLink]="['/tour-detail', tour.id]" style="cursor: pointer;">
             <!-- Image Container -->
-            <div class="card-img-container" [routerLink]="['/tour-detail', tour.id]">
+            <div class="card-img-container">
               <img [src]="tour.image || 'image/da-lat/da-lat-rung-thong-01.jpg'" [alt]="tour.title" class="card-img"
                 onerror="this.src='image/Viet Nam.png'">
 
