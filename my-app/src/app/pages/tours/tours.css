@@ -11,6 +11,7 @@
 
 .shopco-main {
   min-height: 85vh;
+  padding-top: 104px;
   padding-bottom: 5rem;
 }
 
@@ -71,7 +72,7 @@
   padding: 1.5rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   position: sticky;
-  top: 90px;
+  top: 104px;
 }
 
 .filter-header {

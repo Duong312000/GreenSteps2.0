@@ -26,23 +26,7 @@
 
         <hr class="shopco-divider" />
 
-        <!-- 1. Categories Section (Shop.co CategoriesSection) -->
-        <div class="filter-section">
-          <h4 class="filter-section-title">Danh Mục Dịch Vụ</h4>
-          <div class="categories-list">
-            <div *ngFor="let cat of categories" 
-                 (click)="selectCategory(cat)"
-                 class="category-item" 
-                 [class.active]="cat.id === 'tours'">
-              <span class="category-name">{{ cat.name }}</span>
-              <i class="bi bi-chevron-right chevron-icon"></i>
-            </div>
-          </div>
-        </div>
-
-        <hr class="shopco-divider" />
-
-        <!-- 2. Destination Section -->
+        <!-- 1. Destination Section -->
         <div class="filter-section">
           <h4 class="filter-section-title">Điểm Đến</h4>
           <div class="destinations-pill-list">
