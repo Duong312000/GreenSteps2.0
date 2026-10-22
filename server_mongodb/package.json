@@ -1,0 +1,44 @@
+{
+  "name": "server_mongodb",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "greenstep",
+    "mongodb"
+  ],
+  "homepage": "https://github.com/Duong312000/GreenSteps2.0#readme",
+  "bugs": {
+    "url": "https://github.com/Duong312000/GreenSteps2.0/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Duong312000/GreenSteps2.0.git"
+  },
+  "license": "ISC",
+  "author": "GreenSteps team",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "seed": "node scripts/seed.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.3.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "express-fileupload": "^1.5.2",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoclient": "^1.0.3",
+    "mongodb": "^7.7.0",
+    "mongoose": "^9.11.3"
+  },
+  "devDependencies": {
+    "morgan": "^1.12.1",
+    "nodemon": "^3.1.14"
+  }
+}
