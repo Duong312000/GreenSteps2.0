@@ -19,10 +19,10 @@
   grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
   grid-template-rows: minmax(0, 1fr);
   box-sizing: border-box;
-  width: min(1120px, 100%);
+  width: min(920px, 100%);
   min-height: 0;
-  height: min(760px, calc(100vh - 2 * var(--auth-gutter)));
-  height: min(760px, calc(100dvh - 2 * var(--auth-gutter)));
+  height: min(620px, calc(100vh - 2 * var(--auth-gutter)));
+  height: min(620px, calc(100dvh - 2 * var(--auth-gutter)));
   max-height: 100%;
   overflow: hidden;
   border-radius: 18px;
@@ -43,7 +43,7 @@
   border: 1px solid rgba(5, 95, 70, 0.08);
   border-radius: 50%;
   background: #fff;
-  color: #0E9F6E;
+  color: #0e9f6e;
   cursor: pointer;
   box-shadow: 0 10px 26px rgba(6, 78, 59, 0.12);
   transition: all 0.25s ease;
@@ -60,7 +60,7 @@
   min-width: 0;
   min-height: 0;
   overscroll-behavior-y: contain;
-  padding: 28px clamp(28px, 3.4vw, 50px);
+  padding: 24px 30px;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
@@ -92,7 +92,7 @@
 }
 
 .auth-panel--login .login-modal__intro {
-  margin-top: 26px;
+  margin-top: 0;
 }
 
 .auth-panel--login .auth-form {
@@ -100,21 +100,16 @@
 }
 
 .auth-panel--login .auth-form .form-group:first-child {
-  margin-top: 4px;
-  margin-bottom: -10px;
-}
-
-.auth-panel--register {
-  gap: 7px;
   margin: 0;
 }
 
-.auth-panel--register .login-modal__intro p {
-  margin-top: 6px;
+.auth-panel--register {
+  gap: 10px;
+  margin: auto 0;
 }
 
 .auth-panel--register .register-form {
-  gap: 4px;
+  gap: 9px;
 }
 
 .auth-panel--register .account-recovery {
@@ -125,31 +120,13 @@
   margin: 0;
 }
 
-.auth-panel--register .login-modal__intro h2 {
-  font-size: clamp(30px, 2.35vw, 38px);
-}
-
-.auth-panel--register .login-modal__intro p {
-  font-size: 13.5px;
-  line-height: 1.4;
-}
-
 .auth-panel--register .form-group {
   gap: 3px;
   margin: 0;
 }
 
-.auth-panel--register .field-label {
-  font-size: 13px;
-}
-
 .auth-panel--register .login-input {
   height: 46px;
-  border-radius: 13px;
-}
-
-.auth-panel--register .login-input input {
-  font-size: 14px;
 }
 
 .auth-panel--register .login-button {
@@ -161,18 +138,10 @@
   height: 40px;
 }
 
-.auth-panel--register .account-recovery {
-  font-size: 13px;
-}
-
-.auth-panel--register .login-divider {
-  font-size: 12.5px;
-}
-
 .login-modal__intro h2 {
   margin: 0;
   color: #064e3b;
-  font-size: clamp(34px, 2.7vw, 42px);
+  font-size: 32px;
   line-height: 1.05;
   font-weight: 850;
   letter-spacing: 0;
@@ -191,13 +160,16 @@
 }
 
 .form-group {
+  padding: 0;
+  margin: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
 
 .field-label {
-  color: #0F6B4C;
+  color: #0f6b4c;
   font-size: 14px;
   font-weight: 700;
 }
@@ -205,7 +177,7 @@
 .login-input {
   display: flex;
   align-items: center;
-  height: 54px;
+  height: 46px;
   gap: 14px;
   padding: 0 18px;
   border: 1.5px solid #dde5df;
@@ -221,18 +193,22 @@
 }
 
 .login-input:focus-within {
-  border-color: #0E9F6E;
+  border-color: #0e9f6e;
   box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
 }
 
 .login-input i {
   font-size: 16px;
-  color: #0E9F6E;
+  color: #0e9f6e;
 }
 
 .login-input input {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
   border: 0;
   outline: 0;
   color: #0f2f25;
@@ -256,18 +232,20 @@
   background: transparent;
   color: #718078;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .login-input__icon-btn:hover {
   background: #eef8f3;
-  color: #0E9F6E;
+  color: #0e9f6e;
 }
 
 .text-link {
   border: 0;
   background: transparent;
-  color: #0E9F6E;
+  color: #0e9f6e;
   font-weight: 700;
   cursor: pointer;
   transition: color 0.2s ease;
@@ -305,11 +283,11 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 54px;
+  height: 46px;
   gap: 8px;
   border: 0;
   border-radius: 14px;
-  background: #0E9F6E;
+  background: #0e9f6e;
   color: #fff;
   font-size: 16px;
   font-weight: 800;
@@ -345,7 +323,7 @@
 
 .login-divider::before,
 .login-divider::after {
-  content: "";
+  content: '';
   height: 1px;
   background: #eef2ef;
 }
@@ -373,7 +351,7 @@
 }
 
 .social-login button:hover {
-  border-color: #0E9F6E;
+  border-color: #0e9f6e;
   box-shadow: 0 6px 16px rgba(4, 120, 87, 0.08);
   transform: translateY(-1.5px);
 }
@@ -382,10 +360,15 @@
   transform: translateY(0) scale(0.96);
 }
 
-.social-login button i.bi-google { color: #ea4335; }
-.social-login button i.bi-facebook { color: #1877f2; }
+.social-login button i.bi-google {
+  color: #ea4335;
+}
+.social-login button i.bi-facebook {
+  color: #1877f2;
+}
 
 .account-recovery {
+  margin: 0;
   text-align: center;
   font-size: 14px;
   color: #52635b;
@@ -411,7 +394,7 @@
 .login-remember input {
   width: 17px;
   height: 17px;
-  accent-color: #0E9F6E;
+  accent-color: #0e9f6e;
 }
 
 .login-options .text-link {
@@ -454,7 +437,7 @@
   place-items: center;
   border-radius: 50%;
   background: #e8f5ee;
-  color: #0E9F6E;
+  color: #0e9f6e;
   font-size: 28px;
 }
 
@@ -501,11 +484,13 @@
   font-weight: 800;
   text-align: center;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .otp-input:focus {
-  border-color: #0E9F6E;
+  border-color: #0e9f6e;
   box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
 }
 
@@ -513,11 +498,33 @@
   border-color: #fb7185;
 }
 
-@keyframes authFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes authSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes authFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes authSlide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes authEnter {
-  from { opacity: 0; transform: translateY(15px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 1366px), (max-height: 820px) {
@@ -526,14 +533,14 @@
   }
 
   .login-modal {
-    width: min(1040px, 100%);
+    width: min(920px, 100%);
     min-height: 0;
     grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
-  grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .login-modal__form {
-    padding: 22px clamp(34px, 3.6vw, 46px);
+    padding: 22px 28px;
     overflow-y: auto;
   }
 
@@ -543,12 +550,11 @@
   }
 
   .auth-panel--login .login-modal__intro {
-    margin-top: 20px;
+    margin-top: 0;
   }
 
   .auth-panel--login .auth-form .form-group:first-child {
-    margin-top: 3px;
-    margin-bottom: -8px;
+    margin: 0;
   }
 
   .auth-panel--register {
@@ -556,24 +562,11 @@
   }
 
   .auth-panel--register .register-form {
-    gap: 3px;
-  }
-
-  .auth-panel--register .login-modal__intro h2 {
-    font-size: 32px;
-  }
-
-  .auth-panel--register .login-modal__intro p {
-    font-size: 13px;
-    line-height: 1.35;
+    gap: 8px;
   }
 
   .auth-panel--register .form-group {
     gap: 3px;
-  }
-
-  .auth-panel--register .field-label {
-    font-size: 12.5px !important;
   }
 
   .auth-panel--register .login-input,
@@ -587,10 +580,6 @@
 
   .auth-panel--register .social-login button {
     height: 38px;
-  }
-
-  .auth-panel--register .account-recovery {
-    font-size: 12.5px;
   }
 
   .login-modal__intro h2 {
@@ -667,7 +656,7 @@
   }
 
   .login-modal__form {
-    padding: 64px 24px 28px;
+    padding: 56px 24px 22px;
     justify-content: flex-start;
   }
 
@@ -683,7 +672,7 @@
   }
 
   .social-login {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .login-options {
@@ -705,16 +694,18 @@
 }
 
 @media (max-width: 400px) {
-  .login-modal__form { padding-inline: 16px; }
-  .login-input input,
-  .auth-panel--register .login-input input { font-size: 16px; }
-  .login-modal__intro h2,
-  .auth-panel--register .login-modal__intro h2 { font-size: 30px; }
+  .login-modal__form {
+    padding-inline: 16px;
+  }
 }
 
 @media (max-height: 600px) and (min-width: 861px) {
-  .login-modal__form { padding-block: 20px; }
-  .auth-panel--login .login-modal__intro { margin-top: 0; }
+  .login-modal__form {
+    padding-block: 20px;
+  }
+  .auth-panel--login .login-modal__intro {
+    margin-top: 0;
+  }
 }
 
 /* Developing feature notification modal styling */
@@ -793,9 +784,102 @@
 }
 
 .password-help {
-  margin: 4px 0 8px;
+  margin: 3px 0 0;
   color: #52635b;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+/* Registration follows the reference while fitting the compact dialog. */
+.auth-panel--register {
+  gap: 12px;
+}
+
+/* Retain accessible names without visible labels above the fields. */
+.register-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.auth-panel--register .register-form {
+  gap: 10px;
+}
+
+.auth-panel--register .login-input {
+  box-sizing: border-box;
+  height: 46px;
+  padding: 0 14px;
+  gap: 12px;
+}
+
+.auth-panel--register .register-password-help {
+  margin: -3px 0 0;
+  font-size: 11px;
+  color: #75808a;
+  line-height: 1.35;
+}
+
+.auth-panel--register .login-button {
+  height: 44px;
+  margin-top: 0;
+}
+
+.auth-panel--register .login-divider {
+  gap: 14px;
+}
+
+.auth-panel--register .social-login {
+  gap: 10px;
+}
+
+.auth-panel--register .social-login button {
+  height: 42px;
+  padding: 0 8px;
+  gap: 7px;
+}
+
+.auth-panel--register .account-recovery {
+  margin-top: 3px;
+}
+
+.auth-panel--register .account-recovery .text-link {
+  padding: 0;
+}
+
+@media (max-height: 650px) {
+  .auth-panel--register {
+    gap: 8px;
+  }
+  .auth-panel--register .register-form {
+    gap: 8px;
+  }
+  .auth-panel--register .login-input {
+    height: 42px;
+  }
+}
+
+/* Keep social registration labels on one line in the compact form. */
+.auth-panel--register .social-login button {
+  min-width: 0;
+  padding-inline: 6px;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12px !important;
+}
+
+.auth-panel--register .social-login button i {
+  flex-shrink: 0;
+}
+
+@media (max-width: 380px) {
+  .auth-panel--register .social-login {
+    grid-template-columns: 1fr;
+  }
 }

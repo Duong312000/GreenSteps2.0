@@ -40,6 +40,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly passwordRequirements = PASSWORD_MESSAGE;
   public registerPassword = '';
   public registerConfirmPassword = '';
+  public showRegisterConfirm = false;
 
   public identifier = '';
   public verificationEmail = '';

@@ -62,65 +62,62 @@
 
       <div *ngIf="mode === 'register' && authStep === 'login'" class="auth-panel auth-panel--register">
         <div class="login-modal__intro">
-          <h2>Đăng ký</h2>
-          <p>Tạo tài khoản GreenSteps để lưu hành trình, đặt tour xanh và nhận ưu đãi sinh thái.</p>
+          <h2>Đăng ký tài khoản</h2>
+          <p>Bắt đầu hành trình khám phá Việt Nam xanh cùng GreenSteps.</p>
         </div>
 
         <form class="auth-form register-form" (submit)="onRegisterSubmit($event)">
           <div class="form-group">
-            <label class="field-label" for="regUsername">Tên đăng ký</label>
-            <label class="login-input">
-              <i class="bi bi-person-badge"></i>
-              <input #firstField id="regUsername" type="text" name="regUsername" placeholder="Nhập tên đăng ký" [(ngModel)]="registerUsername" required>
+            <label class="field-label register-label" for="regUsername">Tên đăng ký</label>
+            <label class="login-input" for="regUsername">
+              <i class="bi bi-person" aria-hidden="true"></i>
+              <input #firstField id="regUsername" type="text" name="regUsername" autocomplete="username" placeholder="Nhập tên đăng ký" [(ngModel)]="registerUsername" minlength="3" maxlength="100" required>
             </label>
           </div>
-
           <div class="form-group">
-            <label class="field-label" for="regEmail">Địa chỉ email</label>
-            <label class="login-input">
-              <i class="bi bi-envelope"></i>
-              <input id="regEmail" type="email" name="regEmail" placeholder="name@example.com" [(ngModel)]="registerEmail" required>
+            <label class="field-label register-label" for="regEmail">Địa chỉ email</label>
+            <label class="login-input" for="regEmail">
+              <i class="bi bi-envelope" aria-hidden="true"></i>
+              <input id="regEmail" type="email" name="regEmail" autocomplete="email" placeholder="Nhập địa chỉ email" [(ngModel)]="registerEmail" required>
             </label>
           </div>
-
           <div class="form-group">
-            <label class="field-label" for="regPassword">Mật khẩu</label>
-            <label class="login-input">
-              <i class="bi bi-lock"></i>
-              <input aria-describedby="register-password-help" minlength="8" maxlength="72" autocomplete="new-password" id="regPassword" [type]="showPassword ? 'text' : 'password'" name="regPassword" placeholder="Nhập mật khẩu mạnh" [(ngModel)]="registerPassword" required>
-              <button type="button" class="login-input__icon-btn" (click)="showPassword = !showPassword">
-                <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+            <label class="field-label register-label" for="regPassword">Mật khẩu</label>
+            <div class="login-input">
+              <i class="bi bi-lock" aria-hidden="true"></i>
+              <input aria-describedby="register-password-help" minlength="8" maxlength="72" autocomplete="new-password" id="regPassword" [type]="showPassword ? 'text' : 'password'" name="regPassword" placeholder="Nhập mật khẩu" [(ngModel)]="registerPassword" required>
+              <button type="button" class="login-input__icon-btn" [attr.aria-label]="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" [attr.aria-pressed]="showPassword" (click)="showPassword = !showPassword">
+                <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'" aria-hidden="true"></i>
               </button>
-            </label>
-            <p id="register-password-help" class="password-help">{{ passwordRequirements }}</p>
+            </div>
           </div>
-
           <div class="form-group">
-            <label class="field-label" for="regConfirmPassword">Xác nhận mật khẩu</label>
-            <label class="login-input">
-              <i class="bi bi-shield-lock"></i>
-              <input id="regConfirmPassword" [type]="showPassword ? 'text' : 'password'" name="regConfirmPassword" placeholder="Nhập lại mật khẩu" [(ngModel)]="registerConfirmPassword" required>
-            </label>
+            <label class="field-label register-label" for="regConfirmPassword">Xác nhận mật khẩu</label>
+            <div class="login-input">
+              <i class="bi bi-shield-lock" aria-hidden="true"></i>
+              <input id="regConfirmPassword" [type]="showRegisterConfirm ? 'text' : 'password'" name="regConfirmPassword" autocomplete="new-password" placeholder="Nhập lại mật khẩu" [(ngModel)]="registerConfirmPassword" required>
+              <button type="button" class="login-input__icon-btn" [attr.aria-label]="showRegisterConfirm ? 'Ẩn xác nhận mật khẩu' : 'Hiện xác nhận mật khẩu'" [attr.aria-pressed]="showRegisterConfirm" (click)="showRegisterConfirm = !showRegisterConfirm">
+                <i class="bi" [ngClass]="showRegisterConfirm ? 'bi-eye-slash' : 'bi-eye'" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
-
-          <p class="auth-alert error" *ngIf="errorMessage">{{ errorMessage }}</p>
-
+          <p id="register-password-help" class="password-help register-password-help">8–72 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt; không dấu, không khoảng trắng.</p>
+          <p class="auth-alert error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
           <button type="submit" class="login-button" [disabled]="isSubmitting">
             <span>{{ isSubmitting ? 'Đang đăng ký...' : 'Đăng ký' }}</span>
-            <i class="bi bi-arrow-right"></i>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
           </button>
         </form>
 
+        <div class="login-divider"><span>hoặc</span></div>
+        <div class="social-login">
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Facebook')"><i class="bi bi-facebook" aria-hidden="true"></i><span>Đăng ký với Facebook</span></button>
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Google')"><i class="bi bi-google" aria-hidden="true"></i><span>Đăng ký với Google</span></button>
+        </div>
         <p class="account-recovery">
           Bạn đã có tài khoản?
-          <button type="button" class="text-link" (click)="setMode('login')">Đăng nhập ngay</button>
+          <button type="button" class="text-link" (click)="setMode('login')">Đăng nhập ngay <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
         </p>
-
-        <div class="login-divider"><span>hoặc sử dụng một trong các lựa chọn này</span></div>
-        <div class="social-login">
-          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Facebook')"><i class="bi bi-facebook"></i><span>Facebook</span></button>
-          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Google')"><i class="bi bi-google"></i><span>Google</span></button>
-        </div>
       </div>
 
       <div *ngIf="authStep === 'registerVerify'" class="auth-panel centered">
