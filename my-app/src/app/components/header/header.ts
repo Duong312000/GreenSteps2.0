@@ -16,6 +16,7 @@ declare const L: any; // Leaflet mapped globally via index.html script tag
   selector: 'app-header',
   standalone: false,
   templateUrl: './header.html',
+  styleUrl: './header.css'
 })
 export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   public currentUser: User | null = null;
@@ -396,6 +397,16 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public isAiPlannerActive(): boolean {
     return this.router.url.startsWith('/schedule');
+  }
+
+  public isServicesActive(): boolean {
+    return this.router.url.startsWith('/services');
+  }
+
+  public selectSearchDest(dest: string) {
+    this.smartSearchQuery = dest;
+    this.isSearchDropdownActive = false;
+    this.router.navigate(['/tours'], { queryParams: { dest: dest } });
   }
 
   public handleAiPlannerClick() {

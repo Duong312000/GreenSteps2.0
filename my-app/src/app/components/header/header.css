@@ -1,0 +1,282 @@
+/* ==========================================================================
+   Shop.co Inspired Luxury Navigation Bar & Header for GreenSteps
+   ========================================================================== */
+
+:host {
+  display: block;
+}
+
+/* 1. Header Base & Glassmorphism */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 2. Nav Items with Sliding Underline */
+.nav-tab-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 16px;
+  font-weight: 600;
+  color: #184a37;
+  text-decoration: none;
+  padding: 0.5rem 0.25rem;
+  transition: color 0.25s ease;
+  cursor: pointer;
+}
+
+.nav-tab-item:hover,
+.nav-tab-item.active-nav-tab {
+  color: #0e9f6e;
+}
+
+.nav-tab-item::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2.5px;
+  background-color: #0e9f6e;
+  border-radius: 9999px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-tab-item:hover::after,
+.nav-tab-item.active-nav-tab::after {
+  width: 100%;
+}
+
+/* 3. Shop.co Dropdown Mega Menu for Services */
+.nav-dropdown-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 88px;
+}
+
+.chevron-icon {
+  font-size: 0.75rem;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: currentColor;
+}
+
+.nav-dropdown-group:hover .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.mega-dropdown-menu {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  width: 520px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1060;
+}
+
+.nav-dropdown-group:hover .mega-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.mega-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.mega-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  text-decoration: none;
+  background: transparent;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.mega-menu-item:hover {
+  background-color: #f0fdf4;
+  transform: translateY(-1px);
+}
+
+.mega-menu-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #e8f5e9;
+  color: #0e9f6e;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.mega-menu-item:hover .mega-menu-icon-box {
+  background: #0e9f6e;
+  color: #ffffff;
+}
+
+.mega-menu-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.mega-menu-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.15rem;
+  transition: color 0.2s;
+}
+
+.mega-menu-item:hover .mega-menu-title {
+  color: #0e9f6e;
+}
+
+.mega-menu-desc {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.mega-menu-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mega-menu-footer-link {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0e9f6e;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: gap 0.2s;
+}
+
+.mega-menu-footer-link:hover {
+  gap: 0.55rem;
+}
+
+/* 4. Shop.co Pill Search Bar */
+.shopco-header-search {
+  position: relative;
+  width: 100%;
+}
+
+.shopco-search-pill {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 42px;
+  padding: 0 1rem;
+  border-radius: 9999px;
+  background-color: #f4f6f4;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
+}
+
+.shopco-search-pill:hover {
+  background-color: #eef2ee;
+}
+
+.shopco-search-pill:focus-within {
+  background-color: #ffffff;
+  border-color: #0e9f6e;
+  box-shadow: 0 0 0 3px rgba(14, 159, 110, 0.15);
+}
+
+.shopco-search-pill input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #111827;
+  padding-left: 0.5rem;
+}
+
+.shopco-search-suggestions {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 0.75rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  z-index: 1070;
+}
+
+.search-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.search-suggestion-item:hover {
+  background-color: #f0fdf4;
+  color: #0e9f6e;
+}
+
+.search-all-action {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.8125rem;
+  color: #0e9f6e;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+}
+
+.search-all-action:hover {
+  background-color: #f0fdf4;
+}
+
+/* 5. Mobile hamburger */
+@media (min-width: 1024px) {
+  .mobile-hamburger {
+    display: none !important;
+  }
+}
