@@ -1,12 +1,16 @@
+const { facebookConfig } = require('../services/facebook-auth.service');
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const { softAuth } = require('../middlewares/auth.middleware');
+const { softAuth, authMiddleware } = require('../middlewares/auth.middleware');
 
 router.post('/register', authController.register);
 router.post('/register/verify-otp', authController.verifyRegisterOtp);
 router.post('/register/resend-otp', authController.resendRegisterOtp);
 router.post('/login', authController.login);
+router.get('/google/config', (req, res) => res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' }));
+router.get('/facebook/config', (req, res) => res.json(facebookConfig()));
+router.post('/facebook-login', authController.facebookLogin);
 router.post('/google-login', authController.googleLogin);
 router.post('/request-checkout-otp', authController.requestCheckoutOtp);
 router.post('/verify-checkout-otp', authController.verifyCheckoutOtp);
@@ -14,19 +18,19 @@ router.post('/logout', authController.logout);
 router.post('/forgot-password/request-otp', authController.requestForgotPasswordOtp);
 router.post('/forgot-password/verify-otp', authController.verifyForgotPasswordOtp);
 router.post('/forgot-password/reset', authController.resetForgotPassword);
-router.get('/profile', softAuth, authController.getProfile);
-router.put('/profile', softAuth, authController.updateProfile);
-router.put('/change-password', softAuth, authController.changePassword);
+router.get('/profile', authMiddleware, authController.getProfile);
+router.put('/profile', authMiddleware, authController.updateProfile);
+router.put('/change-password', authMiddleware, authController.changePassword);
 router.post('/track-interest', softAuth, authController.trackInterest);
 
 // Legacy routes compatibility
-router.get('/profile/:userId', softAuth, authController.getProfile);
-router.put('/profile/:userId', softAuth, authController.updateProfile);
+router.get('/profile/:userId', authMiddleware, authController.getProfile);
+router.put('/profile/:userId', authMiddleware, authController.updateProfile);
 // Toggle user role maps to toggleRole in database (we can reuse toggleRole in auth.controller or write the toggle controller wrapper)
 const authControllerMock = require('../controllers/auth.controller');
 const { User, Vender } = require('../models/index');
-router.post('/role/:userId', async (req, res) => {
-  const { userId } = req.params;
+router.post('/role/:userId', authMiddleware, async (req, res) => {
+  const userId = req.user.id;
   try {
     const user = await User.findByPk(userId);
     if (!user) {

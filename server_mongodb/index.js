@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Load environment from the backend directory, including when launched from the repository root.
+require('dotenv').config({ path: require('node:path').join(__dirname, '.env') });
 const express = require('express');
 const path = require('path');
 const cors = require('cors');

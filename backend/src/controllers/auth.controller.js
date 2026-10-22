@@ -1,3 +1,6 @@
+const { verifyFacebookAccessToken } = require('../services/facebook-auth.service');
+const { verifyGoogleAccessToken } = require('../services/google-auth.service');
+const { randomBytes } = require('node:crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
@@ -53,8 +56,8 @@ function signAuthToken(user) {
 function setAuthCookie(res, token) {
   res.cookie('token', token, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 }
@@ -392,7 +395,7 @@ exports.updateProfile = async (req, res, next) => {
       gender,
       address,
       job,
-      role: (role === 'provider' && user.role !== 'provider') ? user.role : role,
+      role: user.role,
       company_name: company_name || companyName || user.company_name,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : (avatar_url !== undefined ? avatar_url : user.avatarUrl)
     }, { where: { id: userId } });
@@ -449,8 +452,8 @@ exports.logout = (req, res, next) => {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/'
     });
     res.json({ success: true, message: 'Đăng xuất thành công!' });
@@ -461,10 +464,7 @@ exports.logout = (req, res, next) => {
 
 exports.googleLogin = async (req, res, next) => {
   try {
-    const { email, fullname } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email không được để trống.' });
-    }
+    const { email, fullname, avatarUrl } = await verifyGoogleAccessToken(req.body.accessToken);
     const normalizedEmail = normalizeEmail(email);
     let user = await User.findOne({ where: { email: normalizedEmail } });
     if (!user) {
@@ -484,7 +484,7 @@ exports.googleLogin = async (req, res, next) => {
         count++;
       }
 
-      const defaultPassword = finalUsername + '123';
+      const defaultPassword = randomBytes(48).toString('base64url');
       const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
       user = await User.create({
@@ -494,6 +494,7 @@ exports.googleLogin = async (req, res, next) => {
         password_hash: passwordHash,
         email: normalizedEmail,
         fullname: fullname || email.split('@')[0],
+        avatarUrl,
         gender: 'Khác',
         address: '',
         job: '',
@@ -507,6 +508,74 @@ exports.googleLogin = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Đăng nhập Google thành công!',
+      token,
+      user: publicUser(user)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.facebookLogin = async (req, res, next) => {
+  try {
+    const { email, fullname, avatarUrl, facebookId } = await verifyFacebookAccessToken(req.body.accessToken);
+    const normalizedEmail = normalizeEmail(email);
+    let user = await User.findOne({ where: { facebook_id: facebookId } });
+    if (!user) {
+      user = await User.findOne({ where: { email: normalizedEmail } });
+      if (user) {
+        if (user.facebook_id && user.facebook_id !== facebookId) {
+          return res.status(409).json({ success: false, message: 'Tài khoản đã liên kết với một Facebook khác.' });
+        }
+        const [updated] = await User.update({ facebook_id: facebookId }, {
+          where: { id: user.id, [Op.or]: [{ facebook_id: null }, { facebook_id: facebookId }] }
+        });
+        if (!updated) return res.status(409).json({ success: false, message: 'Liên kết tài khoản đã thay đổi. Vui lòng thử lại.' });
+        user.facebook_id = facebookId;
+      }
+    }
+    if (!user) {
+      // Auto create new user
+      const newUserId = createUserId();
+      const generatedUsername = (fullname || email.split('@')[0])
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'd')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+
+      let finalUsername = generatedUsername || 'facebook_user';
+      let count = 1;
+      while (await User.findOne({ where: { username: finalUsername } })) {
+        finalUsername = (generatedUsername || 'facebook_user') + count;
+        count++;
+      }
+
+      const defaultPassword = randomBytes(48).toString('base64url');
+      const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+      user = await User.create({
+        id: newUserId,
+        facebook_id: facebookId,
+        role: 'traveler',
+        username: finalUsername,
+        password_hash: passwordHash,
+        email: normalizedEmail,
+        fullname: fullname || email.split('@')[0],
+        avatarUrl,
+        gender: 'Khác',
+        address: '',
+        job: '',
+        is_verified: true
+      });
+    }
+
+    const token = signAuthToken(user);
+    setAuthCookie(res, token);
+
+    res.json({
+      success: true,
+      message: 'Đăng nhập Facebook thành công!',
       token,
       user: publicUser(user)
     });

@@ -20,7 +20,7 @@ export interface AuthResult {
   providedIn: 'root'
 })
 export class AuthService {
-  private BACKEND_URL = window.location.hostname === 'localhost'
+  private BACKEND_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
     ? 'http://localhost:5055/api/auth'
     : 'https://greensteps-6swn.onrender.com/api/auth';
 
@@ -41,6 +41,12 @@ export class AuthService {
     const userStr = localStorage.getItem('greensteps_user');
     if (!userStr) return;
     try {
+      const token = localStorage.getItem('greensteps_token');
+      const payload = token ? this.decodeToken(token) : null;
+      if (!payload || !payload.exp || payload.exp * 1000 <= Date.now()) {
+        this.setCurrentUser(null);
+        return;
+      }
       this.currentUserSubject.next(JSON.parse(userStr));
     } catch {
       localStorage.removeItem('greensteps_user');
@@ -61,6 +67,8 @@ export class AuthService {
       this.apiService.preloadAppData(user.id || user._id);
     } else {
       localStorage.removeItem('greensteps_user');
+      localStorage.removeItem('greensteps_token');
+      this.apiService.clearCache();
       document.cookie = `isLoggedIn=; path=/; max-age=0`;
       document.cookie = `role=; path=/; max-age=0`;
       document.cookie = `userId=; path=/; max-age=0`;
@@ -110,10 +118,15 @@ export class AuthService {
     }
   }
 
-  public async googleLogin(email: string, fullname: string): Promise<AuthResult> {
+  public async getGoogleClientId(): Promise<string> {
+    const config = await firstValueFrom(this.http.get<{ clientId: string }>(`${this.BACKEND_URL}/google/config`));
+    return config.clientId;
+  }
+
+  public async googleLogin(accessToken: string): Promise<AuthResult> {
     try {
       const res = await firstValueFrom(
-        this.http.post<any>(`${this.BACKEND_URL}/google-login`, { email, fullname }, { withCredentials: true })
+        this.http.post<any>(`${this.BACKEND_URL}/google-login`, { accessToken }, { withCredentials: true })
       );
       if (res?.success && res.user) {
         if (res.token) localStorage.setItem('greensteps_token', res.token);
@@ -125,6 +138,24 @@ export class AuthService {
     } catch (err: any) {
       return { success: false, message: err?.error?.message || 'Đăng nhập Google thất bại.' };
     }
+  }
+
+  public async prepareFacebook(): Promise<void> {
+    const config = await firstValueFrom(this.http.get<{ appId: string; version: string; enabled: boolean }>(`${this.BACKEND_URL}/facebook/config`));
+    if (!config.enabled) throw new Error('Facebook chưa được cấu hình trên máy chủ.');
+    if (!(window as any).FB) await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://connect.facebook.net/vi_VN/sdk.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => { script.remove(); reject(new Error('Không tải được Facebook SDK.')); };
+      document.head.appendChild(script);
+    });
+    (window as any).FB.init({ appId: config.appId, version: config.version, cookie: false, xfbml: false });
+  }
+
+  public async facebookLogin(accessToken: string): Promise<AuthResult> {
+    return this.postAuth('/facebook-login', { accessToken }, 'Đăng nhập Facebook thất bại.', true);
   }
 
   public loginWithToken(rawUser: any, token: string) {
@@ -147,7 +178,7 @@ export class AuthService {
 
   public loginWithOnlyToken(token: string): boolean {
     const payload = this.decodeToken(token);
-    if (!payload) return false;
+    if (!payload || !payload.exp || payload.exp * 1000 <= Date.now()) return false;
     
     const rawUser = {
       id: payload.id,
@@ -276,8 +307,8 @@ export class AuthService {
         const freshUser = this.mapUser(res.user);
         this.setCurrentUser(freshUser);
       }
-    } catch {
-      // Silently ignore – keep cached user data
+    } catch (error: any) {
+      if (error.status === 401 || error.status === 403) this.setCurrentUser(null);
     }
   }
 

@@ -8,7 +8,7 @@ import { DEFAULT_TOURS, DEFAULT_SERVICES } from './default-data';
   providedIn: 'root'
 })
 export class ApiService {
-  private BACKEND_URL = window.location.hostname === 'localhost' 
+  private BACKEND_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
     ? 'http://localhost:5055/api' 
     : 'https://greensteps-6swn.onrender.com/api';
 

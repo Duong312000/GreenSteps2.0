@@ -50,9 +50,8 @@
 
         <div class="login-divider"><span>hoặc tiếp tục bằng mạng xã hội</span></div>
         <div class="social-login">
-          <button type="button" (click)="alertSocial('Facebook')"><i class="bi bi-facebook"></i><span>Facebook</span></button>
-          <button type="button" (click)="alertSocial('Google')"><i class="bi bi-google"></i><span>Google</span></button>
-          <button type="button" (click)="alertSocial('Apple')"><i class="bi bi-apple"></i><span>Apple</span></button>
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Facebook')"><i class="bi bi-facebook"></i><span>Facebook</span></button>
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Google')"><i class="bi bi-google"></i><span>Google</span></button>
         </div>
 
         <p class="account-recovery">
@@ -88,11 +87,12 @@
             <label class="field-label" for="regPassword">Mật khẩu</label>
             <label class="login-input">
               <i class="bi bi-lock"></i>
-              <input id="regPassword" [type]="showPassword ? 'text' : 'password'" name="regPassword" placeholder="Ví dụ: abc123" [(ngModel)]="registerPassword" required>
+              <input aria-describedby="register-password-help" minlength="8" maxlength="72" autocomplete="new-password" id="regPassword" [type]="showPassword ? 'text' : 'password'" name="regPassword" placeholder="Nhập mật khẩu mạnh" [(ngModel)]="registerPassword" required>
               <button type="button" class="login-input__icon-btn" (click)="showPassword = !showPassword">
                 <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
               </button>
             </label>
+            <p id="register-password-help" class="password-help">{{ passwordRequirements }}</p>
           </div>
 
           <div class="form-group">
@@ -118,9 +118,8 @@
 
         <div class="login-divider"><span>hoặc sử dụng một trong các lựa chọn này</span></div>
         <div class="social-login">
-          <button type="button" (click)="alertSocial('Facebook')"><i class="bi bi-facebook"></i><span>Facebook</span></button>
-          <button type="button" (click)="alertSocial('Google')"><i class="bi bi-google"></i><span>Google</span></button>
-          <button type="button" (click)="alertSocial('Apple')"><i class="bi bi-apple"></i><span>Apple</span></button>
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Facebook')"><i class="bi bi-facebook"></i><span>Facebook</span></button>
+          <button type="button" [disabled]="isSubmitting" (click)="alertSocial('Google')"><i class="bi bi-google"></i><span>Google</span></button>
         </div>
       </div>
 
@@ -195,11 +194,12 @@
         <form class="auth-form" (submit)="onResetSubmit($event)">
           <label class="login-input">
             <i class="bi bi-lock"></i>
-            <input [type]="showResetPassword ? 'text' : 'password'" name="resetPassword" placeholder="Ví dụ: abc123" [(ngModel)]="resetForm.password" required>
+            <input [type]="showResetPassword ? 'text' : 'password'" aria-describedby="reset-password-help" minlength="8" maxlength="72" autocomplete="new-password" name="resetPassword" placeholder="Nhập mật khẩu mạnh" [(ngModel)]="resetForm.password" required>
             <button type="button" class="login-input__icon-btn" (click)="showResetPassword = !showResetPassword">
               <i class="bi" [ngClass]="showResetPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
             </button>
           </label>
+          <p id="reset-password-help" class="password-help">{{ passwordRequirements }}</p>
           <label class="login-input">
             <i class="bi bi-shield-lock"></i>
             <input [type]="showResetConfirm ? 'text' : 'password'" name="resetConfirm" placeholder="Xác nhận mật khẩu mới" [(ngModel)]="resetForm.confirmPassword" required>

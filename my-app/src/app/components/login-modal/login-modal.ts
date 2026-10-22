@@ -7,8 +7,8 @@ import { AuthService } from '../../services/auth.service';
 type AuthMode = 'login' | 'register';
 type AuthStep = 'login' | 'registerVerify' | 'forgot' | 'forgotVerify' | 'reset' | 'resetDone';
 
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
-const PASSWORD_MESSAGE = 'Mật khẩu phải có ít nhất 6 ký tự, bao gồm ít nhất một chữ cái và một chữ số, không chứa khoảng trắng hoặc ký tự đặc biệt.';
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\x21-\x7E]{8,72}$/;
+const PASSWORD_MESSAGE = 'Mật khẩu phải có 8-72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt; chỉ dùng ký tự Latin không dấu và không có khoảng trắng.';
 
 @Component({
   selector: 'app-login-modal',
@@ -37,6 +37,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public registerUsername = '';
   public registerEmail = '';
+  public readonly passwordRequirements = PASSWORD_MESSAGE;
   public registerPassword = '';
   public registerConfirmPassword = '';
 
@@ -61,8 +62,15 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {}
 
+  private googleClientId = '';
+  private facebookReady = false;
+  private facebookError = '';
+  private destroyed = false;
+
   ngOnInit() {
+    this.authService.getGoogleClientId().then(id => { this.googleClientId = id; }).catch(() => {});
     this.mode = this.initialMode;
+    this.prepareFacebook();
   }
 
   ngAfterViewInit() {
@@ -71,6 +79,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     document.body.style.overflow = this.previousBodyOverflow;
     this.clearCountdown();
   }
@@ -100,6 +109,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public async onLoginSubmit(event: Event) {
     event.preventDefault();
+    if (this.isSubmitting) return;
     this.errorMessage = '';
 
     const identifier = this.loginUsername.trim();
@@ -135,6 +145,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public async onRegisterSubmit(event: Event) {
     event.preventDefault();
+    if (this.isSubmitting) return;
     this.errorMessage = '';
 
     const username = this.registerUsername.trim();
@@ -164,6 +175,15 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (res.success) {
+      this.setMode('login');
+      this.loginUsername = email;
+      this.registerPassword = '';
+      this.registerConfirmPassword = '';
+      this.successMessage = res.message || 'Đăng ký thành công. Vui lòng đăng nhập.';
+      return;
+    }
+
     this.errorMessage = res.message || 'Đăng ký thất bại.';
   }
 
@@ -175,6 +195,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public async onForgotSubmit(event: Event) {
     event.preventDefault();
+    if (this.isSubmitting) return;
     this.errorMessage = '';
     const email = this.identifier.trim().toLowerCase();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -250,7 +271,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public async resendOtp() {
-    if (this.resendSeconds > 0 || !this.verificationEmail) return;
+    if (this.isSubmitting || this.resendSeconds > 0 || !this.verificationEmail) return;
 
     this.isSubmitting = true;
     const res = this.authStep === 'registerVerify'
@@ -272,6 +293,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public async onResetSubmit(event: Event) {
     event.preventDefault();
+    if (this.isSubmitting) return;
     this.errorMessage = '';
 
     if (!PASSWORD_REGEX.test(this.resetForm.password)) {
@@ -344,77 +366,93 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public alertSocial(provider: string) {
-    if (provider === 'Google') {
-      const clientId = (window as any).GOOGLE_CLIENT_ID || (window as any).env?.GOOGLE_CLIENT_ID;
-      if (clientId && clientId !== 'YOUR_GOOGLE_CLIENT_ID') {
-        this.openRealGoogleLogin(clientId);
-      } else {
-        this.showDevMessage = true;
-      }
-    } else {
-      this.showDevMessage = true;
-    }
-  }
-
-  private openRealGoogleLogin(clientId: string) {
-    const google = (window as any).google;
-    if (!google) {
-      alert('Không thể tải Google Sign-In SDK. Vui lòng kiểm tra lại kết nối mạng.');
+    if (provider === 'Facebook') { this.openFacebookLogin(); return; }
+    if (provider !== 'Google') { this.showDevMessage = true; return; }
+    if (this.isSubmitting) return;
+    this.errorMessage = '';
+    if (!this.googleClientId) {
+      this.errorMessage = 'Đăng nhập Google chưa được cấu hình hoặc máy chủ chưa sẵn sàng. Vui lòng thử lại sau.';
       return;
     }
-
-    try {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'email profile',
-        callback: (tokenResponse: any) => {
-          if (tokenResponse && tokenResponse.access_token) {
-            this.fetchGoogleProfile(tokenResponse.access_token);
-          }
-        }
-      });
-      client.requestAccessToken();
-    } catch (e) {
-      console.error('Failed to initialize Google token client:', e);
-      alert('Cấu hình Google Client ID không hợp lệ hoặc không được hỗ trợ từ nguồn này.');
+    const google = (window as any).google;
+    if (!google?.accounts?.oauth2) {
+      this.errorMessage = 'Chưa tải được Google Sign-In. Hãy kiểm tra kết nối mạng rồi thử lại.';
+      return;
     }
-  }
-
-  private async fetchGoogleProfile(accessToken: string) {
-    try {
-      this.isSubmitting = true;
-      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      const profile = await response.json();
-      this.isSubmitting = false;
-      if (profile && profile.email) {
-        await this.submitGoogleSim(profile.email, profile.name || profile.email.split('@')[0]);
-      } else {
-        this.errorMessage = 'Không thể lấy thông tin tài khoản Google từ API.';
-      }
-    } catch (err) {
-      this.isSubmitting = false;
-      this.errorMessage = 'Lỗi kết nối khi lấy thông tin tài khoản Google.';
-      console.error(err);
-    }
-  }
-
-  public async submitGoogleSim(email: string, fullname: string) {
-    this.errorMessage = '';
     this.isSubmitting = true;
-    const res = await this.authService.googleLogin(email, fullname);
+    const fail = () => {
+      this.isSubmitting = false;
+      this.errorMessage = 'Đăng nhập Google đã bị hủy hoặc cửa sổ bị chặn. Vui lòng thử lại.';
+      this.cdr.detectChanges();
+    };
+    try {
+      google.accounts.oauth2.initTokenClient({
+        client_id: this.googleClientId,
+        scope: 'openid email profile',
+        callback: (response: any) => {
+          if (response.error || !response.access_token) { fail(); return; }
+          void this.submitGoogleToken(response.access_token);
+        },
+        error_callback: fail
+      }).requestAccessToken({ prompt: 'select_account' });
+    } catch { fail(); }
+  }
+
+  private async submitGoogleToken(accessToken: string) {
+    const res = await this.authService.googleLogin(accessToken);
+    if (this.destroyed) return;
     this.isSubmitting = false;
     if (res.success && res.user) {
       this.requestClose();
-      if (res.user.role === 'admin') {
-        this.router.navigate(['/admin']);
-      }
+      if (res.user.role === 'admin') this.router.navigate(['/admin']);
     } else {
       this.errorMessage = res.message || 'Đăng nhập Google thất bại.';
+      this.cdr.detectChanges();
     }
   }
 
+  private prepareFacebook() {
+    this.authService.prepareFacebook().then(() => { this.facebookReady = true; }).catch((error) => {
+      this.facebookError = error.message || 'Không tải được Facebook Login.';
+    });
+  }
+
+  private openFacebookLogin() {
+    if (this.isSubmitting) return;
+    this.errorMessage = '';
+    if (!this.facebookReady) {
+      this.errorMessage = this.facebookError || 'Facebook đang tải. Vui lòng bấm lại sau vài giây.';
+      this.prepareFacebook();
+      return;
+    }
+    this.isSubmitting = true;
+    const fail = () => {
+      if (this.destroyed) return;
+      this.isSubmitting = false;
+      this.errorMessage = 'Bạn đã hủy đăng nhập Facebook hoặc chưa cấp quyền.';
+      this.cdr.detectChanges();
+    };
+    try {
+      (window as any).FB.login((response: any) => {
+        if (this.destroyed) return;
+        if (!response.authResponse?.accessToken) { fail(); return; }
+        void this.submitFacebookToken(response.authResponse.accessToken);
+      }, { scope: 'public_profile,email', auth_type: 'rerequest' });
+    } catch { fail(); }
+  }
+
+  private async submitFacebookToken(accessToken: string) {
+    const res = await this.authService.facebookLogin(accessToken);
+    if (this.destroyed) return;
+    this.isSubmitting = false;
+    if (res.success && res.user) {
+      this.requestClose();
+      if (res.user.role === 'admin') this.router.navigate(['/admin']);
+    } else {
+      this.errorMessage = res.message || 'Đăng nhập Facebook thất bại.';
+      this.cdr.detectChanges();
+    }
+  }
 
   private setError(message: string) {
     this.errorMessage = message;
@@ -439,7 +477,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   private clearCountdown() {
     if (this.countdownTimer) window.clearInterval(this.countdownTimer);
     this.countdownTimer = undefined;
-    this.cdr.detectChanges();
+    if (!this.destroyed) this.cdr.detectChanges();
   }
 
   private focusFirstField() {

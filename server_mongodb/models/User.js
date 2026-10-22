@@ -4,7 +4,8 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password_hash: { type: String, required: true },
-  auth_provider: { type: String, enum: ['local', 'google'], default: 'local' },
+  facebook_id: { type: String, unique: true, sparse: true },
+  auth_provider: { type: String, enum: ['local', 'google', 'facebook'], default: 'local' },
   profile: {
     fullname: { type: String, default: '' },
     phone: { type: String, default: '' },

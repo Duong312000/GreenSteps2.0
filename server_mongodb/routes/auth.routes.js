@@ -1,17 +1,50 @@
+const { facebookConfig, verifyFacebookAccessToken } = require('../utils/facebook-auth');
+const { verifyGoogleAccessToken } = require('../utils/google-auth');
+const { randomBytes } = require('node:crypto');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const { isValidPassword, PASSWORD_MESSAGE } = require('../utils/password.validation');
 const jwt = require('jsonwebtoken');
 const { User, AuthSession } = require('../models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'greensteps-jwt-secret-key-2026';
 
+function publicUser(user) {
+  const role = user.roles.includes('admin') ? 'admin' : user.roles.includes('provider') ? 'provider' : 'traveler';
+  return { id: user._id, username: user.username, email: user.email, role,
+    ...(user.profile.toObject?.() || user.profile), is_verified: user.verified };
+}
+async function requireAccount(req, res, next) {
+  try {
+    const header = req.headers.authorization;
+    const token = header?.startsWith('Bearer ') ? header.slice(7) : req.cookies?.token;
+    if (!token) return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập.' });
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user || user.status !== 'active') return res.status(403).json({ success: false, message: 'Tài khoản không hoạt động.' });
+    req.account = user;
+    next();
+  } catch {
+    return res.status(401).json({ success: false, message: 'Phiên đăng nhập hết hạn hoặc không hợp lệ.' });
+  }
+}
+
 // 1. Đăng ký tài khoản
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { password } = req.body;
+    const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (username.length < 3 || username.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Tên đăng nhập phải có 3–100 ký tự và email phải hợp lệ.' });
+    }
     if (!username || !email || !password) {
       return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin.' });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ success: false, message: PASSWORD_MESSAGE });
     }
 
     const existingUser = await User.findOne({
@@ -44,6 +77,7 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ success: false, message: 'Tên đăng nhập hoặc email đã tồn tại.' });
     console.error('Register error:', error);
     return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi đăng ký.' });
   }
@@ -53,9 +87,9 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { identifier, username, password } = req.body;
-    const loginId = identifier || username;
+    const loginId = typeof (identifier || username) === 'string' ? (identifier || username).trim() : '';
 
-    if (!loginId || !password) {
+    if (!loginId || typeof password !== 'string' || !password) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập tên đăng nhập/email và mật khẩu.' });
     }
 
@@ -64,16 +98,16 @@ router.post('/login', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Tài khoản không tồn tại trong hệ thống.' });
+      return res.status(401).json({ success: false, message: 'Email/tên đăng nhập hoặc mật khẩu không chính xác.' });
     }
 
-    if (user.status === 'banned') {
+    if (user.status !== 'active') {
       return res.status(403).json({ success: false, message: `Tài khoản của bạn đã bị khóa. Lý do: ${user.banned_reason || 'Vi phạm điều khoản'}` });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Mật khẩu không chính xác.' });
+      return res.status(401).json({ success: false, message: 'Email/tên đăng nhập hoặc mật khẩu không chính xác.' });
     }
 
     // Tạo JWT Token
@@ -86,7 +120,8 @@ router.post('/login', async (req, res) => {
     // Ghi Cookie (Chương VIII - Slide 10-15)
     res.cookie('token', token, {
       httpOnly: true,
-      secure: false, // true nếu chạy https
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -135,104 +170,104 @@ router.post('/logout', (req, res) => {
 });
 
 // 4. Lấy thông tin tài khoản hiện tại (Profile)
-router.get('/me', async (req, res) => {
-  try {
-    let userId = null;
-
-    // Kiểm tra Session hoặc JWT Header
-    if (req.session && req.session.user) {
-      userId = req.session.user.id;
-    } else {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        userId = decoded.id;
-      }
-    }
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Chưa đăng nhập.' });
-    }
-
-    const user = await User.findById(userId).select('-password_hash');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin tài khoản.' });
-    }
-
-    return res.json({ success: true, user });
-  } catch (error) {
-    return res.status(401).json({ success: false, message: 'Phiên đăng nhập không hợp lệ.' });
-  }
+router.get(['/me', '/profile', '/profile/:userId'], requireAccount, (req, res) => {
+  return res.json({ success: true, user: publicUser(req.account) });
 });
 
-// 5. Cập nhật hồ sơ cá nhân
-router.put('/profile', async (req, res) => {
+router.put(['/profile', '/profile/:userId'], requireAccount, async (req, res) => {
   try {
-    const { id, fullname, phone, dob, gender, address, job, avatarUrl } = req.body;
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản.' });
+    const user = req.account;
+    for (const key of ['fullname', 'phone', 'dob', 'gender', 'address', 'job', 'avatarUrl']) {
+      if (req.body[key] !== undefined) user.profile[key] = req.body[key];
     }
-
-    if (fullname !== undefined) user.profile.fullname = fullname;
-    if (phone !== undefined) user.profile.phone = phone;
-    if (dob !== undefined) user.profile.dob = dob;
-    if (gender !== undefined) user.profile.gender = gender;
-    if (address !== undefined) user.profile.address = address;
-    if (job !== undefined) user.profile.job = job;
-    if (avatarUrl !== undefined) user.profile.avatarUrl = avatarUrl;
-
     await user.save();
-    return res.json({ success: true, message: 'Cập nhật thông tin thành công!', user });
+    return res.json({ success: true, user: publicUser(user) });
   } catch (error) {
-    console.error('Update profile error:', error);
-    return res.status(500).json({ success: false, message: 'Lỗi cập nhật hồ sơ.' });
+    return res.status(400).json({ success: false, message: 'Thông tin hồ sơ không hợp lệ.' });
   }
 });
 
 // 6. Đăng nhập Google giả lập hoặc thật
-router.post('/google', async (req, res) => {
+router.get('/google/config', (req, res) => res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' }));
+router.post(['/google', '/google-login'], async (req, res) => {
   try {
-    const { email, fullname } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: 'Thiếu thông tin Google.' });
-
-    let user = await User.findOne({ email: email.toLowerCase() });
+    const { email, fullname, avatarUrl } = await verifyGoogleAccessToken(req.body.accessToken);
+    let user = await User.findOne({ email });
     if (!user) {
-      user = new User({
-        username: email.split('@')[0] + '_' + Math.floor(Math.random() * 1000),
-        email: email.toLowerCase(),
-        password_hash: await bcrypt.hash('google_oauth_default_pwd', 10),
+      user = await User.create({
+        username: 'google_' + randomBytes(12).toString('hex'),
+        email,
+        password_hash: await bcrypt.hash(randomBytes(48).toString('base64url'), 10),
         auth_provider: 'google',
-        profile: { fullname: fullname || email.split('@')[0] },
-        roles: ['traveler'],
-        verified: true
+        profile: { fullname, avatarUrl },
+        roles: ['traveler'], verified: true
       });
-      await user.save();
     }
-
-    const token = jwt.sign(
-      { id: user._id, username: user.username, email: user.email, roles: user.roles },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    return res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        _id: user._id,
-        username: user.username,
-        fullname: user.profile.fullname,
-        email: user.email,
-        role: user.roles.includes('admin') ? 'admin' : (user.roles.includes('provider') ? 'provider' : 'traveler'),
-        roles: user.roles
-      }
-    });
+    if (user.status !== 'active') {
+      return res.status(403).json({ success: false, message: 'Tài khoản chưa hoạt động hoặc đã bị khóa.' });
+    }
+    const role = user.roles.includes('admin') ? 'admin' : user.roles.includes('provider') ? 'provider' : 'traveler';
+    const token = jwt.sign({ id: user._id, username: user.username, email, role, roles: user.roles }, JWT_SECRET, { expiresIn: '7d' });
+    const secure = process.env.NODE_ENV === 'production';
+    res.cookie('token', token, { httpOnly: true, secure, sameSite: secure ? 'none' : 'lax', maxAge: 7 * 86400000 });
+    if (req.session) req.session.user = { id: user._id, username: user.username, email, roles: user.roles };
+    return res.json({ success: true, token, user: {
+      id: user._id, username: user.username, email: user.email, role,
+      fullname: user.profile.fullname, avatarUrl: user.profile.avatarUrl, is_verified: user.verified
+    } });
   } catch (error) {
-    console.error('Google login error:', error);
-    return res.status(500).json({ success: false, message: 'Lỗi xác thực Google.' });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Không thể đăng nhập Google. Vui lòng thử lại.' });
+  }
+});
+
+router.get('/facebook/config', (req, res) => res.json(facebookConfig()));
+router.post('/facebook-login', async (req, res) => {
+  try {
+    const { email, fullname, avatarUrl, facebookId } = await verifyFacebookAccessToken(req.body.accessToken);
+    let user = await User.findOne({ facebook_id: facebookId });
+    if (!user) {
+      user = await User.findOne({ email });
+      if (user) {
+        if (user.status !== 'active') {
+          return res.status(403).json({ success: false, message: 'Tài khoản chưa hoạt động hoặc đã bị khóa.' });
+        }
+        if (user.facebook_id && user.facebook_id !== facebookId) {
+          return res.status(409).json({ success: false, message: 'Tài khoản đã liên kết với một Facebook khác.' });
+        }
+        const linked = await User.findOneAndUpdate(
+          { _id: user._id, $or: [{ facebook_id: { $exists: false } }, { facebook_id: null }, { facebook_id: facebookId }] },
+          { $set: { facebook_id: facebookId } },
+          { new: true, runValidators: true }
+        );
+        if (!linked) return res.status(409).json({ success: false, message: 'Liên kết tài khoản đã thay đổi. Vui lòng thử lại.' });
+        user = linked;
+      }
+    }
+    if (!user) {
+      user = await User.create({
+        facebook_id: facebookId,
+        username: 'facebook_' + randomBytes(12).toString('hex'),
+        email,
+        password_hash: await bcrypt.hash(randomBytes(48).toString('base64url'), 10),
+        auth_provider: 'facebook',
+        profile: { fullname, avatarUrl },
+        roles: ['traveler'], verified: true
+      });
+    }
+    if (user.status !== 'active') {
+      return res.status(403).json({ success: false, message: 'Tài khoản chưa hoạt động hoặc đã bị khóa.' });
+    }
+    const role = user.roles.includes('admin') ? 'admin' : user.roles.includes('provider') ? 'provider' : 'traveler';
+    const token = jwt.sign({ id: user._id, username: user.username, email, role, roles: user.roles }, JWT_SECRET, { expiresIn: '7d' });
+    const secure = process.env.NODE_ENV === 'production';
+    res.cookie('token', token, { httpOnly: true, secure, sameSite: secure ? 'none' : 'lax', maxAge: 7 * 86400000 });
+    if (req.session) req.session.user = { id: user._id, username: user.username, email, roles: user.roles };
+    return res.json({ success: true, token, user: {
+      id: user._id, username: user.username, email: user.email, role,
+      fullname: user.profile.fullname, avatarUrl: user.profile.avatarUrl, is_verified: user.verified
+    } });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Không thể đăng nhập Facebook. Vui lòng thử lại.' });
   }
 });
 

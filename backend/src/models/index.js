@@ -5,6 +5,7 @@ const { sequelize } = require('../config/db.config');
 const User = sequelize.define('User', {
   id: { type: DataTypes.STRING, primaryKey: true },
   role: { type: DataTypes.ENUM('traveler', 'provider', 'admin'), defaultValue: 'traveler', allowNull: false },
+  facebook_id: { type: DataTypes.STRING, unique: true, allowNull: true },
   username: { type: DataTypes.STRING, unique: true, allowNull: false },
   password_hash: { type: DataTypes.STRING, allowNull: false },
   fullname: { type: DataTypes.STRING, allowNull: true },

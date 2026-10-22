@@ -27,6 +27,10 @@ import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/p
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const url = new URL(req.url, window.location.origin);
+  const allowedOrigins = new Set(['http://localhost:5055', 'http://127.0.0.1:5055', 'https://greensteps-6swn.onrender.com', window.location.origin]);
+  if (!allowedOrigins.has(url.origin) || !url.pathname.startsWith('/api/')) return next(req);
+
   const token = localStorage.getItem('greensteps_token');
   const cloneConfig: any = {
     withCredentials: true
