@@ -1,0 +1,150 @@
+<main class="main-viewport tours-page-compact">
+    <!-- BANNERS SECTION -->
+    <section class="tours-banners-section">
+        <div class="dest-banner-card" (click)="filterByDestination('Đà Lạt')">
+            <img src="image/1dc8619487310884c9d631d689ece1e7.jpg" alt="Đà Lạt">
+            <div class="dest-banner-overlay">
+                <h3>Đà Lạt</h3>
+                <p>Điểm đến xanh</p>
+            </div>
+        </div>
+        <div class="dest-banner-card" (click)="filterByDestination('Phú Yên')">
+            <img src="image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg" alt="Phú Yên">
+            <div class="dest-banner-overlay">
+                <h3>Phú Yên</h3>
+                <p>Xứ Nẫu bình dị</p>
+            </div>
+        </div>
+        <div class="dest-banner-card" (click)="filterByDestination('Đà Nẵng')">
+            <img src="image/Viet Nam.png" alt="Đà Nẵng">
+            <div class="dest-banner-overlay">
+                <h3>Đà Nẵng</h3>
+                <p>Thành phố đáng sống</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FILTER BAR SECTION -->
+    <section class="tours-filter-section">
+        <div class="tours-filter-header">
+            <div class="search-input-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" id="servicesSearchInput" [(ngModel)]="searchQuery" (input)="filterServices()" placeholder="Tìm kiếm dịch vụ...">
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="tours-count-badge">Tìm thấy {{ filteredServices.length }} dịch vụ</span>
+                <button *ngIf="filterDest !== 'all' || filterPrice !== 'all' || filterRating !== 'all' || searchQuery"
+                        (click)="resetFilters()"
+                        class="reset-filters-btn"
+                        style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #10B981; background: #ECFDF5; color: #047857; cursor: pointer; transition: all 0.2s;">
+                    Xem tất cả
+                </button>
+            </div>
+        </div>
+        
+        <div class="tours-filters-row">
+            <select id="filterDestSelect" [(ngModel)]="filterDest" (change)="filterServices()">
+                <option value="all">Tất cả điểm đến</option>
+                <option value="Đà Lạt">Đà Lạt</option>
+                <option value="Phú Yên">Phú Yên</option>
+                <option value="Đà Nẵng">Đà Nẵng - Hội An</option>
+            </select>
+
+            <select id="filterPriceSelect" [(ngModel)]="filterPrice" (change)="filterServices()">
+                <option value="all">Tất cả mức giá</option>
+                <option value="under500k">Dưới 500.000đ</option>
+                <option value="500k-1.5M">500.000đ - 1.500.000đ</option>
+                <option value="above1.5M">Trên 1.500.000đ</option>
+            </select>
+
+            <select id="filterRatingSelect" [(ngModel)]="filterRating" (change)="filterServices()">
+                <option value="all">Tất cả đánh giá</option>
+                <option value="above4.5">Từ 4.5★ trở lên</option>
+                <option value="above4.0">Từ 4.0★ trở lên</option>
+            </select>
+
+            <select id="sortSelect" [(ngModel)]="sortOrder" (change)="filterServices()">
+                <option value="popular">Phổ biến nhất</option>
+                <option value="rating">Đánh giá tốt nhất</option>
+                <option value="cost_asc">Giá từ thấp đến cao</option>
+                <option value="cost_desc">Giá từ cao đến thấp</option>
+            </select>
+        </div>
+    </section>
+
+    <!-- MAIN SERVICES GRID -->
+    <section class="tours-grid-section">
+        <div style="margin-bottom: 24px;">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px;">{{ getCategoryTitle() }}</span>
+            <h2 style="font-size: 1.5rem; font-weight: 900; color: #111827; margin: 0; line-height: 1.2;">{{ getCategorySub() }}</h2>
+        </div>
+
+        <div class="tours-grid">
+            <!-- Skeleton cards when loading -->
+            <ng-container *ngIf="isPageLoading">
+              <div class="tour-card" style="padding: 0; background: white; border-radius: 12px;" *ngFor="let s of [1, 2, 3, 4, 5]">
+                <div class="skeleton" style="width: 100%; height: 180px; border-top-left-radius: 12px; border-top-right-radius: 12px;"></div>
+                <div style="padding: 16px;">
+                  <div class="skeleton skeleton-text" style="width: 40%; height: 12px; margin-bottom: 12px;"></div>
+                  <div class="skeleton skeleton-title" style="width: 85%; height: 18px; margin-bottom: 12px;"></div>
+                  <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <div class="skeleton" style="width: 60px; height: 20px; border-radius: 9999px;"></div>
+                    <div class="skeleton" style="width: 60px; height: 20px; border-radius: 9999px;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="skeleton skeleton-text" style="width: 30%; height: 12px; margin-bottom: 0;"></div>
+                    <div class="skeleton skeleton-text" style="width: 25%; height: 12px; margin-bottom: 0;"></div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Real cards when not loading -->
+            <ng-container *ngIf="!isPageLoading">
+              <!-- Service cards rendered dynamically -->
+              <div class="tour-card" *ngFor="let svc of filteredServices" [routerLink]="['/services', getServiceRouteType(svc), svc.id]" style="cursor: pointer;">
+                  <div class="tour-img-container" style="position: relative;">
+                      <!-- AI Recommended Badge -->
+                      <div *ngIf="svc.isRecommended" style="position: absolute; top: 12px; left: 12px; background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: white; padding: 4px 10px; font-size: 0.65rem; font-weight: 700; border-radius: 4px; box-shadow: 0 4px 8px rgba(4,120,87,0.25); display: flex; align-items: center; gap: 4px; z-index: 10; text-transform: uppercase;">
+                          <i class="bi bi-patch-check-fill animate-pulse"></i> Gợi ý cho bạn
+                      </div>
+                      
+                      <img [src]="svc.image_url || 'image/Viet Nam.png'" [alt]="svc.name">
+                      
+                      <div class="price-pill-overlay">
+                          <span class="price-new">{{ svc.cost | number:'1.0-0':'vi-VN' }}đ</span>
+                      </div>
+                  </div>
+                  
+                  <div class="tour-info">
+                      <div class="tour-region">{{ svc.destination }} • Dịch vụ</div>
+                      <h3 class="tour-title">{{ svc.name }}</h3>
+                      
+                      <div class="tour-tags-row">
+                          <span class="tour-tag-pill">{{ getCategoryTitle().replace('Không gian ', '').replace('Phương Tiện ', '').replace('Ẩm Thực ', '').replace('Điểm Tham Quan & ', '') }}</span>
+                          <span class="tour-tag-pill" *ngFor="let badge of svc.badges">{{ badge }}</span>
+                      </div>
+
+                      <div class="tour-rating-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                          <span>
+                              <span class="tour-stars"><i class="bi bi-star-fill"></i> {{ svc.rating || 5.0 }}</span>
+                              <span class="tour-votes">({{ svc.bookings_count || 0 }})</span>
+                          </span>
+                          <span style="font-size: 0.7rem; font-weight: 750; color: #059669; background: #eef7f1; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                              <i class="bi bi-leaf-fill"></i> -{{ svc.carbon || 0 }} kg CO₂
+                          </span>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- Empty view when no results found -->
+              <div *ngIf="filteredServices.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1.5px dashed #E5E7EB; display: flex; flex-direction: column; align-items: center;">
+                  <i class="bi bi-search-heart" style="font-size: 3.5rem; color: #10B981; margin-bottom: 1rem;"></i>
+                  <h3 style="font-size: 1.25rem; font-weight: 800; color: #111827; margin: 0 0 8px 0;">Không tìm thấy dịch vụ phù hợp</h3>
+                  <p style="color: #6B7280; margin: 0 0 16px 0;">Hãy thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm để khám phá thêm dịch vụ.</p>
+                  <button (click)="resetFilters()" style="background: #10B981; color: white; font-weight: 700; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s;">Xem tất cả dịch vụ</button>
+              </div>
+            </ng-container>
+        </div>
+    </section>
+</main>

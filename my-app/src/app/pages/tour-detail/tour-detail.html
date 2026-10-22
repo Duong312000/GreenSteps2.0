@@ -1,0 +1,806 @@
+<!-- Skeleton Loading State -->
+<main class="tour-detail-page" *ngIf="isPageLoading" style="padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%;">
+  <section class="tour-heading" style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+    <div style="flex: 1;">
+      <div class="skeleton" style="width: 120px; height: 16px; margin-bottom: 12px; border-radius: 4px;"></div>
+      <div class="skeleton skeleton-title" style="width: 60%; height: 28px; margin-bottom: 12px;"></div>
+      <div style="display: flex; gap: 16px;">
+        <div class="skeleton skeleton-text" style="width: 100px;"></div>
+        <div class="skeleton skeleton-text" style="width: 150px;"></div>
+        <div class="skeleton skeleton-text" style="width: 120px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+    <div style="flex: 2; height: 400px; border-radius: 12px;" class="skeleton"></div>
+    <div style="flex: 1; height: 400px; background: white; border-radius: 12px; border: 1px solid #f1f5f9; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <div class="skeleton skeleton-title" style="width: 70%; height: 24px;"></div>
+      <div class="skeleton skeleton-text" style="width: 90%;"></div>
+      <div class="skeleton" style="width: 100%; height: 46px; border-radius: 8px;"></div>
+      <div class="skeleton" style="width: 100%; height: 46px; border-radius: 8px;"></div>
+      <div class="skeleton skeleton-button" style="width: 100%; height: 46px; margin-top: auto; border-radius: 9999px;"></div>
+    </div>
+  </div>
+</main>
+
+<main class="tour-detail-page" *ngIf="!isPageLoading && activeTour">
+    <section class="tour-heading">
+        <div>
+            <nav class="detail-breadcrumb" aria-label="Breadcrumb">
+                <a *ngIf="!activeTour.isService" routerLink="/tours"><i class="bi bi-chevron-left"></i> Tour GreenSteps</a>
+                <a *ngIf="activeTour.isService" routerLink="/services" [queryParams]="{ type: detailBackQueryType }"><i class="bi bi-chevron-left"></i> {{ detailKindLabel }}</a>
+                <span>{{ activeTour.destination }}</span>
+            </nav>
+
+            <h1>{{ activeTour.title }}</h1>
+
+            <div class="tour-meta-row" *ngIf="activeTour.isService">
+                <span><i class="bi bi-clock"></i> Theo lịch dịch vụ</span>
+                <span><i class="bi bi-geo-alt"></i> {{ activeTour.destination }}, Việt Nam</span>
+                <span><i class="bi bi-tag"></i> {{ detailKindLabel }}</span>
+            </div>
+
+            <div class="tour-meta-row" *ngIf="!activeTour.isService">
+                <span><i class="bi bi-clock"></i> {{ activeTour.days }} ngày {{ displayNights }} đêm</span>
+                <span><i class="bi bi-geo-alt"></i> {{ activeTour.destination }}, Việt Nam</span>
+                <span><i class="bi bi-tag"></i> Eco Tour, Gia đình, Thiên nhiên</span>
+            </div>
+        </div>
+
+        <div class="title-actions" aria-label="Tour actions">
+            <button type="button"><i class="bi bi-share"></i> Chia sẻ</button>
+            <button type="button"><i class="bi bi-heart"></i> Lưu</button>
+        </div>
+    </section>
+
+    <section class="tour-hero-grid" aria-label="Tour gallery and booking">
+        <div class="gallery-panel" [ngClass]="{
+            'layout-1-image': slideImages.length === 1,
+            'layout-2-images': slideImages.length === 2,
+            'layout-3-images': slideImages.length === 3,
+            'layout-4-images': slideImages.length === 4,
+            'layout-5-images': slideImages.length === 5
+        }">
+            <div class="gallery-main" (click)="openPhotoGallery(activeSlideIndex)" role="button" tabindex="0" aria-label="Xem ảnh lớn">
+                <img [src]="slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+            </div>
+
+            <div class="gallery-side-grid" *ngIf="slideImages.length > 1">
+                <button type="button"
+                        *ngFor="let img of slideImages.slice(1, 7); let idx = index"
+                        class="gallery-tile"
+                        [class.active]="activeSlideIndex === idx + 1"
+                        [class.show-all-tile]="idx === 5 || (slideImages.length > 2 && idx === slideImages.length - 2)"
+                        (click)="openPhotoGallery(idx + 1)"
+                        [attr.aria-label]="'Xem ảnh ' + (idx + 2)">
+                    <img [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 2)">
+                    <span *ngIf="idx === 5 || (slideImages.length > 2 && idx === slideImages.length - 2)"><i class="bi bi-grid-3x3-gap"></i> Xem tất cả ảnh</span>
+                </button>
+            </div>
+        </div>
+
+        <aside class="booking-card" aria-label="Thông tin đặt tour">
+            <div class="booking-card-top" *ngIf="activeTour.isService">
+                <span class="duration-pill">Dịch vụ trong ngày</span>
+                <span class="eco-pill"><i class="bi bi-leaf"></i> {{ detailKindLabel }}</span>
+            </div>
+            <div class="booking-card-top" *ngIf="!activeTour.isService">
+                <span class="duration-pill">{{ activeTour.days }} ngày {{ displayNights }} đêm</span>
+                <span class="eco-pill"><i class="bi bi-leaf"></i> Eco Tour</span>
+            </div>
+
+            <div class="booking-summary">
+                <h2>{{ activeTour.title }}</h2>
+                <p>{{ activeTour.destination }}, Việt Nam</p>
+            </div>
+
+            <div class="rating-line" (click)="scrollToReviews()" style="cursor: pointer;">
+                <span><i class="bi bi-star-fill"></i> {{ activeTour.rating || 4.8 }}</span>
+                <span>·</span>
+                <a href="#" (click)="$event.preventDefault(); $event.stopPropagation(); scrollToReviews()">{{ reviewsList.length > 0 ? reviewsList.length : '126' }} đánh giá</a>
+            </div>
+
+            <div class="price-block">
+                <span>Từ</span>
+                <div>
+                    <strong>{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong>
+                    <del>{{ displayOldCost | number:'1.0-0':'vi-VN' }}đ</del>
+                </div>
+            </div>
+
+            <form class="booking-form" (submit)="submitBooking($event)">
+                <label class="form-field" for="bookingDate">
+                    <span>Ngày khởi hành</span>
+                    <input type="date" id="bookingDate" [(ngModel)]="bookingDate" name="bookingDate" required>
+                </label>
+
+                <div class="guest-grid">
+                    <label class="form-field" for="bookingAdults">
+                        <span>Người lớn</span>
+                        <select id="bookingAdults" [(ngModel)]="bookingAdults" name="bookingAdults">
+                            <option *ngFor="let opt of adultOptions" [ngValue]="opt">{{ opt }}</option>
+                        </select>
+                    </label>
+
+                    <label class="form-field" for="bookingChildren">
+                        <span>Trẻ em</span>
+                        <select id="bookingChildren" [(ngModel)]="bookingChildren" name="bookingChildren">
+                            <option *ngFor="let opt of childrenOptions" [ngValue]="opt">{{ opt }}</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div style="font-size: 11px; color: #047857; font-weight: 700; margin-top: -6px; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;" *ngIf="activeTour.maxCapacity">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Sức chứa tối đa: {{ activeTour.maxCapacity }} khách</span>
+                </div>
+
+                <button *ngIf="activeTour.isService" type="submit" class="primary-booking-button">
+                    Đặt Dịch Vụ Ngay
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+
+                <button *ngIf="!activeTour.isService" type="submit" class="primary-booking-button">
+                    Đặt Cọc Tour Ngay
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+
+                <button *ngIf="!activeTour.isService" type="button" class="secondary-edit-button" (click)="cloneAndEditTrip()">
+                    <i class="bi bi-sliders"></i>
+                    Tự chỉnh sửa lịch trình
+                </button>
+            </form>
+        </aside>
+    </section>
+
+    <section class="content-shell">
+        <nav class="detail-tabs" [attr.aria-label]="activeTour.isService ? 'Service detail tabs' : 'Tour detail tabs'">
+            <button type="button" [class.active]="activeInfoTab === 'overview'" (click)="setInfoTab('overview')">Tổng quan</button>
+            <button type="button" [class.active]="activeInfoTab === 'included'" (click)="setInfoTab('included')">Bao gồm những gì</button>
+            <button type="button" [class.active]="activeInfoTab === 'itinerary'" (click)="setInfoTab('itinerary')">{{ activeTour.isService ? 'Thông tin dịch vụ' : 'Lịch trình' }}</button>
+            <button type="button" [class.active]="activeInfoTab === 'policy'" (click)="setInfoTab('policy')">Chính sách</button>
+            <button type="button" [class.active]="activeInfoTab === 'reviews'" (click)="setInfoTab('reviews')">Đánh giá</button>
+        </nav>
+
+        <div class="tab-content-stack">
+            <section class="overview-panel" *ngIf="activeInfoTab === 'overview'">
+                <div class="overview-grid">
+                    <article>
+                        <i class="bi bi-compass"></i>
+                        <div>
+                            <span>{{ activeTour.isService ? 'Loại dịch vụ' : 'Phong cách tour' }}</span>
+                            <strong>{{ activeTour.isService ? detailKindLabel : 'Gia đình / Eco Travel' }}</strong>
+                            <p>{{ activeTour.isService ? 'Dịch vụ xanh được chọn lọc theo tiêu chí sạch, rõ thông tin và thân thiện môi trường.' : 'Trải nghiệm xanh phù hợp cho gia đình có trẻ nhỏ.' }}</p>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="bi bi-list-check"></i>
+                        <div>
+                            <span>{{ activeTour.isService ? 'Thông tin đặt chỗ' : 'Dịch vụ' }}</span>
+                            <strong>{{ activeTour.isService ? 'Theo từng lượt đặt' : 'Cơ bản' }}</strong>
+                            <p>{{ activeTour.isService ? 'Hiển thị giá, sức chứa, lịch phục vụ và chính sách để đặt đúng nhu cầu.' : 'Bao gồm lưu trú, ăn uống và phương tiện được chọn theo tiêu chí gọn, sạch, xanh.' }}</p>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="bi bi-person-heart"></i>
+                        <div>
+                            <span>{{ activeTour.isService ? 'Đối tác cung cấp' : 'Hướng dẫn viên' }}</span>
+                            <strong>Thân thiện</strong>
+                            <p>{{ activeTour.isService ? 'Được vận hành bởi đối tác trong hệ sinh thái GreenSteps.' : 'Đồng hành an toàn, hỗ trợ tốt cho các gia đình.' }}</p>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="bi bi-activity"></i>
+                        <div>
+                            <span>Mức độ vận động</span>
+                            <strong>Nhẹ</strong>
+                            <p>Phù hợp nhiều độ tuổi, không yêu cầu thể lực cao.</p>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="bi bi-people"></i>
+                        <div>
+                            <span>Nhóm khách</span>
+                            <strong>Nhóm nhỏ</strong>
+                            <p>Không gian riêng tư hơn, dễ điều chỉnh trải nghiệm.</p>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="bi bi-cloud-haze2"></i>
+                        <div>
+                            <span>Phát thải carbon</span>
+                            <strong>{{ activeTour.carbon }}kg CO₂</strong>
+                            <p>{{ activeTour.isService ? 'Dịch vụ giúp giảm dấu chân carbon so với lựa chọn truyền thống.' : 'Lịch trình được tối ưu để giảm phát thải và ưu tiên điểm đến xanh.' }}</p>
+                        </div>
+                    </article>
+                </div>
+
+                <section class="tour-highlights">
+                    <div class="section-kicker">Điểm nhấn</div>
+                    <h2>{{ activeTour.isService ? 'Điểm nổi bật của dịch vụ' : 'Điểm nổi bật của tour' }}</h2>
+                    <div class="highlight-grid">
+                        <div><i class="bi bi-check2-circle"></i> {{ activeTour.isService ? 'Thông tin giá và sức chứa rõ ràng' : 'Lịch trình phù hợp cho gia đình có trẻ nhỏ' }}</div>
+                        <div><i class="bi bi-check2-circle"></i> Ưu tiên điểm đến xanh, ít phát thải</div>
+                        <div><i class="bi bi-check2-circle"></i> {{ activeTour.isService ? 'Phù hợp để thêm vào hành trình cá nhân' : 'Có thời gian nghỉ giữa các hoạt động' }}</div>
+                        <div><i class="bi bi-check2-circle"></i> Trải nghiệm địa phương: lưu trú, ẩm thực, di chuyển hoặc khám phá thiên nhiên</div>
+                    </div>
+                </section>
+
+                <p class="tour-description">
+                    {{ activeTour.description || (activeTour.isService
+                        ? 'Dịch vụ GreenSteps được thiết kế để bổ sung linh hoạt vào chuyến đi, ưu tiên trải nghiệm địa phương và tiêu chí du lịch xanh.'
+                        : 'Khám phá Đà Lạt theo cách nhẹ nhàng và bền vững, phù hợp cho gia đình có trẻ nhỏ. Lịch trình kết hợp thiên nhiên, văn hóa địa phương và các điểm đến xanh được tối ưu để giảm phát thải carbon.') }}
+                </p>
+
+                <div class="tab-final-cta overview-cta-box">
+                    <div class="tab-final-cta-icon"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <h3>{{ detailConsultTitle }}</h3>
+                        <p>{{ activeTour.isService ? detailConsultCopy : 'GreenSteps sẵn sàng hỗ trợ để gia đình bạn chọn hành trình Đà Lạt nhẹ nhàng, rõ ràng và phù hợp nhất.' }}</p>
+                    </div>
+                    <div class="tab-final-cta-actions">
+                        <button type="button" class="cta-secondary"><i class="bi bi-chat"></i> Liên hệ tư vấn</button>
+                        <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="special-tab-panel included-panel" *ngIf="activeInfoTab === 'included'">
+                <div class="panel-hero included-hero">
+                    <div>
+                        <span class="section-kicker">GreenSteps Care</span>
+                        <h3>{{ activeTour.isService ? 'Thông tin bao gồm trong dịch vụ' : 'Mọi thứ gia đình cần cho một hành trình nhẹ nhàng' }}</h3>
+                        <p>{{ activeTour.isService ? 'Các hạng mục được mô tả rõ để bạn biết chính xác dịch vụ cung cấp gì trước khi đặt.' : 'Dịch vụ được chọn theo tiêu chí gọn gàng, dễ chịu và phù hợp cho nhóm nhỏ yêu thiên nhiên.' }}</p>
+                    </div>
+                    <div class="included-hero-badges">
+                        <div class="panel-hero-badge">
+                            <i class="bi bi-leaf"></i>
+                            <span>{{ activeTour.isService ? 'Dịch vụ xanh đã được chọn lọc' : 'Đã tối ưu cho tour gia đình 3N2Đ' }}</span>
+                        </div>
+                        <div class="panel-hero-badge">
+                            <i class="bi bi-shield-check"></i>
+                            <span>Dễ theo dõi, rõ ràng, minh bạch</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="special-grid">
+                    <article class="special-card">
+                        <div class="special-card-icon"><i class="bi bi-bus-front"></i></div>
+                        <div class="special-card-copy">
+                            <h4>Di chuyển & điều phối</h4>
+                            <p>Xe đưa đón theo lịch trình, điều phối thời gian mềm để gia đình có trẻ nhỏ luôn di chuyển thoải mái.</p>
+                            <ul>
+                                <li>Đón trả theo lịch đã xác nhận</li>
+                                <li>Tối ưu quãng đường giữa các điểm đến</li>
+                                <li>Hỗ trợ thay đổi nhịp tham quan khi cần</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <article class="special-card">
+                        <div class="special-card-icon"><i class="bi bi-ticket-perforated"></i></div>
+                        <div class="special-card-copy">
+                            <h4>{{ activeTour.isService ? 'Phạm vi dịch vụ' : 'Trải nghiệm trong tour' }}</h4>
+                            <p>{{ activeTour.isService ? 'Bao gồm các quyền lợi, thời lượng và tiện ích chính do đối tác GreenSteps cung cấp.' : 'Đã bao gồm vé tham quan cơ bản và các điểm đến xanh phù hợp cho gia đình muốn đi chậm, đi đẹp.' }}</p>
+                            <ul>
+                                <li>Vé vào cổng cho các điểm chính</li>
+                                <li>Hướng dẫn viên địa phương thân thiện</li>
+                                <li>Gợi ý thời gian vui chơi phù hợp từng điểm</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <article class="special-card">
+                        <div class="special-card-icon"><i class="bi bi-cup-hot"></i></div>
+                        <div class="special-card-copy">
+                            <h4>{{ activeTour.isService ? 'Tiện ích & hỗ trợ' : 'Ăn uống & nghỉ giữa hành trình' }}</h4>
+                            <p>GreenSteps gợi ý các điểm ăn uống dễ tiếp cận, hợp gia đình và ưu tiên trải nghiệm bản địa vừa đủ.</p>
+                            <ul>
+                                <li>Gợi ý bữa trưa và bữa tối theo khu vực</li>
+                                <li>Ưu tiên điểm dừng sạch, dễ nghỉ chân</li>
+                                <li>Có khung giờ nghỉ đệm giữa các hoạt động</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <article class="special-card special-card-accent">
+                        <div class="special-card-icon"><i class="bi bi-leaf"></i></div>
+                        <div class="special-card-copy">
+                            <h4>Cam kết trải nghiệm xanh</h4>
+                            <p>{{ activeTour.isService ? 'Dịch vụ ưu tiên vận hành bền vững, minh bạch thông tin và khuyến khích lựa chọn địa phương.' : 'Lịch trình ưu tiên điểm đến gần nhau, hoạt động ngoài trời nhẹ nhàng và lựa chọn giúp giảm phát thải carbon.' }}</p>
+                            <ul>
+                                <li>Ưu tiên điểm tham quan có không gian tự nhiên</li>
+                                <li>Giảm thời gian di chuyển không cần thiết</li>
+                                <li>Khuyến khích sử dụng dịch vụ địa phương</li>
+                            </ul>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="included-benefit-strip">
+                    <div><i class="bi bi-calendar2-week"></i><span>Đón trả<br>theo lịch trình</span></div>
+                    <div><i class="bi bi-person-check"></i><span>Hướng dẫn viên<br>thân thiện</span></div>
+                    <div><i class="bi bi-geo-alt"></i><span>Điểm đến<br>xanh</span></div>
+                    <div><i class="bi bi-people"></i><span>Nhịp độ phù hợp<br>gia đình</span></div>
+                </div>
+
+                <div class="tab-final-cta included-cta-box">
+                    <div class="tab-final-cta-icon included-cta-icon"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <h3>{{ detailConsultTitle }}</h3>
+                        <p>GreenSteps sẽ giải thích rõ các hạng mục bao gồm để bạn yên tâm trước khi giữ chỗ.</p>
+                    </div>
+                    <div class="tab-final-cta-actions included-cta-actions">
+                        <button type="button" class="cta-secondary"><i class="bi bi-chat"></i> Liên hệ tư vấn</button>
+                        <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="policy-panel" *ngIf="activeInfoTab === 'policy'">
+                <div class="policy-hero-card">
+                    <div class="policy-shield">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="policy-hero-copy">
+                        <span class="section-kicker">Booking Policy</span>
+                        <h3>{{ activeTour.isService ? 'Rõ ràng từ lúc giữ chỗ đến khi sử dụng dịch vụ' : 'Rõ ràng từ lúc giữ chỗ đến khi khởi hành' }}</h3>
+                        <p>GreenSteps cam kết minh bạch trong từng bước booking, để bạn yên tâm lên kế hoạch và tận hưởng {{ activeTour.isService ? 'dịch vụ' : 'hành trình' }} trọn vẹn.</p>
+                    </div>
+                    <div class="policy-hero-points">
+                        <div><i class="bi bi-shield-check"></i><span>Xác nhận trước thanh toán</span></div>
+                        <div><i class="bi bi-calendar2-check"></i><span>Hỗ trợ đổi ngày linh hoạt</span></div>
+                        <div><i class="bi bi-file-earmark-text"></i><span>Minh bạch điều khoản & chi phí</span></div>
+                    </div>
+                </div>
+
+                <div class="policy-flow-list">
+                    <article class="policy-flow-item">
+                        <div class="policy-flow-index">1</div>
+                        <div class="policy-flow-icon"><i class="bi bi-calendar2-week"></i></div>
+                        <div class="policy-flow-main">
+                            <h4>Giữ chỗ & đổi ngày</h4>
+                            <p>Đặt giữ chỗ miễn phí 7 ngày để bạn chủ động sắp xếp kế hoạch.</p>
+                        </div>
+                        <ul>
+                            <li>Giữ chỗ không mất phí trong 7 ngày kể từ thời điểm đặt.</li>
+                            <li>Đổi ngày linh hoạt không giới hạn số lần, tùy tình trạng chỗ.</li>
+                            <li>Thông báo đổi ngày tối thiểu 48 giờ trước giờ khởi hành.</li>
+                        </ul>
+                    </article>
+
+                    <article class="policy-flow-item">
+                        <div class="policy-flow-index">2</div>
+                        <div class="policy-flow-icon"><i class="bi bi-credit-card"></i></div>
+                        <div class="policy-flow-main">
+                            <h4>Đặt cọc & xác nhận</h4>
+                            <p>{{ activeTour.isService ? 'Thanh toán/giữ chỗ dịch vụ theo thông tin xác nhận từ GreenSteps.' : 'Cọc tour để giữ chỗ. Phần còn lại thanh toán theo thông tin xác nhận từ GreenSteps.' }}</p>
+                        </div>
+                        <ul>
+                            <li>{{ activeTour.isService ? 'Mức thanh toán áp dụng theo từng dịch vụ.' : 'Cọc tour theo mức quy định của từng hành trình.' }}</li>
+                            <li>Nhận xác nhận qua email/SMS ngay sau khi đặt cọc.</li>
+                            <li>Thanh toán phần còn lại theo hướng dẫn trong email xác nhận.</li>
+                        </ul>
+                    </article>
+
+                    <article class="policy-flow-item">
+                        <div class="policy-flow-index">3</div>
+                        <div class="policy-flow-icon"><i class="bi bi-arrow-repeat"></i></div>
+                        <div class="policy-flow-main">
+                            <h4>Hoàn / hủy</h4>
+                            <p>Chính sách hoàn hoặc hủy rõ ràng, áp dụng theo mốc thời gian trước giờ khởi hành.</p>
+                        </div>
+                        <ul>
+                            <li>Yêu cầu hủy/hoàn cần gửi bằng email tới GreenSteps.</li>
+                            <li>Thời gian xử lý hoàn tiền: 3-7 ngày làm việc.</li>
+                            <li>Một số dịch vụ đặc biệt có điều kiện riêng, ghi rõ khi xác nhận.</li>
+                        </ul>
+                    </article>
+                </div>
+
+                <section class="refund-policy-box">
+                    <h3>Chi tiết điều kiện hoàn / hủy</h3>
+                    <div class="refund-grid">
+                        <article>
+                            <i class="bi bi-calendar2-check"></i>
+                            <div>
+                                <span>Hủy trước 7 ngày</span>
+                                <strong>Hoàn tối đa 90% tiền cọc</strong>
+                                <p>Trừ phí xử lý nếu có.</p>
+                            </div>
+                        </article>
+                        <article>
+                            <i class="bi bi-calendar2-minus"></i>
+                            <div>
+                                <span>Hủy trước 3-6 ngày</span>
+                                <strong>Hoàn 50-70% tùy dịch vụ</strong>
+                                <p>Tùy chính sách của từng {{ detailEntityLabel }}.</p>
+                            </div>
+                        </article>
+                        <article>
+                            <i class="bi bi-calendar2-x"></i>
+                            <div>
+                                <span>Trong vòng 48 giờ</span>
+                                <strong>Có thể không hoàn cọc</strong>
+                                <p>Áp dụng với một số dịch vụ đặc biệt.</p>
+                            </div>
+                        </article>
+                    </div>
+                    <p class="policy-footnote"><i class="bi bi-info-circle"></i> Chi tiết điều kiện của từng {{ detailEntityLabel }} sẽ được hiển thị rõ ràng ở bước xác nhận booking.</p>
+                </section>
+
+                <section class="pretrip-support-box">
+                    <h3>Thông tin hỗ trợ trước chuyến đi</h3>
+                    <div class="policy-summary-grid">
+                        <div class="policy-summary-card">
+                            <i class="bi bi-bell"></i>
+                            <strong>Nhắc lịch trước chuyến đi</strong>
+                            <span>GreenSteps gửi lại thông tin khởi hành, giờ đón và lưu ý cho gia đình trước ngày đi qua email & SMS.</span>
+                        </div>
+                        <div class="policy-summary-card">
+                            <i class="bi bi-headset"></i>
+                            <strong>Hỗ trợ trước ngày đi</strong>
+                            <span>Có thể liên hệ để điều chỉnh một số chi tiết phù hợp với trẻ nhỏ hoặc người lớn tuổi.</span>
+                        </div>
+                        <div class="policy-summary-card">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <strong>Thông tin minh bạch</strong>
+                            <span>Các điều khoản quan trọng được trình bày rõ trong bước xác nhận để bạn dễ theo dõi.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="policy-faq-box">
+                    <h3>Câu hỏi thường gặp</h3>
+                    <div class="policy-faq-grid">
+                        <article class="open">
+                            <div><strong>Tôi có thể đổi ngày bao nhiêu lần?</strong><i class="bi bi-chevron-up"></i></div>
+                            <p>Bạn có thể đổi ngày không giới hạn số lần, tùy tình trạng chỗ trống. Vui lòng thông báo tối thiểu 48 giờ trước giờ khởi hành.</p>
+                        </article>
+                        <article><strong>Khi nào thanh toán phần còn lại?</strong><i class="bi bi-chevron-down"></i></article>
+                        <article><strong>Nếu thời tiết xấu thì sao?</strong><i class="bi bi-chevron-down"></i></article>
+                        <article><strong>Tôi có thể đổi người tham gia không?</strong><i class="bi bi-chevron-down"></i></article>
+                    </div>
+                </section>
+
+                <div class="tab-final-cta policy-cta-box">
+                    <div class="tab-final-cta-icon policy-cta-icon"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <h3>{{ detailConsultTitle }}</h3>
+                        <p>{{ detailConsultCopy }}</p>
+                    </div>
+                    <div class="tab-final-cta-actions policy-cta-actions">
+                        <button type="button" class="cta-secondary"><i class="bi bi-telephone"></i> Liên hệ tư vấn</button>
+                        <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="reviews-section" class="reviews-panel" *ngIf="activeInfoTab === 'reviews' && activeTour">
+                <div class="review-summary-card">
+                    <div class="review-score-block">
+                        <span class="section-kicker">{{ activeTour.isService ? 'Đánh giá dịch vụ' : 'Đánh giá tour' }}</span>
+                        <div class="review-score">
+                            <strong>{{ averageScore | number:'1.1-1':'vi-VN' }}</strong>
+                            <span>/5</span>
+                        </div>
+                        <div class="review-stars" [attr.aria-label]="averageScore + ' sao'">
+                            <i class="bi" [ngClass]="averageScore >= 1 ? 'bi-star-fill' : 'bi-star'"></i>
+                            <i class="bi" [ngClass]="averageScore >= 2 ? 'bi-star-fill' : 'bi-star'"></i>
+                            <i class="bi" [ngClass]="averageScore >= 3 ? 'bi-star-fill' : 'bi-star'"></i>
+                            <i class="bi" [ngClass]="averageScore >= 4 ? 'bi-star-fill' : 'bi-star'"></i>
+                            <i class="bi" [ngClass]="averageScore >= 4.7 ? 'bi-star-fill' : 'bi-star'"></i>
+                        </div>
+                        <h3>{{ ratingText }}</h3>
+                        <p *ngIf="totalReviewsCount > 0">Có {{ totalReviewsCount }} đánh giá từ khách hàng đã trải nghiệm {{ activeTour.title }}.</p>
+                        <p *ngIf="totalReviewsCount === 0">Chưa có lượt đánh giá nào cho dịch vụ này.</p>
+                    </div>
+
+                    <div class="rating-bars" aria-label="Phân bổ sao">
+                        <div class="rating-bar-row" *ngFor="let stars of [5, 4, 3, 2, 1]">
+                            <span>{{ stars }} sao</span>
+                            <div class="rating-track"><span [style.width.%]="getRatingPercentage(stars)"></span></div>
+                            <strong>{{ getRatingCount(stars) }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="review-criteria-section" aria-label="Khách hàng đánh giá cao">
+                    <div class="review-section-heading">
+                        <span class="section-kicker">Điểm nổi bật</span>
+                        <h3>Khách hàng đánh giá cao</h3>
+                    </div>
+                    <div class="review-criteria-grid">
+                        <article>
+                            <i class="bi bi-person-heart"></i>
+                            <span>{{ activeTour.isService ? 'Dịch vụ chu đáo' : 'Hướng dẫn viên' }}</span>
+                            <strong>{{ guideRating | number:'1.1-1':'vi-VN' }}</strong>
+                            <div class="criteria-progress"><span [style.width.%]="guideRating * 20"></span></div>
+                            <p *ngIf="activeTour.isService"><i class="bi bi-star"></i> Phục vụ thân thiện, nhiệt tình</p>
+                            <p *ngIf="!activeTour.isService"><i class="bi bi-leaf"></i> 96% khách khen thân thiện</p>
+                        </article>
+                        <article>
+                            <i class="bi bi-map"></i>
+                            <span>{{ activeTour.isService ? 'Không gian xanh' : 'Lịch trình' }}</span>
+                            <strong>{{ itineraryRating | number:'1.1-1':'vi-VN' }}</strong>
+                            <div class="criteria-progress"><span [style.width.%]="itineraryRating * 20"></span></div>
+                            <p *ngIf="activeTour.isService"><i class="bi bi-leaf"></i> Cơ sở vật chất thân thiện môi trường</p>
+                            <p *ngIf="!activeTour.isService"><i class="bi bi-calendar-check"></i> Lịch trình vừa sức, hợp lý</p>
+                        </article>
+                        <article>
+                            <i class="bi bi-people"></i>
+                            <span>Phù hợp gia đình</span>
+                            <strong>{{ familyRating | number:'1.1-1':'vi-VN' }}</strong>
+                            <div class="criteria-progress"><span [style.width.%]="familyRating * 20"></span></div>
+                            <p *ngIf="activeTour.isService"><i class="bi bi-heart"></i> Phù hợp với mọi đối tượng khách</p>
+                            <p *ngIf="!activeTour.isService"><i class="bi bi-heart"></i> Rất phù hợp cho gia đình có trẻ nhỏ</p>
+                        </article>
+                        <article>
+                            <i class="bi bi-leaf"></i>
+                            <span>Trải nghiệm xanh</span>
+                            <strong>{{ ecoRatingHighlight | number:'1.1-1':'vi-VN' }}</strong>
+                            <div class="criteria-progress"><span [style.width.%]="ecoRatingHighlight * 20"></span></div>
+                            <p><i class="bi bi-leaf"></i> Ưu tiên bảo vệ môi trường</p>
+                        </article>
+                        <article>
+                            <i class="bi bi-wallet2"></i>
+                            <span>Đáng tiền</span>
+                            <strong>{{ valueRating | number:'1.1-1':'vi-VN' }}</strong>
+                            <div class="criteria-progress"><span [style.width.%]="valueRating * 20"></span></div>
+                            <p><i class="bi bi-patch-check"></i> Chi phí xứng đáng với trải nghiệm</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="guest-photo-strip" aria-label="Ảnh từ du khách">
+                    <div class="review-section-heading">
+                        <span class="section-kicker">Khoảnh khắc thật</span>
+                        <h3>Ảnh từ du khách</h3>
+                    </div>
+                    <div class="guest-photo-grid">
+                        <figure *ngFor="let img of slideImages.slice(0, 5); let idx = index" [class.more-photos]="idx === 4">
+                            <img [src]="img" [alt]="'Ảnh đánh giá Đà Lạt ' + (idx + 1)">
+                            <figcaption *ngIf="idx === 4">+12 ảnh</figcaption>
+                        </figure>
+                    </div>
+                </section>
+
+                <section id="reviews-section" class="review-list-section" aria-label="Đánh giá từ du khách">
+                    <!-- Form viết đánh giá mới -->
+                    <div class="add-review-card" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid #dde6e0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                        <h4 style="font-size: 16px; font-weight: 800; color: #111816; margin: 0 0 16px;">Để lại đánh giá của bạn</h4>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <span style="font-size: 14px; font-weight: 700; color: #5f6863;">Điểm đánh giá:</span>
+                            <div class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
+                                <i *ngFor="let star of [1,2,3,4,5]" 
+                                   [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
+                                   (click)="newReviewRating = star"></i>
+                            </div>
+                        </div>
+                        <div class="comment-input-container" style="display: flex; gap: 12px; align-items: flex-end;">
+                            <textarea [(ngModel)]="newReviewText" 
+                                      placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi..." 
+                                      style="flex: 1; min-height: 80px; border: 1px solid #dde6e0; border-radius: 12px; padding: 12px; font-size: 14px; resize: vertical; outline: none;"></textarea>
+                            <button type="button" 
+                                    (click)="submitRootReview()" 
+                                    style="background-color: var(--g, #174c39); color: white; border: none; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                Gửi đánh giá
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="review-filter-bar">
+                        <div>
+                            <span class="section-kicker">Review</span>
+                            <h3>Đánh giá từ du khách</h3>
+                        </div>
+                        <label class="review-sort">
+                            <span>Sắp xếp</span>
+                            <select aria-label="Sắp xếp đánh giá" (change)="setSort($event)">
+                                <option value="Mới nhất">Mới nhất</option>
+                                <option value="Đánh giá cao nhất">Đánh giá cao nhất</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="review-chip-row" aria-label="Lọc đánh giá">
+                        <button type="button" [class.active]="activeFilter === 'Tất cả'" (click)="setFilter('Tất cả')">Tất cả</button>
+                        <button type="button" [class.active]="activeFilter === 'Gia đình có trẻ nhỏ'" (click)="setFilter('Gia đình có trẻ nhỏ')">Gia đình có trẻ nhỏ</button>
+                        <button type="button" [class.active]="activeFilter === 'Lịch trình xanh'" (click)="setFilter('Lịch trình xanh')">{{ activeTour.isService ? 'Dịch vụ xanh' : 'Lịch trình xanh' }}</button>
+                        <button type="button" [class.active]="activeFilter === 'Hướng dẫn viên'" (click)="setFilter('Hướng dẫn viên')">Hướng dẫn viên</button>
+                        <button type="button" [class.active]="activeFilter === 'Ẩm thực'" (click)="setFilter('Ẩm thực')">Ẩm thực</button>
+                        <button type="button" [class.active]="activeFilter === 'Có ảnh'" (click)="setFilter('Có ảnh')">Có ảnh</button>
+                    </div>
+
+                    <div class="review-card-list">
+                        <!-- Dynamic Loop -->
+                        <article class="guest-review-card" *ngFor="let comment of filteredReviews" style="margin-bottom: 24px;">
+                            <div class="review-avatar">
+                                <img *ngIf="isAvatarUrl(comment.user?.avatar)" [src]="comment.user.avatar" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <span *ngIf="!isAvatarUrl(comment.user?.avatar)">{{ getFirstLetter(comment.user?.fullname) }}</span>
+                            </div>
+                            <div class="review-card-body">
+                                <div class="review-card-head">
+                                    <div>
+                                        <h4>{{ comment.user?.fullname || 'Khách du lịch' }}</h4>
+                                        <p>{{ comment.createdAt | date:'HH:mm dd/MM/yyyy' }}</p>
+                                    </div>
+                                    <div class="review-card-rating" *ngIf="comment.rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <strong>{{ comment.rating | number:'1.1-1' }}</strong>
+                                    </div>
+                                </div>
+                                <p class="review-copy" style="margin-top: 10px; margin-bottom: 12px; line-height: 1.6;">{{ comment.text }}</p>
+                                
+                                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                                    <button type="button" 
+                                            class="helpful-button" 
+                                            (click)="handleLikeComment(comment.id)" 
+                                            [class.liked]="likedReviewsSet.has(comment.id)"
+                                            style="border: 1px solid #dde6e0; border-radius: 99px; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;">
+                                        <i class="bi bi-hand-thumbs-up-fill" *ngIf="likedReviewsSet.has(comment.id)"></i>
+                                        <i class="bi bi-hand-thumbs-up" *ngIf="!likedReviewsSet.has(comment.id)"></i>
+                                        Hữu ích ({{ comment.likesCount || 0 }})
+                                    </button>
+
+                                    <button type="button" 
+                                            (click)="toggleReplyBox(comment.id)"
+                                            style="background: none; border: none; font-size: 12px; color: #5f6863; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                        <i class="bi bi-reply-fill"></i> Trả lời
+                                    </button>
+                                </div>
+
+                                <!-- Nested Replies (Level 2) -->
+                                <div class="replies-list" *ngIf="comment.replies && comment.replies.length > 0" style="margin-left: 20px; border-left: 2px solid #edf2ee; padding-left: 16px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+                                    <div class="reply-item-row" *ngFor="let reply of comment.replies" style="display: flex; gap: 12px; align-items: flex-start;">
+                                        <div class="reply-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: #eef7f1; color: var(--g); display: grid; place-items: center; font-size: 12px; font-weight: 800; overflow: hidden; flex-shrink: 0;">
+                                            <img *ngIf="isAvatarUrl(reply.user?.avatar)" [src]="reply.user.avatar" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
+                                            <span *ngIf="!isAvatarUrl(reply.user?.avatar)">{{ getFirstLetter(reply.user?.fullname) }}</span>
+                                        </div>
+                                        <div class="reply-block-wrapper" style="flex: 1;">
+                                            <div class="reply-content-card" style="background: #f7faf8; padding: 10px 14px; border-radius: 12px;">
+                                                <strong style="font-size: 13px; color: #111816; display: block; margin-bottom: 4px;">{{ reply.user?.fullname || 'Khách du lịch' }}</strong>
+                                                <p style="font-size: 13px; color: #46534d; margin: 0; line-height: 1.5;">{{ reply.text }}</p>
+                                            </div>
+                                            <div class="reply-actions-meta" style="margin-top: 4px; font-size: 11px; color: #8d9691; display: flex; align-items: center; gap: 8px; padding-left: 4px;">
+                                                <span>{{ reply.createdAt | date:'HH:mm dd/MM/yyyy' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Nested Reply Input Box -->
+                                <div *ngIf="activeReplyTarget[comment.id]" class="nested-reply-input-box" style="margin-left: 20px; display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+                                    <input type="text" 
+                                           [(ngModel)]="replyInputs[comment.id]" 
+                                           placeholder="Viết phản hồi..." 
+                                           (keyup.enter)="submitReply(comment.id)"
+                                           style="flex: 1; height: 38px; border: 1px solid #dde6e0; border-radius: 10px; padding: 0 12px; font-size: 13px; outline: none;">
+                                    <button type="button" 
+                                            (click)="submitReply(comment.id)"
+                                            style="background: var(--g); color: white; border: none; height: 38px; width: 38px; border-radius: 10px; display: grid; place-items: center; cursor: pointer;">
+                                        <i class="bi bi-send-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div *ngIf="filteredReviews.length === 0" style="text-align: center; padding: 40px 20px; color: #8d9691; font-size: 14px; background: white; border-radius: 12px; border: 1px dashed #dde6e0;">
+                            Không tìm thấy đánh giá nào phù hợp với bộ lọc này.
+                        </div>
+                    </div>
+                </section>
+
+                <div class="tab-final-cta review-cta-box">
+                    <div class="tab-final-cta-icon"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <h3>{{ detailConsultTitle }}</h3>
+                        <p>{{ activeTour.isService ? 'GreenSteps có thể hỗ trợ kiểm tra lịch phục vụ, sức chứa và thông tin đối tác dựa trên đánh giá thật.' : 'GreenSteps có thể gợi ý lịch trình dựa trên đánh giá thật từ các gia đình đã trải nghiệm.' }}</p>
+                    </div>
+                    <div class="tab-final-cta-actions review-cta-actions">
+                        <button type="button" class="cta-secondary"><i class="bi bi-chat"></i> Liên hệ tư vấn</button>
+                        <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="itinerary-section" *ngIf="activeInfoTab === 'overview' || activeInfoTab === 'itinerary'">
+                <div class="section-title-row">
+                    <div>
+                        <span>{{ activeTour.isService ? 'Thông tin dịch vụ' : 'Lịch trình' }}</span>
+                        <h2>{{ activeTour.isService ? 'Chi tiết dịch vụ xanh' : 'Chi tiết hành trình xanh' }}</h2>
+                    </div>
+
+                    <div class="day-tabs-row">
+                        <button *ngFor="let day of activeTour.data; let idx = index"
+                                type="button"
+                                class="day-tab"
+                                [class.active]="activeDayIndex === idx"
+                                (click)="setDay(idx)">
+                            {{ activeTour.isService ? 'Dịch vụ' : 'Ngày ' + (idx + 1) }}
+                        </button>
+                    </div>
+                </div>
+
+                <ng-container *ngFor="let dayActivities of activeTour.data; let dayIdx = index">
+                    <div class="timeline-list" *ngIf="activeDayIndex === dayIdx">
+                        <article class="timeline-card" *ngFor="let act of dayActivities; let actIdx = index">
+                            <div class="time-col">
+                                <span>{{ act.time }}</span>
+                            </div>
+
+                            <div class="activity-icon">
+                                <i class="bi" [ngClass]="act.icon || 'bi-geo-alt'"></i>
+                            </div>
+
+                            <img class="activity-image" [src]="slideImages[actIdx % slideImages.length]" [alt]="act.name">
+
+                            <div class="activity-copy">
+                                <h3>{{ act.name }}</h3>
+                                <p>{{ activeTour.isService ? 'Thông tin chính của dịch vụ, bao gồm chi phí, mức phát thải và các lưu ý khi đặt.' : 'Trải nghiệm nhẹ nhàng, thân thiện với gia đình và được sắp xếp để tối ưu thời gian di chuyển.' }}</p>
+                                <div class="activity-tags">
+                                    <span><i class="bi bi-geo-alt"></i> Điểm đến xanh</span>
+                                    <span><i class="bi bi-star-fill"></i> Nhịp độ nhẹ nhàng</span>
+                                </div>
+                            </div>
+
+                            <div class="activity-badges">
+                                <span><i class="bi bi-cash"></i> {{ act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + 'đ' }}</span>
+                                <span class="carbon"><i class="bi bi-leaf"></i> {{ act.carbon }}kg CO₂</span>
+                            </div>
+                        </article>
+                    </div>
+                </ng-container>
+
+                <div class="tab-final-cta itinerary-cta">
+                    <div class="tab-final-cta-icon"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <h3>{{ detailConsultTitle }}</h3>
+                        <p>{{ activeTour.isService ? 'Bạn có thể hỏi thêm về lịch phục vụ, địa chỉ, sức chứa hoặc cách thêm dịch vụ này vào chuyến đi.' : 'Tùy chỉnh điểm đến, thời gian nghỉ và hoạt động theo nhu cầu gia đình trước khi giữ chỗ.' }}</p>
+                    </div>
+                    <div class="tab-final-cta-actions itinerary-cta-actions">
+                        <button *ngIf="!activeTour.isService" type="button" class="cta-secondary" (click)="cloneAndEditTrip()"><i class="bi bi-arrow-up-right-square"></i> Tự chỉnh sửa lịch trình</button>
+                        <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <div class="mobile-booking-bar">
+        <div>
+            <span>Từ</span>
+            <strong>{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong>
+        </div>
+        <button type="button" (click)="submitBooking($event)">{{ detailBookingLabel }}</button>
+    </div>
+    <div class="tour-photo-modal" *ngIf="isPhotoGalleryOpen" (click)="closePhotoGallery()">
+        <div class="tour-photo-modal-card" (click)="$event.stopPropagation()">
+            <div class="tour-photo-modal-header">
+                <div>
+                    <span>Thư viện ảnh</span>
+                    <h3>{{ activeTour.title }}</h3>
+                </div>
+                <button type="button" class="tour-photo-close" (click)="closePhotoGallery()" aria-label="Đóng thư viện ảnh">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="tour-photo-featured">
+                <img [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+            </div>
+
+            <div class="tour-photo-grid">
+                <button type="button"
+                        *ngFor="let img of slideImages; let idx = index"
+                        [class.active]="activeSlideIndex === idx"
+                        (click)="selectGalleryPhoto(idx, $event)"
+                        [attr.aria-label]="'Chọn ảnh ' + (idx + 1)">
+                    <img [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 1)">
+                </button>
+            </div>
+        </div>
+    </div>
+</main>

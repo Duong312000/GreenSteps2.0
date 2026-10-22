@@ -1,0 +1,195 @@
+<main class="min-h-screen bg-[#fcfdfc] pt-28 pb-12 px-6 font-sans">
+    <div class="max-w-[1440px] mx-auto space-y-6">
+
+        <!-- Header Row -->
+        <div class="flex items-start justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <span *ngIf="currentUser" class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-semibold">
+                        <i class="bi bi-patch-check-fill text-teal-500"></i> Nhà cung cấp đã xác minh
+                    </span>
+                </div>
+                <h1 class="text-4xl font-black text-gray-900 leading-tight">Tiếp thị &<br>Chăm sóc khách hàng</h1>
+                <p class="text-sm text-gray-500 mt-2 max-w-md">Quản lý phản hồi khách hàng, xử lý vấn đề phát sinh và duy trì các chiến dịch quảng bá dịch vụ một cách chuyên nghiệp và hiệu quả.</p>
+            </div>
+
+            <!-- Todo Card -->
+            <div class="flex-shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 min-w-[240px]">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Việc cần làm hôm nay</p>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                        <i class="bi bi-envelope-check text-teal-500"></i>
+                        <span>{{ pendingCount }} phản hồi đang chờ xử lý</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                        <i class="bi bi-exclamation-triangle text-amber-500"></i>
+                        <span>{{ complaintCount }} khiếu nại cần giải quyết gấp</span>
+                    </div>
+                </div>
+                <button (click)="selectedReview ? sendReply() : null" class="mt-4 w-full h-10 bg-amber-400 hover:bg-amber-500 text-white font-bold rounded-xl text-sm transition-colors">Bắt đầu xử lý</button>
+            </div>
+        </div>
+
+        <!-- Inbox Section -->
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-gray-800">Hộp thư khách hàng</h2>
+                <div class="flex gap-2">
+                    <button (click)="filterTab = 'all'" [class]="'px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ' + (filterTab === 'all' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')">Tất cả</button>
+                    <button (click)="filterTab = 'unread'" [class]="'px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ' + (filterTab === 'unread' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')">Chưa đọc</button>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div *ngIf="isLoading" class="flex items-center justify-center py-16 text-gray-400 gap-3">
+                <i class="bi bi-arrow-clockwise animate-spin text-xl"></i>
+                <span>Đang tải phản hồi...</span>
+            </div>
+
+            <!-- Empty state -->
+            <div *ngIf="!isLoading && reviews.length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+                <i class="bi bi-inbox text-5xl mb-3"></i>
+                <p class="font-semibold text-gray-600">Chưa có phản hồi nào</p>
+                <p class="text-sm mt-1">Khi khách hàng gửi đánh giá, chúng sẽ hiển thị tại đây.</p>
+            </div>
+
+            <!-- Inbox + Detail panel -->
+            <div *ngIf="!isLoading && reviews.length > 0" class="grid grid-cols-5 gap-4">
+
+                <!-- Inbox List (2 cols) -->
+                <div class="col-span-2 space-y-2">
+                    <div *ngFor="let review of filteredReviews"
+                         (click)="selectReview(review)"
+                         [class]="'flex gap-3 p-4 rounded-xl border cursor-pointer transition-all ' +
+                             (selectedReview === review
+                                 ? 'bg-teal-50 border-teal-200 shadow-sm'
+                                 : 'bg-white border-gray-100 hover:bg-gray-50 hover:border-gray-200')">
+
+                        <!-- Avatar -->
+                        <div [class]="'w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-sm ' + getAvatarColor(review.user?.fullname || 'Khách')">
+                            {{ getInitial(review.user?.fullname || 'Khách') }}
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm font-semibold text-gray-800 truncate">{{ review.user?.fullname || 'Khách hàng' }}</span>
+                                <span *ngIf="getUrgencyLabel(review)" class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">{{ getUrgencyLabel(review) }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 mb-1.5">
+                                <span [class]="'text-[10px] px-1.5 py-0.5 rounded-full font-semibold ' + getTagClass(review)">{{ getTagLabel(review) }}</span>
+                                <span class="text-[10px] text-gray-400">{{ getTimeAgo(review.createdAt || review.created_at) }}</span>
+                            </div>
+                            <div class="flex items-center gap-1 mb-1">
+                                <i *ngFor="let star of getStarArray(5)" [class]="'bi ' + (star <= review.rating ? 'bi-star-fill text-amber-400' : 'bi-star text-gray-200') + ' text-[10px]'"></i>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate">{{ review.text }}</p>
+                            <p class="text-[10px] text-gray-400 mt-1 truncate">{{ review.serviceName }}</p>
+                        </div>
+
+                        <div class="flex-shrink-0">
+                            <i *ngIf="review.replied" class="bi bi-check-circle-fill text-teal-500 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <button class="w-full text-center text-xs text-teal-600 hover:underline py-2">Xem tất cả hộp thư</button>
+                </div>
+
+                <!-- Detail Panel (3 cols) -->
+                <div class="col-span-3 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                    <div *ngIf="!selectedReview" class="flex flex-col items-center justify-center h-full py-20 text-gray-400">
+                        <i class="bi bi-chat-square-text text-4xl mb-2"></i>
+                        <p class="text-sm">Chọn một phản hồi để xem chi tiết</p>
+                    </div>
+
+                    <div *ngIf="selectedReview">
+                        <!-- Detail Header -->
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                            <h3 class="text-sm font-bold text-gray-800">Chi tiết phản hồi</h3>
+                            <div class="flex gap-2">
+                                <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
+                                    <i class="bi bi-flag text-sm"></i>
+                                </button>
+                                <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
+                                    <i class="bi bi-three-dots-vertical text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-6 space-y-5">
+                            <!-- Reviewer Info -->
+                            <div class="flex items-start gap-3">
+                                <div [class]="'w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold ' + getAvatarColor(selectedReview.user?.fullname || 'Khách')">
+                                    {{ getInitial(selectedReview.user?.fullname || 'Khách') }}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-semibold text-gray-800">{{ selectedReview.user?.fullname || 'Khách hàng' }}</span>
+                                        <span class="text-xs text-gray-400">Booking ID: #GS-{{ (selectedReview.id || '').slice(-5) }}</span>
+                                    </div>
+                                    <a class="text-xs text-teal-600 hover:underline cursor-pointer">{{ selectedReview.serviceName }}</a>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="flex">
+                                            <i *ngFor="let star of getStarArray(5)" [class]="'bi ' + (star <= selectedReview.rating ? 'bi-star-fill text-amber-400' : 'bi-star text-gray-200') + ' text-sm'"></i>
+                                        </div>
+                                        <span class="text-xs text-gray-400">Đánh giá ngày {{ getTimeAgo(selectedReview.createdAt || selectedReview.created_at) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Review Content -->
+                            <div class="bg-gray-50 rounded-xl p-4">
+                                <p class="text-sm text-gray-700 leading-relaxed">"{{ selectedReview.text }}"</p>
+                            </div>
+
+                            <!-- Internal Note -->
+                            <div class="bg-amber-50 border border-amber-200/60 rounded-xl p-4">
+                                <p class="text-xs font-bold text-amber-700 mb-2 flex items-center gap-1">
+                                    <i class="bi bi-pencil-square"></i> Ghi chú nội bộ
+                                </p>
+                                <textarea [(ngModel)]="internalNote" placeholder="Ghi chú cho team nội bộ (không hiển thị với khách)..."
+                                    class="w-full text-xs text-gray-600 bg-transparent border-none outline-none resize-none min-h-[48px]"></textarea>
+                            </div>
+
+                            <!-- Reply already sent -->
+                            <div *ngIf="selectedReview.replied" class="bg-teal-50 border border-teal-200 rounded-xl p-4">
+                                <p class="text-xs font-bold text-teal-700 mb-1 flex items-center gap-1">
+                                    <i class="bi bi-check-circle-fill"></i> Đã phản hồi
+                                </p>
+                                <p class="text-sm text-gray-600">{{ selectedReview.replyText }}</p>
+                            </div>
+
+                            <!-- Reply Templates -->
+                            <div *ngIf="!selectedReview.replied">
+                                <p class="text-xs font-semibold text-gray-500 mb-2">Chọn mẫu phản hồi nhanh:</p>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <button (click)="applyTemplate('thanks')" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-teal-200 text-teal-700 hover:bg-teal-50 font-semibold transition-colors">
+                                        <i class="bi bi-heart"></i> Cảm ơn & Ghi nhận
+                                    </button>
+                                    <button (click)="applyTemplate('sorry')" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-semibold transition-colors">
+                                        <i class="bi bi-emoji-frown"></i> Xin lỗi sự cố
+                                    </button>
+                                    <button (click)="applyTemplate('voucher')" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 font-semibold transition-colors">
+                                        <i class="bi bi-gift"></i> Tặng mã giảm giá
+                                    </button>
+                                </div>
+
+                                <textarea [(ngModel)]="replyText" placeholder="Nhập nội dung phản hồi khách hàng..."
+                                    class="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none min-h-[80px] outline-none focus:border-teal-400 transition-colors"></textarea>
+
+                                <div class="flex justify-between items-center mt-3">
+                                    <button (click)="saveDraft()" class="text-sm text-gray-500 hover:text-gray-700 font-semibold px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors">Lưu nháp</button>
+                                    <button (click)="sendReply()" [disabled]="!replyText.trim()"
+                                        class="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                        Gửi phản hồi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+

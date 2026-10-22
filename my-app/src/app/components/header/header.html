@@ -1,0 +1,409 @@
+<header
+    [class.glass-panel]="!isHeaderTransparent"
+    [class.provider-header]="currentUser && currentUser.role === 'provider'"
+    class="fixed inset-x-0 top-0 z-[1050]">
+
+    <!-- ════════════════════════════════════════════════════════
+         MAIN HEADER ROW — 3 độc lập divs: Logo | Nav | Controls
+    ════════════════════════════════════════════════════════ -->
+    <div #headerWrapper class="mx-auto flex max-w-[1720px] px-6 lg:px-12" style="height: 88px;">
+
+        <!-- ── DIV 1: LOGO (cố định, flex-shrink-0) ── -->
+        <div class="flex items-center flex-shrink-0" style="width: 300px;">
+            <a routerLink="/home"
+               class="flex items-center gap-3 px-1 py-1 transition-all duration-300 hover:opacity-90"
+               style="text-decoration: none;">
+                <img src="image/greensteps_logo_header.png"
+                     class="h-14 w-14 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)] transition-all duration-300"
+                     alt="GreenSteps">
+                <span class="flex flex-col leading-none">
+                    <span class="text-[20px] font-extrabold tracking-normal drop-shadow-[0_1px_3px_rgba(0,0,0,0.26)] transition-colors duration-300"
+                          [ngClass]="isHeaderTransparent ? 'text-white' : 'text-[#0F6B4C]'">
+                        GreenSteps
+                    </span>
+                    <span class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.24)] transition-colors duration-300"
+                          [ngClass]="isHeaderTransparent ? 'text-[#D9F99D]' : 'text-[#0E9F6E]'">
+                        Travel
+                    </span>
+                </span>
+            </a>
+        </div>
+
+        <!-- ── DIV 2: NAV TABS (flex-1, overflow hidden, 1 hàng) ── -->
+        <div class="flex-1 overflow-hidden transition-all duration-500 ease-out"
+             style="height: 88px;">
+            <nav #navContainer
+                 class="header-main-nav overflow-hidden items-center gap-5"
+                 style="height: 88px; flex-wrap: nowrap; width: 100%;">
+
+                <ng-container *ngFor="let tab of allTabs; let i = index">
+                    <a *ngIf="tab.link"
+                       [routerLink]="tab.link"
+                       [queryParams]="tab.queryParams"
+                       routerLinkActive="active-nav-tab"
+                       [style.visibility]="overflowTabIndices.has(i) ? 'hidden' : 'visible'"
+                       class="nav-tab-item whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              relative transition-colors duration-300
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0
+                              after:transition-all after:duration-300 hover:after:w-full"
+                       [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'"
+                       style="text-decoration: none;">{{ tab.label }}</a>
+
+                    <a *ngIf="tab.action === 'green_handbook'"
+                       (click)="showGreenHandbookAlert()"
+                       [style.visibility]="overflowTabIndices.has(i) ? 'hidden' : 'visible'"
+                       class="nav-tab-item whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              relative cursor-pointer transition-colors duration-300
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0
+                              after:transition-all after:duration-300 hover:after:w-full"
+                       [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                        {{ tab.label }}
+                    </a>
+
+                    <a *ngIf="tab.action === 'ai_planner'"
+                       (click)="handleAiPlannerClick()"
+                       [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
+                       [style.visibility]="overflowTabIndices.has(i) ? 'hidden' : 'visible'"
+                       class="nav-tab-item whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              relative cursor-pointer transition-colors duration-300
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0
+                              after:transition-all after:duration-300 hover:after:w-full"
+                       [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                        {{ tab.label }}
+                    </a>
+                </ng-container>
+            </nav>
+        </div>
+
+        <!-- ── DIV 3: SEARCH + PROFILE (cố định, flex-shrink-0) ── -->
+        <div class="flex items-center justify-end gap-2 flex-shrink-0" style="width: 300px;">
+
+            <!-- Notifications -->
+            <div class="relative">
+                <button (click)="toggleNotificationDropdown($event)"
+                        class="relative h-10 w-10 flex items-center justify-center rounded-full bg-white/50
+                               border border-[#184A37]/10 text-[#0F6B4C] hover:bg-white hover:border-[#0E9F6E]
+                               transition-all duration-300 focus:outline-none cursor-pointer">
+                    <i class="bi bi-bell text-lg"></i>
+                    <span *ngIf="unreadNotificationCount > 0"
+                          class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full
+                                 bg-red-500 text-[10px] font-bold text-white border-2 border-white animate-pulse">
+                        {{ unreadNotificationCount }}
+                    </span>
+                </button>
+
+                <!-- Notifications Dropdown -->
+                <div class="absolute right-0 top-12 w-80 bg-white/95 backdrop-blur-md
+                            rounded-2xl shadow-xl border border-[#184A37]/10 p-4 z-[1060]
+                            transition-all duration-200"
+                     [style.opacity]="isNotificationDropdownActive ? '1' : '0'"
+                     [style.pointer-events]="isNotificationDropdownActive ? 'auto' : 'none'"
+                     [style.transform]="isNotificationDropdownActive ? 'translateY(0)' : 'translateY(-8px)'"
+                     (click)="$event.stopPropagation()">
+                    <div class="flex justify-between items-center border-b border-[#184A37]/10 pb-2 mb-3">
+                        <h4 class="text-sm font-bold text-[#184A37]">Thông báo</h4>
+                        <div class="flex gap-2">
+                            <button *ngIf="unreadNotificationCount > 0" (click)="markAllNotificationsAsRead()"
+                                    class="text-[11px] text-[#0E9F6E] hover:underline bg-transparent border-0 cursor-pointer">
+                                Đọc tất cả
+                            </button>
+                            <button *ngIf="notifications.length > 0" (click)="clearNotifications()"
+                                    class="text-[11px] text-red-500 hover:underline bg-transparent border-0 cursor-pointer">
+                                Xóa hết
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="max-h-60 overflow-y-auto space-y-2 select-none">
+                        <div *ngIf="notifications.length === 0" class="text-center py-6 text-xs text-[#184A37]/50">
+                            Không có thông báo mới
+                        </div>
+                        <div *ngFor="let notif of notifications"
+                             (click)="markNotificationRead(notif)"
+                             [class.bg-[#F3FAF7]]="!notif.read"
+                             class="p-2.5 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer border border-[#184A37]/5 flex gap-2">
+                            <div class="flex-shrink-0 mt-0.5">
+                                <i [ngClass]="{
+                                    'bi-info-circle-fill text-[#0E9F6E]': notif.type === 'system',
+                                    'bi-chat-dots-fill text-blue-500': notif.type === 'community' && notif.title.includes('luận'),
+                                    'bi-heart-fill text-rose-500': notif.type === 'community' && !notif.title.includes('luận'),
+                                    'bi-journal-check text-indigo-500': notif.type === 'booking',
+                                    'bi-wallet2 text-amber-500': notif.type === 'wallet'
+                                 }" class="bi text-sm"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-start gap-1">
+                                    <span class="text-xs font-bold" [ngClass]="notif.read ? 'text-[#184A37]/70' : 'text-[#184A37]'">{{ notif.title }}</span>
+                                    <span class="text-[10px] text-[#184A37]/40 whitespace-nowrap">{{ notif.time }}</span>
+                                </div>
+                                <p class="text-[11px] mt-1 mb-0 leading-relaxed text-[#184A37]/80">{{ notif.message }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-[#184A37]/10 pt-2 mt-3 text-center">
+                        <button (click)="viewAllNotifications()"
+                                class="w-full text-xs font-bold text-[#0E9F6E] hover:underline bg-transparent border-0 cursor-pointer flex items-center justify-center gap-1.5 py-1">
+                            <i class="bi bi-bell"></i> Xem tất cả thông báo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile (đã đăng nhập) -->
+            <div *ngIf="currentUser" class="relative">
+                <button (click)="toggleProfileOpen($event)"
+                        class="h-10 flex items-center gap-1.5 rounded-full bg-white/50
+                               border border-[#184A37]/10 px-2 pr-3 font-bold text-[#0F6B4C]
+                               hover:bg-white hover:border-[#0E9F6E] transition-all duration-300
+                               focus:outline-none cursor-pointer">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-[#0E9F6E] text-xs text-white flex-shrink-0 overflow-hidden">
+                        <img *ngIf="currentUser.avatarUrl" [src]="currentUser.avatarUrl" style="width: 100%; height: 100%; object-fit: cover;">
+                        <span *ngIf="!currentUser.avatarUrl">{{ getFirstLetter(currentUser.fullname) }}</span>
+                    </span>
+                    <span class="max-w-[90px] truncate text-xs">{{ currentUser.fullname }}</span>
+                    <i class="bi bi-chevron-down text-[10px] text-[#184A37]/50 transition-transform duration-300"
+                       [style.transform]="isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)'"></i>
+                </button>
+
+                <div class="absolute right-0 top-12 w-52 bg-white/95 backdrop-blur-md
+                            rounded-2xl shadow-xl border border-[#184A37]/10 p-2
+                            transition-all duration-200 z-[1060]"
+                     [style.opacity]="isProfileOpen ? '1' : '0'"
+                     [style.pointer-events]="isProfileOpen ? 'auto' : 'none'"
+                     [style.transform]="isProfileOpen ? 'translateY(0)' : 'translateY(-8px)'"
+                     (click)="$event.stopPropagation()">
+                    <a routerLink="/profile"
+                       (click)="isProfileOpen = false"
+                       class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#184A37]
+                              hover:bg-gray-50 hover:text-[#0E9F6E] rounded-xl transition-colors"
+                       style="text-decoration:none;">
+                        <i class="bi bi-person text-lg"></i> Trang cá nhân
+                    </a>
+
+                    <div class="border-t border-[#184A37]/10 my-1"></div>
+                    <button (click)="isProfileOpen = false; handleLogout()"
+                            class="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold
+                                   text-red-600 hover:bg-red-50 rounded-xl transition-colors
+                                   border-0 bg-transparent text-left cursor-pointer">
+                        <i class="bi bi-box-arrow-right text-lg"></i> Đăng xuất
+                    </button>
+                </div>
+            </div>
+
+            <!-- Đăng ký / Đăng nhập (chưa đăng nhập) -->
+            <div *ngIf="!currentUser" class="flex items-center gap-2">
+                <button type="button"
+                   (click)="openLoginModal('register')"
+                   class="flex h-9 min-w-[78px] items-center justify-center whitespace-nowrap rounded-full bg-white/70
+                          px-3 text-xs font-bold text-[#0E9F6E]
+                          transition-all duration-300 hover:-translate-y-0.5 hover:bg-white
+                          border border-[#0E9F6E] cursor-pointer">Đăng ký</button>
+                <button type="button"
+                   (click)="openLoginModal('login')"
+                   class="flex h-9 min-w-[88px] items-center justify-center whitespace-nowrap rounded-full bg-[#184A37]
+                          px-3 text-xs font-bold text-white
+                          transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#184A37]
+                          border-0 cursor-pointer">Đăng nhập</button>
+            </div>
+
+            <!-- Hamburger mobile -->
+            <button type="button"
+                    class="mobile-hamburger h-9 w-9 place-items-center rounded-full
+                           bg-white/70 text-lg text-[#0F6B4C]
+                           transition-all duration-300 hover:bg-white cursor-pointer"
+                    aria-label="Open menu"
+                    (click)="toggleMobileMenu()">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         OVERFLOW PANEL — trượt xuống khi hover vào header
+         Chứa các tabs bị cắt (không vừa hàng nav trên)
+    ════════════════════════════════════════════════════════ -->
+    <div class="header-overflow-panel" [class.open]="isOverflowOpen" *ngIf="overflowTabs.length > 0">
+        <div class="mx-auto flex max-w-[1720px] px-6 lg:px-12" style="height: 52px;">
+            <!-- Left Spacer matching Logo width -->
+            <div style="width: 300px; flex-shrink: 0;"></div>
+
+            <!-- Center Overflow Tabs container matching main Nav flex-1 -->
+            <div class="flex-1 flex items-center gap-5 overflow-hidden">
+                <ng-container *ngFor="let tab of overflowTabs">
+                    <a *ngIf="tab.link"
+                       [routerLink]="tab.link"
+                       routerLinkActive="active-nav-tab"
+                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              text-[#184A37] relative transition-colors duration-300
+                              hover:text-[#0E9F6E]
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
+                              after:transition-all after:duration-300 hover:after:w-full"
+                       style="text-decoration: none;">{{ tab.label }}</a>
+
+                    <a *ngIf="tab.action === 'green_handbook'"
+                       (click)="showGreenHandbookAlert()"
+                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              text-[#184A37] relative cursor-pointer transition-colors duration-300
+                              hover:text-[#0E9F6E]
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
+                              after:transition-all after:duration-300 hover:after:w-full">
+                        {{ tab.label }}
+                    </a>
+
+                    <a *ngIf="tab.action === 'ai_planner'"
+                       (click)="handleAiPlannerClick()"
+                       [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
+                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
+                              text-[#184A37] relative cursor-pointer transition-colors duration-300
+                              hover:text-[#0E9F6E]
+                              after:absolute after:-bottom-1 after:left-0
+                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
+                              after:transition-all after:duration-300 hover:after:w-full">
+                        {{ tab.label }}
+                    </a>
+                </ng-container>
+            </div>
+
+            <!-- Right Spacer matching Controls width -->
+            <div style="width: 300px; flex-shrink: 0;"></div>
+        </div>
+    </div>
+
+</header>
+
+<!-- ════════════════════════════════════════════════════════
+     MOBILE MENU DRAWER
+════════════════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+     [class.opacity-100]="isMobileMenuOpen"
+     [class.pointer-events-auto]="isMobileMenuOpen"
+     [class.opacity-0]="!isMobileMenuOpen"
+     [class.pointer-events-none]="!isMobileMenuOpen"
+     (click)="toggleMobileMenu()">
+    <div class="absolute right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-md p-6
+                shadow-2xl transition-transform duration-300 flex flex-col justify-between"
+         [class.translate-x-0]="isMobileMenuOpen"
+         [class.translate-x-full]="!isMobileMenuOpen"
+         (click)="$event.stopPropagation()">
+        <div>
+            <div class="flex justify-between items-center border-b border-[#184A37]/10 pb-4 mb-6">
+                <span class="text-xl font-bold text-[#184A37]">Danh mục GreenSteps</span>
+                <button class="text-2xl text-[#184A37]/50 hover:text-[#184A37] font-semibold
+                               bg-transparent border-0 focus:outline-none cursor-pointer"
+                        (click)="toggleMobileMenu()">&times;</button>
+            </div>
+
+            <div class="relative mb-6">
+                <input type="text"
+                       class="w-full h-11 pl-10 pr-4 rounded-full border border-[#184A37]/20
+                              bg-gray-50 text-[#184A37] placeholder-[#184A37]/50
+                              focus:outline-none focus:border-[#0E9F6E] focus:bg-white text-sm"
+                       placeholder="Tìm Phú Yên, cắm trại..."
+                       [(ngModel)]="smartSearchQuery"
+                       (keypress)="onSearchKeypress($event)">
+                <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[#184A37]/50 text-sm"></i>
+            </div>
+
+            <div class="flex flex-col gap-5 text-[17px] font-semibold text-[#184A37]">
+                <ng-container *ngFor="let tab of filteredMobileTabs">
+                    <a *ngIf="tab.link"
+                       [routerLink]="tab.link"
+                       [queryParams]="tab.queryParams || null"
+                       (click)="smartSearchQuery = ''; toggleMobileMenu()"
+                       class="hover:text-[#0E9F6E] transition-colors"
+                       style="text-decoration:none;">{{ tab.label }}</a>
+                    <a *ngIf="tab.action === 'green_handbook'"
+                       (click)="toggleMobileMenu(); showGreenHandbookAlert()"
+                       class="hover:text-[#0E9F6E] cursor-pointer transition-colors">{{ tab.label }}</a>
+                    <a *ngIf="tab.action === 'ai_planner'"
+                       (click)="toggleMobileMenu(); handleAiPlannerClick()"
+                       [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
+                       class="hover:text-[#0E9F6E] cursor-pointer transition-colors">{{ tab.label }}</a>
+                </ng-container>
+                <p *ngIf="filteredMobileTabs.length === 0" class="rounded-2xl bg-[#184A37]/5 px-4 py-3 text-sm font-semibold text-[#184A37]/60">
+                    Không tìm thấy danh mục phù hợp.
+                </p>
+            </div>
+        </div>
+
+        <div class="border-t border-[#184A37]/10 pt-6">
+            <div *ngIf="!currentUser" class="grid grid-cols-2 gap-3">
+                <button type="button" (click)="openLoginModal('register')"
+                   class="h-[52px] flex items-center justify-center whitespace-nowrap rounded-[16px]
+                          bg-white text-[16px] font-bold text-[#0E9F6E] hover:bg-[#F4FAF6]
+                          transition-all border border-[#0E9F6E] cursor-pointer">Đăng ký</button>
+                <button type="button" (click)="openLoginModal('login')"
+                   class="h-[52px] flex items-center justify-center whitespace-nowrap rounded-[16px]
+                          bg-[#184A37] text-[16px] font-bold text-white shadow-md hover:bg-[#184A37]
+                          transition-all border-0 cursor-pointer">Đăng nhập</button>
+            </div>
+            <a *ngIf="currentUser" routerLink="/profile" (click)="toggleMobileMenu()"
+               class="w-full h-14 flex items-center gap-3 rounded-full bg-gray-50 px-4 py-2
+                      text-sm font-bold text-[#0F6B4C]"
+               style="text-decoration:none;">
+                <span class="grid h-9 w-9 place-items-center rounded-full bg-[#0E9F6E] text-xs text-white flex-shrink-0 overflow-hidden">
+                    <img *ngIf="currentUser.avatarUrl" [src]="currentUser.avatarUrl" style="width: 100%; height: 100%; object-fit: cover;">
+                    <span *ngIf="!currentUser.avatarUrl">{{ getFirstLetter(currentUser.fullname) }}</span>
+                </span>
+                <span class="truncate">{{ currentUser.fullname }}</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<app-login-modal *ngIf="isLoginModalOpen" [initialMode]="loginModalMode" (close)="closeLoginModal()"></app-login-modal>
+
+<!-- AI PLANNER MODAL -->
+<div class="modal-overlay" [class.active]="isCreateModalOpen"
+     style="z-index: 1000; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); background-color: rgba(0,0,0,0.45);">
+    <div class="custom-modal-card bg-white p-8 rounded-2xl max-w-md w-full shadow-2xl relative"
+         (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center border-b border-[#184A37]/10 pb-4 mb-6">
+            <h3 class="text-xl font-bold text-[#184A37] flex items-center gap-2 m-0">
+                <i class="bi bi-robot text-[#0E9F6E]"></i> Thiết lập Hành Trình Mới
+            </h3>
+            <button class="text-2xl text-[#184A37]/50 hover:text-[#184A37] font-semibold
+                           bg-transparent border-0 focus:outline-none cursor-pointer"
+                    (click)="closeCreateItineraryModal()">&times;</button>
+        </div>
+        <form id="createItiForm" (submit)="submitNewItinerary($event)" class="space-y-4 m-0">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-[#184A37] mb-2 text-left" for="modalDest">Điểm đến mong muốn</label>
+                <!-- Leaflet Mini Map Container -->
+                <div id="headerModalMap" class="w-full rounded-xl border border-[#184A37]/20 mb-3 bg-gray-100" style="height: 180px; position: relative; z-index: 10;"></div>
+                
+                <select id="modalDest" [(ngModel)]="modalDest" name="modalDest" (change)="onModalDestChange()"
+                        class="w-full h-11 px-3 rounded-xl border border-[#184A37]/20
+                               focus:outline-none focus:border-[#0E9F6E] bg-gray-50 text-[#184A37] text-sm">
+                    <option value="Đà Lạt">Đà Lạt (Du lịch xanh rừng thông)</option>
+                    <option value="Phú Yên">Phú Yên (Khám phá Gành Đá Đĩa)</option>
+                    <option value="Đà Nẵng - Hội An">Đà Nẵng - Hội An (Di sản Phố Cổ)</option>
+                </select>
+            </div>
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-[#184A37] mb-2 text-left" for="modalDays">Số ngày khám phá</label>
+                <select id="modalDays" [(ngModel)]="modalDays" name="modalDays"
+                        class="w-full h-11 px-3 rounded-xl border border-[#184A37]/20
+                               focus:outline-none focus:border-[#0E9F6E] bg-gray-50 text-[#184A37] text-sm">
+                    <option [value]="2">2 ngày 1 đêm</option>
+                    <option [value]="3">3 ngày 2 đêm</option>
+                    <option [value]="4">4 ngày 3 đêm</option>
+                </select>
+            </div>
+            <div class="pt-2 text-center">
+                <button type="submit"
+                        class="w-full h-12 bg-[#0E9F6E] hover:bg-[#0F6B4C] text-white font-bold
+                               rounded-xl shadow-lg transition-all duration-300
+                               flex items-center justify-center gap-2 border-0 cursor-pointer">
+                    <i class="bi bi-magic"></i> Bắt đầu Thiết kế AI
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

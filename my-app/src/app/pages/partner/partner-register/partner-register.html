@@ -1,0 +1,97 @@
+<main class="main-viewport partner-register-viewport">
+    <div class="partner-register-card">
+        <div class="register-header">
+            <div class="leaf-icon-wrapper">
+                <i class="bi bi-leaf-fill"></i>
+            </div>
+            <h2>Hợp tác cùng GreenSteps Travel</h2>
+            <p>Tham gia hệ sinh thái du lịch xanh, kết nối trực tiếp với hàng ngàn du khách yêu thiên nhiên và có ý thức bảo vệ môi trường.</p>
+        </div>
+
+        <form (submit)="registerPartner($event)">
+            <div class="form-group">
+                <label for="companyName">Tên doanh nghiệp / Hộ kinh doanh</label>
+                <input type="text" id="companyName" [(ngModel)]="companyName" name="companyName" placeholder="Ví dụ: Homestay Xanh Đà Lạt, Công ty Vận tải Xanh..." required>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="bizEmail">Email liên hệ thương mại</label>
+                    <input type="email" id="bizEmail" [(ngModel)]="bizEmail" name="bizEmail" placeholder="Ví dụ: info@greenvalley.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="bizPhone">Số điện thoại hotline</label>
+                    <input type="tel" id="bizPhone" [(ngModel)]="bizPhone" name="bizPhone" placeholder="Ví dụ: 0902 XXXXXX" required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="bizLicense">Số Giấy phép Kinh doanh (GPKD)</label>
+                    <input type="text" id="bizLicense" [(ngModel)]="bizLicense" name="bizLicense" placeholder="Mã số thuế hoặc số đăng ký" required>
+                </div>
+                <div class="form-group">
+                    <label for="bizCategory">Lĩnh vực dịch vụ cung ứng</label>
+                    <select id="bizCategory" [(ngModel)]="bizCategory" name="bizCategory">
+                        <option value="stay">Lưu trú (Homestay, Khách sạn xanh)</option>
+                        <option value="food">Ẩm thực (Nhà hàng sinh thái, đồ chay)</option>
+                        <option value="transport">Vận chuyển (Xe điện, xe đạp tự lái)</option>
+                        <option value="tour">Hướng dẫn trải nghiệm / Trekking (Tour)</option>
+                        <option value="attraction">Giải trí (Khu vui chơi sinh thái, hoạt động ngoài trời)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bizDesc">Mô tả cam kết bền vững</label>
+                <textarea id="bizDesc" [(ngModel)]="bizDesc" name="bizDesc" placeholder="Ví dụ: Cơ sở hạn chế rác thải nhựa, sử dụng nước tái chế, hỗ trợ tạo sinh kế cho 10 lao động địa phương..."></textarea>
+            </div>
+
+            <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="agreeTerms" name="agreeTerms" required>
+                <span>Tôi đồng ý với các Quy chế hoạt động đối tác và cam kết tuân thủ các quy tắc bảo vệ môi trường, tiết kiệm năng lượng của GreenSteps Travel.</span>
+            </label>
+
+            <button type="submit" class="btn-auth-submit">
+                <i class="bi bi-shield-check"></i> Đăng ký thông tin và nâng cấp tài khoản
+            </button>
+        </form>
+    </div>
+
+    <!-- CUSTOM TERMINAL APPROVAL MODAL -->
+    <div class="modal-overlay" [class.active]="isTerminalModalOpen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; transition: all 0.3s;" [style.display]="isTerminalModalOpen ? 'flex' : 'none'">
+        <div class="modal-content" style="background: #FFFFFF; border-radius: 16px; padding: 32px 24px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: zoomIn 0.3s ease-out; position: relative;">
+            
+            <!-- Icon based on state -->
+            <div style="margin-bottom: 20px;">
+                <!-- Pending State Icon -->
+                <div *ngIf="terminalApprovalState === 'pending'" style="width: 64px; height: 64px; background-color: #FEF3C7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="bi bi-terminal-fill" style="font-size: 30px; color: #D97706;"></i>
+                </div>
+                <!-- Success State Icon -->
+                <div *ngIf="terminalApprovalState === 'success'" style="width: 64px; height: 64px; background-color: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="bi bi-check-circle-fill" style="font-size: 30px; color: #057A55;"></i>
+                </div>
+                <!-- Error State Icon -->
+                <div *ngIf="terminalApprovalState === 'error'" style="width: 64px; height: 64px; background-color: #FDE8E8; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="bi bi-x-circle-fill" style="font-size: 30px; color: #E02424;"></i>
+                </div>
+            </div>
+
+            <!-- Title & Message -->
+            <h3 style="font-size: 1.2rem; font-weight: 800; color: #1F2937; margin: 0 0 10px 0;">
+                {{ terminalApprovalTitle }}
+            </h3>
+            <p style="font-size: 0.85rem; color: #4B5563; line-height: 1.5; margin: 0 0 24px 0; text-align: center; word-break: break-word;">
+                {{ terminalApprovalMsg }}
+            </p>
+
+
+
+            <!-- Action Button -->
+            <button (click)="isTerminalModalOpen = false" style="width: 100%; height: 42px; background-color: #0E9F6E; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background 0.2s;">
+                {{ terminalApprovalState === 'pending' ? 'Tôi Đã Hiểu' : 'Đóng' }}
+            </button>
+        </div>
+    </div>
+</main>

@@ -1,0 +1,256 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
+
+  .lookup-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f0fdf4 40%, #dcfce7 100%);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 16px 80px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .lookup-card {
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 12px 60px rgba(14,159,110,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    padding: 48px 40px 40px;
+    max-width: 580px;
+    width: 100%;
+  }
+
+  .lookup-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .lookup-logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #0E9F6E, #34D399);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: #fff;
+  }
+  .lookup-logo-text { font-size: 1.2rem; font-weight: 800; color: #111827; }
+  .lookup-logo-sub { font-size: 0.78rem; color: #6b7280; font-weight: 500; }
+
+  h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0 0 6px; }
+  .subtitle { color: #6b7280; font-size: 0.92rem; margin-bottom: 28px; line-height: 1.5; }
+
+  .code-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: #111827;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .code-input:focus { border-color: #0E9F6E; }
+  .code-input::placeholder { font-weight: 400; color: #9ca3af; }
+
+  .lookup-btn {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #0E9F6E, #34D399);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+  }
+  .lookup-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .lookup-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+  .error-msg {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    color: #dc2626;
+    font-size: 0.88rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Result card */
+  .status-badge {
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .status-badge.ok { background: #d1fae5; color: #065f46; }
+  .status-badge.wait { background: #fef3c7; color: #92400e; }
+  .status-badge.bad { background: #fee2e2; color: #991b1b; }
+
+  .home-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 28px;
+    color: #0E9F6E;
+    font-weight: 600; font-size: 0.9rem;
+    text-decoration: none;
+    transition: gap 0.2s;
+  }
+  .home-link:hover { gap: 11px; }
+
+  /* Multiple Results CSS */
+  .results-list-container {
+    margin-top: 28px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .list-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .booking-item-card {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .booking-item-card:hover {
+    border-color: #0E9F6E;
+    box-shadow: 0 4px 16px rgba(14,159,110,0.06);
+  }
+  .booking-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    border-bottom: 1px dashed #f3f4f6;
+    padding-bottom: 10px;
+  }
+</style>
+
+<div class="lookup-page">
+  <div class="lookup-card">
+
+    <!-- Logo -->
+    <div class="lookup-logo">
+      <div class="lookup-logo-icon"><i class="bi bi-leaf-fill"></i></div>
+      <div>
+        <div class="lookup-logo-text">GreenSteps</div>
+        <div class="lookup-logo-sub">Tra cứu đặt chỗ</div>
+      </div>
+    </div>
+
+    <h1>Tra cứu đơn đặt chỗ</h1>
+    <p class="subtitle">
+      Vui lòng cung cấp thông tin liên hệ khi đặt chỗ hoặc Mã đặt chỗ để kiểm tra trạng thái xử lý đơn hàng.
+    </p>
+
+    <!-- Search Form -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: #4b5563;">Mã đặt chỗ (Không bắt buộc)</span>
+          <input class="code-input" type="text" placeholder="Ví dụ: BKT-1783983309146" [(ngModel)]="bookingCode" (keyup.enter)="lookup()" autocomplete="off" />
+        </label>
+        
+        <label style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: #4b5563;">Số điện thoại khách hàng</span>
+          <input class="code-input" type="text" placeholder="Ví dụ: 0901234567" [(ngModel)]="phone" (keyup.enter)="lookup()" autocomplete="off" />
+        </label>
+        
+        <label style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: #4b5563;">Địa chỉ Email nhận thông tin</span>
+          <input class="code-input" type="email" placeholder="Ví dụ: customer@example.com" [(ngModel)]="email" (keyup.enter)="lookup()" autocomplete="off" />
+        </label>
+      </div>
+      
+      <button class="lookup-btn" (click)="lookup()" [disabled]="isLoading" style="justify-content: center; width: 100%;">
+        <i class="bi" [class.bi-search]="!isLoading" [class.bi-arrow-repeat]="isLoading" [class.spin]="isLoading"></i>
+        {{ isLoading ? 'Đang tra cứu...' : 'Tìm kiếm đặt chỗ' }}
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" *ngIf="errorMsg">
+      <i class="bi bi-exclamation-circle-fill"></i> {{ errorMsg }}
+    </div>
+
+    <!-- Results List -->
+    <div class="results-list-container" *ngIf="resultsList.length > 0">
+      <div class="list-title">
+        <i class="bi bi-list-stars" style="color: #0E9F6E; font-size: 1.1rem;"></i>
+        <span>Tìm thấy {{ resultsList.length }} đơn đặt chỗ phù hợp:</span>
+      </div>
+
+      <div class="booking-item-card" *ngFor="let item of resultsList">
+        <div class="booking-item-top">
+          <div>
+            <div style="font-size: 0.75rem; color: #9CA3AF; font-weight: 500;">Mã đặt chỗ</div>
+            <div style="font-size: 0.95rem; font-weight: 800; color: #111827; font-family: monospace;">{{ item.id }}</div>
+          </div>
+          <span class="status-badge" [ngClass]="getStatusClass(item.status)" style="padding: 4px 10px; font-size: 0.72rem;">
+            <i class="bi"
+               [class.bi-check-circle-fill]="getStatusClass(item.status) === 'ok'"
+               [class.bi-clock-fill]="getStatusClass(item.status) === 'wait'"
+               [class.bi-x-circle-fill]="getStatusClass(item.status) === 'bad'"></i>
+            {{ getStatusLabel(item.status) }}
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 0.8rem; line-height: 1.4;">
+          <div>
+            <span style="color: #6B7280;">Tour/Dịch vụ:</span>
+            <div style="font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ item.tour_name || item.name_service || 'Tour du lịch' }}
+            </div>
+          </div>
+          <div>
+            <span style="color: #6B7280;">Người đặt:</span>
+            <div style="font-weight: 700; color: #111827;">{{ item.fullname }}</div>
+          </div>
+          <div>
+            <span style="color: #6B7280;">Khởi hành:</span>
+            <div style="font-weight: 700; color: #111827;">{{ item.booking_date | date:'dd/MM/yyyy' }}</div>
+          </div>
+          <div>
+            <span style="color: #6B7280;">Tiền cọc:</span>
+            <div style="font-weight: 800; color: #0E9F6E;">{{ item.value | number:'1.0-0':'vi-VN' }}đ</div>
+          </div>
+          <div *ngIf="item.customer_phone">
+            <span style="color: #6B7280;">SĐT:</span>
+            <div style="font-weight: 700; color: #111827;">{{ item.customer_phone }}</div>
+          </div>
+          <div *ngIf="item.customer_email">
+            <span style="color: #6B7280;">Email:</span>
+            <div style="font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.customer_email }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back home -->
+    <a routerLink="/home" class="home-link">
+      <i class="bi bi-arrow-left"></i> Về trang chủ
+    </a>
+  </div>
+</div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+</style>

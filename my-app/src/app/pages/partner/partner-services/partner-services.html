@@ -1,0 +1,613 @@
+<main class="min-h-screen bg-[#fcfdfc] pt-28 pb-12 px-6 font-sans">
+    <div class="max-w-[1440px] mx-auto space-y-6">
+        
+        <!-- Header Section -->
+        <div class="flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <i class="bi bi-box-seam text-teal-600"></i>
+                Dịch vụ của tôi
+            </h1>
+        </div>
+
+        <!-- Toolbar Section -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="relative w-full md:w-[400px]">
+                <input
+                    type="text"
+                    class="block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm text-gray-700"
+                    placeholder="Tìm kiếm dịch vụ..."
+                    [(ngModel)]="searchQuery"
+                    (ngModelChange)="cdr.detectChanges()"
+                />
+                <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            
+            <div class="flex gap-3 w-full md:w-auto">
+                <button (click)="exportServicesList()" class="flex-1 md:flex-none px-4 py-2.5 border border-teal-600 bg-white text-teal-700 font-semibold text-sm rounded-xl hover:bg-teal-50 transition-all shadow-sm cursor-pointer">
+                    <i class="bi bi-download mr-1.5"></i> Xuất danh sách
+                </button>
+                <button (click)="openAddModal()" class="flex-1 md:flex-none px-5 py-2.5 bg-[#F4C76D] text-yellow-950 font-bold text-sm rounded-xl hover:bg-[#eab34e] hover:scale-[1.02] transition-all text-center shadow-sm cursor-pointer border-none">
+                    <i class="bi bi-plus-lg mr-1.5"></i> Đăng ký dịch vụ xanh
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-4 bg-white border border-teal-600/20 rounded-2xl divide-x divide-teal-600/10 shadow-sm overflow-hidden text-center">
+            <div class="py-4 px-4 transition-all duration-300 hover:bg-gray-50 cursor-pointer">
+                <p class="text-[11px] uppercase tracking-wider text-gray-500 font-bold mb-1">Tổng số</p>
+                <p class="text-2xl font-extrabold text-gray-900">{{ totalCount }}</p>
+            </div>
+            <div class="py-4 px-4 transition-all duration-300 hover:bg-teal-50/20 cursor-pointer">
+                <p class="text-[11px] uppercase tracking-wider text-teal-600 font-bold mb-1">Hoạt động</p>
+                <p class="text-2xl font-extrabold text-teal-700">{{ activeCount }}</p>
+            </div>
+            <div class="py-4 px-4 transition-all duration-300 hover:bg-orange-50/20 cursor-pointer">
+                <p class="text-[11px] uppercase tracking-wider text-orange-600 font-bold mb-1">Chờ duyệt</p>
+                <p class="text-2xl font-extrabold text-orange-600">{{ pendingCount }}</p>
+            </div>
+            <div class="py-4 px-4 transition-all duration-300 hover:bg-yellow-50/20 cursor-pointer">
+                <p class="text-[11px] uppercase tracking-wider text-yellow-600 font-bold mb-1">Bản nháp</p>
+                <p class="text-2xl font-extrabold text-yellow-600">{{ draftCount }}</p>
+            </div>
+        </div>
+
+        <!-- Main Content Layout -->
+        <div class="flex flex-col lg:flex-row gap-6 items-start">
+            
+            <!-- Sidebar Filters -->
+            <div class="w-full lg:w-[260px] bg-white border border-teal-600/20 rounded-2xl p-5 shadow-sm shrink-0">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-teal-800">Bộ lọc</h2>
+                    <button (click)="clearAllFilters()" class="text-xs text-teal-600 hover:underline border-none bg-transparent cursor-pointer font-bold">Xóa tất cả</button>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Nhóm dịch vụ -->
+                    <div>
+                        <span class="block text-sm font-bold text-gray-800 mb-3">Nhóm dịch vụ</span>
+                        <div class="space-y-2.5">
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleTypeFilter('stay')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedTypes.includes('stay') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedTypes.includes('stay')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Nơi lưu trú (stay)</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleTypeFilter('food')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedTypes.includes('food') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedTypes.includes('food')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Ăn uống (food)</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleTypeFilter('tour')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedTypes.includes('tour') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedTypes.includes('tour')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Tour (tour)</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleTypeFilter('attraction')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedTypes.includes('attraction') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedTypes.includes('attraction')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Giải trí (entertainment)</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleTypeFilter('transport')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedTypes.includes('transport') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedTypes.includes('transport')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Vận chuyển xanh</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-100" />
+
+                    <!-- Điểm đến -->
+                    <div>
+                        <span class="block text-sm font-bold text-gray-800 mb-3">Điểm đến</span>
+                        <div class="space-y-2.5">
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleLocationFilter('Phú Yên')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedLocations.includes('Phú Yên') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedLocations.includes('Phú Yên')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Phú Yên</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleLocationFilter('Đà Lạt')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedLocations.includes('Đà Lạt') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedLocations.includes('Đà Lạt')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Đà Lạt</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleLocationFilter('Đà Nẵng - Hội An')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedLocations.includes('Đà Nẵng - Hội An') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedLocations.includes('Đà Nẵng - Hội An')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Đà Nẵng - Hội An</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-100" />
+
+                    <!-- Trạng thái chi tiết -->
+                    <div>
+                        <span class="block text-sm font-bold text-gray-800 mb-3">Trạng thái</span>
+                        <div class="space-y-2.5">
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleStatusFilter('active')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedStatuses.includes('active') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedStatuses.includes('active')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Đang hoạt động</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleStatusFilter('pending')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedStatuses.includes('pending') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedStatuses.includes('pending')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Chờ duyệt</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleStatusFilter('draft')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedStatuses.includes('draft') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedStatuses.includes('draft')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Bản nháp</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer group" (click)="toggleStatusFilter('rejected')">
+                                <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors" [ngClass]="selectedStatuses.includes('rejected') ? 'bg-teal-600 border-teal-600' : 'border-gray-300 group-hover:border-teal-500'">
+                                    <i class="bi bi-check text-white text-xs" *ngIf="selectedStatuses.includes('rejected')"></i>
+                                </div>
+                                <span class="text-xs text-gray-600 font-semibold">Bị từ chối</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Content -->
+            <div class="flex-1 flex flex-col w-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" *ngIf="filteredServices.length > 0">
+                    <div *ngFor="let srv of filteredServices" class="bg-white rounded-2xl border border-gray-150/60 overflow-hidden shadow-sm hover:shadow-[0_12px_35px_rgba(13,148,136,0.15)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full group">
+                        
+                        <!-- Card Header Image -->
+                        <div class="relative h-[170px] w-full bg-gray-100 overflow-hidden shrink-0">
+                            <img [src]="getServiceImage(srv)" [alt]="srv.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            
+                            <!-- Left Badge: Type -->
+                            <div class="absolute top-3 left-3">
+                                <span class="bg-white/95 backdrop-blur-sm text-gray-800 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wide">
+                                    {{ srv.type === 'stay' ? 'Lưu trú' : (srv.type === 'food' ? 'Ăn uống' : (srv.type === 'transport' ? 'Di chuyển' : (srv.type === 'tour' ? 'Tour' : 'Giải trí'))) }}
+                                </span>
+                            </div>
+                            
+                            <!-- Right Badge: Status -->
+                            <div class="absolute top-3 right-3">
+                                <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wide border bg-white/95"
+                                      [ngClass]="srv.status === 'active' ? 'text-teal-700 border-teal-200' : 
+                                                 (srv.status === 'pending' ? 'text-orange-700 border-orange-200' : 
+                                                 (srv.status === 'draft' ? 'text-yellow-700 border-yellow-200' : 
+                                                 (srv.status === 'rejected' ? 'text-red-700 border-red-200' : 
+                                                 (srv.status === 'suspended' ? 'text-gray-600 border-gray-200' : 
+                                                 'text-purple-700 border-purple-200'))))">
+                                    {{ getStatusLabel(srv.status) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-5 flex flex-col flex-1">
+                            <div class="flex items-center text-gray-400 text-xs mb-2 font-medium">
+                                <i class="bi bi-geo-alt-fill text-teal-600 mr-1.5"></i>
+                                {{ srv.destination }}
+                            </div>
+                            
+                            <h3 class="font-bold text-gray-800 line-clamp-2 flex-1 mb-4 text-[15px] leading-snug">
+                                {{ srv.name }}
+                            </h3>
+
+                            <!-- Warning Rejection Reason block -->
+                            <div *ngIf="srv.status === 'rejected' && srv.rejection_reason" class="mb-4 p-2.5 bg-red-50 text-red-700 text-xs rounded-xl flex items-start gap-2 border border-red-100">
+                                <i class="bi bi-exclamation-triangle-fill text-red-500 mt-0.5"></i>
+                                <span><strong>Từ chối:</strong> {{ srv.rejection_reason }}</span>
+                            </div>
+
+                            <div class="flex justify-between items-center mb-4 text-xs text-gray-500 bg-teal-50/40 p-2.5 rounded-xl border border-teal-500/10">
+                                <span>CO₂ Giảm: <strong class="text-teal-700">{{ srv.carbon }} kg</strong></span>
+                                <span>Chỗ tối đa: <strong class="text-teal-700">{{ srv.max_capacity || 10 }}</strong></span>
+                            </div>
+
+                            <div class="flex justify-between items-end mt-auto pt-3 border-t border-gray-50">
+                                <div>
+                                    <p class="text-[10px] text-gray-400 mb-0.5 font-bold uppercase">Giá niêm yết</p>
+                                    <p class="font-black text-teal-600 text-[16px]">{{ srv.cost | number:'1.0-0':'vi-VN' }}đ</p>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex items-center gap-1.5">
+                                    <!-- Xem chi tiết -->
+                                    <button (click)="openDetailsModal(srv)" class="p-2 text-teal-600 hover:bg-teal-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Xem chi tiết">
+                                        <i class="bi bi-eye text-sm"></i>
+                                    </button>
+                                    <!-- Sửa -->
+                                    <button (click)="openEditModal(srv)" class="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Chỉnh sửa">
+                                        <i class="bi bi-pencil-square text-sm"></i>
+                                    </button>
+                                    <!-- Nhân bản -->
+                                    <button (click)="cloneService(srv)" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Nhân bản">
+                                        <i class="bi bi-files text-sm"></i>
+                                    </button>
+                                    <!-- Tạm ngừng / Mở lại -->
+                                    <button (click)="suspendService(srv)" class="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" [title]="srv.status === 'suspended' ? 'Hoạt động lại' : 'Tạm ngừng'">
+                                        <i class="bi" [class.bi-pause-circle]="srv.status !== 'suspended'" [class.bi-play-circle]="srv.status === 'suspended'" class="text-sm"></i>
+                                    </button>
+                                    <!-- Chia sẻ lên cộng đồng -->
+                                    <button *ngIf="srv.status === 'active'" (click)="openShareModal(srv)" class="p-2 text-rose-600 hover:bg-rose-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Chia sẻ lên cộng đồng">
+                                        <i class="bi bi-share text-sm"></i>
+                                    </button>
+                                    <!-- Gửi duyệt lại -->
+                                    <button *ngIf="srv.status === 'rejected' || srv.status === 'draft'" (click)="resendServiceApproval(srv)" class="p-2 text-orange-600 hover:bg-orange-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Gửi duyệt lại">
+                                        <i class="bi bi-send text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="py-20 text-center bg-white border border-gray-100 rounded-2xl shadow-sm" *ngIf="filteredServices.length === 0">
+                    <i class="bi bi-exclamation-circle text-gray-300 text-5xl mb-4"></i>
+                    <p class="text-gray-500 font-bold text-lg">Không tìm thấy dịch vụ nào</p>
+                    <p class="text-gray-400 text-sm mt-1">Vui lòng thay đổi từ khóa hoặc bộ lọc của bạn</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Page Registration Overlay (Add/Edit Service) -->
+    <div class="fixed inset-0 bg-[#f8f9fa] z-[100] overflow-y-auto font-sans animate-fade-in" *ngIf="isAddModalOpen">
+        <!-- Top Sticky Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-50 shadow-xs">
+            <div class="flex items-center gap-4">
+                <!-- Back button -->
+                <button (click)="closeAddModal()" type="button" class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+                    <i class="bi bi-arrow-left text-lg"></i>
+                </button>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 leading-snug">
+                        {{ editingServiceId ? 'Cập nhật dịch vụ xanh' : 'Thêm dịch vụ mới' }}
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Điền thông tin chi tiết để đăng tải dịch vụ lên hệ thống.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" (click)="saveDraft()" class="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer bg-white flex items-center gap-1.5">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Lưu nháp
+                </button>
+                <button type="button" (click)="previewService()" class="px-4 py-2 border border-teal-600 text-teal-600 rounded-xl text-xs font-bold hover:bg-teal-50 transition-colors cursor-pointer bg-white flex items-center gap-1.5">
+                    <i class="bi bi-eye"></i> Xem trước
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Form Container -->
+        <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+            
+            <!-- Card 1: 1. Thông tin cơ bản -->
+            <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
+                <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">1. Thông tin cơ bản</h4>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Tên dịch vụ *</label>
+                    <input type="text" [(ngModel)]="serviceName" required placeholder="VD: Tour Trekking LangBiang 1 ngày" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Loại dịch vụ *</label>
+                        <select [(ngModel)]="serviceType" (ngModelChange)="onCostOrTypeChange()" required class="h-10 px-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                            <option value="tour">Tour</option>
+                            <option value="stay">Khách sạn</option>
+                            <option value="food">Nhà hàng</option>
+                            <option value="transport">Vận chuyển</option>
+                            <option value="attraction">Giải trí</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Tỉnh / Thành phố *</label>
+                        <input type="text" [(ngModel)]="serviceDest" required placeholder="VD: Lâm Đồng" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Địa chỉ cụ thể</label>
+                    <input type="text" [(ngModel)]="serviceAddress" placeholder="Số nhà, đường, phường/xã..." class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Thời lượng *</label>
+                        <input type="text" [(ngModel)]="serviceDuration" required placeholder="VD: 1 ngày, 3 giờ, 2N1Đ" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Số khách tối đa / xuất *</label>
+                        <input type="number" [(ngModel)]="maxCapacity" required placeholder="VD: 15" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Mô tả ngắn</label>
+                    <input type="text" [(ngModel)]="serviceShortDesc" placeholder="Tóm tắt điểm nổi bật của dịch vụ (hiển thị trên thẻ)" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Mô tả chi tiết</label>
+                    <textarea [(ngModel)]="itineraryText" placeholder="Mô tả chi tiết lịch trình, hoạt động..." rows="4" class="p-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Card 2: 2. Hình ảnh -->
+            <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
+                <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">2. Hình ảnh</h4>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Ảnh bìa (Tỷ lệ 16:9) *</label>
+                    <input type="text" [(ngModel)]="imageUrl" placeholder="Nhập đường dẫn URL ảnh bìa (hoặc tải tệp trực tiếp dưới đây)" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                </div>
+
+                <div (click)="fileInput.click()" 
+                     (dragover)="onDragOver($event)" 
+                     (dragleave)="onDragLeave($event)" 
+                     (drop)="onDrop($event)"
+                     [class.border-teal-500]="isDragging"
+                     [class.bg-teal-50/40]="isDragging"
+                     class="border border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer h-[180px] relative overflow-hidden">
+                    <img [src]="imageUrl" alt="Cover Preview" class="w-full h-full object-cover absolute inset-0 z-0" *ngIf="imageUrl">
+                    
+                    <!-- Floating remove button -->
+                    <button *ngIf="imageUrl" type="button" (click)="removeImage($event)" class="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center border-none cursor-pointer hover:bg-rose-700 transition-colors shadow-md" title="Gỡ ảnh">
+                        <i class="bi bi-trash text-sm"></i>
+                    </button>
+                    
+                    <!-- Upload hint z-index helper -->
+                    <div *ngIf="!imageUrl" class="flex flex-col items-center text-center z-10 pointer-events-none">
+                        <i class="bi bi-cloud-arrow-up text-3xl text-teal-600 mb-1"></i>
+                        <span class="text-xs font-bold text-teal-700">Tải ảnh lên hoặc kéo thả vào đây</span>
+                        <span class="text-[10px] text-gray-400">PNG, JPG, WEBP tối đa 5MB</span>
+                    </div>
+                </div>
+
+                <!-- Hidden file input -->
+                <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)">
+                <input #galleryFileInput type="file" accept="image/*" class="hidden" multiple (change)="onGalleryFilesSelected($event)">
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-600 block">Thư viện ảnh (Được đăng nhiều ảnh)</label>
+                    <div class="flex flex-wrap gap-3">
+                        <div (click)="galleryFileInput.click()" class="w-20 h-20 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 bg-white hover:bg-gray-50 transition-all cursor-pointer">
+                            <i class="bi bi-plus text-xl"></i>
+                            <span class="text-[10px] font-bold">Thêm ảnh</span>
+                        </div>
+                        
+                        <div class="w-20 h-20 rounded-xl border border-gray-200 overflow-hidden relative" *ngFor="let img of galleryImages; let idx = index">
+                            <img [src]="img" alt="Gallery item" class="w-full h-full object-cover">
+                            <!-- Floating remove button for gallery item -->
+                            <button type="button" (click)="removeGalleryImage(idx, $event)" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity border-none cursor-pointer text-white hover:text-rose-500" title="Gỡ ảnh">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: 3. Giá & Cấu hình chỗ -->
+            <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
+                <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">3. Giá & Cấu hình chỗ</h4>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Giá người lớn (VNĐ) *</label>
+                        <input type="number" [(ngModel)]="serviceCost" (ngModelChange)="onCostOrTypeChange()" required placeholder="VD: 460000" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Giá trẻ em (VNĐ)</label>
+                        <input type="number" [(ngModel)]="childPrice" placeholder="Nếu không có, để trống" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="p-3.5 bg-teal-50/20 border border-teal-500/10 rounded-xl text-teal-800 text-[11px] leading-relaxed flex items-start gap-2">
+                    <i class="bi bi-info-circle text-teal-600 mt-0.5"></i>
+                    <span>Lịch hoạt động sẽ được quản lý chi tiết trong phần "Quản lý lịch". Tại đây bạn thiết lập số chỗ cố định nếu có.</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Số xuất mỗi ngày</label>
+                        <input type="number" [(ngModel)]="slotsPerDay" placeholder="Mặc định: 1" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-600">Giờ bắt đầu</label>
+                        <input type="time" [(ngModel)]="startTime" class="h-10 px-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: 4. Chính sách & Lưu ý -->
+            <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
+                <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">4. Chính sách & Lưu ý</h4>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Chính sách hủy / đổi lịch *</label>
+                    <textarea [(ngModel)]="cancellationPolicy" placeholder="Ví dụ: Miễn phí hủy trước 48h. Hủy trước 24h tính phí 50%..." rows="3" class="p-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-gray-600">Lưu ý cho khách hàng</label>
+                    <textarea [(ngModel)]="notesForCustomers" placeholder="Trang phục mang theo, yêu cầu sức khỏe..." rows="3" class="p-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Bottom Action Row -->
+            <div class="bg-white border border-gray-200 rounded-2xl p-4 flex justify-between items-center shadow-xs">
+                <button type="button" (click)="closeAddModal()" class="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors bg-white cursor-pointer">
+                    Hủy bỏ
+                </button>
+                
+                <div class="flex gap-2">
+                    <button type="button" (click)="previewService()" class="px-5 py-2.5 border border-teal-600 text-teal-600 rounded-xl text-xs font-bold hover:bg-teal-50 transition-colors bg-white cursor-pointer">
+                        Xem trước
+                    </button>
+                    <button type="button" (click)="submitNewService($event)" class="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-xs font-bold hover:opacity-95 shadow-md shadow-teal-600/10 transition-all border-none cursor-pointer">
+                        {{ editingServiceId ? 'Cập nhật' : 'Gửi duyệt' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Service Modal -->
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-all" *ngIf="isDetailsModalOpen && detailedService">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[85vh]">
+            
+            <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-teal-50/50">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="bi bi-info-circle text-teal-600"></i>
+                        Chi tiết dịch vụ xanh
+                    </h3>
+                </div>
+                <button (click)="closeDetailsModal()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg border-none bg-transparent cursor-pointer transition-colors">&times;</button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6 text-sm text-gray-700">
+                <div class="h-[200px] rounded-xl overflow-hidden relative">
+                    <img [src]="getServiceImage(detailedService)" alt="Service Detail" class="w-full h-full object-cover">
+                    <div class="absolute bottom-3 left-3 bg-teal-600 text-white px-3 py-1 rounded-lg font-bold text-xs">
+                        {{ detailedService.type === 'stay' ? 'Lưu trú' : (detailedService.type === 'food' ? 'Ăn uống' : (detailedService.type === 'transport' ? 'Di chuyển' : (detailedService.type === 'tour' ? 'Tour' : 'Giải trí'))) }}
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-extrabold text-gray-900 mb-1">{{ detailedService.name }}</h4>
+                    <p class="text-xs text-gray-400 flex items-center gap-1"><i class="bi bi-geo-alt-fill text-teal-600"></i> {{ detailedService.destination }}{{ (detailedService.current_data?.address || detailedService.address) ? ' - ' + (detailedService.current_data?.address || detailedService.address) : '' }}</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                    <div>
+                        <span class="block text-xs text-gray-400 font-bold uppercase">Giá niêm yết</span>
+                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.cost | number }}đ</strong>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-gray-400 font-bold uppercase">CO₂ Tiết kiệm</span>
+                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.carbon }} kg</strong>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-gray-400 font-bold uppercase">Chỗ tối đa</span>
+                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.max_capacity || 10 }} khách</strong>
+                    </div>
+                </div>
+
+                <div class="space-y-3.5">
+                    <div>
+                        <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch mở bán / hoạt động</span>
+                        <p class="text-gray-800 font-medium">{{ detailedService.current_data?.schedule || 'Tất cả các ngày trong tuần' }}</p>
+                    </div>
+                    
+                    <div>
+                        <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch trình & Hoạt động chi tiết</span>
+                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-teal-50/20 p-3 rounded-xl border border-teal-500/5">{{ detailedService.current_data?.itinerary || 'Tự do tham quan' }}</p>
+                    </div>
+
+                    <div>
+                        <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Chính sách hủy đơn & hoàn tiền</span>
+                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-red-50/20 p-3 rounded-xl border border-red-500/5">{{ detailedService.current_data?.policy || 'Theo quy định chung' }}</p>
+                    </div>
+
+                    <div *ngIf="detailedService.status === 'rejected' && detailedService.rejection_reason" class="p-4 bg-red-50 text-red-800 rounded-xl border border-red-150">
+                        <strong class="block text-xs uppercase mb-1"><i class="bi bi-exclamation-triangle-fill text-red-600 mr-1.5"></i> Lý do quản trị viên từ chối</strong>
+                        <p class="font-medium text-xs">{{ detailedService.rejection_reason }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50">
+                <button type="button" (click)="closeDetailsModal()" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-xl border-none cursor-pointer transition-colors">
+                    Đóng cửa sổ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Center Alert & Confirm Dialog Modal -->
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-all animate-fade-in" *ngIf="customDialog">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-150 p-6 flex flex-col items-center text-center space-y-4 animate-scale-up">
+            <!-- Icon -->
+            <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                 [ngClass]="customDialog.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 
+                            (customDialog.type === 'error' ? 'bg-rose-50 text-rose-600' : 
+                            (customDialog.type === 'confirm' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'))">
+                <i class="bi" [ngClass]="customDialog.type === 'success' ? 'bi-check-circle-fill text-2xl' : 
+                                         (customDialog.type === 'error' ? 'bi-x-circle-fill text-2xl' : 
+                                         (customDialog.type === 'confirm' ? 'bi-question-circle-fill text-2xl' : 'bi-info-circle-fill text-2xl'))"></i>
+            </div>
+            
+            <!-- Message -->
+            <div class="space-y-1">
+                <h4 class="font-extrabold text-gray-900 text-sm uppercase tracking-wider">
+                    {{ customDialog.type === 'confirm' ? 'Xác nhận yêu cầu' : 'Thông báo hệ thống' }}
+                </h4>
+                <p class="text-xs text-gray-600 leading-relaxed font-semibold">{{ customDialog.message }}</p>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex gap-2 w-full pt-1">
+                <ng-container *ngIf="customDialog.type === 'confirm'; else alertButton">
+                    <button type="button" (click)="customDialog.onCancel ? customDialog.onCancel() : closeCustomDialog()" class="flex-1 py-2.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-bold rounded-xl text-xs cursor-pointer bg-white transition-colors">
+                        Hủy bỏ
+                    </button>
+                    <button type="button" (click)="customDialog.onConfirm && customDialog.onConfirm()" class="flex-1 py-2.5 bg-teal-600 text-white font-bold rounded-xl text-xs hover:bg-teal-700 cursor-pointer border-none transition-colors">
+                        Đồng ý
+                    </button>
+                </ng-container>
+                <ng-template #alertButton>
+                    <button type="button" (click)="closeCustomDialog()" class="w-full py-2.5 bg-teal-600 text-white font-bold rounded-xl text-xs hover:bg-teal-700 cursor-pointer border-none transition-colors">
+                        Đồng ý
+                    </button>
+                </ng-template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share to Community Modal -->
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-all" *ngIf="isShareModalOpen && sharingService">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 flex flex-col">
+            <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-rose-50/50">
+                <h3 class="text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+                    <i class="bi bi-share text-rose-600"></i>
+                    Chia sẻ dịch vụ lên Cộng đồng
+                </h3>
+                <button (click)="closeShareModal()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg border-none bg-transparent cursor-pointer transition-colors">&times;</button>
+            </div>
+            
+            <div class="p-6 space-y-4 text-xs text-gray-700">
+                <!-- Service Preview Card -->
+                <div class="flex gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <img [src]="getServiceImage(sharingService)" class="w-16 h-16 object-cover rounded-lg border" alt="preview">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-gray-900 truncate">{{ sharingService.name }}</p>
+                        <p class="text-gray-400 mt-0.5"><i class="bi bi-geo-alt-fill text-teal-600"></i> {{ sharingService.destination }}</p>
+                        <p class="text-teal-600 font-bold mt-1">{{ sharingService.cost | number }}đ</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-bold text-gray-600">Nhập lời nhắn chia sẻ với cộng đồng *</label>
+                    <textarea [(ngModel)]="shareMessage" rows="4" placeholder="VD: Hãy ghé trải nghiệm dịch vụ du lịch xanh thân thiện với môi trường của chúng tôi tại Đà Lạt..." class="p-3 border border-gray-200 rounded-xl text-xs bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-rose-500"></textarea>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+                <button (click)="closeShareModal()" class="px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 cursor-pointer bg-white">Hủy</button>
+                <button (click)="submitShareToCommunity()" class="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 cursor-pointer border-none">Đăng bài ngay</button>
+            </div>
+        </div>
+    </div>
+</main>

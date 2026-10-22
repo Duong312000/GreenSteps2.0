@@ -1,0 +1,1312 @@
+<style>
+  .gs-home-page {
+    font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .gs-home-page h1,
+  .gs-home-page h2,
+  .gs-home-page h3,
+  .gs-home-page .font-serif {
+    font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: -.035em;
+    line-height: 1.08;
+  }
+
+  .gs-home-page button,
+  .gs-home-page input,
+  .gs-home-page select,
+  .gs-home-page textarea,
+  .gs-home-page a,
+  .gs-home-page p {
+    font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif;
+  }
+
+  .gs-soft-reveal {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+    animation: gsSoftReveal 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .gs-delay-1 { animation-delay: 0.12s; }
+  .gs-delay-2 { animation-delay: 0.24s; }
+  .gs-delay-3 { animation-delay: 0.36s; }
+
+  .gs-reference-hero {
+    position: relative;
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    isolation: isolate;
+    font-family: 'Inter', 'Geist', 'Be Vietnam Pro', Arial, sans-serif;
+  }
+
+  .gs-reference-hero-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: brightness(1.06) saturate(1.08);
+  }
+
+  .gs-reference-hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 48%;
+    z-index: 1;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(8, 34, 26, .62) 0%,
+        rgba(8, 34, 26, .46) 38%,
+        rgba(8, 34, 26, .20) 72%,
+        rgba(8, 34, 26, 0) 100%
+      );
+    pointer-events: none;
+  }
+
+  .gs-reference-shell {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1720px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 88px 80px 0;
+    display: grid;
+    grid-template-columns: 42% 58%;
+    align-items: center;
+  }
+
+  .gs-reference-content {
+    max-width: 540px;
+    transform: translateY(18px);
+  }
+
+  .gs-reference-title {
+    max-width: 540px;
+    color: #fff;
+    font-family: 'DM Serif Display', 'Cormorant Garamond', Georgia, serif;
+    font-size: 110px;
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: -2px;
+  }
+
+  .gs-reference-copy {
+    margin-top: 30px;
+    max-width: 520px;
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .gs-reference-button {
+    margin-top: 34px;
+    display: inline-flex;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    border-radius: 16px;
+    background: #0F6B4C;
+    padding: 0 32px;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    box-shadow: 0 16px 34px rgba(15, 53, 36, 0.22);
+    transition: transform 260ms ease, box-shadow 260ms ease, background 260ms ease;
+  }
+
+  .gs-reference-button:hover {
+    transform: translateY(-3px);
+    background: #0E9F6E;
+    box-shadow: 0 22px 44px rgba(15, 53, 36, 0.28);
+  }
+
+  .gs-reference-trust {
+    margin-top: 34px;
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
+    color: #fff;
+  }
+
+  .gs-reference-avatar-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .gs-reference-avatar {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    margin-left: -10px;
+    place-items: center;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #0F6B4C;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  .gs-reference-avatar:first-child {
+    margin-left: 0;
+  }
+
+  .gs-reference-trust-text {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.28;
+    text-shadow: 0 2px 18px rgba(15, 53, 36, 0.22);
+  }
+
+  .gs-reference-trust-text strong {
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .gs-reference-rating {
+    grid-column: 2;
+    color: rgba(255, 255, 255, 0.92);
+    margin-top: -2px;
+    display: flex;
+    gap: 4px;
+    font-size: 0;
+    font-weight: 700;
+    text-shadow: 0 2px 16px rgba(15, 53, 36, 0.2);
+  }
+
+  .gs-reference-rating::before {
+    content: "\2605\2605\2605\2605\2605";
+    font-size: 15px;
+    letter-spacing: 0.12em;
+  }
+
+  @media (max-width: 1600px) {
+    .gs-reference-title { font-size: 96px; }
+    .gs-reference-copy { font-size: 22px; }
+  }
+
+  @media (max-width: 1440px) {
+    .gs-reference-shell { padding-left: 56px; padding-right: 56px; }
+    .gs-reference-title { font-size: 88px; }
+    .gs-reference-copy { font-size: 20px; }
+  }
+
+  @media (max-width: 1024px) {
+    .gs-reference-shell {
+      grid-template-columns: 1fr;
+      padding: 120px 32px 64px;
+      align-items: end;
+    }
+
+    .gs-reference-content {
+      max-width: 620px;
+      transform: none;
+    }
+
+    .gs-reference-title {
+      font-size: clamp(58px, 12vw, 88px);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .gs-reference-shell { padding: 110px 22px 42px; }
+    .gs-reference-title { font-size: 56px; }
+    .gs-reference-copy { font-size: 18px; }
+    .gs-reference-button { width: 100%; }
+    .gs-reference-trust { margin-top: 34px; gap: 16px; }
+    .gs-reference-avatar { width: 44px; height: 44px; font-size: 14px; }
+    .gs-reference-trust-text { font-size: 17px; }
+  }
+
+  .gs-number-pulse {
+    animation: gsNumberPulse 2.8s ease-in-out infinite;
+  }
+
+  .gs-bar-rise {
+    transform-origin: bottom;
+    animation: gsBarRise 1.25s cubic-bezier(0.2, 0.85, 0.2, 1) both;
+  }
+
+  @keyframes gsSoftReveal {
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes gsNumberPulse {
+    0%, 100% { opacity: 0.88; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-2px); }
+  }
+
+  @keyframes gsBarRise {
+    from { transform: scaleY(0.18); opacity: 0.35; }
+    to { transform: scaleY(1); opacity: 1; }
+  }
+
+  .gs-destination-carousel {
+    position: relative;
+    min-height: 455px;
+    max-width: 1180px;
+  }
+
+  .gs-destination-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: min(380px, 100%);
+    overflow: hidden;
+    border-radius: 1rem;
+    background: #fff;
+    cursor: pointer;
+    transition:
+      transform 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      opacity 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      box-shadow 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      filter 920ms cubic-bezier(0.33, 1, 0.68, 1);
+    transform-origin: center center;
+    backface-visibility: hidden;
+    will-change: transform, opacity, filter;
+  }
+
+  .gs-destination-card.left,
+  .gs-destination-card.right {
+    z-index: 10;
+    opacity: 0.9;
+    filter: saturate(0.92) brightness(0.96);
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.12);
+  }
+
+  .gs-destination-card.left {
+    transform: translateX(-144%) translateY(34px) scale(0.9);
+  }
+
+  .gs-destination-card.center {
+    z-index: 20;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1.08);
+    filter: saturate(1) brightness(1);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.18);
+  }
+
+  .gs-destination-card.right {
+    transform: translateX(44%) translateY(34px) scale(0.9);
+  }
+
+  .gs-destination-card.wrapping {
+    z-index: 8;
+    opacity: 0.82;
+    transition:
+      transform 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      opacity 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      box-shadow 920ms cubic-bezier(0.33, 1, 0.68, 1),
+      filter 920ms cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  .gs-destination-card.left .gs-destination-image,
+  .gs-destination-card.right .gs-destination-image {
+    height: 390px;
+  }
+
+  .gs-destination-card.center .gs-destination-image {
+    height: 430px;
+  }
+
+  /* Mobile/Tablet layout styling overrides moved to styles.css to ensure AOT compiler loading and global scoping */
+
+  @media (prefers-reduced-motion: reduce) {
+    .gs-soft-reveal,
+    .gs-number-pulse,
+    .gs-bar-rise,
+    .gs-destination-card,
+    .gs-destination-dot {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Hero trang chủ — tách biệt hoàn toàn với thanh điều hướng */
+  .gs-home-hero {
+    --gs-hero-width: 1200px;
+    position: relative;
+    min-height: 100vh;
+    height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow: hidden;
+    isolation: isolate;
+    background: #dce8e4;
+    font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif;
+  }
+
+  .gs-home-hero,
+  .gs-home-hero * {
+    box-sizing: border-box;
+  }
+
+  .gs-home-hero__image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: saturate(1.12) contrast(1.06) brightness(.98);
+  }
+
+  .gs-home-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(5, 45, 35, .58) 0%,
+        rgba(5, 45, 35, .34) 28%,
+        rgba(5, 45, 35, .10) 55%,
+        rgba(5, 45, 35, .02) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, .02) 0%,
+        rgba(5, 45, 35, .10) 58%,
+        rgba(5, 45, 35, .52) 100%
+      );
+    pointer-events: none;
+  }
+
+  .gs-home-hero__inner {
+    position: relative;
+    z-index: 1;
+    width: min(var(--gs-hero-width), calc(100% - 48px));
+    min-height: 100%;
+    margin: 0 auto;
+    padding: clamp(106px, 12vh, 128px) 0 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  .gs-hero-stack { display: grid; width: 100%; gap: clamp(18px, 2.2vh, 26px); }
+
+  .gs-home-copy {
+    width: min(610px, 100%);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: translateY(-34px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .gs-home-title { margin: 0; color: #f7fff6; font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif; font-size: clamp(58px, 5.15vw, 84px); font-weight: 800; line-height: .96; letter-spacing: -.045em; text-wrap: balance; text-shadow: 0 8px 28px rgba(0, 0, 0, .28); }
+  .gs-home-title span { display: block; font-weight: 900; }
+  .gs-home-title em { display: block; margin-top: .1em; color: #a7e6a1; font-family: inherit; font-size: .78em; font-weight: 800; font-style: normal; line-height: 1.04; letter-spacing: -.04em; }
+  .gs-home-description { max-width: 540px; margin: 16px 0 0; color: rgba(255, 255, 255, .92); font-size: 16px; font-weight: 500; line-height: 1.6; text-shadow: 0 2px 14px rgba(2, 30, 22, .48); }
+  .gs-home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .gs-home-action { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; border: 1px solid rgba(255, 255, 255, .72); border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; font-size: 14px; font-weight: 800; text-decoration: none; box-shadow: 0 8px 24px rgba(2, 30, 22, .1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: .25s ease; }
+  .gs-home-action--primary { border-color: #0f7952; background: #0f7952; color: white; box-shadow: 0 12px 28px rgba(3, 50, 35, .28); }
+  .gs-home-action:hover { transform: translateY(-2px); background: #0a6848; color: white; }
+
+  .gs-trip-finder {
+    position: relative;
+    z-index: 2;
+    width: min(1080px, 100%);
+    margin: 46px auto 0;
+    padding-top: 28px;
+    border: 1px solid rgba(255, 255, 255, .55);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .91);
+    box-shadow: 0 18px 44px rgba(3, 35, 26, .18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .gs-trip-tabs { position: absolute; left: 50%; top: 0; z-index: 3; display: flex; width: min(760px, calc(100% - 280px)); max-width: calc(100% - 28px); gap: 6px; margin: 0; padding: 6px; transform: translate(-50%, -50%); border: 1px solid rgba(255, 255, 255, .66); border-radius: 18px; background: rgba(248, 250, 245, .9); box-shadow: 0 10px 26px rgba(3, 43, 31, .16); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .gs-trip-tab { position: relative; display: inline-flex; min-height: 34px; flex: 1 1 0; min-width: 0; align-items: center; justify-content: center; gap: 7px; padding: 0 15px; border: 0; border-radius: 11px; background: transparent; color: #36564b; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .gs-trip-tab i { color: #5f8376; font-size: 14px; }
+  .gs-trip-tab.active { border-right-color: transparent; background: #0f6b45; color: white; box-shadow: 0 8px 18px rgba(8, 100, 67, .2); }
+  .gs-trip-tab.active i { color: white; }
+  .gs-trip-tab.active::after { content: ""; position: absolute; left: 50%; bottom: -8px; width: 14px; height: 14px; transform: translateX(-50%) rotate(45deg); border-radius: 2px; background: #0f6b45; }
+  .gs-trip-form { display: grid; grid-template-columns: 1.35fr .92fr .92fr .9fr 1.1fr auto; gap: 10px; align-items: end; padding: 12px 18px 17px; }
+  .gs-trip-field { min-width: 0; }
+  .gs-trip-field label { display: block; margin: 0 0 6px 3px; color: #38544b; font-size: 11px; font-weight: 800; }
+  .gs-trip-control-wrap { position: relative; min-width: 0; }
+  .gs-trip-control-wrap > i { position: absolute; z-index: 1; left: 14px; top: 50%; transform: translateY(-50%); color: #43806c; font-size: 16px; pointer-events: none; }
+  .gs-trip-control { display: block; width: 100%; min-width: 0; max-width: 100%; height: 43px; padding: 0 8px 0 36px; border: 1px solid rgba(196, 211, 204, .8); border-radius: 10px; outline: none; background: rgba(255, 255, 252, .82); color: #344a43; font: inherit; font-size: 12px; }
+  .gs-trip-control:focus { border-color: #0a8057; box-shadow: 0 0 0 3px rgba(10, 128, 87, .1); }
+  .gs-trip-submit { display: inline-flex; height: 43px; align-items: center; justify-content: center; gap: 9px; padding: 0 18px; border: 0; border-radius: 10px; background: #0f6b45; color: white; font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: .25s ease; }
+  .gs-trip-submit:hover { transform: translateY(-2px); background: #095638; box-shadow: 0 10px 22px rgba(15, 107, 69, .2); }
+  .gs-hero-stats { position: relative; z-index: 1; display: grid; width: min(1020px, 100%); margin: 0 auto; grid-template-columns: 1.25fr repeat(3, 1fr); align-items: center; color: #fff; text-shadow: 0 2px 12px rgba(1, 29, 21, .55); }
+  .gs-hero-stat { display: flex; min-width: 0; min-height: 50px; align-items: center; justify-content: center; gap: 11px; padding: 2px 24px; border-left: 1px solid rgba(255, 255, 255, .34); }
+  .gs-hero-stat:first-child { justify-content: flex-start; padding-left: 0; border-left: 0; }
+  .gs-hero-stat > i { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255, 255, 255, .42); border-radius: 50%; color: #c9f7d4; font-size: 13px; }
+  .gs-hero-stat strong { display: block; color: white; font-size: 17px; font-weight: 850; line-height: 1.15; }
+  .gs-hero-stat small { display: block; max-width: 155px; margin-top: 3px; color: rgba(255, 255, 255, .86); font-size: 10px; font-weight: 600; line-height: 1.35; }
+  .gs-stat-trust { display: flex; align-items: center; gap: 11px; }
+  .gs-stat-avatars { display: flex; }
+  .gs-stat-avatars span { display: grid; width: 34px; height: 34px; margin-left: -7px; place-items: center; border: 2px solid rgba(255, 255, 255, .9); border-radius: 50%; background: #e8f2ec; color: #176247; font-size: 10px; font-weight: 900; text-shadow: none; }
+  .gs-stat-avatars span:first-child { margin-left: 0; }
+  .gs-stat-rating { color: #ffd35a; letter-spacing: 1px; }
+
+  @media (max-width: 1100px) {
+    .gs-home-hero { height: auto; min-height: 100vh; }
+    .gs-home-hero__inner { min-height: 100vh; padding-top: 106px; padding-bottom: 30px; }
+    .gs-trip-tabs { width: min(720px, calc(100% - 32px)); }
+    .gs-trip-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .gs-trip-submit { width: 100%; }
+    .gs-hero-stats { grid-template-columns: repeat(4, 1fr); }
+    .gs-hero-stat { padding-inline: 14px; }
+    .gs-stat-avatars { display: none; }
+  }
+
+  @media (max-width: 1024px) {
+    .gs-trip-tabs {
+        width: calc(100% - 16px) !important;
+        max-width: calc(100% - 16px) !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+    }
+    .gs-trip-tabs::-webkit-scrollbar {
+        display: none !important;
+    }
+    .gs-trip-tab {
+        min-width: 128px !important;
+        flex: 0 0 auto !important;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .gs-home-hero { height: auto; min-height: 100vh; overflow: hidden; }
+    .gs-home-hero__inner { width: calc(100% - 28px); min-height: 100vh; padding: 88px 0 24px; align-items: flex-start; }
+    .gs-hero-stack { gap: 18px; }
+    .gs-home-copy { padding: 0 6px; transform: translateY(-18px); }
+    .gs-home-title { font-size: clamp(46px, 13vw, 58px); letter-spacing: -.04em; line-height: 1; }
+    .gs-home-description { font-size: 15px; }
+    .gs-home-action { flex: 1 1 180px; }
+    .gs-trip-finder { width: 100%; margin-top: 38px; padding-top: 34px; border-radius: 18px; }
+    .gs-trip-form { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; padding: 12px 16px 16px !important; }
+    .gs-trip-field:first-child, .gs-trip-submit { grid-column: span 2 !important; }
+    .gs-hero-stats { width: 100%; grid-template-columns: 1fr 1fr; gap: 0; padding-top: 2px; }
+    .gs-hero-stat { min-height: 58px; justify-content: flex-start; padding: 8px 10px; border-left: 0; border-bottom: 1px solid rgba(255, 255, 255, .22); }
+    .gs-hero-stat:nth-child(even) { border-left: 1px solid rgba(255, 255, 255, .22); }
+    .gs-hero-stat:nth-last-child(-n+2) { border-bottom: 0; }
+    .gs-hero-stat > i { width: 34px; height: 34px; font-size: 14px; }
+    .gs-hero-stat strong { font-size: 14px; }
+    .gs-hero-stat small { font-size: 9px; }
+    .gs-stat-trust { gap: 8px; }
+  }
+
+  @media (min-width: 1101px) and (max-height: 820px) {
+    .gs-home-title { font-size: clamp(54px, 4.8vw, 70px); }
+    .gs-home-description { margin-top: 14px; line-height: 1.5; }
+    .gs-home-actions { margin-top: 18px; }
+    .gs-hero-stack { gap: 14px; }
+    .gs-trip-form { padding-top: 13px; padding-bottom: 13px; }
+  }
+
+  @media (min-width: 1101px) and (max-height: 700px) {
+    .gs-home-hero, .gs-home-hero__inner { min-height: 680px; height: auto; }
+    .gs-home-hero__inner { padding-top: 86px; }
+    .gs-home-title { font-size: 54px; }
+    .gs-home-description { max-width: 520px; font-size: 15px; }
+    .gs-home-action { min-height: 48px; }
+  }
+
+  .gs-ai-section {
+    position: relative;
+    overflow: visible;
+    padding: clamp(36px, 4vw, 64px) 0;
+    background: #f8fbfa;
+  }
+
+  .gs-ai-shell {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(300px, .85fr) minmax(0, 1.5fr);
+    gap: clamp(28px, 3vw, 42px);
+    width: min(1280px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: clamp(30px, 3vw, 44px);
+    overflow: visible;
+    border: 1px solid rgba(255, 255, 255, .9);
+    border-radius: 38px;
+    background:
+      radial-gradient(circle at 8% 15%, rgba(187, 241, 224, .56), transparent 30%),
+      radial-gradient(circle at 96% 92%, rgba(184, 226, 255, .48), transparent 32%),
+      rgba(255, 255, 255, .84);
+    box-shadow: 0 30px 80px rgba(17, 72, 57, .12);
+  }
+
+  .gs-ai-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(135deg, rgba(224, 247, 239, .5), rgba(255, 255, 255, .76) 50%, rgba(225, 242, 252, .48));
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .gs-ai-intro { min-width: 0; }
+  .gs-ai-title-row { display: flex; align-items: flex-start; gap: 16px; }
+  .gs-home-page .gs-ai-title { margin: 0; padding-top: .06em; color: #082f2b; font-size: clamp(42px, 3.7vw, 58px); font-weight: 900; line-height: 1.04; letter-spacing: -.04em; }
+  .gs-ai-title-spark { color: #17a56d; font-size: 32px; filter: drop-shadow(0 8px 16px rgba(16, 185, 129, .2)); }
+  .gs-ai-subtitle { max-width: 430px; margin: 12px 0 0; color: #176d51; font-size: clamp(17px, 1.35vw, 22px); font-weight: 700; line-height: 1.45; letter-spacing: -.025em; }
+
+  .gs-ai-search {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 64px;
+    margin-top: 22px;
+    padding: 8px 10px 8px 22px;
+    border: 1px solid rgba(255, 255, 255, .92);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .9);
+    box-shadow: 0 16px 36px rgba(13, 80, 59, .12);
+    backdrop-filter: blur(14px);
+  }
+
+  .gs-ai-search > i { color: #0a9965; font-size: 22px; }
+  .gs-ai-search input { min-width: 0; flex: 1; border: 0; background: transparent; color: #183b34; font-size: 16px; font-weight: 600; outline: none; }
+  .gs-ai-search button { display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: linear-gradient(145deg, #0aa36c, #087b55); color: #fff; font-size: 18px; box-shadow: 0 12px 24px rgba(8, 123, 85, .25); cursor: pointer; }
+
+  .gs-ai-assistant {
+    margin-top: 20px;
+    padding: 22px;
+    border: 1px solid rgba(214, 232, 225, .9);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 18px 42px rgba(15, 74, 57, .09);
+    backdrop-filter: blur(16px);
+  }
+
+  .gs-ai-assistant-head { display: flex; align-items: center; gap: 13px; padding-bottom: 16px; border-bottom: 1px solid #e6eeea; }
+  .gs-ai-bot { display: grid; width: 50px; height: 50px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: linear-gradient(145deg, #dbf7d2, #bceea8); color: #087b55; font-size: 24px; box-shadow: inset 0 0 0 6px rgba(255, 255, 255, .45); }
+  .gs-ai-assistant-head h3 { margin: 0; color: #112a25; font-size: 18px; font-weight: 800; letter-spacing: -.025em; }
+  .gs-ai-assistant-head p { margin: 4px 0 0; color: #647b74; font-size: 13px; font-weight: 600; }
+  .gs-ai-verified { margin-left: 5px; color: #19aa70; font-size: 15px; }
+  .gs-ai-message { min-height: 88px; margin: 16px 0 0; color: #314d46; font-size: 13px; font-weight: 500; line-height: 1.7; }
+  .gs-ai-typing { display: flex; align-items: center; gap: 9px; margin-top: 14px; }
+  .gs-ai-typing > span:first-child { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: #eef8f2; color: #079664; }
+  .gs-ai-dot { width: 9px; height: 9px; border-radius: 50%; background: #69d99b; }
+
+  .gs-ai-results { min-width: 0; }
+  .gs-ai-results-head { display: flex; min-height: 66px; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  .gs-ai-results-head h3 { margin: 13px 0 0; color: #087452; font-size: 16px; font-weight: 800; line-height: 1.35; letter-spacing: -.02em; }
+  .gs-ai-generate { display: inline-flex; min-height: 52px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 10px; padding: 0 26px; border: 1px solid #edf2ef; border-radius: 999px; background: rgba(255, 255, 255, .92); color: #087452; font-size: 14px; font-weight: 800; box-shadow: 0 12px 25px rgba(15, 65, 50, .12); cursor: pointer; }
+
+  .gs-ai-days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 10px; }
+  .gs-ai-day { min-width: 0; overflow: hidden; border: 1px solid rgba(224, 233, 229, .9); border-radius: 22px; background: rgba(255, 255, 255, .94); box-shadow: 0 18px 45px rgba(20, 54, 45, .1); transition: transform .28s ease, box-shadow .28s ease; }
+  .gs-ai-day:hover { transform: translateY(-5px); box-shadow: 0 26px 55px rgba(20, 54, 45, .15); }
+  .gs-ai-day-image { position: relative; width: 100%; height: clamp(165px, 13vw, 205px); overflow: hidden; }
+  .gs-ai-day-image img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .55s ease; }
+  .gs-ai-day:hover .gs-ai-day-image img { transform: scale(1.04); }
+  .gs-ai-day-badge { position: absolute; left: 18px; top: 18px; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; background: rgba(255, 255, 255, .94); color: #087452; font-size: 12px; font-weight: 800; box-shadow: 0 8px 18px rgba(15, 65, 50, .1); }
+  .gs-ai-day-copy { display: flex; min-height: 168px; flex-direction: column; padding: 18px 18px 16px; }
+  .gs-ai-day-copy h4 { display: -webkit-box; margin: 0; overflow: hidden; color: #101f1c; font-size: clamp(17px, 1.25vw, 20px); font-weight: 800; line-height: 1.3; letter-spacing: -.025em; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .gs-ai-day-copy p { display: -webkit-box; margin: 8px 0 0; overflow: hidden; color: #536b64; font-size: 13px; font-weight: 500; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .gs-ai-day-footer { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 14px; color: #087452; font-size: 12px; font-weight: 800; }
+  .gs-ai-day-footer span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: #eef8f2; font-size: 17px; }
+
+  @media (max-width: 1120px) {
+    .gs-ai-shell { grid-template-columns: 1fr; padding: 40px; }
+    .gs-ai-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+    .gs-ai-title-row, .gs-ai-subtitle { grid-column: 1 / -1; }
+    .gs-ai-search, .gs-ai-assistant { align-self: stretch; }
+    .gs-ai-assistant { margin-top: 30px; }
+  }
+
+  @media (max-width: 760px) {
+    .gs-ai-section { padding: 40px 0; }
+    .gs-ai-shell { width: calc(100% - 24px); gap: 32px; padding: 28px 20px; border-radius: 28px; }
+    .gs-ai-intro { display: block; }
+    .gs-home-page .gs-ai-title { font-size: 38px; }
+    .gs-ai-subtitle { font-size: 18px; }
+    .gs-ai-search { height: 64px; margin-top: 24px; border-radius: 20px; }
+    .gs-ai-search button { width: 48px; height: 48px; }
+    .gs-ai-assistant { padding: 22px; }
+    .gs-ai-message { min-height: 0; }
+    .gs-ai-results-head { align-items: stretch; flex-direction: column; }
+    .gs-ai-results-head h3 { margin-top: 0; }
+    .gs-ai-generate { width: 100%; }
+    .gs-ai-days { grid-template-columns: 1fr; }
+    .gs-ai-day-image { height: 190px; }
+    .gs-ai-day-copy { min-height: 160px; }
+  }
+</style>
+
+<main class="gs-home-page overflow-x-hidden bg-white text-[#263c34]">
+  <section class="gs-home-hero">
+    <img class="gs-home-hero__image" src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=92" alt="Vịnh Hạ Long nhìn từ trên cao">
+    <div class="gs-home-hero__inner">
+      <div class="gs-hero-stack">
+      <div class="gs-home-copy gs-soft-reveal">
+        <h1 class="gs-home-title"><span>KHÁM PHÁ</span><span>VIỆT NAM</span><em>theo cách xanh hơn.</em></h1>
+        <p class="gs-home-description">Hành trình được tuyển chọn kỹ lưỡng, tôn vinh thiên nhiên, văn hóa và cộng đồng địa phương.</p>
+        <div class="gs-home-actions">
+          <a routerLink="/tours" class="gs-home-action gs-home-action--primary"><i class="bi bi-compass"></i> Lên kế hoạch ngay <i class="bi bi-arrow-right"></i></a>
+          <a href="#diem-den-noi-bat" class="gs-home-action"><i class="bi bi-stars"></i> Khám phá cảm hứng</a>
+        </div>
+      </div>
+
+      <div class="gs-trip-finder">
+      <div class="gs-trip-tabs" role="tablist" aria-label="Điểm đến gợi ý">
+        <button type="button" class="gs-trip-tab" [class.active]="searchDest === 'Đà Lạt'" (click)="setSearchDest('Đà Lạt')"><i class="bi bi-feather"></i> Đà Lạt</button>
+        <button type="button" class="gs-trip-tab" [class.active]="searchDest === 'Đà Nẵng - Hội An'" (click)="setSearchDest('Đà Nẵng - Hội An')"><i class="bi bi-building"></i> Đà Nẵng - Hội An</button>
+        <button type="button" class="gs-trip-tab" [class.active]="searchDest === 'Phú Yên'" (click)="setSearchDest('Phú Yên')"><i class="bi bi-water"></i> Phú Yên</button>
+      </div>
+      <form class="gs-trip-form" (submit)="handleSearchSubmit($event)">
+        <div class="gs-trip-field"><label for="heroDestination">Điểm đến</label><div class="gs-trip-control-wrap"><i class="bi bi-geo-alt"></i><input id="heroDestination" class="gs-trip-control" type="text" [(ngModel)]="searchDest" name="searchDest"></div></div>
+        <div class="gs-trip-field"><label for="heroStartDate">Ngày đi</label><div class="gs-trip-control-wrap"><i class="bi bi-calendar3"></i><input id="heroStartDate" class="gs-trip-control" type="date" [(ngModel)]="startDate" name="startDate"></div></div>
+        <div class="gs-trip-field"><label for="heroEndDate">Ngày về</label><div class="gs-trip-control-wrap"><i class="bi bi-calendar-check"></i><input id="heroEndDate" class="gs-trip-control" type="date" [(ngModel)]="endDate" name="endDate"></div></div>
+        <div class="gs-trip-field"><label for="heroGuests">Khách hàng</label><div class="gs-trip-control-wrap"><i class="bi bi-people"></i><select id="heroGuests" class="gs-trip-control" [(ngModel)]="guests" name="guests"><option value="1">1 người lớn</option><option value="2">2 người lớn</option><option value="4">4 người lớn</option></select></div></div>
+        <div class="gs-trip-field"><label for="heroBudget">Ngân sách</label><div class="gs-trip-control-wrap"><i class="bi bi-wallet2"></i><select id="heroBudget" class="gs-trip-control" [(ngModel)]="budget" name="budget"><option value="1M-2M">1 - 2 triệu đồng</option><option value="2M-5M">2 - 5 triệu đồng</option><option value="5M+">Trên 5 triệu đồng</option></select></div></div>
+        <button type="submit" class="gs-trip-submit">Tìm kiếm <i class="bi bi-arrow-right"></i></button>
+      </form>
+      </div>
+
+      <div class="gs-hero-stats" aria-label="Thành tựu của GreenSteps">
+      <div class="gs-hero-stat gs-stat-trust">
+        <div class="gs-stat-avatars" aria-hidden="true"><span>AN</span><span>MI</span><span>HU</span><span>+</span></div>
+        <div><strong>50K+ <small>du khách tin tưởng</small></strong><small class="gs-stat-rating">★★★★★ &nbsp; 4.9/5</small></div>
+      </div>
+      <div class="gs-hero-stat"><i class="bi bi-signpost-split"></i><div><strong>200+</strong><small>Hành trình bền vững</small></div></div>
+      <div class="gs-hero-stat"><i class="bi bi-map"></i><div><strong>30+</strong><small>Điểm đến trải dài Việt Nam</small></div></div>
+      <div class="gs-hero-stat"><i class="bi bi-emoji-smile"></i><div><strong>98%</strong><small>Đánh giá hài lòng</small></div></div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hidden">
+    <div class="hero-slider-track" id="heroTrack">
+      <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1920&q=80');">
+        <div class="hero-slide-content">
+          <span class="eco-badge-item"><i class="bi bi-leaf-fill"></i> Du lịch bền vững & Bền vững</span>
+          <h1>Lên Kế Hoạch Du Lịch Xanh<br>Cá Nhân Hóa Trong Vài Giây</h1>
+          <p>Trải nghiệm những chuyến đi thân thiện với môi trường, hạn chế carbon và hỗ trợ cộng đồng bản địa cùng trợ lý AI thông minh.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-search-overlay-panel">
+      <div class="search-panel-tabs">
+        <button class="search-panel-tab" [class.active]="searchDest === 'Đà Lạt'" (click)="setSearchDest('Đà Lạt')">Đà Lạt</button>
+        <button class="search-panel-tab" [class.active]="searchDest === 'Đà Nẵng - Hội An'" (click)="setSearchDest('Đà Nẵng - Hội An')">Đà Nẵng - Hội An</button>
+        <button class="search-panel-tab" [class.active]="searchDest === 'Phú Yên'" (click)="setSearchDest('Phú Yên')">Phú Yên</button>
+      </div>
+      <form class="search-panel-form" (submit)="handleSearchSubmit($event)">
+        <div class="search-panel-fields">
+          <div class="search-field">
+            <label><i class="bi bi-geo-alt-fill"></i> Điểm đến</label>
+            <input type="text" id="searchDestInput" [value]="searchDest" readonly>
+          </div>
+          <div class="search-field">
+            <label><i class="bi bi-calendar-event"></i> Ngày đi</label>
+            <input type="date" id="searchStartDate" [(ngModel)]="startDate" name="startDate">
+          </div>
+          <div class="search-field">
+            <label><i class="bi bi-calendar-event"></i> Ngày về</label>
+            <input type="date" id="searchEndDate" [(ngModel)]="endDate" name="endDate">
+          </div>
+          <div class="search-field">
+            <label><i class="bi bi-people-fill"></i> Khách hàng</label>
+            <select id="searchGuests" [(ngModel)]="guests" name="guests">
+              <option value="2">2 người lớn, 1 phòng</option>
+              <option value="1">1 người lớn</option>
+              <option value="4">4 người lớn, 2 phòng</option>
+            </select>
+          </div>
+          <div class="search-field">
+            <label><i class="bi bi-wallet2"></i> Ngân sách</label>
+            <select id="searchBudget" [(ngModel)]="budget" name="budget">
+              <option value="1M-2M">1.000.000 - 2.000.000đ</option>
+              <option value="2M-5M">2.000.000 - 5.000.000đ</option>
+              <option value="5M+">> 5.000.000đ</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="search-panel-btn"><i class="bi bi-search"></i> Tìm Kiếm</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="diem-den-noi-bat" class="relative overflow-hidden bg-white px-6 py-20 md:py-28">
+    <div class="pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-emerald-100/80 blur-3xl"></div>
+    <div class="pointer-events-none absolute -right-28 bottom-20 h-[28rem] w-[28rem] rounded-full bg-sky-100/80 blur-3xl"></div>
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent"></div>
+    <div class="pointer-events-none absolute left-1/2 top-36 h-[34rem] w-[58rem] -translate-x-1/2 rounded-full border border-dashed border-emerald-100/80"></div>
+    <div class="pointer-events-none absolute left-[16%] top-48 h-3 w-3 rounded-full bg-emerald-300/70"></div>
+    <div class="pointer-events-none absolute right-[18%] top-64 h-2.5 w-2.5 rounded-full bg-sky-300/80"></div>
+    <div class="pointer-events-none absolute -bottom-10 left-0 h-40 w-72 rounded-tr-[80px] bg-gradient-to-tr from-emerald-200/55 via-sky-100/45 to-transparent blur-sm"></div>
+    <div class="pointer-events-none absolute bottom-0 left-8 h-20 w-64 rounded-t-full bg-emerald-300/15"></div>
+    <div class="pointer-events-none absolute bottom-10 left-36 text-slate-300/70"><i class="bi bi-airplane-engines text-2xl"></i></div>
+    <div class="relative mx-auto w-full max-w-7xl">
+    <div class="mx-auto max-w-5xl text-center">
+      <h2 class="font-serif text-5xl font-semibold tracking-tight text-[#263c34]">Khám phá điểm đến</h2>
+      <p class="mt-3 text-sm font-semibold text-slate-500">Những điểm đến chọn lọc, trải nghiệm khó quên.</p>
+    </div>
+
+    <button type="button" (click)="rotateDestinations('prev')" class="absolute left-0 top-[46%] z-30 hidden h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white text-slate-400 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 transition-all duration-300 hover:-translate-x-1 hover:text-emerald-600 md:grid" aria-label="Điểm đến trước">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <button type="button" (click)="rotateDestinations('next')" class="absolute right-0 top-[46%] z-30 hidden h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white text-slate-400 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 transition-all duration-300 hover:translate-x-1 hover:text-emerald-600 md:grid" aria-label="Điểm đến tiếp theo">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+
+    <div class="gs-destination-carousel mx-auto mt-12 max-w-6xl">
+      <article
+        *ngFor="let card of destinationCards; let idx = index"
+        (click)="goToDestination(card.dest)"
+        class="gs-destination-card group ring-1 ring-white"
+        [ngClass]="getDestinationPosition(idx)"
+        [class.wrapping]="isDestinationWrapping(idx)"
+        [attr.aria-current]="idx === activeDestinationIndex ? 'true' : null">
+        <div class="gs-destination-image relative">
+          <img [src]="card.image" [alt]="card.title" class="h-full w-full object-cover transition-all duration-700 group-hover:scale-110">
+          <div class="dest-gradient-overlay absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/15 to-slate-950/80"></div>
+          <div class="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-slate-800 shadow-lg shadow-slate-900/10">
+            <i class="bi bi-geo-alt-fill text-emerald-600"></i> {{ card.label }}
+          </div>
+        </div>
+        <div class="dest-text-content absolute inset-x-6 bottom-6 text-white z-10 pointer-events-none">
+          <h3 class="dest-title font-serif text-3xl font-semibold">{{ card.title }}</h3>
+          <p class="dest-subtitle mt-1 text-xs font-bold text-white/90">{{ card.subtitle }}</p>
+          <button type="button" class="dest-discover-btn mt-5 inline-flex items-center gap-2 rounded-full border border-white/50 px-4 py-2 text-xs font-bold text-white transition-all duration-300 group-hover:bg-white group-hover:text-emerald-700 pointer-events-auto">
+            Khám phá <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="gs-destination-dots mt-8 flex justify-center gap-3">
+      <button
+        *ngFor="let card of destinationCards; let idx = index"
+        type="button"
+        (click)="setActiveDestination(idx)"
+        class="gs-destination-dot h-2.5 w-2.5 rounded-full bg-slate-300"
+        [class.active]="idx === activeDestinationIndex"
+        [attr.aria-label]="'Xem điểm đến ' + card.title">
+      </button>
+    </div>
+
+    <section class="gs-itinerary-showcase mx-auto mt-10 max-w-6xl overflow-hidden rounded-[34px] bg-gradient-to-br from-white via-emerald-50/55 to-sky-50 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-emerald-100/80 md:p-7">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_430px]">
+
+        <div class="gs-highlight-panel rounded-[28px] bg-white/90 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] ring-1 ring-slate-100 backdrop-blur md:p-7">
+          <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+                <i class="bi bi-leaf-fill"></i> Green travel system
+              </span>
+              <h3 class="mt-4 text-2xl font-black leading-tight text-slate-950 md:text-3xl">Một hành trình xanh, rõ ràng từ lúc chọn tour.</h3>
+            </div>
+            <p class="max-w-sm text-sm font-semibold leading-6 text-slate-500">Chọn nhanh ưu tiên của bạn, GreenSteps sẽ cập nhật phần xem trước hành trình tương ứng.</p>
+          </div>
+
+          <div class="gs-highlight-options mt-6 grid gap-3 grid-cols-2">
+            <button type="button" (click)="selectHighlight('eco')" class="gs-highlight-option group min-h-[118px] rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5"
+              [class.border-emerald-500]="activeHighlight === 'eco'"
+              [class.bg-emerald-600]="activeHighlight === 'eco'"
+              [class.text-white]="activeHighlight === 'eco'"
+              [class.shadow-[0_18px_35px_rgba(5,150,105,0.22)]]="activeHighlight === 'eco'"
+              [class.border-slate-100]="activeHighlight !== 'eco'"
+              [class.bg-white]="activeHighlight !== 'eco'">
+              <span class="flex items-center gap-3">
+                <span class="grid h-11 w-11 place-items-center rounded-full text-lg"
+                  [class.bg-white]="activeHighlight === 'eco'"
+                  [class.text-emerald-700]="activeHighlight === 'eco'"
+                  [class.bg-emerald-50]="activeHighlight !== 'eco'"
+                  [class.text-emerald-600]="activeHighlight !== 'eco'"><i class="bi bi-house-heart"></i></span>
+                <b class="text-base">Lưu trú xanh</b>
+              </span>
+              <span class="feature-desc mt-3 block text-xs font-semibold leading-5" [class.text-white/80]="activeHighlight === 'eco'" [class.text-slate-500]="activeHighlight !== 'eco'">Homestay, eco-stay và dịch vụ giảm nhựa dùng một lần.</span>
+            </button>
+
+            <button type="button" (click)="selectHighlight('guides')" class="gs-highlight-option group min-h-[118px] rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5"
+              [class.border-emerald-500]="activeHighlight === 'guides'"
+              [class.bg-emerald-600]="activeHighlight === 'guides'"
+              [class.text-white]="activeHighlight === 'guides'"
+              [class.shadow-[0_18px_35px_rgba(5,150,105,0.22)]]="activeHighlight === 'guides'"
+              [class.border-slate-100]="activeHighlight !== 'guides'"
+              [class.bg-white]="activeHighlight !== 'guides'">
+              <span class="flex items-center gap-3">
+                <span class="grid h-11 w-11 place-items-center rounded-full text-lg"
+                  [class.bg-white]="activeHighlight === 'guides'"
+                  [class.text-emerald-700]="activeHighlight === 'guides'"
+                  [class.bg-emerald-50]="activeHighlight !== 'guides'"
+                  [class.text-emerald-600]="activeHighlight !== 'guides'"><i class="bi bi-people-fill"></i></span>
+                <b class="text-base">Bản địa hóa</b>
+              </span>
+              <span class="feature-desc mt-3 block text-xs font-semibold leading-5" [class.text-white/80]="activeHighlight === 'guides'" [class.text-slate-500]="activeHighlight !== 'guides'">Kết nối hướng dẫn viên địa phương và trải nghiệm văn hóa thật.</span>
+            </button>
+
+            <button type="button" (click)="selectHighlight('dates')" class="gs-highlight-option group rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5"
+              [class.border-emerald-500]="activeHighlight === 'dates'"
+              [class.bg-emerald-600]="activeHighlight === 'dates'"
+              [class.text-white]="activeHighlight === 'dates'"
+              [class.shadow-[0_18px_35px_rgba(5,150,105,0.22)]]="activeHighlight === 'dates'"
+              [class.border-slate-100]="activeHighlight !== 'dates'"
+              [class.bg-white]="activeHighlight !== 'dates'">
+              <span class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-full text-base"
+                   [class.bg-white]="activeHighlight === 'dates'"
+                   [class.text-emerald-700]="activeHighlight === 'dates'"
+                   [class.bg-emerald-50]="activeHighlight !== 'dates'"
+                   [class.text-emerald-600]="activeHighlight !== 'dates'"><i class="bi bi-calendar3"></i></span>
+                <b class="text-sm">Ngày đi linh hoạt</b>
+              </span>
+            </button>
+
+            <button type="button" (click)="selectHighlight('ai')" class="gs-highlight-option group rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5"
+              [class.border-emerald-500]="activeHighlight === 'ai'"
+              [class.bg-emerald-600]="activeHighlight === 'ai'"
+              [class.text-white]="activeHighlight === 'ai'"
+              [class.shadow-[0_18px_35px_rgba(5,150,105,0.22)]]="activeHighlight === 'ai'"
+              [class.border-slate-100]="activeHighlight !== 'ai'"
+              [class.bg-white]="activeHighlight !== 'ai'">
+              <span class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-full text-base"
+                   [class.bg-white]="activeHighlight === 'ai'"
+                   [class.text-emerald-700]="activeHighlight === 'ai'"
+                   [class.bg-emerald-50]="activeHighlight !== 'ai'"
+                   [class.text-emerald-600]="activeHighlight !== 'ai'"><i class="bi bi-stars"></i></span>
+                <b class="text-sm">Lịch trình AI</b>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <aside id="itinerary-preview" class="gs-itinerary-preview rounded-[28px] bg-emerald-950 p-4 text-white shadow-[0_26px_60px_rgba(6,78,59,0.22)] md:p-5">
+          <div class="gs-preview-hero relative overflow-hidden rounded-3xl">
+            <img [src]="currentPreview.days[0]?.img || 'https://i.pinimg.com/736x/f3/34/b3/f334b3d836d0d5fd68f797f7ad3c7021.jpg'" [alt]="currentPreview.title" class="gs-preview-hero-img h-44 w-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-950/45 to-transparent"></div>
+            <div class="gs-preview-copy absolute bottom-4 left-4 right-4">
+              <span class="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">Xem trước hành trình</span>
+              <h3 class="mt-1 text-lg font-black leading-tight">{{ currentPreview.title }}</h3>
+              <p class="mt-1 text-xs font-semibold text-white/70">{{ currentPreview.subtitle }}</p>
+            </div>
+          </div>
+
+          <div class="gs-preview-mobile-options hidden">
+            <button type="button" (click)="selectHighlight('eco')" class="gs-preview-mobile-option"
+              [class.active]="activeHighlight === 'eco'">
+              <span><i class="bi bi-house-heart"></i></span>
+              <b>Lưu trú xanh</b>
+            </button>
+            <button type="button" (click)="selectHighlight('guides')" class="gs-preview-mobile-option"
+              [class.active]="activeHighlight === 'guides'">
+              <span><i class="bi bi-people-fill"></i></span>
+              <b>Bản địa hóa</b>
+            </button>
+            <button type="button" (click)="selectHighlight('dates')" class="gs-preview-mobile-option"
+              [class.active]="activeHighlight === 'dates'">
+              <span><i class="bi bi-calendar3"></i></span>
+              <b>Ngày đi linh hoạt</b>
+            </button>
+            <button type="button" (click)="selectHighlight('ai')" class="gs-preview-mobile-option"
+              [class.active]="activeHighlight === 'ai'">
+              <span><i class="bi bi-stars"></i></span>
+              <b>Lịch trình AI</b>
+            </button>
+          </div>
+
+          <div class="gs-preview-days mt-4 space-y-2.5">
+            <div
+              *ngFor="let day of currentPreview.days | slice:0:4"
+              routerLink="/schedule/new"
+              role="button"
+              tabindex="0"
+              class="preview-day-item grid cursor-pointer grid-cols-[54px_1fr_62px] items-center gap-3 rounded-2xl bg-white/8 p-2.5 ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/12 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+              <span class="gs-preview-day-label rounded-full bg-emerald-300/18 px-2 py-1.5 text-center text-[10px] font-black text-emerald-100">{{ day.label }}</span>
+              <p class="gs-preview-day-copy min-w-0 text-[11px] leading-relaxed text-white/65"><b class="gs-preview-day-title block truncate text-xs font-extrabold text-white">{{ day.title }}</b>{{ day.desc }}</p>
+              <img [src]="day.img" class="gs-preview-day-img h-12 w-[62px] rounded-xl object-cover shadow-sm" [alt]="day.title">
+            </div>
+          </div>
+
+          <a routerLink="/schedule/new" class="gs-preview-cta mt-5 hidden items-center justify-center gap-3 rounded-full bg-white px-5 py-3 text-xs font-black text-emerald-800 transition-all duration-300 hover:bg-emerald-100">
+            Xem lịch trình <i class="bi bi-arrow-right"></i>
+          </a>
+        </aside>
+      </div>
+
+      <div class="gs-preview-stats mt-6 grid gap-4 rounded-[26px] bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] ring-1 ring-slate-100 md:grid-cols-[1fr_auto] md:items-center">
+        <div class="gs-preview-stats-heading md:hidden">
+          <span>GreenSteps trong lòng du khách</span>
+          <strong>Niềm tin tạo nên hành trình xanh</strong>
+        </div>
+        <div class="gs-preview-stat-grid grid gap-3 grid-cols-2">
+          <div class="gs-preview-stat-card flex items-center gap-3">
+            <span class="grid h-11 w-11 place-items-center rounded-full bg-emerald-600 text-lg text-white"><i class="bi bi-people-fill"></i></span>
+            <p><b class="text-lg font-black text-slate-950">50K+</b><br><span class="text-xs font-bold text-slate-500">Du khách tin tưởng</span></p>
+          </div>
+          <div class="gs-preview-stat-card flex items-center gap-3">
+            <span class="grid h-11 w-11 place-items-center rounded-full bg-sky-500 text-lg text-white"><i class="bi bi-emoji-smile-fill"></i></span>
+            <p><b class="text-lg font-black text-slate-950">98%</b><br><span class="text-xs font-bold text-slate-500">Hài lòng với GreenSteps</span></p>
+          </div>
+        </div>
+        <a routerLink="/tours" class="gs-preview-tours inline-flex items-center justify-center gap-3 rounded-full bg-emerald-600 px-7 py-3.5 text-sm font-black text-white shadow-[0_18px_40px_rgba(5,150,105,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-700">
+          Xem tất cả tour <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </section>
+    </div>
+  </section>
+
+  <section class="gs-ai-section">
+    <div class="gs-ai-shell">
+      <div class="gs-ai-intro">
+        <div class="gs-ai-title-row">
+          <h2 class="gs-ai-title">Trợ lý du lịch AI</h2>
+          <i class="bi bi-stars gs-ai-title-spark" aria-hidden="true"></i>
+        </div>
+        <p class="gs-ai-subtitle">Người bạn đồng hành thông minh cho mỗi hành trình.</p>
+
+        <div class="gs-ai-search">
+          <i class="bi bi-geo-alt" aria-hidden="true"></i>
+          <input [(ngModel)]="aiPlannerDest" (keyup.enter)="generateAiItinerary(true)" aria-label="Điểm đến mong muốn" placeholder="Bạn muốn đi du lịch ở đâu?">
+          <button type="button" (click)="generateAiItinerary(true)" aria-label="Tạo lịch trình từ điểm đến"><i class="bi bi-arrow-right" [class.animate-spin]="isAiLoading"></i></button>
+        </div>
+
+        <div class="gs-ai-assistant">
+          <div class="gs-ai-assistant-head">
+            <span class="gs-ai-bot"><i class="bi bi-robot" aria-hidden="true"></i></span>
+            <div>
+              <h3>GreenSteps AI <i class="bi bi-patch-check-fill gs-ai-verified" aria-label="Đã xác minh"></i></h3>
+              <p>Trợ lý du lịch của bạn</p>
+            </div>
+          </div>
+          <p class="gs-ai-message">{{ aiAssistantMessage }}</p>
+          <div class="gs-ai-typing" aria-label="Trợ lý đang xử lý">
+            <span><i class="bi bi-stars"></i></span>
+            <span class="gs-ai-dot" [class.animate-bounce]="isAiLoading"></span>
+            <span class="gs-ai-dot" [class.animate-bounce]="isAiLoading" style="animation-delay: .15s"></span>
+            <span class="gs-ai-dot" [class.animate-bounce]="isAiLoading" style="animation-delay: .3s"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gs-ai-results">
+        <div class="gs-ai-results-head">
+          <h3><i class="bi bi-stars"></i> {{ aiSuggestedTitle }}</h3>
+          <button type="button" class="gs-ai-generate" (click)="generateAiItinerary(true)">
+            Tạo lịch trình <i class="bi bi-stars" [class.animate-spin]="isAiLoading"></i>
+          </button>
+        </div>
+
+        <div class="gs-ai-days">
+          <article *ngFor="let day of (aiSuggestedDays | slice:0:3)" class="gs-ai-day">
+            <div class="gs-ai-day-image">
+              <img [src]="day.img" [alt]="day.title">
+              <span class="gs-ai-day-badge"><i class="bi bi-calendar3"></i> {{ day.day }}</span>
+            </div>
+            <div class="gs-ai-day-copy">
+              <h4 [title]="day.title">{{ day.title }}</h4>
+              <p [title]="day.desc">{{ day.desc }}</p>
+              <div class="gs-ai-day-footer"><span><i class="bi bi-geo-alt"></i></span> Điểm nổi bật</div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gs-wallet-section relative overflow-hidden bg-gradient-to-br from-[#f8fbf8] via-[#eef8f1] to-white px-6 py-8 md:py-9">
+    <div class="pointer-events-none absolute inset-0 opacity-50" style="background-image: radial-gradient(ellipse at 8% 48%, transparent 0 34%, rgba(16, 185, 129, 0.08) 35% 35.5%, transparent 36%), radial-gradient(ellipse at 96% 12%, transparent 0 36%, rgba(16, 185, 129, 0.08) 37% 37.5%, transparent 38%);"></div>
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/70 to-transparent"></div>
+    <div class="relative mx-auto w-full max-w-[1510px]">
+      <div class="text-center cursor-pointer" routerLink="/profile" [queryParams]="{ section: 'wallet' }">
+        <h2 class="font-serif text-4xl font-bold tracking-tight text-emerald-950 md:text-5xl hover:text-emerald-700 transition-colors">Ví GreenSteps</h2>
+        <p class="mt-1.5 text-base font-medium text-slate-500 hover:text-emerald-800 transition-colors">Thanh toán an toàn. Đặt chỗ dễ dàng. Nhấp để đăng ký &amp; kích hoạt ngay.</p>
+        <div class="mx-auto mt-3 flex w-40 items-center justify-center gap-3 text-emerald-600">
+          <span class="h-px w-14 bg-emerald-500"></span>
+          <span class="grid h-7 w-7 place-items-center rounded-full bg-white text-base text-emerald-600 shadow-sm ring-1 ring-emerald-200"><i class="bi bi-leaf-fill"></i></span>
+          <span class="h-px w-14 bg-emerald-500"></span>
+        </div>
+      </div>
+
+      <div class="mt-4 grid items-start justify-center gap-6 lg:grid-cols-[270px_440px_300px] xl:grid-cols-[280px_455px_300px] 2xl:grid-cols-[290px_480px_315px]">
+        <div class="gs-wallet-phone-pane flex justify-center lg:justify-start">
+          <div class="relative w-[260px] rounded-[2.45rem] bg-black p-[6px] shadow-[0_22px_48px_rgba(15,23,42,0.22)] ring-2 ring-black/90 cursor-pointer transition-transform hover:scale-[1.02] duration-300" routerLink="/profile" [queryParams]="{ section: 'wallet' }">
+            <div class="absolute left-14 top-2 h-1 w-32 rounded-full bg-white/20"></div>
+            <div class="absolute -right-1 top-32 h-14 w-1 rounded-r bg-black"></div>
+            <div class="absolute -left-1 top-28 h-9 w-1 rounded-l bg-black"></div>
+            <div class="absolute -left-1 top-40 h-12 w-1 rounded-l bg-black"></div>
+            <div class="relative h-[525px] overflow-hidden rounded-[2.05rem] bg-gradient-to-b from-white via-white to-emerald-50/20 px-4 pb-4 pt-4">
+              <div class="absolute left-1/2 top-3 h-5 w-24 -translate-x-1/2 rounded-full bg-black"></div>
+              <div class="relative z-10 flex items-center justify-between text-[11px] font-bold text-slate-950">
+                <span>9:41</span>
+                <span class="flex items-center gap-1 text-[10px]"><i class="bi bi-reception-4"></i><i class="bi bi-wifi"></i><i class="bi bi-battery-full"></i></span>
+              </div>
+
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-100 to-white text-[10px] font-black text-emerald-800 shadow-inner ring-4 ring-emerald-50">{{ walletInitials }}</span>
+                  <h3 class="max-w-[150px] truncate text-lg font-medium text-slate-950" [title]="walletFullName">Chào {{ walletGreetingName }}</h3>
+                </div>
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 shadow-[inset_2px_2px_5px_rgba(15,23,42,0.06),inset_-2px_-2px_5px_rgba(255,255,255,0.8)] ring-1 ring-slate-100"><i class="bi bi-bell text-base"></i></span>
+              </div>
+
+              <div class="relative mt-4 h-[112px] overflow-hidden rounded-[16px] bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-4 text-white shadow-[0_18px_36px_rgba(6,95,70,0.22)]">
+                <div class="absolute -right-3 bottom-0 h-20 w-20 rounded-[70%_0_70%_0] bg-white/10"></div>
+                <div class="absolute bottom-2 right-14 h-14 w-8 rotate-12 rounded-[70%_0_70%_0] bg-white/10"></div>
+                <div class="relative flex items-start justify-between">
+                  <p class="text-sm font-bold">Ví GreenSteps</p>
+                  <span class="text-lg font-black italic tracking-tight">VISA</span>
+                </div>
+                <p class="relative mt-2 text-[9px] font-semibold tracking-[0.13em] text-white/65">4532 12** **** 4242</p>
+                <h3 class="gs-number-pulse relative mt-2 text-[26px] font-black leading-none tracking-tight">$250,000</h3>
+              </div>
+
+              <div class="mt-2.5 grid grid-cols-4 gap-2 text-center">
+                <button class="rounded-[13px] bg-white py-2 text-[11px] font-medium text-slate-950 shadow-[6px_6px_16px_rgba(15,23,42,0.06),-6px_-6px_16px_rgba(255,255,255,0.9)] ring-1 ring-slate-100">
+                  <span class="mx-auto mb-1.5 grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-base text-white"><i class="bi bi-plus-lg"></i></span>Nạp tiền
+                </button>
+                <button class="rounded-[13px] bg-white py-2 text-[11px] font-medium text-slate-950 shadow-[6px_6px_16px_rgba(15,23,42,0.06),-6px_-6px_16px_rgba(255,255,255,0.9)] ring-1 ring-slate-100">
+                  <span class="mx-auto mb-1.5 block text-xl leading-7 text-emerald-600"><i class="bi bi-send-fill"></i></span>Chuyển
+                </button>
+                <button class="rounded-[13px] bg-white py-2 text-[11px] font-medium text-slate-950 shadow-[6px_6px_16px_rgba(15,23,42,0.06),-6px_-6px_16px_rgba(255,255,255,0.9)] ring-1 ring-slate-100">
+                  <span class="mx-auto mb-1.5 grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-sm text-white"><i class="bi bi-clock-fill"></i></span>Lịch sử
+                </button>
+                <button class="rounded-[13px] bg-white py-2 text-[11px] font-medium text-slate-950 shadow-[6px_6px_16px_rgba(15,23,42,0.06),-6px_-6px_16px_rgba(255,255,255,0.9)] ring-1 ring-slate-100">
+                  <span class="mx-auto mb-1.5 block text-xl leading-7 text-emerald-600"><i class="bi bi-three-dots"></i></span>Thêm
+                </button>
+              </div>
+
+              <div class="mt-2.5 border-t border-slate-100 pt-2.5">
+                <h4 class="text-xs font-bold text-slate-950">Đặt chỗ sắp tới</h4>
+                <div class="mt-2 rounded-[16px] bg-white p-2.5 shadow-[0_14px_30px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
+                  <div class="flex gap-3">
+                    <img src="https://i.pinimg.com/736x/a6/f9/2e/a6f92ed32526a0b16c257a645e4034fc.jpg" class="h-[70px] w-[70px] rounded-[11px] object-cover" alt="Hội An">
+                    <div class="min-w-0 flex-1 pt-1">
+                      <h5 class="text-sm font-bold leading-4 text-slate-950">Đà Nẵng - Hội An</h5>
+                      <span class="mt-1.5 inline-flex rounded-lg bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-700">Sắp tới</span>
+                      <p class="mt-1.5 text-[10px] font-semibold leading-4 text-slate-500"><i class="bi bi-calendar3 mr-1"></i>28/05 - 01/06/2026<br><i class="bi bi-person-fill mr-1"></i>2 du khách</p>
+                    </div>
+                  </div>
+                  <a routerLink="/tours" class="mt-2 flex items-center justify-between rounded-xl border-t border-slate-100 bg-emerald-50/50 px-2 py-1.5 text-[11px] font-bold text-emerald-700">
+                    Xem chi tiết <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gs-wallet-dashboard-pane grid gap-5 pt-3">
+          <div class="gs-wallet-card-preview relative h-[225px] overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_62%_20%,rgba(16,185,129,0.32),transparent_28%),linear-gradient(135deg,#006b45,#004b35_48%,#003927)] p-6 text-white shadow-[0_24px_55px_rgba(6,78,59,0.24)] cursor-pointer transition-transform hover:scale-[1.02] duration-300" routerLink="/profile" [queryParams]="{ section: 'wallet' }">
+            <div class="absolute inset-0 opacity-30" style="background-image: repeating-linear-gradient(155deg, rgba(255,255,255,.08) 0 1px, transparent 1px 9px);"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10"></div>
+            <div class="absolute right-10 top-20 h-36 w-36 rotate-45 rounded-[70%_0_70%_0] bg-white/12"></div>
+            <div class="absolute right-28 top-28 h-28 w-16 rotate-[18deg] rounded-[70%_0_70%_0] bg-white/10"></div>
+            <i class="bi bi-wifi absolute right-6 top-5 rotate-90 text-xl text-white/90"></i>
+            <div class="absolute left-6 top-6 grid h-8 w-11 grid-cols-2 gap-px rounded-lg bg-gradient-to-br from-white to-slate-300 p-1 shadow-inner">
+              <span class="rounded bg-white/70"></span><span class="rounded bg-slate-200"></span><span class="rounded bg-slate-200"></span><span class="rounded bg-white/70"></span>
+            </div>
+            <p class="absolute left-6 top-[88px] text-[22px] font-light tracking-[0.16em]">4532 12** **** 4242</p>
+            <div class="absolute inset-x-6 bottom-7 flex items-end justify-between">
+              <div>
+                <p class="text-[8px] font-black leading-3 text-white/75">Hiệu lực<br>đến <span class="ml-2 text-lg font-light text-white">12/28</span></p>
+                <p class="mt-2 max-w-[260px] truncate text-[10px] font-black tracking-[0.12em] text-white/75" [title]="walletFullName">{{ walletFullName }}</p>
+              </div>
+              <span class="bg-gradient-to-r from-white via-emerald-100 to-amber-100 bg-clip-text text-3xl font-black italic leading-none tracking-tight text-transparent">VISA</span>
+            </div>
+          </div>
+
+          <div class="gs-wallet-spending-card rounded-[20px] bg-white/78 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_22px_60px_rgba(15,23,42,0.09)] ring-1 ring-white/80 backdrop-blur-xl">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold text-slate-950">Tổng quan chi tiêu</h3>
+              <button class="rounded-xl bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200">Tháng này <i class="bi bi-chevron-down ml-4 text-slate-700"></i></button>
+            </div>
+            <div class="mt-4 grid grid-cols-[38px_1fr] gap-3">
+              <div class="flex h-32 flex-col justify-between text-[11px] font-medium text-slate-500">
+                <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+              </div>
+              <div class="relative h-32 border-l border-slate-200">
+                <div class="absolute inset-x-0 top-0 h-px bg-slate-200"></div>
+                <div class="absolute inset-x-0 top-1/4 h-px bg-slate-200"></div>
+                <div class="absolute inset-x-0 top-1/2 h-px bg-slate-200"></div>
+                <div class="absolute inset-x-0 top-3/4 h-px bg-slate-200"></div>
+                <div class="absolute inset-x-0 bottom-0 h-px bg-slate-200"></div>
+                <div class="absolute inset-x-0 bottom-0 flex h-full items-end justify-around px-4">
+                  <div class="gs-bar-rise h-[60%] w-14 rounded-t-lg bg-gradient-to-t from-teal-200 to-sky-100"></div>
+                  <div class="gs-bar-rise h-[90%] w-14 rounded-t-lg bg-gradient-to-t from-emerald-700 to-emerald-400 shadow-[0_12px_28px_rgba(5,150,105,0.22)]" style="animation-delay: .12s"></div>
+                  <div class="gs-bar-rise h-[45%] w-14 rounded-t-lg bg-gradient-to-t from-cyan-200 to-emerald-100" style="animation-delay: .24s"></div>
+                  <div class="gs-bar-rise h-[34%] w-14 rounded-t-lg bg-gradient-to-t from-sky-200 to-teal-100" style="animation-delay: .36s"></div>
+                  <div class="gs-bar-rise h-[24%] w-14 rounded-t-lg bg-gradient-to-t from-emerald-100 to-sky-100" style="animation-delay: .48s"></div>
+                </div>
+              </div>
+            </div>
+            <div class="ml-[52px] mt-2.5 grid grid-cols-5 text-center text-[11px] font-medium text-slate-600">
+              <span><i class="bi bi-airplane-fill block text-lg text-slate-600"></i>Chuyến bay</span>
+              <span class="font-bold text-emerald-700"><i class="bi bi-building-fill block text-lg"></i>Khách sạn</span>
+              <span><i class="bi bi-image-fill block text-lg text-slate-600"></i>Tour</span>
+              <span><i class="bi bi-car-front-fill block text-lg text-slate-600"></i>Di chuyển</span>
+              <span><i class="bi bi-three-dots block text-lg text-slate-600"></i>Khác</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="gs-wallet-steps-pane pt-3">
+          <div class="flex h-[487px] flex-col rounded-[22px] bg-white/82 px-6 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-white/80 backdrop-blur-xl">
+            <h3 class="text-center text-lg font-bold text-slate-950">Đặt chỗ chỉ với 3 bước</h3>
+            <div class="mt-2 flex flex-1 items-center">
+              <div class="relative w-full space-y-10 before:absolute before:bottom-5 before:left-5 before:top-5 before:w-px before:border-l before:border-dotted before:border-slate-400">
+                <div class="relative grid grid-cols-[40px_62px_1fr] items-center gap-3">
+                <span class="z-10 grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-lg font-bold text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.22),0_10px_20px_rgba(5,150,105,0.2)]">1</span>
+                <span class="relative grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-2xl text-emerald-700 shadow-[inset_4px_4px_10px_rgba(16,185,129,0.08),inset_-4px_-4px_10px_rgba(255,255,255,0.9)]"><i class="bi bi-search"></i><i class="bi bi-geo-alt-fill absolute right-3 top-3 text-[10px]"></i></span>
+                <p><b class="text-base text-slate-950">Tìm kiếm</b><br><span class="mt-1 block text-xs font-medium leading-5 text-slate-500">Tìm điểm đến và trải nghiệm truyền cảm hứng.</span></p>
+              </div>
+              <div class="relative grid grid-cols-[40px_62px_1fr] items-center gap-3">
+                <span class="z-10 grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-lg font-bold text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.22),0_10px_20px_rgba(5,150,105,0.2)]">2</span>
+                <span class="grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-2xl text-emerald-700 shadow-[inset_4px_4px_10px_rgba(16,185,129,0.08),inset_-4px_-4px_10px_rgba(255,255,255,0.9)]"><i class="bi bi-sliders2"></i></span>
+                <p><b class="text-base text-slate-950">Tùy chỉnh</b><br><span class="mt-1 block text-xs font-medium leading-5 text-slate-500">Cá nhân hóa chuyến đi theo phong cách và sở thích của bạn.</span></p>
+              </div>
+              <div class="relative grid grid-cols-[40px_62px_1fr] items-center gap-3">
+                <span class="z-10 grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-lg font-bold text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.22),0_10px_20px_rgba(5,150,105,0.2)]">3</span>
+                <span class="relative grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-2xl text-emerald-700 shadow-[inset_4px_4px_10px_rgba(16,185,129,0.08),inset_-4px_-4px_10px_rgba(255,255,255,0.9)]"><i class="bi bi-ticket-perforated absolute left-3 top-4 text-lg"></i><i class="bi bi-briefcase-fill absolute bottom-3 right-3 text-lg"></i></span>
+                <p><b class="text-base text-slate-950">Đặt chỗ &amp; khởi hành</b><br><span class="mt-1 block text-xs font-medium leading-5 text-slate-500">Hoàn tất đặt chỗ và sẵn sàng cho hành trình tiếp theo.</span></p>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gs-reviews-section relative overflow-hidden px-6 py-14 md:py-16">
+    <img src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2200&q=90" alt="Đánh giá từ du khách" class="absolute inset-0 h-full w-full object-cover object-top opacity-45">
+    <div class="absolute inset-0 bg-gradient-to-b from-sky-50/92 via-white/76 to-sky-50/58"></div>
+    <button class="absolute left-6 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/80 text-slate-400 shadow-lg shadow-slate-900/10 backdrop-blur transition-all duration-300 hover:text-emerald-600 md:grid">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <button class="absolute right-6 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/80 text-slate-400 shadow-lg shadow-slate-900/10 backdrop-blur transition-all duration-300 hover:text-emerald-600 md:grid">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+    <div class="relative mx-auto w-full max-w-6xl">
+      <div class="text-center">
+        <h2 class="font-serif text-4xl font-semibold tracking-tight text-[#263c34]">Đánh giá từ du khách</h2>
+        <p class="mt-2 text-xs font-medium text-slate-500">Câu chuyện thật từ những du khách thật.</p>
+      </div>
+      <div #reviewsTrack class="gs-reviews-track mx-auto mt-9 flex max-w-5xl flex-col items-center justify-center gap-5 md:flex-row md:gap-0" (scroll)="onReviewsScroll(reviewsTrack)">
+        <article class="relative z-10 w-full max-w-[320px] rounded-lg bg-white/92 p-6 shadow-[0_16px_38px_rgba(15,23,42,0.10)] backdrop-blur transition-all duration-300 hover:-translate-y-2 md:-mr-4 md:scale-90 md:opacity-95">
+          <div class="text-2xl font-light text-sky-500">4.9 <span class="text-sm tracking-widest">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+          <p class="mt-5 text-xs leading-6 text-slate-600">Trải nghiệm tại Đà Nẵng thật tuyệt vời! Mọi thứ được tổ chức chu đáo và lịch trình rất hợp lý.</p>
+          <div class="mt-5 flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-700">S</span><p class="text-[11px]"><b>Sarah Johnson</b><br>Hoa Kỳ</p></div>
+        </article>
+        <article class="relative z-20 w-full max-w-[380px] rounded-xl bg-white/96 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.16)] ring-1 ring-white/80 backdrop-blur transition-all duration-300 hover:-translate-y-2 md:scale-110">
+          <div class="text-4xl font-light text-sky-500">4.9 <span class="text-lg tracking-widest">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+          <p class="mt-5 text-xs leading-6 text-slate-600">GreenSteps đã giúp chuyến đi Việt Nam của chúng tôi trở nên khó quên. Trợ lý AI thực sự rất hữu ích!</p>
+          <div class="mt-5 flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-sky-100 font-bold text-sky-700">M</span><p class="text-[11px]"><b>Michael Chen</b><br>Singapore</p></div>
+        </article>
+        <article class="relative z-10 w-full max-w-[320px] rounded-lg bg-white/92 p-6 shadow-[0_16px_38px_rgba(15,23,42,0.10)] backdrop-blur transition-all duration-300 hover:-translate-y-2 md:-ml-4 md:scale-90 md:opacity-95">
+          <div class="text-2xl font-light text-sky-500">4.9 <span class="text-sm tracking-widest">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+          <p class="mt-5 text-xs leading-6 text-slate-600">Từ chuyến bay đến khách sạn, mọi thứ đều liền mạch. Tôi rất khuyến nghị GreenSteps!</p>
+          <div class="mt-5 flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-700">E</span><p class="text-[11px]"><b>Emma Williams</b><br>Úc</p></div>
+        </article>
+      </div>
+      <div class="gs-review-dots mt-8 flex justify-center gap-2" aria-label="Điều hướng đánh giá">
+        <button type="button" class="h-2 w-2 rounded-full bg-slate-300" [class.active]="activeReviewIndex === 0" (click)="scrollToReview(0, reviewsTrack)" aria-label="Xem đánh giá 1"></button>
+        <button type="button" class="h-2 w-2 rounded-full bg-slate-300" [class.active]="activeReviewIndex === 1" (click)="scrollToReview(1, reviewsTrack)" aria-label="Xem đánh giá 2"></button>
+        <button type="button" class="h-2 w-2 rounded-full bg-slate-300" [class.active]="activeReviewIndex === 2" (click)="scrollToReview(2, reviewsTrack)" aria-label="Xem đánh giá 3"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="gs-final-cta-section relative overflow-hidden px-6 py-16 text-center text-white md:py-20">
+    <img src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2200&q=90" alt="Bắt đầu hành trình" class="absolute inset-0 h-full w-full object-cover object-bottom">
+    <div class="absolute inset-0 bg-emerald-950/58"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-emerald-950/10 via-transparent to-emerald-950/20"></div>
+    <div class="relative mx-auto max-w-4xl">
+      <h2 class="font-serif text-5xl font-semibold md:text-6xl">Bắt đầu hành trình của bạn</h2>
+      <p class="mx-auto mt-4 max-w-xl text-sm font-medium leading-7 text-white/85">Chuyến đi bền vững. Giá trị ý nghĩa.<br>Hành trình của bạn bắt đầu cùng GreenSteps.</p>
+      <a routerLink="/tours" class="mt-7 inline-flex items-center gap-3 rounded-lg bg-emerald-600 px-8 py-3.5 text-sm font-extrabold text-white shadow-xl shadow-emerald-950/30 transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-700">
+        Lên kế hoạch ngay <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- ITINERARY INVITATION CONFIRM MODAL -->
+  <div class="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" *ngIf="showInviteConfirmPopup">
+      <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-[#184A37]/10 mx-4">
+          <!-- Header -->
+          <div class="px-5 py-4 border-b border-[#184A37]/10 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50">
+              <h3 class="text-base font-bold text-[#184A37] flex items-center gap-2">
+                  <i class="bi bi-people-fill text-[#0E9F6E]"></i>
+                  Lời mời đồng hành
+              </h3>
+              <button (click)="rejectInvite()" class="h-7 w-7 rounded-full hover:bg-black/5 flex items-center justify-center text-[#184A37]/60 hover:text-[#184A37] border-0 bg-transparent cursor-pointer">
+                  <i class="bi bi-x-lg text-xs"></i>
+              </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 text-center space-y-4">
+              <div class="w-16 h-16 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <i class="bi bi-geo-alt-fill text-3xl text-[#0E9F6E]"></i>
+              </div>
+              <div class="space-y-2">
+                  <h4 class="text-base font-extrabold text-[#184A37]">Chấp nhận lời mời từ {{ inviteSenderName }}?</h4>
+                  <p class="text-xs text-[#184A37]/75 leading-relaxed">
+                      Bạn đã được mời tham gia cùng lập kế hoạch và đồng hành du lịch cho chuyến đi này trên GreenSteps. Đồng ý tham gia để bắt đầu hành trình xanh cùng nhau nhé!
+                  </p>
+              </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+              <button (click)="rejectInvite()"
+                      class="flex-1 h-10 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs font-bold text-gray-700 cursor-pointer bg-white transition-all">
+                  Từ chối
+              </button>
+              <button (click)="acceptInvite()"
+                      class="flex-1 h-10 rounded-xl bg-[#0E9F6E] hover:bg-[#0F6B4C] text-white font-bold text-xs shadow-md cursor-pointer border-0 transition-all flex items-center justify-center gap-1.5">
+                  <i class="bi bi-check2"></i> Đồng ý tham gia
+              </button>
+          </div>
+      </div>
+  </div>
+
+  <!-- INVITATION TOAST NOTIFICATION -->
+  <div class="fixed bottom-6 right-6 z-[3100] flex flex-col gap-2 max-w-sm w-full" *ngIf="showInviteNotification">
+      <div class="p-4 rounded-2xl border flex gap-3 shadow-xl backdrop-blur-md"
+           [ngClass]="inviteNotificationType === 'success' ? 'bg-emerald-50/95 border-emerald-200 text-emerald-900' : (inviteNotificationType === 'error' ? 'bg-rose-50/95 border-rose-200 text-rose-900' : 'bg-blue-50/95 border-blue-200 text-blue-900')">
+          <div class="flex-shrink-0">
+              <i class="bi" 
+                 [ngClass]="inviteNotificationType === 'success' ? 'bi-check-circle-fill text-[#0E9F6E]' : (inviteNotificationType === 'error' ? 'bi-x-circle-fill text-rose-500' : 'bi-info-circle-fill text-blue-500')"
+                 style="font-size: 1.25rem;"></i>
+          </div>
+          <div class="flex-grow">
+              <p class="text-xs font-semibold leading-relaxed m-0">{{ inviteNotificationMessage }}</p>
+          </div>
+          <button (click)="showInviteNotification = false" class="flex-shrink-0 bg-transparent border-0 text-current opacity-60 hover:opacity-100 cursor-pointer h-5 w-5 flex items-center justify-center">
+              <i class="bi bi-x-lg text-[10px]"></i>
+          </button>
+      </div>
+  </div>
+</main>
