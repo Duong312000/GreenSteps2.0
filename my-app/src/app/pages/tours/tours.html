@@ -30,11 +30,8 @@
         <div class="filter-section">
           <h4 class="filter-section-title">Điểm Đến</h4>
           <div class="destinations-pill-list">
-            <button *ngFor="let dest of destinations"
-                    type="button"
-                    (click)="filterByDestination(dest)"
-                    class="dest-pill-btn"
-                    [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
+            <button *ngFor="let dest of destinations" type="button" (click)="filterByDestination(dest)"
+              class="dest-pill-btn" [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
               <span>{{ dest }}</span>
             </button>
           </div>
@@ -74,11 +71,8 @@
         <div class="filter-section">
           <h4 class="filter-section-title">Tiêu Chuẩn Net-Zero</h4>
           <div class="eco-pills-wrap">
-            <button *ngFor="let badge of ecoBadgesList"
-                    type="button"
-                    (click)="toggleEcoBadge(badge)"
-                    class="eco-tag-pill"
-                    [class.active]="selectedEcoBadge === badge">
+            <button *ngFor="let badge of ecoBadgesList" type="button" (click)="toggleEcoBadge(badge)"
+              class="eco-tag-pill" [class.active]="selectedEcoBadge === badge">
               {{ badge }}
             </button>
           </div>
@@ -98,7 +92,7 @@
         <!-- Top Toolbar -->
         <div class="shopco-toolbar">
           <div class="toolbar-title-box">
-            <h1 class="shopco-page-title">Tour Sinh Thái Trọn Gói</h1>
+            <h1 class="shopco-page-title">Tour</h1>
             <button class="mobile-filter-trigger" (click)="toggleMobileFilter()">
               <i class="bi bi-sliders"></i>
               <span>Bộ lọc</span>
@@ -125,18 +119,17 @@
         <!-- Search Input Bar -->
         <div class="shopco-search-bar">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" 
-                 [(ngModel)]="searchQuery" 
-                 (input)="filterTours()" 
-                 placeholder="Tìm kiếm tour theo tên, địa danh hoặc hoạt động trải nghiệm..." 
-                 class="search-input">
+          <input type="text" [(ngModel)]="searchQuery" (input)="filterTours()"
+            placeholder="Tìm kiếm tour theo tên, địa danh hoặc hoạt động trải nghiệm..." class="search-input">
           <button *ngIf="searchQuery" (click)="searchQuery = ''; filterTours()" class="clear-search-btn" type="button">
             <i class="bi bi-x-circle-fill"></i>
           </button>
         </div>
 
         <!-- Active Filter Badges -->
-        <div *ngIf="filterDest !== 'all' || filterType !== 'all' || filterPrice !== 'all' || selectedEcoBadge !== 'all' || searchQuery" class="active-chips-row">
+        <div
+          *ngIf="filterDest !== 'all' || filterType !== 'all' || filterPrice !== 'all' || selectedEcoBadge !== 'all' || searchQuery"
+          class="active-chips-row">
           <span class="active-chips-label">Đang lọc:</span>
           <span *ngIf="filterDest !== 'all'" class="filter-chip">
             {{ filterDest }}
@@ -162,11 +155,9 @@
           <div *ngFor="let tour of paginatedTours" class="shopco-product-card">
             <!-- Image Container -->
             <div class="card-img-container" [routerLink]="['/tour-detail', tour.id]">
-              <img [src]="tour.image || 'image/da-lat/da-lat-rung-thong-01.jpg'" 
-                   [alt]="tour.title" 
-                   class="card-img" 
-                   onerror="this.src='image/Viet Nam.png'">
-              
+              <img [src]="tour.image || 'image/da-lat/da-lat-rung-thong-01.jpg'" [alt]="tour.title" class="card-img"
+                onerror="this.src='image/Viet Nam.png'">
+
               <!-- Floating Top Badges -->
               <div class="card-floating-badges">
                 <span class="eco-carbon-badge">
@@ -195,11 +186,9 @@
               <!-- Rating Row -->
               <div class="card-rating-row">
                 <div class="stars-box">
-                  <i *ngFor="let star of [1,2,3,4,5]" 
-                     class="bi" 
-                     [class.bi-star-fill]="star <= (tour.rating || 5.0)" 
-                     [class.bi-star-half]="star - 0.5 === (tour.rating || 5.0)"
-                     [class.bi-star]="star > (tour.rating || 5.0)">
+                  <i *ngFor="let star of [1,2,3,4,5]" class="bi" [class.bi-star-fill]="star <= (tour.rating || 5.0)"
+                    [class.bi-star-half]="star - 0.5 === (tour.rating || 5.0)"
+                    [class.bi-star]="star > (tour.rating || 5.0)">
                   </i>
                 </div>
                 <span class="rating-number">{{ tour.rating || 5.0 }}<span class="rating-total">/5</span></span>
@@ -254,10 +243,8 @@
           </button>
 
           <div class="pagination-numbers">
-            <button *ngFor="let page of pagesArray" 
-                    (click)="setPage(page)"
-                    class="page-number-btn"
-                    [class.active]="currentPage === page">
+            <button *ngFor="let page of pagesArray" (click)="setPage(page)" class="page-number-btn"
+              [class.active]="currentPage === page">
               {{ page }}
             </button>
           </div>
@@ -298,11 +285,8 @@
         <div class="form-group mb-4">
           <label class="form-label">Số ngày trải nghiệm:</label>
           <div class="flex gap-2">
-            <button *ngFor="let d of [1,2,3,4,5]" 
-                    type="button"
-                    (click)="modalDays = d"
-                    class="day-choice-btn"
-                    [class.active]="modalDays === d">
+            <button *ngFor="let d of [1,2,3,4,5]" type="button" (click)="modalDays = d" class="day-choice-btn"
+              [class.active]="modalDays === d">
               {{ d }} Ngày
             </button>
           </div>
@@ -310,7 +294,8 @@
 
         <div class="form-group mb-4">
           <label class="form-label">Bản đồ điểm đến vệ tinh:</label>
-          <div id="toursModalMap" style="height: 180px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;"></div>
+          <div id="toursModalMap"
+            style="height: 180px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;"></div>
         </div>
 
         <div class="modal-footer flex justify-end gap-3 pt-3 border-t">
