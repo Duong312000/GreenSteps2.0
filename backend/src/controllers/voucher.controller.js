@@ -1,9 +1,9 @@
-const { sequelize, Wallet, Voucher } = require('../models/index');
+const { store, Wallet, Voucher } = require('../models/index');
 
 exports.redeemVoucher = async (req, res, next) => {
   const userId = req.user ? req.user.id : req.body.userId;
 
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     // 1. Lock Traveler wallet
     const wallet = await Wallet.findOne({
@@ -14,8 +14,8 @@ exports.redeemVoucher = async (req, res, next) => {
 
     if (!wallet || wallet.green_points < 1000) {
       await t.rollback();
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         message: `Bạn cần tích lũy tối thiểu 1000 điểm xanh để quy đổi! Điểm hiện tại của bạn: ${wallet ? wallet.green_points : 0} điểm.`
       });
     }

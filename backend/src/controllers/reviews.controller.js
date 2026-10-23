@@ -1,5 +1,5 @@
 const { CommentPost, User, GreenService, ServiceBooking, TourBooking, Vender } = require('../models/index');
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 
 // 1. Get all reviews for a provider's services
 exports.getProviderReviews = async (req, res, next) => {
@@ -7,36 +7,36 @@ exports.getProviderReviews = async (req, res, next) => {
   try {
     const vender = await Vender.findOne({ where: { user_id: providerId } });
     const venderId = vender ? vender.id : '';
-    
+
     const services = await GreenService.findAll({ where: { vender_id: venderId } });
     const serviceIds = services.map(s => s.id);
-    
+
     const where = {
       service_id: { [Op.in]: serviceIds },
       parent_comment_id: null
     };
-    
+
     if (rating) {
       where.rating = Number(rating);
     }
     if (serviceId) {
       where.service_id = serviceId;
     }
-    
+
     let comments = await CommentPost.findAll({
       where,
       order: [['createdAt', 'DESC']]
     });
-    
+
     const mapped = [];
     for (const c of comments) {
       const user = await User.findByPk(c.user_id || c.userId);
       const srv = services.find(s => s.id === c.service_id);
-      
+
       const replies = await CommentPost.findAll({
         where: { parent_comment_id: c.id }
       });
-      
+
       const mappedReplies = [];
       for (const r of replies) {
         const rUser = await User.findByPk(r.user_id || r.userId);
@@ -47,15 +47,15 @@ exports.getProviderReviews = async (req, res, next) => {
           user: rUser ? { id: rUser.id, fullname: rUser.fullname, role: rUser.role } : { fullname: 'Người dùng ẩn danh' }
         });
       }
-      
+
       if (answered === 'true' && replies.length === 0) continue;
       if (answered === 'false' && replies.length > 0) continue;
-      
+
       let booking = null;
       if (c.booking_id) {
         booking = await ServiceBooking.findByPk(c.booking_id);
       }
-      
+
       mapped.push({
         id: c.id,
         rating: c.rating,
@@ -71,7 +71,7 @@ exports.getProviderReviews = async (req, res, next) => {
         booking: booking ? { id: booking.id, date: booking.booking_date, guests: booking.guests } : null
       });
     }
-    
+
     res.json(mapped);
   } catch (error) {
     next(error);
@@ -88,7 +88,7 @@ exports.replyToReview = async (req, res, next) => {
     if (!parent) {
       return res.status(404).json({ success: false, message: 'Đánh giá không tồn tại!' });
     }
-    
+
     const replyId = 'CEPtra_reply_' + Date.now();
     const reply = await CommentPost.create({
       id: replyId,
@@ -98,7 +98,7 @@ exports.replyToReview = async (req, res, next) => {
       tour_id: parent.tour_id,
       service_id: parent.service_id
     });
-    
+
     const user = await User.findByPk(userId);
     res.json({
       success: true,

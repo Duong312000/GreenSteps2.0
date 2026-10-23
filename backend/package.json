@@ -1,11 +1,31 @@
 {
   "name": "greensteps-travel-backend",
   "version": "1.0.0",
-  "description": "Compatibility entrypoint for the GreenSteps MongoDB API server",
+  "description": "GreenSteps API backed entirely by MongoDB, preserving existing API contracts",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node ../server_mongodb/node_modules/nodemon/bin/nodemon.js server.js"
-  }
+    "dev": "node --watch server.js",
+    "db:init": "node scripts/sync_db.js",
+    "db:local": "node scripts/start-local-mongo.js",
+    "migrate:postgres": "node scripts/migrate-postgres.js",
+    "seed": "node scripts/seed_mongo.js",
+    "verify:mongo": "node scripts/smoke-mongo.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20.19" },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.7.0",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^7.0.0"
+  },
+  "devDependencies": { "pg": "^8.16.3" }
 }

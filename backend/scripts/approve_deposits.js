@@ -1,5 +1,5 @@
 const readline = require('readline');
-const { Wallet, WalletTransaction, sequelize } = require('../src/models/index');
+const { Wallet, WalletTransaction, store } = require('../src/models/index');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -10,8 +10,8 @@ async function main() {
   try {
     console.log('=== GREENSTEPS TERMINAL TRANSACTION APPROVER ===');
     console.log('Connecting to database...');
-    await sequelize.authenticate();
-    
+    await store.authenticate();
+
     // 1. Query pending deposit transactions
     const pendingTransactions = await WalletTransaction.findAll({
       where: {
@@ -28,14 +28,14 @@ async function main() {
     }
 
     console.log(`\nTìm thấy ${pendingTransactions.length} yêu cầu nạp tiền đang chờ duyệt:\n`);
-    
+
     // Display list
     for (let i = 0; i < pendingTransactions.length; i++) {
       const tx = pendingTransactions[i];
       // Find wallet owner details
       const wallet = await Wallet.findByPk(tx.wallet_id);
       const userId = wallet ? wallet.user_id : 'Không rõ';
-      
+
       console.log(`[${i + 1}] ID giao dịch: ${tx.id}`);
       console.log(`    - ID ví: ${tx.wallet_id} (Người dùng: ${userId})`);
       console.log(`    - Số tiền nạp: ${Number(tx.amount).toLocaleString('vi-VN')} đ`);
@@ -47,7 +47,7 @@ async function main() {
     // 2. Prompt user
     rl.question('\nNhập ID giao dịch bạn muốn duyệt (hoặc nhập "all" để duyệt tất cả, "exit" để thoát): ', async (answer) => {
       const cmd = answer.trim();
-      
+
       if (cmd.toLowerCase() === 'exit') {
         console.log('Thoát chương trình.');
         rl.close();
@@ -56,7 +56,7 @@ async function main() {
 
       if (cmd.toLowerCase() === 'all') {
         console.log('\nĐang duyệt toàn bộ giao dịch...');
-        const t = await sequelize.transaction();
+        const t = await store.transaction();
         try {
           for (const tx of pendingTransactions) {
             tx.status = 'success';
@@ -80,7 +80,7 @@ async function main() {
         if (!targetTx) {
           console.log('[Lỗi] Không tìm thấy ID giao dịch phù hợp trong danh sách chờ duyệt!');
         } else {
-          const t = await sequelize.transaction();
+          const t = await store.transaction();
           try {
             targetTx.status = 'success';
             await targetTx.save({ transaction: t });

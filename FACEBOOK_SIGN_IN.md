@@ -15,7 +15,7 @@ FACEBOOK_GRAPH_VERSION=vXX.0
 
 Thay vXX.0 bằng phiên bản thực tế trong Meta dashboard. Không đưa App Secret vào frontend hoặc gửi trong chat. API cấu hình chỉ công khai App ID, phiên bản và trạng thái bật/tắt.
 
-5. MongoDB: khởi động lại backend. PostgreSQL: chạy `node scripts/migrate-facebook.js` từ thư mục `backend` trước khi khởi động lại server để thêm cột định danh Facebook. Migration này không xóa dữ liệu.
+5. Khởi động lại backend MongoDB. Index định danh Facebook được tạo tự động; có thể chạy `node scripts/migrate-facebook.js` trong `backend` để tạo index trước. Script này không sửa PostgreSQL hoặc xóa dữ liệu. Xem thêm `backend/README.md`.
 6. Tải lại frontend. Bấm Facebook ở đăng ký hoặc đăng nhập, chọn tài khoản và cấp quyền email.
 7. Khi app ở chế độ phát triển, dùng tài khoản có vai trò tester/developer được thêm trong Meta app. Để mở cho người dùng thực tế, hoàn thành các yêu cầu hiển thị trong Meta dashboard, gồm chính sách quyền riêng tư và xóa dữ liệu.
 

@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 const { FAQ, AdCampaign, GreenService } = require('../models/index');
 const { geminiModel } = require('../config/gemini');
 
@@ -102,9 +102,9 @@ Nếu không có gợi ý địa điểm cụ thể hoặc chỉ chat chào hỏ
     });
   } catch (error) {
     console.error('Gemini AI execution failed:', error);
-    
+
     // Check for 429/quota exceeded error
-    const isRateLimit = error.status === 429 || 
+    const isRateLimit = error.status === 429 ||
                        String(error.message || '').toLowerCase().includes('quota') ||
                        String(error.message || '').toLowerCase().includes('429') ||
                        String(error.statusText || '').toLowerCase().includes('too many requests');

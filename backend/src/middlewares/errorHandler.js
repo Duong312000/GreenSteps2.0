@@ -1,7 +1,8 @@
 const errorHandler = (err, req, res, next) => {
   console.error('Unhandled System Error:', err);
 
-  const statusCode = err.statusCode || 500;
+  const conflict = err.code === 11000 || err.hasErrorLabel?.('TransientTransactionError');
+  const statusCode = conflict ? 409 : err.statusCode || err.status || 500;
   const errorName = err.name || 'InternalServerError';
   const errorMessage = err.message || 'Có lỗi hệ thống xảy ra, vui lòng thử lại sau!';
 

@@ -8,6 +8,7 @@ router.post('/activate', softAuth, walletController.activateWallet);
 router.post('/deposit', softAuth, walletController.deposit);
 router.post('/withdraw', softAuth, walletController.requestWithdrawal);
 router.get('/transactions', softAuth, walletController.getTransactions);
+router.get('/transaction-status/:txId', authMiddleware, walletController.getTransactionStatus);
 
 // Admin-only endpoints
 router.get('/withdrawals', authMiddleware, checkRole(['admin']), walletController.listAllWithdrawals);

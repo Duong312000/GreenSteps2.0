@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 const { ChangeRequest, ServiceBooking, TourBooking, GreenService, Vender } = require('../models/index');
 
 // 1. Get all change requests
@@ -11,10 +11,10 @@ exports.getChangeRequests = async (req, res, next) => {
       const venderId = vender ? vender.id : '';
       const services = await GreenService.findAll({ where: { vender_id: venderId } });
       const serviceIds = services.map(s => s.id);
-      
+
       const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } } });
       const bookingIds = sBookings.map(b => b.id);
-      
+
       where.booking_id = { [Op.in]: bookingIds };
     } else if (customerId) {
       const sBookings = await ServiceBooking.findAll({ where: { user_id: customerId } });
@@ -22,12 +22,12 @@ exports.getChangeRequests = async (req, res, next) => {
       const bookingIds = [...sBookings.map(b => b.id), ...tBookings.map(b => b.id)];
       where.booking_id = { [Op.in]: bookingIds };
     }
-    
+
     const list = await ChangeRequest.findAll({
       where,
       order: [['createdAt', 'DESC']]
     });
-    
+
     const mapped = [];
     for (const item of list) {
       let booking = await ServiceBooking.findByPk(item.booking_id);
@@ -46,7 +46,7 @@ exports.getChangeRequests = async (req, res, next) => {
         } : null
       });
     }
-    
+
     res.json(mapped);
   } catch (error) {
     next(error);
@@ -64,9 +64,9 @@ exports.createChangeRequest = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking không tồn tại!' });
     }
-    
+
     const id = 'cr_' + Date.now();
-    
+
     let priceDiff = 0;
     if (type === 'guests_change' && new_content && new_content.guests !== undefined) {
       const oldGuests = booking.guests || 1;
@@ -104,7 +104,7 @@ exports.approveChangeRequest = async (req, res, next) => {
     if (!cr) {
       return res.status(404).json({ success: false, message: 'Yêu cầu thay đổi không tồn tại!' });
     }
-    
+
     let booking = await ServiceBooking.findByPk(cr.booking_id);
     if (!booking) {
       booking = await TourBooking.findByPk(cr.booking_id);

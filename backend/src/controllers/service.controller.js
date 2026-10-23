@@ -1,16 +1,16 @@
 const fs = require('fs');
 const path = require('path');
-const { Op } = require('sequelize');
-const { 
-  sequelize, 
-  GreenService, 
-  BadgeService, 
+const { Op } = require('../db/mongo-store');
+const {
+  store,
+  GreenService,
+  BadgeService,
   Badge,
-  Vender, 
-  BadgeUser, 
-  User, 
-  CommentPost, 
-  CPGS 
+  Vender,
+  BadgeUser,
+  User,
+  CommentPost,
+  CPGS
 } = require('../models/index');
 
 function saveBase64Image(base64Data, subfolder = 'services') {
@@ -132,10 +132,10 @@ exports.addService = async (req, res, next) => {
     }
 
     const serviceId = 'ser_' + Date.now();
-    
+
     // Save main cover image if base64
     const savedImageUrl = saveBase64Image(imageUrl, 'services');
-    
+
     const resolvedCurrentData = current_data ? { ...current_data } : {
       lat: lat ? parseFloat(lat) : null,
       lng: lng ? parseFloat(lng) : null,
@@ -213,7 +213,7 @@ exports.getRecommendations = async (req, res, next) => {
     if (recommendedServices.length === 0) {
       const userBadges = await BadgeUser.findAll({ where: { user_id: userId } });
       const badgeNames = userBadges.map(ub => ub.badge_name);
-      
+
       if (badgeNames.length > 0) {
         const badgeServices = await BadgeService.findAll({
           where: { badge_name: { [Op.in]: badgeNames } }
@@ -377,12 +377,12 @@ exports.updateService = async (req, res, next) => {
     } else {
       service.current_data = { ...currentData };
     }
-    
+
     // Ensure image in current_data is aligned
     if (savedImageUrl) {
       service.current_data.img = savedImageUrl;
     }
-    
+
     service.changed('current_data', true);
 
     await service.save();

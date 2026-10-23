@@ -1,16 +1,16 @@
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 const { sendItineraryInviteEmail } = require('../services/email.service');
-const { 
-  sequelize, 
-  Schedule, 
-  ScheduleSample, 
-  ScheduleCustom, 
-  ScheduleActivity, 
-  BadgeSchedule, 
-  BadgeUser, 
+const {
+  store,
+  Schedule,
+  ScheduleSample,
+  ScheduleCustom,
+  ScheduleActivity,
+  BadgeSchedule,
+  BadgeUser,
   Badge,
-  User, 
-  CommentPost, 
+  User,
+  CommentPost,
   CPSS,
   Wallet,
   Provider,
@@ -238,8 +238,8 @@ exports.saveCustomItinerary = async (req, res, next) => {
       });
     }
 
-    // SQL Transaction
-    await sequelize.transaction(async (t) => {
+    // MongoDB transaction
+    await store.transaction(async (t) => {
       // Self-healing check: if the user does not exist in DB, auto-create them and their wallet
       const userExists = await User.findByPk(user_id, { transaction: t });
       if (!userExists) {
@@ -328,7 +328,7 @@ exports.saveCustomItinerary = async (req, res, next) => {
       if (daysData && daysData.length > 0) {
         // Query green services at this destination to auto-link service_id by name if not provided
         const { GreenService } = require('../models/index');
-        const services = await GreenService.findAll({ where: { destination: base.destination } });
+        const services = await GreenService.findAll({ where: { destination }, transaction: t });
         const serviceMap = {};
         services.forEach(s => {
           serviceMap[s.name_service.toLowerCase().trim()] = s.id;
@@ -465,7 +465,7 @@ exports.getCustomItineraryById = async (req, res, next) => {
 exports.deleteCustomItinerary = async (req, res, next) => {
   const { id } = req.params;
   try {
-    await sequelize.transaction(async (t) => {
+    await store.transaction(async (t) => {
       await ScheduleActivity.destroy({ where: { schedule_id: id }, transaction: t });
       await UserSchedule.destroy({ where: { schedule_id: id }, transaction: t });
       await ScheduleCustom.destroy({ where: { id }, transaction: t });
@@ -482,7 +482,7 @@ exports.deleteCustomItinerary = async (req, res, next) => {
 exports.getDestinations = async (req, res, next) => {
   try {
     const schedules = await Schedule.findAll({
-      attributes: [[sequelize.fn('DISTINCT', sequelize.col('destination')), 'destination']]
+      distinctField: 'destination'
     });
     const destinations = schedules.map(s => s.destination).filter(Boolean);
     res.json(destinations);
@@ -641,7 +641,7 @@ exports.cloneItinerary = async (req, res, next) => {
 
     const newId = 'iti_' + Date.now();
 
-    await sequelize.transaction(async (t) => {
+    await store.transaction(async (t) => {
       // Create Base Schedule
       await Schedule.create({
         id: newId,
@@ -734,7 +734,7 @@ exports.inviteCollaborator = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
-    const emailList = typeof emails === 'string' 
+    const emailList = typeof emails === 'string'
       ? emails.split(',').map(e => e.trim()).filter(e => e.length > 0)
       : (Array.isArray(emails) ? emails : []);
 

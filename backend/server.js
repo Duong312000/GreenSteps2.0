@@ -1,6 +1,20 @@
-// Keep the existing backend entrypoint, but run the MongoDB implementation.
-// The MongoDB app loads its environment from server_mongodb/.env.
-const path = require('path');
+require('./src/config/env');
+const app = require('./src/app');
+const { store } = require('./src/models');
 
-process.chdir(path.resolve(__dirname, '..', 'server_mongodb'));
-require('../server_mongodb/index.js');
+async function start() {
+  await store.authenticate();
+  await store.sync();
+  const port = process.env.PORT || 5055;
+  const server = app.listen(port, () => console.log(`GreenSteps MongoDB API: http://localhost:${port}/api`));
+  const shutdown = () => server.close(async () => { await store.close(); process.exit(0); });
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  return server;
+}
+if (require.main === module) start().catch(error => {
+  console.error('MongoDB startup failed:', error.message);
+  process.exitCode = 1;
+  store.close();
+});
+module.exports = { app, start };

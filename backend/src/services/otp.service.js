@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 const { AuthOtp, PendingRegistration, User } = require('../models/index');
 const { JWT_SECRET } = require('../middlewares/auth.middleware');
 const { assertMailDomainCanReceive, sendOtpEmail } = require('./email.service');

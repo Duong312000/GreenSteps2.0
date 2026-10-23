@@ -1,5 +1,6 @@
+const { Op } = require('../src/db/mongo-store');
 const readline = require('readline');
-const { Provider, User, sequelize } = require('../src/models/index');
+const { Provider, User, store } = require('../src/models/index');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -10,8 +11,8 @@ async function main() {
   try {
     console.log('=== GREENSTEPS TERMINAL PROVIDER APPROVER ===');
     console.log('Connecting to database...');
-    await sequelize.authenticate();
-    
+    await store.authenticate();
+
     // 1. Query pending provider registrations
     const pendingProviders = await Provider.findAll({
       where: {
@@ -27,7 +28,7 @@ async function main() {
     }
 
     console.log(`\nTìm thấy ${pendingProviders.length} yêu cầu đăng ký nhà cung cấp đang chờ duyệt:\n`);
-    
+
     // Display list
     for (let i = 0; i < pendingProviders.length; i++) {
       const prov = pendingProviders[i];
@@ -42,7 +43,7 @@ async function main() {
     // 2. Prompt user to approve
     rl.question('\nNhập ID đối tác bạn muốn duyệt (hoặc nhập "all" để duyệt tất cả, "exit" để thoát): ', async (answer) => {
       const cmd = answer.trim();
-      
+
       if (cmd.toLowerCase() === 'exit') {
         console.log('Thoát chương trình.');
         rl.close();
@@ -51,7 +52,7 @@ async function main() {
 
       if (cmd.toLowerCase() === 'all') {
         console.log('\nĐang duyệt toàn bộ nhà cung cấp...');
-        const t = await sequelize.transaction();
+        const t = await store.transaction();
         try {
           for (const prov of pendingProviders) {
             prov.provider_status = 'active';
@@ -59,14 +60,14 @@ async function main() {
 
             // Find the user with company_name or username matching name_provider
             // and update their role to 'provider'
-            const user = await User.findOne({ 
-              where: { 
-                [sequelize.Sequelize.Op.or]: [
+            const user = await User.findOne({
+              where: {
+                [Op.or]: [
                   { company_name: prov.name_provider },
                   { username: prov.name_provider }
                 ]
               },
-              transaction: t 
+              transaction: t
             });
 
             if (user) {
@@ -87,20 +88,20 @@ async function main() {
         if (!targetProv) {
           console.log('[Lỗi] Không tìm thấy ID đối tác phù hợp trong danh sách chờ duyệt!');
         } else {
-          const t = await sequelize.transaction();
+          const t = await store.transaction();
           try {
             targetProv.provider_status = 'active';
             await targetProv.save({ transaction: t });
 
             // Find user and upgrade role
-            const user = await User.findOne({ 
-              where: { 
-                [sequelize.Sequelize.Op.or]: [
+            const user = await User.findOne({
+              where: {
+                [Op.or]: [
                   { company_name: targetProv.name_provider },
                   { username: targetProv.name_provider }
                 ]
               },
-              transaction: t 
+              transaction: t
             });
 
             if (user) {

@@ -1,5 +1,5 @@
 const { OperationsAssignment, ServiceBooking, TourBooking, GreenService, Vender } = require('../models/index');
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 
 // 1. Get assignments
 exports.getAssignments = async (req, res, next) => {
@@ -11,15 +11,15 @@ exports.getAssignments = async (req, res, next) => {
       const venderId = vender ? vender.id : '';
       const services = await GreenService.findAll({ where: { vender_id: venderId } });
       const serviceIds = services.map(s => s.id);
-      
+
       const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } } });
       bookingIds = sBookings.map(b => b.id);
     }
-    
+
     const list = await OperationsAssignment.findAll({
       where: providerId ? { booking_id: { [Op.in]: bookingIds } } : {}
     });
-    
+
     const mapped = [];
     let allBookings = [];
     if (providerId) {
@@ -34,7 +34,7 @@ exports.getAssignments = async (req, res, next) => {
     } else {
       allBookings = await ServiceBooking.findAll({ order: [['booking_date', 'ASC']] });
     }
-    
+
     for (const b of allBookings) {
       let assignment = list.find(a => a.booking_id === b.id);
       if (!assignment) {
@@ -79,7 +79,7 @@ exports.getAssignments = async (req, res, next) => {
         });
       }
     }
-    
+
     res.json(mapped);
   } catch (error) {
     next(error);
@@ -141,7 +141,7 @@ exports.updateChecklistItem = async (req, res, next) => {
         status: 'preparing'
       });
     }
-    
+
     const checklist = assignment.checklist || [];
     const item = checklist.find(i => i.label === itemLabel);
     if (item) {
@@ -178,13 +178,13 @@ exports.updateAssignmentStatus = async (req, res, next) => {
       if (incidents !== undefined) assignment.incidents = incidents;
       await assignment.save();
     }
-    
+
     let booking = await ServiceBooking.findByPk(bookingId);
     if (!booking) {
       booking = await TourBooking.findByPk(bookingId);
     }
     if (booking) {
-      booking.operation_status = status === 'incident' ? 'preparing' : status; 
+      booking.operation_status = status === 'incident' ? 'preparing' : status;
       if (status === 'completed') {
         booking.booking_status = 'accepted';
         booking.payment_status = 'fully_paid';
@@ -192,7 +192,7 @@ exports.updateAssignmentStatus = async (req, res, next) => {
       }
       await booking.save();
     }
-    
+
     res.json({ success: true, message: 'Cập nhật trạng thái vận hành thành công!', assignment });
   } catch (error) {
     next(error);

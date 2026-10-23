@@ -3,8 +3,8 @@ const { verifyGoogleAccessToken } = require('../services/google-auth.service');
 const { randomBytes } = require('node:crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
-const { User } = require('../models/index');
+const { Op } = require('../db/mongo-store');
+const { User, AuthOtp, PendingRegistration } = require('../models/index');
 const { JWT_SECRET } = require('../middlewares/auth.middleware');
 const {
   PASSWORD_MESSAGE,
@@ -110,7 +110,7 @@ exports.register = async (req, res, next) => {
       }
     }
 
-    await User.sequelize.transaction(async (transaction) => {
+    await User.store.transaction(async (transaction) => {
       await createAndSendPendingRegistrationOtp({
         username,
         email,
@@ -149,7 +149,7 @@ exports.verifyRegisterOtp = async (req, res, next) => {
     if (!isValidOtp(otp)) return res.status(400).json({ success: false, message: 'Mã OTP phải gồm đúng 6 chữ số.' });
 
     const pending = await verifyPendingRegistrationOtp({ email, otp });
-    const createdAccount = await User.sequelize.transaction(async (transaction) => {
+    const createdAccount = await User.store.transaction(async (transaction) => {
       const existingUser = await User.findOne({
         where: {
           [Op.or]: [
@@ -354,7 +354,7 @@ exports.updateProfile = async (req, res, next) => {
       const displayCompanyName = company_name || companyName || 'Chưa đặt tên doanh nghiệp';
 
       const { Vender, Provider, VenderContract } = require('../models/index');
-      
+
       let vender = await Vender.findOne({ where: { user_id: userId } });
       if (!vender) {
         vender = await Vender.create({

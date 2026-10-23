@@ -1,7 +1,7 @@
-const { Op } = require('sequelize');
+const { Op } = require('../db/mongo-store');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 const {
-  sequelize,
+  store,
   User,
   Wallet,
   WalletTransaction,
@@ -218,7 +218,7 @@ exports.createBooking = async (req, res, next) => {
       }
 
       // Start transaction to execute payment and book
-      await sequelize.transaction(async (t) => {
+      await store.transaction(async (t) => {
         const lockedWallet = await Wallet.findOne({
           where: { user_id: userId },
           transaction: t,
@@ -309,7 +309,7 @@ exports.createBooking = async (req, res, next) => {
 
     } else if (paymentMethod === 'card') {
       // Direct Credit Card payment (success without OTP simulator)
-      await sequelize.transaction(async (t) => {
+      await store.transaction(async (t) => {
         const wallet = await Wallet.findOne({ where: { user_id: userId }, transaction: t });
         const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
 
@@ -374,7 +374,7 @@ exports.createBooking = async (req, res, next) => {
       });
     } else if (paymentMethod === 'bank_transfer') {
       // Direct QR transfer (Pending admin verification, no terminal block)
-      await sequelize.transaction(async (t) => {
+      await store.transaction(async (t) => {
         const wallet = await Wallet.findOne({ where: { user_id: userId }, transaction: t });
         const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
 
@@ -547,7 +547,7 @@ exports.checkInEVoucher = async (req, res, next) => {
   const { evoucherCode } = req.body;
   const providerId = req.user ? req.user.id : (req.body.providerId || null);
 
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     // 1. Locate booking (Service or Tour Booking)
     let booking = await ServiceBooking.findOne({
@@ -658,7 +658,7 @@ exports.cancelBooking = async (req, res, next) => {
   const { bookingId } = req.body;
   const userId = req.user ? req.user.id : req.body.userId;
 
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     let booking = await ServiceBooking.findOne({
       where: { id: bookingId, user_id: userId },
@@ -867,7 +867,7 @@ exports.approveBooking = async (req, res, next) => {
         return res.status(404).json({ success: false, message: 'Yêu cầu thanh toán lịch trình không tồn tại hoặc đã xử lý!' });
       }
       const itineraryId = tx.reference_id;
-      const t = await sequelize.transaction();
+      const t = await store.transaction();
       try {
         tx.status = 'success';
         await tx.save({ transaction: t });
@@ -876,7 +876,7 @@ exports.approveBooking = async (req, res, next) => {
         await ScheduleCustom.update(
           {
             status: 'deposited',
-            deposit_deadline: sequelize.literal("CURRENT_DATE + 7")
+            deposit_deadline: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
           },
           { where: { id: itineraryId }, transaction: t }
         );
@@ -971,7 +971,7 @@ exports.rejectBooking = async (req, res, next) => {
 
     if (pendingTx) {
       if (pendingTx.type === 'escrow_hold') {
-        const t = await sequelize.transaction();
+        const t = await store.transaction();
         try {
           const travelerWallet = await Wallet.findOne({
             where: { id: pendingTx.wallet_id },

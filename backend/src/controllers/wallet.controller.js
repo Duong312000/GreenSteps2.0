@@ -1,9 +1,9 @@
-const { 
-  sequelize, 
-  Wallet, 
-  WalletTransaction, 
-  WithdrawalRequest, 
-  User 
+const {
+  store,
+  Wallet,
+  WalletTransaction,
+  WithdrawalRequest,
+  User
 } = require('../models/index');
 
 // Helper for terminal interactive transaction approval
@@ -50,6 +50,17 @@ exports.getWallet = async (req, res, next) => {
   }
 };
 
+exports.getTransactionStatus = async (req, res, next) => {
+  try {
+    const transaction = await WalletTransaction.findByPk(req.params.txId);
+    const wallet = transaction && await Wallet.findByPk(transaction.wallet_id);
+    if (!wallet || (wallet.user_id !== req.user.id && req.user.role !== 'admin')) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch.' });
+    }
+    res.json({ success: true, status: transaction.status, balance: wallet.balance });
+  } catch (error) { next(error); }
+};
+
 exports.activateWallet = async (req, res, next) => {
   const userId = req.user ? req.user.id : req.body.userId;
 
@@ -59,10 +70,10 @@ exports.activateWallet = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
     }
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       let wallet = await Wallet.findOne({ where: { user_id: userId }, transaction: t });
-      
+
       if (!wallet) {
         wallet = await Wallet.create({
           id: 'EW' + Math.floor(10000000 + Math.random() * 90000000),
@@ -136,7 +147,7 @@ exports.deposit = async (req, res, next) => {
     const isCloud = !process.stdin.isTTY;
     const status = isCloud ? 'success' : 'pending';
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       const lockedWallet = await Wallet.findOne({
         where: { user_id: userId },
@@ -160,7 +171,7 @@ exports.deposit = async (req, res, next) => {
       }, { transaction: t });
 
       await t.commit();
-      
+
       if (isCloud) {
         res.json({ success: true, balance: lockedWallet.balance, message: `Nạp thành công ${amount.toLocaleString('vi-VN')}đ` });
       } else {
@@ -231,7 +242,7 @@ exports.approveWithdrawal = async (req, res, next) => {
     // Admin request is already verified by checkRole(['admin']) middleware
     const approved = true;
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       // Lock provider wallet
       const providerWallet = await Wallet.findOne({
@@ -322,6 +333,9 @@ exports.listAllWithdrawals = async (req, res, next) => {
 
 exports.payItinerary = async (req, res, next) => {
   const { userId, itineraryId, amount } = req.body;
+  if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+    return res.status(400).json({ success: false, message: 'Số tiền thanh toán phải lớn hơn 0.' });
+  }
 
   try {
     const wallet = await Wallet.findOne({ where: { user_id: userId } });
@@ -337,7 +351,7 @@ exports.payItinerary = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Số dư ví không đủ để thanh toán lịch trình!' });
     }
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       const lockedWallet = await Wallet.findOne({
         where: { user_id: userId },
@@ -377,6 +391,9 @@ exports.payItinerary = async (req, res, next) => {
 
 exports.payItineraryQr = async (req, res, next) => {
   const { userId, itineraryId, amount } = req.body;
+  if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+    return res.status(400).json({ success: false, message: 'Số tiền thanh toán phải lớn hơn 0.' });
+  }
 
   try {
     const wallet = await Wallet.findOne({ where: { user_id: userId } });
@@ -384,7 +401,7 @@ exports.payItineraryQr = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Ví không tồn tại!' });
     }
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       const txId = 'GD-' + Date.now();
       await WalletTransaction.create({
@@ -428,7 +445,7 @@ exports.listPendingDeposits = async (req, res, next) => {
 // Approve deposit (Admin only)
 exports.approveDeposit = async (req, res, next) => {
   const { id } = req.params;
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     const tx = await WalletTransaction.findByPk(id, { transaction: t });
     if (!tx) {
@@ -534,7 +551,7 @@ exports.approveWalletActivation = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Yêu cầu kích hoạt ví không tồn tại hoặc đã được xử lý!' });
     }
 
-    const t = await sequelize.transaction();
+    const t = await store.transaction();
     try {
       const wallet = await Wallet.findOne({
         where: { id: tx.wallet_id },

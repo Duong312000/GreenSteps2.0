@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+require('../config/env');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'greensteps-super-secret-key-2026';
 
@@ -49,10 +49,10 @@ const checkRole = (roles = []) => {
   return (req, res, next) => {
     // If softAuth or no user is logged in, restrict
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Forbidden', 
-        message: 'Bạn không có quyền truy cập vào chức năng này!' 
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Bạn không có quyền truy cập vào chức năng này!'
       });
     }
     next();

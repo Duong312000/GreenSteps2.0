@@ -1,9 +1,10 @@
+require('./config/env');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes/index');
 const errorHandler = require('./middlewares/errorHandler');
-const { sequelize } = require('./config/db.config');
+const { store } = require('./config/db.config');
 
 const app = express();
 let isDbConnected = false;
@@ -17,11 +18,22 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
+app.get(['/api/health', '/api/v1/health'], async (req, res) => {
+  try {
+    await store.authenticate();
+    await store.db.command({ ping: 1 });
+    const hello = await store.db.admin().command({ hello: 1 });
+    res.json({ status: 'OK', database: 'mongodb', transactions: Boolean(hello.setName || hello.msg === 'isdbgrid') });
+  } catch (error) {
+    res.status(503).json({ status: 'unavailable', database: 'mongodb' });
+  }
+});
+
 // Database connection check middleware
 app.use(async (req, res, next) => {
   try {
     if (!isDbConnected) {
-      await sequelize.authenticate();
+      await store.authenticate();
       isDbConnected = true;
     }
     next();
@@ -30,7 +42,7 @@ app.use(async (req, res, next) => {
     return res.status(503).json({
       success: false,
       error: 'DatabaseUnavailable',
-      message: 'Không thể kết nối đến cơ sở dữ liệu PostgreSQL. Vui lòng kiểm tra lại cấu hình!',
+      message: 'Không thể kết nối đến cơ sở dữ liệu MongoDB. Vui lòng kiểm tra lại cấu hình!',
       details: err.message
     });
   }
@@ -40,6 +52,9 @@ app.use(async (req, res, next) => {
 const fs = require('fs');
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/images', express.static(path.join(__dirname, '../../server_mongodb/public/images')));
+app.use('/images', express.static(path.join(__dirname, '../images')));
+app.use('/uploads', express.static(path.join(__dirname, '../../server_mongodb/public/uploads')));
 
 app.post('/api/upload-base64', (req, res) => {
   try {
@@ -62,7 +77,7 @@ app.post('/api/upload-base64', (req, res) => {
 
     const mimeType = matches[1];
     const buffer = Buffer.from(matches[2], 'base64');
-    
+
     // Deduce file extension
     let ext = 'png';
     if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
@@ -74,7 +89,7 @@ app.post('/api/upload-base64', (req, res) => {
     if (type === 'avatar') subfolder = 'avatars';
     else if (type === 'service') subfolder = 'services';
     else if (type === 'post') subfolder = 'posts';
-    
+
     const dirPath = path.join(__dirname, '../uploads', subfolder);
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });

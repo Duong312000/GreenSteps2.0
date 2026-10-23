@@ -1,3 +1,12 @@
+# MongoDB migration hi?n t?i
+
+API ch?nh ?? chuy?n sang `backend/src`. Xem [h??ng d?n ch?y, migration v? ki?m th?](../backend/README.md).
+
+C?i dependencies trong `backend` tr??c khi ch?y `node index.js` t?i ??y.
+N?i dung b?n d??i m? t? b?n demo Mongoose c?; c?c route/model ?? kh?ng ???c entrypoint hi?n t?i n?p.
+
+---
+
 # GreenSteps Travel - Backend MongoDB & RESTful API System
 
 Hệ thống cơ sở dữ liệu MongoDB và máy chủ RESTful API phục vụ đồ án môn **Phát triển ứng dụng Web Nâng Cao** (Giảng viên: TS. Trần Duy Thanh - Trường Đại học Kinh tế - Luật, ĐHQG-HCM).

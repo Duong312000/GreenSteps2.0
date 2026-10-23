@@ -1,20 +1,20 @@
-const { Op } = require('sequelize');
-const { 
-  sequelize, 
-  User, 
-  Vender, 
-  Provider, 
-  VenderContract, 
-  WalletTransaction, 
-  ServiceBooking, 
-  GreenService 
+const { Op } = require('../db/mongo-store');
+const {
+  store,
+  User,
+  Vender,
+  Provider,
+  VenderContract,
+  WalletTransaction,
+  ServiceBooking,
+  GreenService
 } = require('../models/index');
 
 exports.registerProvider = async (req, res, next) => {
   const { nameProvider, field, destination, contractText } = req.body;
   const userId = req.user ? req.user.id : (req.body.userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     // 1. Create Vendor & Provider entries in pending state
     const venderId = `provider_${userId}`;
@@ -56,7 +56,7 @@ exports.registerProvider = async (req, res, next) => {
 exports.approveProvider = async (req, res, next) => {
   const { targetUserId } = req.body;
 
-  const t = await sequelize.transaction();
+  const t = await store.transaction();
   try {
     const user = await User.findByPk(targetUserId, { transaction: t });
     if (!user) {
