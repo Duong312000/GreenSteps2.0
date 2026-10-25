@@ -16,6 +16,7 @@ import { BookingComponent } from './pages/booking/booking';
 import { AdminComponent } from './pages/admin/admin';
 import { ServicesComponent } from './pages/services/services';
 import { roleGuard } from './guards/role.guard';
+import { PartnerLayoutComponent } from './components/partner-layout/partner-layout';
 
 const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -34,11 +35,13 @@ const routes: Routes = [
   { path: 'booking', component: BookingComponent },
   { path: 'booking/payment', component: BookingComponent },
   { path: 'booking/confirm', component: BookingComponent },
-  { path: 'partner-dashboard', component: PartnerDashboardComponent, canActivate: [roleGuard] },
-  { path: 'partner-services', component: PartnerServicesComponent, canActivate: [roleGuard] },
-  { path: 'partner-bookings', component: PartnerBookingsComponent, canActivate: [roleGuard] },
-  { path: 'partner-ads', component: PartnerAdsComponent, canActivate: [roleGuard] },
-  { path: 'partner-promotions', component: PartnerPromotionsComponent, canActivate: [roleGuard] },
+  { path: '', component: PartnerLayoutComponent, children: [
+    { path: 'partner-dashboard', component: PartnerDashboardComponent, canActivate: [roleGuard] },
+    { path: 'partner-services', component: PartnerServicesComponent, canActivate: [roleGuard] },
+    { path: 'partner-bookings', component: PartnerBookingsComponent, canActivate: [roleGuard] },
+    { path: 'partner-ads', component: PartnerAdsComponent, canActivate: [roleGuard] },
+    { path: 'partner-promotions', component: PartnerPromotionsComponent, canActivate: [roleGuard] }
+  ] },
   { path: 'partner-register', component: PartnerRegisterComponent },
   { path: 'admin', component: AdminComponent },
   { path: '**', redirectTo: 'home' }

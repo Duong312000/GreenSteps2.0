@@ -257,6 +257,24 @@
 }
 
 /* 5. Mobile hamburger */
+.partner-nav-link.active-nav-tab {
+  background: #ddf5e9;
+  color: #064e3b;
+  border-radius: 11px;
+  padding: 10px 14px;
+}
+.partner-nav-link.active-nav-tab::after {
+  display: none;
+}
+:host-context([data-theme='dark']) .partner-workspace-header .nav-tab-item,
+:host-context([data-theme='dark']) .partner-workspace-header a[href='/home'] > span > span {
+  color: #bce9cf;
+}
+:host-context([data-theme='dark']) .partner-workspace-header .partner-nav-link.active-nav-tab {
+  background: #1b4c35;
+  color: #d7ffe4;
+}
+
 @media (min-width: 1024px) {
   .mobile-hamburger {
     display: none !important;

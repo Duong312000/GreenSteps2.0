@@ -1,393 +1,397 @@
-<main class="min-h-screen bg-[#f8f9fa] pt-28 pb-12 px-6 font-sans">
-    <div class="max-w-[1440px] mx-auto space-y-6">
-        
-
-        
-        <!-- Header Title Row -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Thống kê hoạt động</h1>
-                <p class="text-xs text-gray-500 mt-1">Báo cáo hợp nhất doanh số, số lượng booking và lượng carbon giảm thiểu của các dịch vụ</p>
-            </div>
-            <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 bg-white rounded text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">
-                <i class="bi bi-download"></i> Tải báo cáo CSV
-            </button>
-        </div>
-        
-        <!-- ROW 1: Statistical Cards Grid (8 KPI Overview Cards) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Card 1: Tổng Booking -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng Booking</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-journal-check text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ bookingsCount }}</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-[#0E9F6E] font-bold flex items-center gap-0.5">
-                        <i class="bi bi-arrow-up-short"></i> +12%
-                    </span>
-                    <span class="text-[10px] text-gray-400">so với tháng trước</span>
-                </div>
-            </div>
-
-            <!-- Card 2: Doanh thu tháng này -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Doanh thu tháng này</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-cash-coin text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ totalRevenue | number:'1.0-0':'vi-VN' }}đ</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-[#0E9F6E] font-bold flex items-center gap-0.5">
-                        <i class="bi bi-arrow-up-short"></i> +8.5%
-                    </span>
-                    <span class="text-[10px] text-gray-400">so với tháng trước</span>
-                </div>
-            </div>
-
-            <!-- Card 3: Dịch vụ đang hoạt động -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dịch vụ đang hoạt động</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-hdd-network text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ activeServicesCount }}</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-orange-500 font-bold flex items-center gap-0.5">
-                         {{ pendingBookingsCount }} chờ duyệt
-                    </span>
-                    <span class="text-[10px] text-gray-400">cần xử lý</span>
-                </div>
-            </div>
-
-            <!-- Card 4: Đơn chờ xác nhận -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Đơn chờ xác nhận</span>
-                    <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center">
-                        <i class="bi bi-hourglass-split text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ pendingBookingsCount }}</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-orange-500 font-bold flex items-center gap-0.5">
-                        Cần xử lý
-                    </span>
-                    <span class="text-[10px] text-gray-400">hành động ngay</span>
-                </div>
-            </div>
-
-            <!-- Card 5: Điểm đánh giá -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Điểm đánh giá</span>
-                    <div class="w-8 h-8 rounded-lg bg-yellow-50 text-yellow-500 flex items-center justify-center">
-                        <i class="bi bi-star-fill text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ averageRating }}/5</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5">
-                        ★★★★★
-                    </span>
-                    <span class="text-[10px] text-gray-400">đánh giá khách hàng</span>
-                </div>
-            </div>
-
-            <!-- Card 6: Lượt xem -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lượt xem</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-eye text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ viewsCount | number:'1.0-0':'vi-VN' }}</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-[#0E9F6E] font-bold flex items-center gap-0.5">
-                        <i class="bi bi-arrow-up-short"></i> +24%
-                    </span>
-                    <span class="text-[10px] text-gray-400">so với tuần trước</span>
-                </div>
-            </div>
-
-            <!-- Card 7: Tỷ lệ chuyển đổi -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tỷ lệ chuyển đổi</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-percent text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ conversionRate }}%</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-[#0E9F6E] font-bold flex items-center gap-0.5">
-                        Khá tốt
-                    </span>
-                    <span class="text-[10px] text-gray-400">tỷ lệ phễu trung bình</span>
-                </div>
-            </div>
-
-            <!-- Card 8: Hiệu suất marketing -->
-            <div class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-sm hover:border-[#0E9F6E]/30">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiệu suất marketing</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0E9F6E] flex items-center justify-center">
-                        <i class="bi bi-megaphone text-base"></i>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-gray-900 leading-none">{{ marketingPerformance }}</h3>
-                </div>
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                    <span class="text-[11px] text-[#0E9F6E] font-bold flex items-center gap-0.5">
-                        Chiến dịch đang chạy tốt
-                    </span>
-                    <span class="text-[10px] text-gray-400">quảng cáo trực tuyến</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- ROW 2: Charts (Visitor Insights & Monthly Revenue - Pure Analytics) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Visitor Insights Chart -->
-            <div class="lg:col-span-7 bg-white rounded border border-gray-200 p-5 flex flex-col">
-                <h2 class="text-sm font-bold text-gray-950 uppercase tracking-wider">Lượt xem & Đặt chỗ</h2>
-                <p class="text-[11px] text-gray-400 mb-6">Phân tích tương quan giữa lượt truy cập dịch vụ và số lượng đặt phòng/tour thành công</p>
-                <div class="flex-1 w-full h-[250px] relative">
-                    <!-- Custom SVG Line Chart -->
-                    <svg class="w-full h-full" viewBox="0 0 600 220" preserveAspectRatio="none">
-                        <!-- Grid lines -->
-                        <line x1="40" y1="30" x2="580" y2="30" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="40" y1="80" x2="580" y2="80" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="40" y1="130" x2="580" y2="130" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="40" y1="180" x2="580" y2="180" stroke="#e5e7eb" stroke-width="1"/>
-
-                        <!-- Forest Green Line: Views -->
-                        <path [attr.d]="visitorPathViews" fill="none" stroke="#0E9F6E" stroke-width="2" stroke-linecap="round"/>
-                        <!-- Mint Green Line: Bookings -->
-                        <path [attr.d]="visitorPathBookings" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
-                        <!-- Muted Slate Line: Inquiries -->
-                        <path [attr.d]="visitorPathInquiries" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
-
-                        <!-- Axis Labels -->
-                        <text x="40" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 1</text>
-                        <text x="130" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 3</text>
-                        <text x="220" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 5</text>
-                        <text x="310" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 7</text>
-                        <text x="400" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 9</text>
-                        <text x="490" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 11</text>
-                        <text x="580" y="205" font-size="9" fill="#9ca3af" text-anchor="middle">Thg 12</text>
-                        
-                        <text x="30" y="35" font-size="9" fill="#9ca3af" text-anchor="end">400</text>
-                        <text x="30" y="85" font-size="9" fill="#9ca3af" text-anchor="end">250</text>
-                        <text x="30" y="135" font-size="9" fill="#9ca3af" text-anchor="end">100</text>
-                        <text x="30" y="185" font-size="9" fill="#9ca3af" text-anchor="end">0</text>
-                    </svg>
-                </div>
-                <!-- Legend -->
-                <div class="flex justify-center items-center gap-6 mt-4">
-                    <span class="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span class="w-3 h-1 bg-[#0E9F6E] inline-block"></span> Lượt xem trang
-                    </span>
-                    <span class="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span class="w-3 h-1 bg-[#10B981] inline-block"></span> Lượt đặt (Booking)
-                    </span>
-                    <span class="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span class="w-3 h-1 bg-[#9ca3af] inline-block"></span> Yêu cầu tư vấn
-                    </span>
-                </div>
-            </div>
-
-            <!-- Revenue Monthly Bar Chart -->
-            <div class="lg:col-span-5 bg-white rounded-2xl border border-gray-150 p-5 flex flex-col relative-chart-container relative shadow-xs">
-                <style>
-                    @keyframes svgBarGrow {
-                        from { transform: scaleY(0); }
-                        to { transform: scaleY(1); }
-                    }
-                    .svg-bar-anim {
-                        animation: svgBarGrow 1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-                    }
-                    .chart-bar:hover {
-                        filter: brightness(1.1);
-                        cursor: pointer;
-                    }
-                </style>
-
-                <h2 class="text-sm font-bold text-gray-950 uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="bi bi-graph-up-arrow text-teal-600"></i>
-                    Doanh thu theo tháng
-                </h2>
-                <p class="text-[11px] text-gray-400 mb-6">So sánh doanh thu trực quan giữa Gói Tour trọn gói và Dịch vụ Lưu trú lẻ (Rê chuột để xem chi tiết)</p>
-                <div class="flex-1 w-full h-[250px] relative">
-                    <!-- Custom SVG Bar Chart -->
-                    <svg class="w-full h-full" viewBox="0 0 400 220" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="tourGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#0E9F6E" />
-                                <stop offset="100%" stop-color="#047857" />
-                            </linearGradient>
-                            <linearGradient id="stayGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#10B981" />
-                                <stop offset="100%" stop-color="#059669" />
-                            </linearGradient>
-                        </defs>
-
-                        <!-- Grid lines -->
-                        <line x1="35" y1="30" x2="385" y2="30" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="35" y1="80" x2="385" y2="80" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="35" y1="130" x2="385" y2="130" stroke="#f3f4f6" stroke-width="1"/>
-                        <line x1="35" y1="180" x2="385" y2="180" stroke="#e5e7eb" stroke-width="1"/>
-
-                        <!-- Monthly Bars (Dynamic loop) -->
-                        <ng-container *ngFor="let item of monthlyRevenueData; let idx = index">
-                            <!-- Tour Bar -->
-                            <rect [attr.x]="45 + idx * 55" [attr.y]="180 - item.tourHeight" width="12" [attr.height]="item.tourHeight" 
-                                  fill="url(#tourGrad)" rx="3" ry="3" class="svg-bar-anim chart-bar transition-all duration-300"
-                                  [style.transform-origin]="'0px 180px'"
-                                  (mouseenter)="showTooltip($event, item.month + ' - Tour: ' + formatNumber(item.tourVal) + 'đ')"
-                                  (mouseleave)="hideTooltip()"/>
-                            
-                            <!-- Stay Bar -->
-                            <rect [attr.x]="59 + idx * 55" [attr.y]="180 - item.stayHeight" width="12" [attr.height]="item.stayHeight" 
-                                  fill="url(#stayGrad)" rx="3" ry="3" class="svg-bar-anim chart-bar transition-all duration-300"
-                                  [style.transform-origin]="'0px 180px'"
-                                  (mouseenter)="showTooltip($event, item.month + ' - Lưu trú: ' + formatNumber(item.stayVal) + 'đ')"
-                                  (mouseleave)="hideTooltip()"/>
-                            
-                            <!-- Month label -->
-                            <text [attr.x]="58 + idx * 55" y="200" font-size="8" fill="#9ca3af" text-anchor="middle" font-weight="bold">{{ item.month }}</text>
-                        </ng-container>
-
-                        <!-- Y Axis labels -->
-                        <text x="28" y="35" font-size="9" fill="#9ca3af" text-anchor="end" font-weight="bold">30M</text>
-                        <text x="28" y="85" font-size="9" fill="#9ca3af" text-anchor="end" font-weight="bold">20M</text>
-                        <text x="28" y="135" font-size="9" fill="#9ca3af" text-anchor="end" font-weight="bold">10M</text>
-                        <text x="28" y="185" font-size="9" fill="#9ca3af" text-anchor="end" font-weight="bold">0</text>
-                    </svg>
-
-                    <!-- Interactive Tooltip Overlay -->
-                    <div *ngIf="activeTooltip" class="absolute bg-gray-900 text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-xl pointer-events-none -translate-x-1/2 z-10 transition-all duration-150 border border-teal-500/20" 
-                         [style.left.px]="activeTooltip.x" [style.top.px]="activeTooltip.y">
-                        {{ activeTooltip.text }}
-                        <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                </div>
-                <!-- Legend -->
-                <div class="flex justify-center items-center gap-6 mt-4">
-                    <span class="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span class="w-3.5 h-3.5 rounded bg-gradient-to-b from-[#0E9F6E] to-[#047857] inline-block"></span> Gói Tour
-                    </span>
-                    <span class="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span class="w-3.5 h-3.5 rounded bg-gradient-to-b from-[#10B981] to-[#059669] inline-block"></span> Lưu trú
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <!-- ROW 3: Secondary Analytics (Booking Allocation & Customer Demographics) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Booking Allocation Stacked Chart -->
-            <div class="lg:col-span-2 bg-white rounded border border-gray-200 p-5 flex flex-col justify-between">
-                <div>
-                    <h2 class="text-sm font-bold text-gray-950 uppercase tracking-wider">Cấu trúc Booking dịch vụ</h2>
-                    <p class="text-[11px] text-gray-400 mb-6">Tỷ trọng đóng góp số lượng đặt chỗ của các phân khúc sản phẩm</p>
-
-                    <div class="flex items-center gap-0.5 h-4 w-full rounded overflow-hidden bg-gray-100 mt-4 mb-8">
-                        <!-- Tour -->
-                        <div class="h-full bg-[#0E9F6E] flex items-center justify-center text-white text-[9px] font-bold transition-all" [style.width.%]="allocationPct.tour" *ngIf="allocationPct.tour > 0">{{ allocationPct.tour }}%</div>
-                        <!-- Hotel -->
-                        <div class="h-full bg-[#10B981] flex items-center justify-center text-white text-[9px] font-bold transition-all" [style.width.%]="allocationPct.stay" *ngIf="allocationPct.stay > 0">{{ allocationPct.stay }}%</div>
-                        <!-- Experience -->
-                        <div class="h-full bg-gray-400 flex items-center justify-center text-white text-[9px] font-bold transition-all" [style.width.%]="allocationPct.other" *ngIf="allocationPct.other > 0">{{ allocationPct.other }}%</div>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-4 text-center mt-4">
-                        <div>
-                            <div class="flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-1">
-                                <span class="w-2.5 h-2.5 rounded-sm bg-[#0E9F6E]"></span> Gói Tour
-                            </div>
-                            <p class="text-base font-extrabold text-gray-900">{{ bookingAllocation.tour }}</p>
-                        </div>
-                        <div class="border-x border-gray-100">
-                            <div class="flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-1">
-                                <span class="w-2.5 h-2.5 rounded-sm bg-[#10B981]"></span> Lưu trú
-                            </div>
-                            <p class="text-base font-extrabold text-gray-900">{{ bookingAllocation.stay }}</p>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-1">
-                                <span class="w-2.5 h-2.5 rounded-sm bg-gray-400"></span> Khác
-                            </div>
-                            <p class="text-base font-extrabold text-gray-900">{{ bookingAllocation.other }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-center">
-                    <span class="text-[10px] text-gray-400">Số liệu được cập nhật tự động từ database</span>
-                </div>
-            </div>
-
-            <!-- Customer Behavior Analysis -->
-            <div class="bg-white rounded border border-gray-200 p-5 flex flex-col justify-between">
-                <div>
-                    <h2 class="text-sm font-bold text-gray-950 uppercase tracking-wider">Khách hàng & Xu hướng</h2>
-                    <p class="text-[11px] text-gray-400 mb-6">Phân tích hành vi chính của các nhóm du khách quan tâm</p>
-                    
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center pb-3 border-b border-gray-100 text-xs">
-                            <span class="text-gray-500 font-medium">Nhóm khách chính:</span>
-                            <span class="font-bold text-[#0E9F6E]">Khách gia đình</span>
-                        </div>
-                        <div class="flex justify-between items-center pb-3 border-b border-gray-100 text-xs">
-                            <span class="text-gray-500 font-medium">Độ tuổi chính:</span>
-                            <span class="font-bold text-gray-900">22 - 35 tuổi</span>
-                        </div>
-                        <div class="flex justify-between items-center pb-3 border-b border-gray-100 text-xs">
-                            <span class="text-gray-500 font-medium">Điểm đến chính:</span>
-                            <span class="font-bold text-gray-900">Đà Lạt</span>
-                        </div>
-                        <div class="flex justify-between items-center pb-3 border-b border-gray-100 text-xs">
-                            <span class="text-gray-500 font-medium">Sản phẩm ưa thích:</span>
-                            <span class="font-bold text-gray-900">Tour trải nghiệm xanh</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-500 font-medium">Thiết bị truy cập:</span>
-                            <span class="font-bold text-gray-900">Điện thoại di động (82%)</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400">
-                    <span>Đồng bộ thời gian thực</span>
-                    <span class="text-[#0E9F6E] font-bold hover:underline cursor-pointer">Xuất báo cáo chi tiết</span>
-                </div>
-            </div>
-        </div>
-
+<main class="partner-dashboard-page" [attr.aria-busy]="isLoading">
+  <header class="dashboard-heading">
+    <div>
+      <span class="eyebrow">KHÔNG GIAN ĐỐI TÁC</span>
+      <h1>Thống kê hoạt động</h1>
+      <p>Tổng quan hiệu quả kinh doanh và hoạt động dịch vụ của bạn trên GreenSteps.</p>
     </div>
+    <label class="period-select"
+      ><app-partner-icon name="calendar" /><span class="sr-only">Khoảng thời gian báo cáo</span
+      ><select [(ngModel)]="selectedPeriod" (ngModelChange)="recalculate()">
+        <option value="all">Toàn bộ thời gian</option>
+        <option *ngFor="let period of periods" [value]="period.key">{{ period.label }}</option>
+      </select></label
+    >
+  </header>
+  <p class="loading-notice" *ngIf="isLoading" role="status">Đang tải dữ liệu hoạt động…</p>
+  <div class="error-notice" *ngIf="loadError" role="alert">
+    Chưa tải được dữ liệu. <button type="button" (click)="loadDashboardData()">Thử lại</button>
+  </div>
+  <section class="kpi-grid" aria-label="Chỉ số hoạt động chính">
+    <article class="kpi-card">
+      <span class="kpi-icon green"><app-partner-icon name="calendar" /></span>
+      <div>
+        <h2>Tổng booking</h2>
+        <strong class="kpi-value">{{
+          isLoading ? '—' : formatNumber(filteredBookings.length)
+        }}</strong>
+        <p>{{ periodText }}</p>
+      </div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-icon mint"><app-partner-icon name="revenue" /></span>
+      <div>
+        <h2>Doanh thu</h2>
+        <strong class="kpi-value revenue-value"
+          >{{ isLoading ? '—' : formatNumber(analytics.totalRevenue)
+          }}<small *ngIf="!isLoading">đ</small></strong
+        >
+        <p>Booking chờ, đã xác nhận và hoàn thành</p>
+      </div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-icon orange"><app-partner-icon name="layers" /></span>
+      <div>
+        <h2>Dịch vụ đang hoạt động</h2>
+        <strong class="kpi-value">{{
+          isLoading ? '—' : formatNumber(analytics.activeServices)
+        }}</strong
+        ><a routerLink="/partner-services" class="pending-link"
+          >{{ analytics.pendingServices }} dịch vụ chờ duyệt <span aria-hidden="true">↗</span></a
+        >
+      </div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-icon blue"><app-partner-icon name="star" /></span>
+      <div>
+        <h2>Điểm đánh giá</h2>
+        <strong class="kpi-value">{{
+          isLoading || analytics.rating === null ? '—' : formatNumber(analytics.rating) + '/5'
+        }}</strong>
+        <p>
+          {{
+            analytics.rating === null
+              ? 'Chưa có đánh giá'
+              : 'Trung bình ' + analytics.ratedServices + ' dịch vụ có điểm'
+          }}
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="chart-grid" aria-label="Biểu đồ hoạt động">
+    <article class="dashboard-card partner-chart-card">
+      <div class="card-heading">
+        <span class="section-icon"><app-partner-icon name="chart" /></span>
+        <div>
+          <h2>Lượt xem & Đặt chỗ</h2>
+          <p>Diễn biến booking theo tháng trong dữ liệu đã chọn.</p>
+        </div>
+      </div>
+      <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
+        <svg
+          viewBox="0 0 600 220"
+          class="analytics-chart"
+          role="img"
+          aria-label="Biểu đồ số lượng booking theo tháng"
+        >
+          <g *ngFor="let line of grid">
+            <line
+              x1="45"
+              x2="566"
+              [attr.y1]="40 + line * 45"
+              [attr.y2]="40 + line * 45"
+              class="grid-line"
+            />
+            <text x="35" [attr.y]="44 + line * 45" text-anchor="end" class="axis-label">
+              {{ formatNumber((analytics.maxBookings * (3 - line)) / 3) }}
+            </text>
+          </g>
+          <path
+            [attr.d]="analytics.bookingPath"
+            fill="none"
+            stroke="#087F5B"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <g *ngFor="let month of analytics.monthly">
+            <circle
+              [attr.cx]="month.x"
+              [attr.cy]="month.y"
+              r="4"
+              fill="#087F5B"
+              tabindex="0"
+              [attr.aria-label]="
+                month.label + '/' + month.year + ': ' + month.bookings + ' booking'
+              "
+            >
+              <title>{{ month.label }}/{{ month.year }}: {{ month.bookings }} booking</title>
+            </circle>
+            <text [attr.x]="month.x" y="204" text-anchor="middle" class="axis-label">
+              {{ month.label }}
+            </text>
+          </g>
+        </svg>
+      </div>
+      <div class="chart-legend">
+        <span><i class="legend-mark green-mark"></i>Booking</span
+        ><span class="unavailable-series">Lượt xem và tư vấn: chưa có dữ liệu theo tháng</span>
+      </div>
+    </article>
+    <article class="dashboard-card partner-chart-card">
+      <div class="card-heading">
+        <span class="section-icon"><app-partner-icon name="revenue" /></span>
+        <div>
+          <h2>Doanh thu theo tháng</h2>
+          <p>Giá trị booking theo nhóm dịch vụ hiện có.</p>
+        </div>
+      </div>
+      <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
+        <svg
+          viewBox="0 0 600 220"
+          class="analytics-chart"
+          role="img"
+          aria-label="Biểu đồ giá trị booking theo tháng"
+        >
+          <g *ngFor="let line of grid">
+            <line
+              x1="45"
+              x2="566"
+              [attr.y1]="35 + line * 47"
+              [attr.y2]="35 + line * 47"
+              class="grid-line"
+            />
+            <text x="35" [attr.y]="39 + line * 47" text-anchor="end" class="axis-label">
+              {{ shortMoney((analytics.maxRevenue * (3 - line)) / 3) }}
+            </text>
+          </g>
+          <g *ngFor="let month of analytics.monthly">
+            <rect
+              [attr.x]="month.x - 17"
+              [attr.y]="176 - month.tourHeight"
+              width="14"
+              [attr.height]="month.tourHeight"
+              rx="3"
+              fill="#087F5B"
+              tabindex="0"
+              [attr.aria-label]="month.label + ': nhóm tour ' + formatNumber(month.tour) + ' đồng'"
+            >
+              <title>
+                {{ month.label }}/{{ month.year }} · Nhóm tour: {{ formatNumber(month.tour) }}đ
+              </title>
+            </rect>
+            <rect
+              [attr.x]="month.x + 3"
+              [attr.y]="176 - month.stayHeight"
+              width="14"
+              [attr.height]="month.stayHeight"
+              rx="3"
+              fill="#63CF98"
+              tabindex="0"
+              [attr.aria-label]="month.label + ': lưu trú ' + formatNumber(month.stay) + ' đồng'"
+            >
+              <title>
+                {{ month.label }}/{{ month.year }} · Lưu trú: {{ formatNumber(month.stay) }}đ
+              </title>
+            </rect>
+            <text [attr.x]="month.x" y="204" text-anchor="middle" class="axis-label">
+              {{ month.label }}
+            </text>
+          </g>
+        </svg>
+      </div>
+      <div class="chart-legend">
+        <span><i class="legend-mark green-mark"></i>Nhóm tour</span
+        ><span><i class="legend-mark mint-mark"></i>Lưu trú</span>
+      </div>
+    </article>
+  </section>
+  <ng-template #emptyChart
+    ><div class="empty-chart">
+      <app-partner-icon name="chart" /><strong>Chưa có dữ liệu biểu đồ</strong>
+      <p>Biểu đồ sẽ xuất hiện khi có booking với ngày đặt hợp lệ.</p>
+    </div></ng-template
+  >
+
+  <section class="operations-grid">
+    <article class="dashboard-card recent-card">
+      <div class="card-heading with-action">
+        <div class="heading-title">
+          <app-partner-icon name="calendar" />
+          <h2>Booking gần đây</h2>
+        </div>
+        <a routerLink="/partner-bookings">Xem tất cả <app-partner-icon name="arrow" /></a>
+      </div>
+      <div class="table-scroll" *ngIf="analytics.recent.length; else emptyBookings">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã booking</th>
+              <th>Dịch vụ</th>
+              <th>Khách hàng</th>
+              <th>Ngày đặt</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let booking of analytics.recent">
+              <td class="booking-id">{{ booking.id }}</td>
+              <td>
+                <span class="service-name">{{
+                  booking.service || booking.service_name || 'Chưa có tên'
+                }}</span>
+              </td>
+              <td>{{ booking.customer || booking.customer_name || 'Chưa có thông tin' }}</td>
+              <td class="date-cell">{{ displayDate(booking) }}</td>
+              <td>
+                <span class="partner-status-badge" [attr.data-status]="booking.status">{{
+                  bookingStatus(booking)
+                }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #emptyBookings
+        ><div class="empty-state">
+          <app-partner-icon name="calendar" />
+          <p>Chưa có dữ liệu booking trong khoảng thời gian này.</p>
+        </div></ng-template
+      >
+    </article>
+    <article class="dashboard-card tasks-card">
+      <div class="card-heading">
+        <app-partner-icon name="check" />
+        <h2>Công việc cần xử lý</h2>
+        <span class="task-count" *ngIf="taskCount">{{ taskCount }}</span>
+      </div>
+      <a *ngIf="analytics.pendingBookings" routerLink="/partner-bookings" class="task-row"
+        ><span class="task-icon orange"><app-partner-icon name="calendar" /></span
+        ><span
+          ><strong>{{ analytics.pendingBookings }} booking</strong> chờ xác nhận</span
+        ><app-partner-icon name="chevron"
+      /></a>
+      <a *ngIf="analytics.pendingServices" routerLink="/partner-services" class="task-row"
+        ><span class="task-icon mint"><app-partner-icon name="clock" /></span
+        ><span
+          ><strong>{{ analytics.pendingServices }} dịch vụ</strong> đang chờ duyệt</span
+        ><app-partner-icon name="chevron"
+      /></a>
+      <div class="empty-state small" *ngIf="!taskCount">
+        <span class="all-clear"><app-partner-icon name="check" /></span
+        ><strong>Chưa có công việc cần xử lý</strong>
+        <p>Chưa có booking hoặc dịch vụ chờ xử lý trong dữ liệu hiện có.</p>
+      </div>
+      <p class="card-footnote">Chưa có dữ liệu khuyến mãi sắp hết hạn.</p>
+    </article>
+  </section>
+
+  <section class="dashboard-card quick-access">
+    <div class="card-heading">
+      <app-partner-icon name="plus" />
+      <h2>Truy cập nhanh</h2>
+    </div>
+    <div class="quick-grid">
+      <a routerLink="/partner-services" [queryParams]="{ action: 'add' }"
+        ><app-partner-icon name="plus" />Thêm dịch vụ mới</a
+      ><a routerLink="/partner-bookings"><app-partner-icon name="calendar" />Quản lý booking</a
+      ><a routerLink="/partner-ads"><app-partner-icon name="megaphone" />Tiếp thị & Chăm sóc</a
+      ><a routerLink="/partner-promotions"><app-partner-icon name="tag" />Quảng bá & Khuyến mãi</a>
+    </div>
+  </section>
+
+  <section class="secondary-grid" aria-label="Báo cáo bổ sung">
+    <article class="dashboard-card">
+      <div class="card-heading">
+        <app-partner-icon name="layers" />
+        <h2>Cấu trúc booking dịch vụ</h2>
+      </div>
+      <p class="card-description">Tỷ trọng số lượng booking theo nhóm sản phẩm.</p>
+      <div class="allocation-bar" *ngIf="totalAllocation">
+        <span
+          *ngFor="let row of allocationRows"
+          [attr.data-category]="row.key"
+          [style.width.%]="(row.value / totalAllocation) * 100"
+          [title]="row.label + ': ' + row.value"
+        ></span>
+      </div>
+      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có booking để phân tích.</p>
+      <div class="allocation-values">
+        <div *ngFor="let row of allocationRows">
+          <span>{{ row.label }}</span
+          ><strong>{{ row.value }}</strong
+          ><small
+            >{{ totalAllocation ? formatNumber((row.value / totalAllocation) * 100) : 0 }}%</small
+          >
+        </div>
+      </div>
+    </article>
+    <article class="dashboard-card">
+      <div class="card-heading">
+        <app-partner-icon name="users" />
+        <h2>Khách hàng & Xu hướng</h2>
+      </div>
+      <dl class="insight-list">
+        <div>
+          <dt>Khách hàng trong dữ liệu</dt>
+          <dd>{{ analytics.customers }}</dd>
+        </div>
+        <div>
+          <dt>Tổng lượt xem dịch vụ</dt>
+          <dd>
+            {{ analytics.views === null ? 'Chưa có dữ liệu' : formatNumber(analytics.views) }}
+          </dd>
+        </div>
+        <div>
+          <dt>Booking / lượt xem</dt>
+          <dd>
+            {{
+              analytics.conversionRate === null
+                ? 'Chưa có dữ liệu'
+                : formatNumber(analytics.conversionRate) + '%'
+            }}
+          </dd>
+        </div>
+      </dl>
+      <p class="card-footnote">
+        Chưa có dữ liệu phân tích độ tuổi, nhóm khách và thiết bị truy cập.
+      </p>
+    </article>
+    <article class="dashboard-card">
+      <div class="card-heading">
+        <app-partner-icon name="briefcase" />
+        <h2>Dịch vụ được đặt nhiều</h2>
+      </div>
+      <div class="top-service" *ngFor="let service of analytics.bestServices; let i = index">
+        <span class="rank">{{ i + 1 }}</span>
+        <div>
+          <strong>{{ service.name }}</strong
+          ><small>{{ service.bookings }} booking</small>
+        </div>
+        <span>{{ formatNumber(service.revenue) }}đ</span>
+      </div>
+      <p class="no-data-inline" *ngIf="!analytics.bestServices.length">
+        Chưa có booking để xếp hạng dịch vụ.
+      </p>
+    </article>
+    <article class="dashboard-card">
+      <div class="card-heading">
+        <app-partner-icon name="leaf" />
+        <h2>Tác động xanh & Tiếp thị</h2>
+      </div>
+      <dl class="insight-list">
+        <div>
+          <dt>CO₂ giảm thiểu</dt>
+          <dd>Chưa có dữ liệu</dd>
+        </div>
+        <div>
+          <dt>Hiệu suất marketing</dt>
+          <dd>Chưa có dữ liệu</dd>
+        </div>
+      </dl>
+      <p class="card-footnote">
+        Báo cáo sẽ được bổ sung khi có số liệu phát thải đối chiếu và hiệu quả chiến dịch.
+      </p>
+      <a class="text-link" routerLink="/partner-ads"
+        >Đến trang tiếp thị <app-partner-icon name="arrow"
+      /></a>
+    </article>
+  </section>
+  <footer class="dashboard-footer">
+    <span>Số liệu từ booking và dịch vụ của tài khoản · {{ periodText }}</span
+    ><button type="button" (click)="exportCsv()" [disabled]="isLoading || !filteredBookings.length">
+      <app-partner-icon name="download" />Tải báo cáo CSV
+    </button>
+  </footer>
 </main>

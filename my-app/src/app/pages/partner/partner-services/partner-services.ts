@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
@@ -18,6 +18,7 @@ export class PartnerServicesComponent implements OnInit {
 
   // Add / Edit Service Form (Wizard State)
   public isAddModalOpen: boolean = false;
+  private autoAddOpened = false;
   public editingServiceId: string | null = null;
   public currentStep: number = 1;
 
@@ -152,7 +153,8 @@ export class PartnerServicesComponent implements OnInit {
     private apiService: ApiService,
     private authService: AuthService,
     public cdr: ChangeDetectorRef,
-    private loginModalService: LoginModalService
+    private loginModalService: LoginModalService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
@@ -162,6 +164,10 @@ export class PartnerServicesComponent implements OnInit {
         this.loginModalService.open();
       } else {
         this.loadServices();
+        if (!this.autoAddOpened && this.route.snapshot.queryParamMap.get('action') === 'add') {
+          this.autoAddOpened = true;
+          this.openAddModal();
+        }
       }
       this.cdr.detectChanges();
     });

@@ -1,0 +1,338 @@
+:host {
+  display: block;
+  --partner-green: #087f5b;
+  --partner-dark: #064e3b;
+  --partner-light: #ddf5e9;
+  --partner-border: #e2e8f0;
+  --partner-text: #0f172a;
+  --partner-muted: #64748b;
+  --partner-surface: #fff;
+  --partner-page: #f7f9fa;
+  --partner-line: #edf1f4;
+  font-family: 'Be Vietnam Pro', Inter, system-ui, sans-serif;
+  color: var(--partner-text);
+}
+.partner-workspace {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 254px minmax(0, 1fr);
+  padding-top: 88px;
+  background: var(--partner-page);
+  min-height: 100dvh;
+}
+.partner-sidebar {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  height: calc(100dvh - 88px);
+  box-sizing: border-box;
+  background: #fbfdfc;
+  border-right: 1px solid var(--partner-border);
+  padding: 22px 12px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 40;
+}
+.partner-identity {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  background: white;
+  border: 1px solid var(--partner-border);
+  border-radius: 16px;
+  padding: 14px 12px;
+  margin-bottom: 22px;
+  min-width: 0;
+}
+.partner-identity img,
+.partner-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.partner-avatar {
+  display: grid;
+  place-items: center;
+  background: #ddf5e9;
+  color: #087f5b;
+  font-size: 14px;
+  font-weight: 750;
+}
+.partner-identity div {
+  min-width: 0;
+}
+.partner-identity strong {
+  font-size: 12px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.partner-identity div span {
+  font-size: 10px;
+  color: var(--partner-muted);
+  display: block;
+  margin-top: 5px;
+}
+nav {
+  display: grid;
+  gap: 6px;
+}
+nav a,
+.profile-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 14px 13px;
+  color: #475569;
+  text-decoration: none;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 600;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+nav a:hover,
+.profile-link:hover {
+  background: #edf6f1;
+  color: var(--partner-dark);
+}
+nav a.active {
+  background: #ddf5e9;
+  color: #064e3b;
+  box-shadow: inset 3px 0 #087f5b;
+}
+nav a.active app-partner-icon {
+  color: #087f5b;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #34b88b;
+  outline-offset: 3px;
+}
+.sidebar-divider {
+  border-top: 1px solid var(--partner-border);
+  margin: 22px 10px 12px;
+}
+.profile-link {
+  font-weight: 400;
+}
+.partner-note {
+  position: relative;
+  overflow: hidden;
+  background: #e4f4eb;
+  border-radius: 16px;
+  margin: 32px 6px 0;
+  padding: 20px 16px;
+}
+.partner-note > app-partner-icon {
+  float: right;
+  color: #36a970;
+  width: 32px;
+  height: 32px;
+}
+.partner-note strong {
+  font-size: 15px;
+  line-height: 1.55;
+  color: #065438;
+  display: block;
+}
+.partner-note p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #4b6558;
+  margin: 8px 0 0;
+}
+.sidebar-landscape {
+  margin: 24px -12px 0;
+  min-height: 130px;
+  flex: 1;
+  background:
+    linear-gradient(#fbfdfce0, #fbfdfc20),
+    url('/image/greensteps_wallet_mountain_bg.png') center bottom/cover no-repeat;
+  opacity: 0.6;
+}
+.sidebar-brand {
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  text-align: center;
+  color: #6f8c7e;
+  padding-top: 10px;
+}
+.partner-content {
+  min-width: 0;
+}
+.mobile-toolbar,
+.sidebar-mobile-heading,
+.sidebar-overlay {
+  display: none;
+}
+/* Restrict legacy page spacing to this routed workspace only. */
+:host ::ng-deep .partner-content > router-outlet + * > main {
+  padding: 26px !important;
+  min-height: calc(100dvh - 88px) !important;
+  background: transparent !important;
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .partner-workspace {
+    grid-template-columns: 216px minmax(0, 1fr);
+  }
+  .partner-sidebar {
+    padding-inline: 8px;
+  }
+  nav a {
+    padding: 12px 10px;
+    font-size: 11px;
+    gap: 9px;
+  }
+  .partner-note {
+    padding: 15px;
+  }
+  .partner-note strong {
+    font-size: 13px;
+  }
+}
+@media (max-width: 767px) {
+  .partner-workspace {
+    display: block;
+    padding-top: 88px;
+  }
+  .mobile-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--partner-border);
+    background: white;
+    gap: 12px;
+  }
+  .mobile-toolbar button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: #ddf5e9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #064e3b;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mobile-toolbar > span {
+    font-size: 10px;
+    color: var(--partner-muted);
+  }
+  .partner-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    top: 0;
+    width: min(286px, 86vw);
+    height: 100dvh;
+    z-index: 1601;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition:
+      transform 0.2s,
+      visibility 0.2s;
+    padding: 18px 12px;
+  }
+  .partner-sidebar.is-open {
+    transform: none;
+    visibility: visible;
+  }
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #0f172a66;
+    z-index: 1600;
+    border: 0;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-mobile-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 4px 18px;
+    font-size: 14px;
+  }
+  .sidebar-mobile-heading button {
+    border: 0;
+    background: transparent;
+    padding: 8px;
+    cursor: pointer;
+  }
+  .partner-identity strong {
+    font-size: 13px;
+  }
+  nav a {
+    font-size: 13px;
+  }
+  .sidebar-landscape {
+    min-height: 90px;
+  }
+  .partner-note {
+    margin-top: 24px;
+  }
+  :host ::ng-deep .partner-content > router-outlet + * > main {
+    padding: 20px 16px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .partner-sidebar,
+  nav a {
+    transition: none;
+  }
+}
+:host-context([data-theme='dark']) {
+  --partner-text: #ecf5ef;
+  --partner-muted: #aabdb1;
+  --partner-border: #304437;
+  --partner-surface: #192920;
+  --partner-page: #101b15;
+  --partner-line: #2a3d30;
+  --partner-green: #68d5a2;
+  --partner-dark: #a6e7c4;
+}
+:host-context([data-theme='dark']) .partner-sidebar,
+:host-context([data-theme='dark']) .mobile-toolbar {
+  background: #142219;
+}
+:host-context([data-theme='dark']) .partner-identity {
+  background: var(--partner-surface);
+}
+:host-context([data-theme='dark']) nav a,
+:host-context([data-theme='dark']) .profile-link {
+  color: #b8c9be;
+}
+:host-context([data-theme='dark']) nav a.active,
+:host-context([data-theme='dark']) nav a:hover,
+:host-context([data-theme='dark']) .profile-link:hover {
+  background: #204b35;
+  color: #bcf5d4;
+}
+:host-context([data-theme='dark']) nav a.active app-partner-icon {
+  color: #86e2ad;
+}
+:host-context([data-theme='dark']) .partner-note {
+  background: #1d3829;
+}
+:host-context([data-theme='dark']) .partner-note strong {
+  color: #a8e6bf;
+}
+:host-context([data-theme='dark']) .partner-note p {
+  color: #aabdb1;
+}
+:host-context([data-theme='dark']) .sidebar-landscape {
+  opacity: 0.15;
+}
+:host-context([data-theme='dark']) .sidebar-mobile-heading button {
+  color: #ecf5ef;
+}

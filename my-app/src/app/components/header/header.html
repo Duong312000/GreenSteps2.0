@@ -1,6 +1,7 @@
 <header
     [class.glass-panel]="!isHeaderTransparent"
     [class.provider-header]="currentUser && currentUser.role === 'provider'"
+    [class.partner-workspace-header]="currentPath.startsWith('/partner-') && !currentPath.startsWith('/partner-register')"
     class="fixed inset-x-0 top-0 z-[1050]">
 
     <!-- ════════════════════════════════════════════════════════
@@ -116,7 +117,7 @@
 
             <!-- Provider / Admin Specific Tabs (if logged in) -->
             <ng-container *ngIf="currentUser && currentUser.role === 'provider'">
-                <a routerLink="/partner-dashboard" routerLinkActive="active-nav-tab" class="nav-tab-item text-[#184A37]">
+                <a routerLink="/partner-dashboard" [class.active-nav-tab]="currentPath.startsWith('/partner-')" class="nav-tab-item partner-nav-link text-[#184A37]">
                     Đối tác
                 </a>
             </ng-container>

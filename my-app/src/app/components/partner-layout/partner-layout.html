@@ -1,0 +1,73 @@
+<div class="partner-workspace">
+  <div class="mobile-toolbar">
+    <button
+      #toggle
+      type="button"
+      (click)="openMenu()"
+      aria-controls="partner-sidebar"
+      [attr.aria-expanded]="menuOpen()"
+    >
+      <app-partner-icon name="menu" /> Kênh đối tác</button
+    ><span>GreenSteps Travel</span>
+  </div>
+  @if (menuOpen()) {
+    <button
+      class="sidebar-overlay"
+      (click)="closeMenu()"
+      aria-label="Đóng menu đối tác"
+      tabindex="-1"
+    ></button>
+  }
+  <aside
+    #sidebar
+    id="partner-sidebar"
+    class="partner-sidebar"
+    [class.is-open]="menuOpen()"
+    aria-label="Điều hướng nhà cung cấp"
+  >
+    <div class="sidebar-mobile-heading">
+      <strong>Kênh đối tác</strong
+      ><button type="button" aria-label="Đóng menu" (click)="closeMenu()">
+        <app-partner-icon name="close" />
+      </button>
+    </div>
+    <div class="partner-identity">
+      @if (user()?.avatarUrl && !avatarFailed()) {
+        <img [src]="user()!.avatarUrl" alt="" (error)="avatarFailed.set(true)" />
+      } @else {
+        <span class="partner-avatar">{{ initials }}</span>
+      }
+      <div>
+        <strong [title]="company">{{ company }}</strong
+        ><span>Tài khoản nhà cung cấp</span>
+      </div>
+    </div>
+    <nav aria-label="Chức năng đối tác">
+      @for (item of items; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{
+            paths: 'exact',
+            queryParams: 'ignored',
+            matrixParams: 'ignored',
+            fragment: 'ignored',
+          }"
+          ariaCurrentWhenActive="page"
+          ><app-partner-icon [name]="item.icon" /><span>{{ item.label }}</span></a
+        >
+      }
+    </nav>
+    <div class="sidebar-divider"></div>
+    <a class="profile-link" routerLink="/profile"
+      ><app-partner-icon name="users" /> Hồ sơ tài khoản</a
+    >
+    <div class="partner-note">
+      <app-partner-icon name="leaf" /><strong>Cùng GreenSteps<br />phát triển du lịch xanh</strong>
+      <p>Tăng trưởng doanh thu và lan tỏa giá trị du lịch bền vững.</p>
+    </div>
+    <div class="sidebar-landscape" aria-hidden="true"></div>
+    <small class="sidebar-brand">GREENSTEPS · PARTNER WORKSPACE</small>
+  </aside>
+  <div class="partner-content"><router-outlet /></div>
+</div>
