@@ -241,6 +241,7 @@ exports.createBooking = async (req, res, next) => {
             booking_date: bookingDate,
             guests: guests,
             value: totalValue,
+            payment_method: 'wallet',
             status: 'pending', // Pending admin approval on Admin page
             evoucher_code: evoucherCode,
             escrow_status: 'none',
@@ -323,6 +324,7 @@ exports.createBooking = async (req, res, next) => {
             booking_date: bookingDate,
             guests: guests,
             value: totalValue,
+            payment_method: 'card',
             status: 'deposit',
             evoucher_code: evoucherCode,
             escrow_status: 'holding',
@@ -388,6 +390,7 @@ exports.createBooking = async (req, res, next) => {
             booking_date: bookingDate,
             guests: guests,
             value: totalValue,
+            payment_method: 'bank_transfer',
             status: 'pending', // Pending admin approval
             evoucher_code: evoucherCode,
             escrow_status: 'none',
@@ -461,6 +464,7 @@ exports.createBooking = async (req, res, next) => {
           booking_date: bookingDate,
           guests: guests,
           value: totalValue,
+          payment_method: paymentMethod || 'counter',
           status: 'pending',
           evoucher_code: evoucherCode,
           escrow_status: 'none',

@@ -574,7 +574,19 @@ export class ApiService {
 
   public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
     try {
-      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings`, bookingData));
+      const payload = {
+        type: bookingData.type ?? bookingData.kind,
+        targetId: bookingData.targetId ?? bookingData.target_id,
+        bookingDate: bookingData.bookingDate ?? bookingData.booking_date,
+        guests: bookingData.guests,
+        paymentMethod: bookingData.paymentMethod ?? bookingData.payment_method,
+        voucherCode: bookingData.voucherCode ?? bookingData.voucher_code,
+        customerId: bookingData.customerId ?? bookingData.userId ?? bookingData.user_id,
+        customerName: bookingData.customerName ?? bookingData.customer?.fullname,
+        customerPhone: bookingData.customerPhone ?? bookingData.customer?.phone,
+        customerEmail: bookingData.customerEmail ?? bookingData.customer?.email,
+      };
+      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings`, payload));
       if (!res?.success) return { success: false, message: res?.message || 'Không thể tạo đơn đặt chỗ.' };
       return { 
         success: true,

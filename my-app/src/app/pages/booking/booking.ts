@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
@@ -43,6 +44,7 @@ interface BookingContext {
   templateUrl: './booking.html'
 })
 export class BookingComponent implements OnInit, OnDestroy {
+  private routeChangeSubscription?: Subscription;
   public currentUser: User | null = null;
   public activeTour: Tour | null = null;
   public isPaymentStep = false;
@@ -162,6 +164,12 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.syncStepFromUrl();
+    this.routeChangeSubscription = this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.syncStepFromUrl();
+        this.cdr.detectChanges();
+      }
+    });
     this.loadContext();
 
     this.route.queryParamMap.subscribe(params => {
@@ -441,8 +449,13 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public isActivatingWallet = false;
 
+  public selectPayTiming(timing: PayTiming) {
+    this.payTiming = timing;
+    if (timing === 'later') this.paymentMethod = 'counter';
+  }
+
   public getTempBookingDeadline() {
-    const now = new Date('2026-07-12T14:30:00');
+    const now = new Date();
     if (!this.bookingContext.checkIn) {
       return {
         type: 'normal',
@@ -519,12 +532,20 @@ export class BookingComponent implements OnInit, OnDestroy {
     }
 
     const userId = user ? (user.id || user._id || '') : null;
-    const targetId = this.activeTour?.id || this.bookingContext.tourId || 'sample_tour_id';
+    const targetId = this.bookingContext.serviceId || this.bookingContext.tourId || this.activeTour?.id;
+    if (!targetId) {
+      this.showAlert('Thiếu thông tin đặt chỗ', 'Vui lòng quay lại trang tour hoặc dịch vụ và chọn mục cần đặt trước khi thanh toán.', 'error');
+      return;
+    }
+    const isService = Boolean(this.bookingContext.serviceId)
+      || Boolean((this.activeTour as any)?.isService)
+      || /^srv[_-]/i.test(targetId);
+    const bookingType = isService ? 'service' : this.isItineraryBooking() ? 'itinerary' : 'tour';
 
     const bookingData: any = {
       user_id: userId,
-      kind: (targetId.toLowerCase().startsWith('srv_') || targetId.startsWith('SRV_')) ? 'service' : 'tour',
-      target_id: targetId.replace(/^iti_/, ''),
+      kind: bookingType,
+      target_id: targetId,
       booking_date: this.bookingContext.checkIn,
       check_out_date: this.bookingContext.checkOut,
       guests: this.bookingContext.guestCount,
@@ -539,6 +560,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (this.payTiming === 'later') {
       // Temporary Holding / Later timing flow
       const dlInfo = this.getTempBookingDeadline();
+      this.paymentMethod = 'counter';
       bookingData.payment_method = 'counter';
       
       this.isBookingLoading = true;
@@ -931,6 +953,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.routeChangeSubscription?.unsubscribe();
     if (this.paymentSuccessToastTimer) clearTimeout(this.paymentSuccessToastTimer);
     this.clearQrCountdown();
     this.clearCheckoutOtpCountdown();
@@ -1117,12 +1140,15 @@ export class BookingComponent implements OnInit, OnDestroy {
     }
 
     const query = this.route.snapshot.queryParamMap;
-    const tourId = query.get('tourId') || this.bookingContext.tourId;
+    const queryHasTarget = query.has('tourId') || query.has('serviceId');
+    const serviceId = query.get('serviceId') || (!queryHasTarget ? this.bookingContext.serviceId : undefined);
+    const tourId = query.get('tourId') || (!queryHasTarget ? this.bookingContext.tourId : undefined);
     const isItinerary = query.get('bookingType') === 'itinerary' || (tourId && tourId.startsWith('iti_'));
 
     this.bookingContext = {
       ...this.bookingContext,
-      tourId: tourId,
+      tourId: serviceId ? undefined : tourId,
+      serviceId,
       checkIn: query.get('checkIn') || this.bookingContext.checkIn,
       checkOut: query.get('checkOut') || this.bookingContext.checkOut,
       guestCount: Number(query.get('guestCount') || (isItinerary ? 1 : this.bookingContext.guestCount)),

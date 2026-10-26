@@ -198,6 +198,7 @@ const ServiceBooking = store.define('ServiceBooking', {
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
   value: { type: FieldTypes.DOUBLE, allowNull: false },
+  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter') },
   status: { type: FieldTypes.ENUM('pending', 'deposit', 'completed', 'rejected', 'refunded'), defaultValue: 'pending', allowNull: false },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   voucher_code: { type: FieldTypes.STRING },
@@ -222,7 +223,7 @@ const TourBooking = store.define('TourBooking', {
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
   value: { type: FieldTypes.DOUBLE, allowNull: false },
-  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card'), allowNull: false },
+  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter'), allowNull: false },
   voucher_code: { type: FieldTypes.STRING },
   evoucher_code: { type: FieldTypes.STRING, allowNull: false },
   status: { type: FieldTypes.ENUM('pending', 'deposit', 'completed', 'rejected', 'refunded'), defaultValue: 'pending', allowNull: false },

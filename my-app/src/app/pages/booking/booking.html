@@ -207,15 +207,15 @@
 
       <article class="payment-card">
         <h2><span class="payment-section-number">01</span> Cách thanh toán</h2>
-        <div class="pay-choice" [class.active]="payTiming === 'now'" (click)="payTiming = 'now'">
-          <input type="radio" name="payTiming" value="now" [(ngModel)]="payTiming" id="payTimingNow" (click)="$event.stopPropagation()">
+        <div class="pay-choice" [class.active]="payTiming === 'now'" (click)="selectPayTiming('now')">
+          <input type="radio" name="payTiming" value="now" [(ngModel)]="payTiming" id="payTimingNow" (click)="$event.stopPropagation(); selectPayTiming('now')">
           <label for="payTimingNow" (click)="$event.stopPropagation()" style="cursor:pointer; display:grid; gap:4px;">
             <b>Thanh toán đặt cọc ngay</b>
             <small>Giữ chỗ nhanh hơn, xác nhận đặt cọc ngay sau khi thanh toán.</small>
           </label>
         </div>
-        <div class="pay-choice" [class.active]="payTiming === 'later'" (click)="payTiming = 'later'">
-          <input type="radio" name="payTiming" value="later" [(ngModel)]="payTiming" id="payTimingLater" (click)="$event.stopPropagation()">
+        <div class="pay-choice" [class.active]="payTiming === 'later'" (click)="selectPayTiming('later')">
+          <input type="radio" name="payTiming" value="later" [(ngModel)]="payTiming" id="payTimingLater" (click)="$event.stopPropagation(); selectPayTiming('later')">
           <label for="payTimingLater" (click)="$event.stopPropagation()" style="cursor:pointer; display:grid; gap:4px;">
             <b>Thanh toán sau / giữ chỗ tạm thời</b>
             <small>GreenSteps sẽ liên hệ xác nhận trước khi thanh toán.</small>
@@ -313,6 +313,14 @@
         <p style="font-size: 13px; color: #92400E; font-weight: 600; line-height: 1.6; margin: 0;">
           {{ getTempBookingDeadline().message }}
         </p>
+        <div class="counter-notice" role="status" style="background: #f0fdf4; border: 1.5px dashed #10b981; border-radius: 12px; padding: 14px 16px; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;">
+            <i class="bi bi-shop-window" aria-hidden="true"></i> Thanh toán tại quầy GreenSteps
+          </div>
+          <p style="font-size: 0.82rem; color: #374151; margin: 0; line-height: 1.5;">
+            Chỗ được giữ tạm thời. Bạn sẽ thanh toán tiền cọc {{ depositAmount | number:'1.0-0':'vi-VN' }}đ tại quầy hoặc văn phòng trước ngày khởi hành.
+          </p>
+        </div>
       </article>
 
       <article class="payment-card final-payment-card">
@@ -323,7 +331,7 @@
         </div>
         <small class="terms-error" *ngIf="paymentError('acceptedTerms')">{{ paymentError('acceptedTerms') }}</small>
         <button type="button" class="booking-submit payment-final-submit payment-continue-mobile" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
-          {{ payTiming === 'now' ? ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : getTempBookingDeadline().buttonLabel }}
+          {{ payTiming === 'now' ? ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : 'Giữ chỗ và thanh toán tại quầy' }}
         </button>
       </article>
     </section>
@@ -357,7 +365,7 @@
         </div>
         <button type="button" class="booking-submit payment-final-submit payment-continue-desktop" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
           <ng-container *ngIf="payTiming === 'now'">Thanh toán {{ depositAmount | number:'1.0-0':'vi-VN' }}đ</ng-container>
-          <ng-container *ngIf="payTiming === 'later'">{{ getTempBookingDeadline().buttonLabel }}</ng-container>
+          <ng-container *ngIf="payTiming === 'later'">Giữ chỗ và thanh toán tại quầy</ng-container>
         </button>
         <p class="payment-security-note">GreenSteps bảo vệ thông tin đặt chỗ của bạn.</p>
       </article>
