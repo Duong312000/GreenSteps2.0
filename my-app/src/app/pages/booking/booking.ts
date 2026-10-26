@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -42,7 +42,7 @@ interface BookingContext {
   standalone: false,
   templateUrl: './booking.html'
 })
-export class BookingComponent implements OnInit {
+export class BookingComponent implements OnInit, OnDestroy {
   public currentUser: User | null = null;
   public activeTour: Tour | null = null;
   public isPaymentStep = false;
@@ -50,6 +50,8 @@ export class BookingComponent implements OnInit {
   public submitted = false;
   public paymentSubmitted = false;
   public toastMessage = '';
+  public showPaymentSuccessToast = false;
+  private paymentSuccessToastTimer: any = null;
   public walletRegistered = false;
   public walletBalance = 0;
   
@@ -71,7 +73,7 @@ export class BookingComponent implements OnInit {
   public alertTitle = '';
   public alertMessage = '';
   public alertType: 'warning' | 'info' | 'error' = 'warning';
-  public alertIcon = 'bi-exclamation-triangle';
+  public alertIllustration = '/image/payment/payment-notice.svg';
   public alertActionUrl = '';
 
   // VietQR & Loading properties
@@ -79,11 +81,15 @@ export class BookingComponent implements OnInit {
   public isBookingLoading = false;
 
   public isQrModalOpen = false;
+  public isCardModalOpen = false;
+  public readonly isLocalPaymentSandbox = ['localhost', '127.0.0.1'].includes(window.location.hostname);
   public qrCodeUrl = '';
   public qrAmount = 0;
   public qrDescription = '';
   public currentBookingId = '';
+  public qrExpiresAt = '';
   public qrCountdown = 600;
+  public paymentStatus: 'pending' | 'paid' | 'failed' = 'paid';
   private pollingInterval: any = null;
   private countdownInterval: any = null;
 
@@ -133,8 +139,8 @@ export class BookingComponent implements OnInit {
   public readonly arrivalOptions = ['12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-18:00', '18:00-20:00', 'Sau 20:00'];
   public readonly paymentMethods = [
     { id: 'wallet' as PaymentMethod, label: 'Ví điện tử', desc: 'Thanh toán nhanh qua ví liên kết.', icon: 'bi-wallet2' },
-    { id: 'card' as PaymentMethod, label: 'Thẻ tín dụng', desc: 'Nhập thông tin thẻ bảo mật.', icon: 'bi-credit-card' },
-    { id: 'bank' as PaymentMethod, label: 'Chuyển khoản', desc: 'Nhận thông tin chuyển khoản GreenSteps.', icon: 'bi-bank' },
+    { id: 'card' as PaymentMethod, label: 'Thẻ tín dụng / ghi nợ', desc: 'Thử luồng thanh toán bằng thẻ mẫu, không thu tiền thật.', icon: 'bi-credit-card' },
+    { id: 'bank' as PaymentMethod, label: 'Chuyển khoản qua QR', desc: 'Quét VietQR trong ứng dụng ngân hàng của bạn.', icon: 'bi-bank' },
     { id: 'counter' as PaymentMethod, label: 'Thanh toán tại quầy', desc: 'Giữ chỗ tạm thời và xác nhận tại quầy.', icon: 'bi-shop' }
   ];
   public readonly addOnOptions = [
@@ -191,6 +197,10 @@ export class BookingComponent implements OnInit {
     });
 
     await this.loadActiveTour();
+    if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
+      await this.resumePendingPayment();
+    }
+    if (this.isCompleteStep && this.paymentStatus === 'paid') this.showSuccessToast();
     this.isPageLoading = false;
     this.cdr.detectChanges();
   }
@@ -512,26 +522,32 @@ export class BookingComponent implements OnInit {
     const targetId = this.activeTour?.id || this.bookingContext.tourId || 'sample_tour_id';
 
     const bookingData: any = {
-      type: (targetId.toLowerCase().startsWith('srv_') || targetId.startsWith('SRV_')) ? 'service' : (targetId.startsWith('iti_') ? 'itinerary' : 'tour'),
-      targetId: targetId,
-      bookingDate: this.bookingContext.checkIn,
+      user_id: userId,
+      kind: (targetId.toLowerCase().startsWith('srv_') || targetId.startsWith('SRV_')) ? 'service' : 'tour',
+      target_id: targetId.replace(/^iti_/, ''),
+      booking_date: this.bookingContext.checkIn,
+      check_out_date: this.bookingContext.checkOut,
       guests: this.bookingContext.guestCount,
-      customerId: userId,
-      customerName: `${this.guestInfo.lastName} ${this.guestInfo.firstName}`,
-      customerPhone: this.guestInfo.phone,
-      customerEmail: this.guestInfo.email
+      value: this.depositAmount,
+      customer: {
+        fullname: `${this.guestInfo.lastName} ${this.guestInfo.firstName}`.trim(),
+        phone: this.guestInfo.phone,
+        email: this.guestInfo.email
+      }
     };
 
     if (this.payTiming === 'later') {
       // Temporary Holding / Later timing flow
       const dlInfo = this.getTempBookingDeadline();
-      bookingData.paymentMethod = 'bank_transfer';
+      bookingData.payment_method = 'counter';
       
       this.isBookingLoading = true;
       try {
         const res = await this.apiService.createBooking(bookingData);
         this.isBookingLoading = false;
         if (res.success) {
+          this.currentBookingId = res.bookingId || '';
+          this.paymentStatus = 'pending';
           this.saveDraft();
           if (dlInfo.type === 'urgent') {
             this.showAlert(
@@ -569,7 +585,7 @@ export class BookingComponent implements OnInit {
       return;
     }
 
-    bookingData.paymentMethod = this.paymentMethod === 'bank' ? 'bank_transfer' : (this.paymentMethod === 'card' ? 'card' : 'wallet');
+    bookingData.payment_method = this.paymentMethod === 'bank' ? 'bank_transfer' : this.paymentMethod;
 
     if (this.paymentMethod === 'wallet') {
       if (!this.walletRegistered) {
@@ -594,6 +610,8 @@ export class BookingComponent implements OnInit {
         const res = await this.apiService.createBooking(bookingData);
         this.isBookingLoading = false;
         if (res.success) {
+          if (res.bookingId) this.currentBookingId = res.bookingId;
+          this.paymentStatus = res.paymentStatus === 'paid' ? 'paid' : 'pending';
           this.saveDraft();
           let queryParams = {};
           if (res.emailAlreadyExists) {
@@ -606,6 +624,7 @@ export class BookingComponent implements OnInit {
               pwd: res.autoCreatedUser.defaultPassword
             };
           }
+          if (this.paymentStatus === 'paid') this.showSuccessToast();
           this.router.navigate(['/booking/confirm'], { queryParams });
         } else {
           this.showAlert("Thanh toán thất bại", res.message || "Giao dịch trừ tiền ví bị từ chối hoặc có lỗi xảy ra.", "error");
@@ -615,12 +634,28 @@ export class BookingComponent implements OnInit {
         this.showAlert("Thanh toán thất bại", "Yêu cầu thanh toán bị từ chối.", "error");
       }
     } else if (this.paymentMethod === 'card') {
-      // Credit card payment succeeds directly
+      this.isBookingLoading = true;
+      try {
+        const res = await this.apiService.createBooking(bookingData);
+        if (res.success && res.bookingId) {
+          this.openPendingPayment(res, 'card');
+        } else {
+          this.showAlert('Không thể tạo giao dịch thẻ thử nghiệm', res.message || 'Vui lòng thử lại.', 'error');
+        }
+      } catch (e) {
+        this.showAlert('Không thể tạo giao dịch thẻ thử nghiệm', 'Không kết nối được máy chủ thanh toán.', 'error');
+      } finally {
+        this.isBookingLoading = false;
+      }
+    } else if (this.paymentMethod === 'counter') {
+      // Direct Counter payment / giữ chỗ thanh toán tại quầy
       this.isBookingLoading = true;
       try {
         const res = await this.apiService.createBooking(bookingData);
         this.isBookingLoading = false;
         if (res.success) {
+          if (res.bookingId) this.currentBookingId = res.bookingId;
+          this.paymentStatus = res.paymentStatus === 'paid' ? 'paid' : 'pending';
           this.saveDraft();
           let queryParams = {};
           if (res.emailAlreadyExists) {
@@ -633,55 +668,49 @@ export class BookingComponent implements OnInit {
               pwd: res.autoCreatedUser.defaultPassword
             };
           }
+          if (this.paymentStatus === 'paid') this.showSuccessToast();
           this.router.navigate(['/booking/confirm'], { queryParams });
         } else {
-          this.showAlert("Thanh toán thất bại", res.message || "Thao tác thanh toán thẻ bị từ chối.", "error");
+          this.showAlert("Đặt chỗ thất bại", res.message || "Không thể gửi yêu cầu giữ chỗ tại quầy.", "error");
         }
       } catch (e) {
         this.isBookingLoading = false;
-        this.showAlert("Thanh toán thất bại", "Giao dịch thẻ bị từ chối.", "error");
+        this.showAlert("Đặt chỗ thất bại", "Không thể gửi yêu cầu giữ chỗ tại quầy.", "error");
       }
     } else if (this.paymentMethod === 'bank') {
-      // Direct QR Transfer flow with polling
+      // Direct QR Transfer flow with live countdown & polling
       this.qrAmount = this.depositAmount;
-      const txId = 'GD-' + Date.now().toString().slice(-8);
-      this.qrDescription = `GS TOUR ${txId}`.toUpperCase();
-      this.qrCodeUrl = `https://img.vietqr.io/image/OCB-0392851304-compact.png?amount=${this.qrAmount}&addInfo=${encodeURIComponent(this.qrDescription)}&accountName=KIEU%20HOANG%20DUONG`;
-      
-      this.isQrModalOpen = true; // Open the QR code modal
-      
+      this.isBookingLoading = true;
       try {
         const res = await this.apiService.createBooking(bookingData);
         if (res.success && res.bookingId) {
-          this.currentBookingId = res.bookingId;
-          this.qrCountdown = 600; // Reset to 10 minutes (600 seconds)
-
-          // Start the 10-minute countdown timer
-          if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-          }
-          this.ngZone.runOutsideAngular(() => {
-            this.countdownInterval = setInterval(() => {
-              if (this.qrCountdown > 0) {
-                this.qrCountdown--;
-                this.cdr.detectChanges();
-              } else {
-                this.ngZone.run(() => this.handleQrExpired());
-              }
-            }, 1000);
-          });
-
-          // Poll until admin approves
-          this.startBookingStatusPolling(res.bookingId);
+          this.openPendingPayment(res, 'bank');
         } else {
-          this.isQrModalOpen = false;
           this.showAlert("Thanh toán thất bại", res.message || "Giao dịch chuyển khoản bị từ chối.", "error");
         }
       } catch (e) {
-        this.isQrModalOpen = false;
         this.showAlert("Thanh toán thất bại", "Giao dịch chuyển khoản bị từ chối.", "error");
+      } finally {
+        this.isBookingLoading = false;
       }
     }
+  }
+
+  private openPendingPayment(res: any, method: 'bank' | 'card') {
+    this.currentBookingId = res.bookingId;
+    this.paymentStatus = 'pending';
+    this.qrAmount = this.depositAmount;
+    this.qrDescription = res.payment?.transfer_reference || res.bookingCode || this.currentBookingId;
+    this.qrExpiresAt = res.payment?.expires_at || new Date(Date.now() + 600000).toISOString();
+    this.qrCountdown = Math.max(0, Math.ceil((new Date(this.qrExpiresAt).getTime() - Date.now()) / 1000));
+    this.isQrModalOpen = method === 'bank';
+    this.isCardModalOpen = method === 'card';
+    this.qrCodeUrl = method === 'bank'
+      ? `https://img.vietqr.io/image/OCB-0392851304-compact.png?amount=${this.qrAmount}&addInfo=${encodeURIComponent(this.qrDescription)}&accountName=KIEU%20HOANG%20DUONG`
+      : '';
+    this.saveDraft();
+    this.startQrCountdown();
+    this.startBookingStatusPolling(res.bookingId);
   }
 
   public startBookingStatusPolling(bookingId: string) {
@@ -690,17 +719,16 @@ export class BookingComponent implements OnInit {
         try {
           const res = await this.apiService.getBooking(bookingId);
           const target = res?.booking;
-          if (target && (target.status === 'deposit' || target.status === 'confirmed' || target.status === 'accepted')) {
+          if (target && (target.payment?.status === 'paid' || target.status === 'deposit' || target.status === 'confirmed' || target.status === 'accepted')) {
             if (this.pollingInterval) {
               clearInterval(this.pollingInterval);
               this.pollingInterval = null;
             }
             this.ngZone.run(() => {
               this.isQrModalOpen = false;
-              if (this.countdownInterval) {
-                clearInterval(this.countdownInterval);
-                this.countdownInterval = null;
-              }
+              this.isCardModalOpen = false;
+              this.paymentStatus = 'paid';
+              this.clearQrCountdown();
 
               let queryParams = {};
               if (res && res.emailAlreadyExists) {
@@ -715,20 +743,21 @@ export class BookingComponent implements OnInit {
               }
 
               this.saveDraft();
+              this.showSuccessToast();
               this.router.navigate(['/booking/confirm'], { queryParams });
             });
-          } else if (target && target.status === 'rejected') {
+          } else if (target && (target.status === 'rejected' || target.status === 'cancelled' || target.payment?.status === 'failed')) {
             if (this.pollingInterval) {
               clearInterval(this.pollingInterval);
               this.pollingInterval = null;
             }
             this.ngZone.run(() => {
               this.isQrModalOpen = false;
-              if (this.countdownInterval) {
-                clearInterval(this.countdownInterval);
-                this.countdownInterval = null;
-              }
-              this.showAlert('Thanh toán bị từ chối', 'Admin đã từ chối giao dịch của bạn. Vui lòng thử lại hoặc chọn phương thức khác.', 'error');
+              this.isCardModalOpen = false;
+              this.paymentStatus = 'failed';
+              this.saveDraft();
+              this.clearQrCountdown();
+              this.showAlert('Thanh toán chưa được xác nhận', 'Đơn đặt chỗ đã bị từ chối hoặc hết hạn. Bạn có thể quay lại và thử lại.', 'error');
             });
           }
         } catch (_) {}
@@ -739,8 +768,40 @@ export class BookingComponent implements OnInit {
           clearInterval(this.pollingInterval);
           this.pollingInterval = null;
         }
-      }, 900000);
+      }, Math.max(0, this.qrCountdown * 1000));
     });
+  }
+
+  private async resumePendingPayment() {
+    const result = await this.apiService.getBooking(this.currentBookingId);
+    const booking = result?.booking;
+    if (!booking) return;
+    if (booking.payment?.status === 'paid') {
+      this.paymentStatus = 'paid';
+      this.router.navigate(['/booking/confirm']);
+      return;
+    }
+    if (booking.payment?.status !== 'pending') {
+      this.paymentStatus = 'pending';
+      this.showAlert('Yêu cầu đã kết thúc', 'Đơn chuyển khoản này đã bị hủy, từ chối hoặc hết hạn. Vui lòng tạo yêu cầu mới.', 'warning');
+      return;
+    }
+
+    this.paymentMethod = booking.payment?.method === 'card' ? 'card' : 'bank';
+    this.qrAmount = Number(booking.value || this.depositAmount);
+    this.qrDescription = booking.payment.transfer_reference || booking.evoucher_code || booking.booking_code;
+    this.qrExpiresAt = booking.payment.expires_at || this.qrExpiresAt;
+    this.qrCountdown = Math.max(0, Math.ceil((new Date(this.qrExpiresAt).getTime() - Date.now()) / 1000));
+    this.qrCodeUrl = this.paymentMethod === 'bank' ? `https://img.vietqr.io/image/OCB-0392851304-compact.png?amount=${this.qrAmount}&addInfo=${encodeURIComponent(this.qrDescription)}&accountName=KIEU%20HOANG%20DUONG` : '';
+    this.paymentStatus = 'pending';
+    this.isQrModalOpen = this.paymentMethod === 'bank' && this.qrCountdown > 0;
+    this.isCardModalOpen = this.paymentMethod === 'card' && this.qrCountdown > 0;
+    if (this.qrCountdown > 0) {
+      this.startQrCountdown();
+      this.startBookingStatusPolling(this.currentBookingId);
+    } else {
+      this.handleQrExpired();
+    }
   }
 
   // Custom Alert Helpers
@@ -750,9 +811,9 @@ export class BookingComponent implements OnInit {
     this.alertType = type;
     this.alertActionUrl = actionUrl;
     
-    if (type === 'warning') this.alertIcon = 'bi-exclamation-triangle-fill';
-    else if (type === 'info') this.alertIcon = 'bi-info-circle-fill';
-    else this.alertIcon = 'bi-x-circle-fill';
+    if (type === 'warning') this.alertIllustration = '/image/payment/payment-notice.svg';
+    else if (type === 'info') this.alertIllustration = '/image/payment/payment-pending.svg';
+    else this.alertIllustration = '/image/payment/payment-error.svg';
 
     this.alertVisible = true;
   }
@@ -763,19 +824,54 @@ export class BookingComponent implements OnInit {
 
   public closeQrModal() {
     this.isQrModalOpen = false;
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+    this.isCardModalOpen = false;
+  }
+
+  public reopenQrModal() {
+    if (this.currentBookingId && this.qrCountdown > 0) {
+      this.isCardModalOpen = this.paymentMethod === 'card';
+      this.isQrModalOpen = this.paymentMethod === 'bank';
     }
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-      this.countdownInterval = null;
+  }
+
+  public async simulateCurrentPayment() {
+    if (!this.isLocalPaymentSandbox || !this.currentBookingId || this.paymentStatus !== 'pending') return;
+    this.isBookingLoading = true;
+    const result = await this.apiService.simulateBookingPayment(this.currentBookingId);
+    this.isBookingLoading = false;
+    if (!result.success) {
+      this.showAlert('Chưa xác nhận được thanh toán', result.message || 'Vui lòng kiểm tra lại trạng thái đơn.', 'error');
+      return;
     }
+    this.paymentStatus = 'paid';
+    this.cardForm = { cardName: '', cardNumber: '', expiry: '', cvc: '' };
+    this.closeQrModal();
+    this.stopPaymentPolling();
+    this.saveDraft();
+    this.showSuccessToast();
+    this.router.navigate(['/booking/confirm']);
+  }
+
+  private stopPaymentPolling() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.pollingInterval = null;
+    this.clearQrCountdown();
+  }
+
+  private showSuccessToast() {
+    this.showPaymentSuccessToast = true;
+    if (this.paymentSuccessToastTimer) clearTimeout(this.paymentSuccessToastTimer);
+    this.paymentSuccessToastTimer = setTimeout(() => {
+      this.showPaymentSuccessToast = false;
+      this.paymentSuccessToastTimer = null;
+      this.cdr.detectChanges();
+    }, 5000);
   }
 
   public async cancelPendingBooking() {
     if (!this.currentBookingId) {
       this.closeQrModal();
+      this.stopPaymentPolling();
       return;
     }
     
@@ -783,27 +879,65 @@ export class BookingComponent implements OnInit {
     try {
       const res = await this.apiService.cancelBooking(this.currentBookingId);
       this.isBookingLoading = false;
-      this.closeQrModal();
-      this.showAlert("Đã hủy giao dịch", "Yêu cầu đặt cọc của bạn đã được hủy thành công.", "info");
+      if (res.success) {
+        this.closeQrModal();
+        this.stopPaymentPolling();
+        this.paymentStatus = 'failed';
+        this.saveDraft();
+        this.showAlert("Đã hủy giao dịch", res.message, "info");
+      } else {
+        this.showAlert("Không thể hủy", res.message, "error");
+      }
     } catch (e) {
       this.isBookingLoading = false;
-      this.closeQrModal();
-      this.showAlert("Đã hủy giao dịch", "Yêu cầu đặt cọc của bạn đã được hủy.", "info");
+      this.showAlert("Không thể hủy", "Không kết nối được máy chủ. Vui lòng thử lại.", "error");
     }
   }
 
   public temporaryExitQr() {
     this.isQrModalOpen = false;
-    // Clear countdown on temporary exit since they are closing the QR screen, but keep polling active
+    this.isCardModalOpen = false;
+    this.showAlert(
+      "Giao dịch đang chờ xác nhận",
+      "Yêu cầu thanh toán đặt cọc của bạn đang được hệ thống xử lý. Bạn có thể tiếp tục xem các thông tin khác trong thời gian chờ đợi. Trạng thái sẽ tự động cập nhật khi giao dịch thành công.",
+      "info"
+    );
+  }
+
+  public startQrCountdown() {
+    this.clearQrCountdown();
+    if (this.qrCountdown <= 0) {
+      this.handleQrExpired();
+      return;
+    }
+    this.countdownInterval = setInterval(() => {
+      this.ngZone.run(() => {
+        if (this.qrCountdown > 0) {
+          this.qrCountdown--;
+          this.cdr.detectChanges();
+        } else {
+          this.clearQrCountdown();
+          this.handleQrExpired();
+        }
+      });
+    }, 1000);
+  }
+
+  public clearQrCountdown() {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
     }
-    this.showAlert(
-      "Giao dịch đang chờ duyệt",
-      "Yêu cầu thanh toán chuyển khoản đặt cọc của bạn đang được hệ thống xử lý. Bạn có thể tiếp tục xem các thông tin khác trong thời gian chờ đợi. Trạng thái sẽ tự động cập nhật khi giao dịch thành công.",
-      "info"
-    );
+  }
+
+  ngOnDestroy() {
+    if (this.paymentSuccessToastTimer) clearTimeout(this.paymentSuccessToastTimer);
+    this.clearQrCountdown();
+    this.clearCheckoutOtpCountdown();
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
   }
 
   public get qrCountdownFormatted(): string {
@@ -814,13 +948,26 @@ export class BookingComponent implements OnInit {
     return `${minutesStr}:${secondsStr}`;
   }
 
-  public handleQrExpired() {
+  public async handleQrExpired() {
+    if (this.paymentStatus !== 'pending') return;
+    const latest = this.currentBookingId ? await this.apiService.getBooking(this.currentBookingId) : null;
+    if (latest?.booking?.payment?.status === 'paid') {
+      this.paymentStatus = 'paid';
+      this.closeQrModal();
+      this.stopPaymentPolling();
+      this.saveDraft();
+      this.router.navigate(['/booking/confirm']);
+      return;
+    }
     this.closeQrModal();
+    this.stopPaymentPolling();
+    this.paymentStatus = 'failed';
+    this.saveDraft();
     // Silently trigger booking cancellation on backend
     this.cancelPendingBookingSilently();
     this.showAlert(
       "Giao dịch hết hạn", 
-      "Mã QR chuyển khoản đã hết hạn sau 10 phút. Đơn đặt cọc của bạn đã được hủy tự động.", 
+      "Phiên thanh toán đã hết hạn sau 10 phút. Đơn đặt cọc của bạn đã được hủy tự động.",
       "warning"
     );
   }
@@ -1013,10 +1160,12 @@ export class BookingComponent implements OnInit {
     const errors: Record<string, string> = {};
     if (!this.paymentMethod) errors['paymentMethod'] = 'Vui lòng chọn phương thức thanh toán.';
     if (this.paymentMethod === 'card' && includeCard) {
-      if (!this.cardForm.cardName.trim()) errors['cardName'] = 'Vui lòng nhập tên trên thẻ.';
-      if (!/^[0-9\s]{12,23}$/.test(this.cardForm.cardNumber.trim())) errors['cardNumber'] = 'Số thẻ không hợp lệ.';
-      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(this.cardForm.expiry.trim())) errors['expiry'] = 'Dùng định dạng TT/NN.';
-      if (!/^\d{3,4}$/.test(this.cardForm.cvc.trim())) errors['cvc'] = 'CVC không hợp lệ.';
+      const digits = this.cardForm.cardNumber.replace(/\s/g, '');
+      if (!this.cardForm.cardName.trim()) errors['cardName'] = 'Vui lòng nhập tên thử nghiệm.';
+      if (digits !== '4242424242424242') errors['cardNumber'] = 'Sandbox chỉ nhận thẻ thử 4242 4242 4242 4242.';
+      const match = this.cardForm.expiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+      if (!match || (match && new Date(2000 + Number(match[2]), Number(match[1]), 0, 23, 59, 59) < new Date())) errors['expiry'] = 'Nhập tháng/năm hết hạn trong tương lai (TT/NN).';
+      if (this.cardForm.cvc.trim() !== '123') errors['cvc'] = 'Sandbox sử dụng CVC thử nghiệm 123.';
     }
     if (!this.acceptedTerms) errors['acceptedTerms'] = 'Bạn cần đồng ý với điều kiện thanh toán.';
     return errors;
@@ -1039,9 +1188,10 @@ export class BookingComponent implements OnInit {
       arrivalTime: this.arrivalTime,
       payTiming: this.payTiming,
       paymentMethod: this.paymentMethod,
-      cardForm: this.cardForm,
       acceptedTerms: this.acceptedTerms,
       bookingId: this.currentBookingId,
+      qrExpiresAt: this.qrExpiresAt,
+      paymentStatus: this.paymentStatus,
       createdAt: new Date().toISOString()
     };
 
@@ -1049,6 +1199,9 @@ export class BookingComponent implements OnInit {
   }
 
   private restoreDraft(draft: any) {
+    const safeDraft = { ...draft };
+    delete safeDraft.cardForm;
+    if (draft.cardForm) localStorage.setItem('greensteps_booking_draft', JSON.stringify(safeDraft));
     this.guestInfo = { ...this.guestInfo, ...(draft.userInfo || {}) };
     this.bookingFor = draft.bookingFor || 'self';
     this.otherGuest = { ...this.otherGuest, ...(draft.otherGuest || {}) };
@@ -1057,10 +1210,12 @@ export class BookingComponent implements OnInit {
     this.arrivalTime = draft.arrivalTime || '';
     this.payTiming = draft.payTiming || 'now';
     this.paymentMethod = draft.paymentMethod || 'wallet';
-    this.cardForm = { ...this.cardForm, ...(draft.cardForm || {}) };
+    this.cardForm = { cardName: '', cardNumber: '', expiry: '', cvc: '' };
     this.acceptedTerms = !!draft.acceptedTerms;
     if (draft.bookingId) this.currentBookingId = draft.bookingId;
-    this.bookingContext = { ...this.bookingContext, ...draft };
+    this.qrExpiresAt = draft.qrExpiresAt || '';
+    this.paymentStatus = draft.paymentStatus || 'paid';
+    this.bookingContext = { ...this.bookingContext, ...safeDraft };
   }
 
   private syncStepFromUrl() {

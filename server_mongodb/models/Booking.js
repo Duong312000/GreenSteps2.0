@@ -22,7 +22,7 @@ const bookingSchema = new mongoose.Schema({
   evoucher_code: { type: String, required: true, unique: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   kind: { type: String, enum: ['service', 'tour'], default: 'service' },
-  target_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+  target_id: { type: mongoose.Schema.Types.Mixed, required: true },
   provider_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider' },
   customer: {
     fullname: { type: String, required: true },
@@ -35,9 +35,11 @@ const bookingSchema = new mongoose.Schema({
   value: { type: Number, required: true, min: 0 },
   voucher_code: { type: String, default: '' },
   payment: {
-    method: { type: String, enum: ['wallet', 'bank_transfer', 'card'], default: 'wallet' },
-    status: { type: String, enum: ['pending', 'deposit', 'paid', 'refunded'], default: 'pending' },
-    paid_at: { type: Date }
+    method: { type: String, enum: ['wallet', 'bank_transfer', 'card', 'counter'], default: 'wallet' },
+    status: { type: String, enum: ['pending', 'deposit', 'paid', 'refunded', 'failed'], default: 'pending' },
+    paid_at: { type: Date },
+    expires_at: { type: Date },
+    transfer_reference: { type: String, default: '' }
   },
   escrow: {
     status: { type: String, enum: ['none', 'holding', 'released', 'refunded'], default: 'none' },

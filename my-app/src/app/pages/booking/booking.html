@@ -1,10 +1,10 @@
 <main class="booking-page">
   <section class="booking-progress" aria-label="Tiến trình đặt cọc">
-    <div class="progress-step done"><span>1</span><p>Bạn chọn</p></div>
+    <div class="progress-step done"><span>1</span><p><span class="step-full-label">Bạn chọn</span><span class="step-short-label">Chọn</span></p></div>
     <div class="progress-line active"></div>
-    <div class="progress-step" [class.active]="!isPaymentStep && !isCompleteStep" [class.done]="isPaymentStep || isCompleteStep"><span>2</span><p>Chi tiết của bạn</p></div>
+    <div class="progress-step" [class.active]="!isPaymentStep && !isCompleteStep" [class.done]="isPaymentStep || isCompleteStep"><span>2</span><p><span class="step-full-label">Chi tiết của bạn</span><span class="step-short-label">Chi tiết</span></p></div>
     <div class="progress-line" [class.active]="isPaymentStep || isCompleteStep"></div>
-    <div class="progress-step" [class.active]="isPaymentStep || isCompleteStep"><span>3</span><p>Thanh toán</p></div>
+    <div class="progress-step" [class.active]="isPaymentStep" [class.done]="isCompleteStep"><span>3</span><p><span class="step-full-label">Thanh toán</span><span class="step-short-label">Trả tiền</span></p></div>
   </section>
 
   <!-- Skeleton Loading State -->
@@ -200,12 +200,13 @@
   <section class="payment-shell" *ngIf="isPaymentStep">
     <section class="payment-main">
       <div class="payment-title">
-        <h1>Chi tiết cuối cùng</h1>
-        <p>Kiểm tra lại thông tin đặt cọc và chọn phương thức thanh toán.</p>
+        <span class="payment-eyebrow">HOÀN TẤT ĐẶT CHỖ</span>
+        <h1>Thanh toán</h1>
+        <p>Chọn cách thanh toán phù hợp để hoàn tất giữ chỗ chuyến đi.</p>
       </div>
 
       <article class="payment-card">
-        <h2>Chọn cách thanh toán</h2>
+        <h2><span class="payment-section-number">01</span> Cách thanh toán</h2>
         <div class="pay-choice" [class.active]="payTiming === 'now'" (click)="payTiming = 'now'">
           <input type="radio" name="payTiming" value="now" [(ngModel)]="payTiming" id="payTimingNow" (click)="$event.stopPropagation()">
           <label for="payTimingNow" (click)="$event.stopPropagation()" style="cursor:pointer; display:grid; gap:4px;">
@@ -223,14 +224,14 @@
       </article>
 
       <article class="payment-card" *ngIf="payTiming === 'now'">
-        <h2>Phương thức thanh toán</h2>
+        <h2><span class="payment-section-number">02</span> Phương thức thanh toán</h2>
         <p class="payment-method-error" *ngIf="paymentError('paymentMethod')">{{ paymentError('paymentMethod') }}</p>
         <div class="payment-method-list">
           <div class="payment-method-card" 
                *ngFor="let method of paymentMethods" 
                [class.active]="paymentMethod === method.id" 
-               [style.opacity]="method.id === 'wallet' && !walletRegistered ? '0.85' : '1'" 
-               [style.cursor]="method.id === 'wallet' && !walletRegistered ? 'default' : 'pointer'"
+               [style.opacity]="method.id === 'wallet' && !walletRegistered ? '0.65' : '1'"
+               [style.cursor]="method.id === 'wallet' && !walletRegistered ? 'not-allowed' : 'pointer'"
                (click)="method.id === 'wallet' && !walletRegistered ? null : paymentMethod = method.id">
             <input type="radio" 
                    name="paymentMethod" 
@@ -239,12 +240,18 @@
                    [disabled]="method.id === 'wallet' && !walletRegistered"
                    [id]="'payMethod_' + method.id" 
                    (click)="$event.stopPropagation()">
-            <i class="bi" [ngClass]="method.icon"></i>
+            <div class="payment-brand" [attr.aria-label]="method.label">
+              <span *ngIf="method.id === 'wallet'" class="brand-wordmark brand-greensteps">GreenSteps</span>
+              <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="/image/vietqr-wordmark.png" alt="VietQR">
+              <img *ngIf="method.id === 'card'" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+              <span *ngIf="method.id === 'counter'" class="brand-wordmark brand-counter"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
+            </div>
             <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
               <label [for]="'payMethod_' + method.id" (click)="$event.stopPropagation()" style="cursor:pointer; display:grid; gap:2px; text-align:left;">
                 <b style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text-primary);">
                   {{ method.label }}
-                  <span style="font-size: 9px; font-weight: 700; background-color: #FEF3C7; color: #B45309; padding: 2px 6px; border-radius: 4px; border: 1px solid #FDE68A;" *ngIf="method.id === 'wallet' && !walletRegistered">Chưa kích hoạt</span>
+                  <span class="method-status-tag" *ngIf="method.id === 'card'">Sandbox</span>
+                  <span class="method-status-tag warning" *ngIf="method.id === 'wallet' && !walletRegistered">Chưa kích hoạt</span>
                 </b>
                 <small>{{ method.desc }}</small>
               </label>
@@ -264,34 +271,43 @@
         </div>
 
         <div class="card-form" *ngIf="paymentMethod === 'card'">
+          <div class="card-sandbox-notice"><span class="sandbox-badge">THỬ NGHIỆM</span><div><strong>Không phát sinh giao dịch thật</strong><span>Dùng thẻ mẫu <b>4242 4242 4242 4242</b>, hạn dùng trong tương lai và CVC <b>123</b>.</span></div></div>
           <label class="payment-field" [class.invalid]="paymentError('cardName')">
             <span>Tên trên thẻ</span>
-            <input name="cardName" [(ngModel)]="cardForm.cardName" placeholder="NGUYEN VAN A">
+            <input name="cardName" [(ngModel)]="cardForm.cardName" placeholder="NGUYEN VAN A" autocomplete="off">
             <small *ngIf="paymentError('cardName')">{{ paymentError('cardName') }}</small>
           </label>
           <label class="payment-field" [class.invalid]="paymentError('cardNumber')">
             <span>Số thẻ</span>
-            <input name="cardNumber" [(ngModel)]="cardForm.cardNumber" placeholder="0000 0000 0000 0000" inputmode="numeric">
+            <input name="cardNumber" [(ngModel)]="cardForm.cardNumber" placeholder="4242 4242 4242 4242" inputmode="numeric" autocomplete="off">
             <small *ngIf="paymentError('cardNumber')">{{ paymentError('cardNumber') }}</small>
           </label>
           <div class="form-grid two">
             <label class="payment-field" [class.invalid]="paymentError('expiry')">
               <span>Ngày hết hạn</span>
-              <input name="expiry" [(ngModel)]="cardForm.expiry" placeholder="TT/NN">
+              <input name="expiry" [(ngModel)]="cardForm.expiry" placeholder="TT/NN" autocomplete="off">
               <small *ngIf="paymentError('expiry')">{{ paymentError('expiry') }}</small>
             </label>
             <label class="payment-field" [class.invalid]="paymentError('cvc')">
               <span>Mã bảo mật CVC</span>
-              <input name="cvc" [(ngModel)]="cardForm.cvc" placeholder="123" inputmode="numeric">
+              <input name="cvc" [(ngModel)]="cardForm.cvc" placeholder="123" inputmode="numeric" autocomplete="off">
               <small *ngIf="paymentError('cvc')">{{ paymentError('cvc') }}</small>
             </label>
           </div>
+        </div>
+
+        <div class="counter-notice" *ngIf="paymentMethod === 'counter'" style="margin-top: 14px; background: #f0fdf4; border: 1.5px dashed #10b981; border-radius: 12px; padding: 14px 16px; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;">
+            Thanh toán trực tiếp tại quầy / văn phòng GreenSteps
+          </div>
+          <p style="font-size: 0.82rem; color: #374151; margin: 0; line-height: 1.5;">
+            Hệ thống sẽ ghi nhận và giữ chỗ ngay cho bạn. Quý khách vui lòng đến quầy dịch vụ hoặc văn phòng GreenSteps trước ngày khởi hành để xác nhận và thanh toán tiền cọc <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>.
+          </p>
         </div>
       </article>
 
       <article class="payment-card" *ngIf="payTiming === 'later'" style="border: 2px solid #FCD34D; background-color: #FFFDF5; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;">
         <div style="display: flex; align-items: center; gap: 8px; color: #D97706; font-weight: 800; font-size: 15px;">
-          <i class="bi bi-clock-history" style="font-size: 18px;"></i>
           Giữ chỗ tạm thời
         </div>
         <p style="font-size: 13px; color: #92400E; font-weight: 600; line-height: 1.6; margin: 0;">
@@ -300,28 +316,22 @@
       </article>
 
       <article class="payment-card final-payment-card">
+        <h2><span class="payment-section-number">03</span> Xác nhận</h2>
         <div class="terms-check" [class.invalid]="paymentError('acceptedTerms')" (click)="acceptedTerms = !acceptedTerms" style="cursor:pointer; display:flex; align-items:flex-start; gap:10px;">
           <input type="checkbox" name="acceptedTerms" [(ngModel)]="acceptedTerms" id="acceptedTermsCheck" (click)="$event.stopPropagation()">
           <label for="acceptedTermsCheck" (click)="$event.stopPropagation()" style="font-weight: 800; color: #30443c; cursor: pointer; text-align:left;">Tôi đồng ý với điều kiện đặt cọc, chính sách hủy và điều khoản của GreenSteps.</label>
         </div>
         <small class="terms-error" *ngIf="paymentError('acceptedTerms')">{{ paymentError('acceptedTerms') }}</small>
-        <button type="button" 
-                class="booking-submit" 
-                [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" 
-                (click)="completeDeposit()">
-          <ng-container *ngIf="payTiming === 'now'">
-            Thanh toán {{ depositAmount | number:'1.0-0':'vi-VN' }}đ <i class="bi bi-shield-lock-fill"></i>
-          </ng-container>
-          <ng-container *ngIf="payTiming === 'later'">
-            {{ getTempBookingDeadline().buttonLabel }} <i class="bi bi-arrow-right-short"></i>
-          </ng-container>
+        <button type="button" class="booking-submit payment-final-submit payment-continue-mobile" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
+          {{ payTiming === 'now' ? ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : getTempBookingDeadline().buttonLabel }}
         </button>
       </article>
     </section>
 
     <aside class="payment-summary">
       <article class="summary-card payment-sticky-card">
-        <h2>{{ hotelName }}</h2>
+        <h2 class="payment-summary-heading">Chi tiết đặt chỗ</h2>
+        <div class="payment-tour-name">{{ hotelName }}</div>
           <p class="muted">{{ hotelAddress }}</p>
         <div class="detail-list compact">
           <p><span>Ngày đi</span><b>{{ bookingContext.checkIn | date:'dd/MM/yyyy' }}</b></p>
@@ -343,18 +353,27 @@
           <p><span>Còn lại thanh toán sau</span><b>{{ remainingAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
         </div>
         <div class="cancel-mini">
-          <i class="bi bi-check-circle-fill"></i>
           <span>Hủy miễn phí trước {{ cancellationDate }}. Sau thời gian này tiền cọc có thể không được hoàn lại.</span>
         </div>
+        <button type="button" class="booking-submit payment-final-submit payment-continue-desktop" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
+          <ng-container *ngIf="payTiming === 'now'">Thanh toán {{ depositAmount | number:'1.0-0':'vi-VN' }}đ</ng-container>
+          <ng-container *ngIf="payTiming === 'later'">{{ getTempBookingDeadline().buttonLabel }}</ng-container>
+        </button>
+        <p class="payment-security-note">GreenSteps bảo vệ thông tin đặt chỗ của bạn.</p>
       </article>
     </aside>
   </section>
 
   <section class="confirm-shell" *ngIf="isCompleteStep">
-    <div class="confirm-card">
-      <div class="done-icon"><i class="bi bi-check2"></i></div>
-      <h1>Đặt cọc thành công</h1>
-      <p>GreenSteps đã ghi nhận thông tin đặt cọc của bạn. Chúng tôi sẽ gửi xác nhận qua email hoặc số điện thoại bạn đã cung cấp.</p>
+    <div class="confirm-card" [class.is-pending]="paymentStatus === 'pending'">
+      <div class="done-icon" [class.is-pending]="paymentStatus === 'pending'" aria-hidden="true">
+        <span class="confirmation-mark__receipt"><span></span><span></span><span></span></span>
+        <span class="confirmation-mark__check"><i class="bi bi-check-lg"></i></span>
+      </div>
+      <h1 class="pending-title" *ngIf="paymentStatus === 'pending'">Đã tiếp nhận yêu cầu</h1>
+      <p class="pending-copy" *ngIf="paymentStatus === 'pending'">Đơn đặt chỗ đã được lưu. GreenSteps sẽ cập nhật trạng thái sau khi xác nhận thanh toán hoặc giữ chỗ.</p>
+      <h1>{{ paymentMethod === 'counter' ? 'Đặt chỗ thành công' : 'Đặt cọc thành công' }}</h1>
+      <p>{{ paymentMethod === 'counter' ? 'GreenSteps đã ghi nhận yêu cầu giữ chỗ của bạn. Quý khách vui lòng hoàn tất thanh toán tại quầy dịch vụ hoặc văn phòng GreenSteps trước ngày khởi hành.' : 'GreenSteps đã ghi nhận thông tin đặt cọc của bạn. Chúng tôi sẽ gửi xác nhận qua email hoặc số điện thoại bạn đã cung cấp.' }}</p>
 
       <!-- Auto Created Account Alert -->
       <div *ngIf="isNewUserCreated" style="background-color: #ebf8ff; border: 1.5px solid #bee3f8; border-radius: 16px; padding: 18px 22px; margin: 16px 0; text-align: left; animation: fadeIn 0.3s ease;">
@@ -393,7 +412,12 @@
       <div *ngIf="currentBookingId" style="background: linear-gradient(135deg,#e8f5e9,#dcfce7); border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 18px 22px; margin: 16px 0; text-align: center;">
         <p style="font-size:0.8rem; color:#065f46; font-weight:600; margin:0 0 6px; text-transform:uppercase; letter-spacing:0.5px;">Mã đặt chỗ của bạn</p>
         <p style="font-size:1.5rem; font-weight:900; color:#0E9F6E; letter-spacing:2px; margin:0; font-family:monospace;">{{ currentBookingId }}</p>
-        <p style="font-size:0.8rem; color:#374151; margin:8px 0 0;">📧 Một email chứa thông tin đặt chỗ chi tiết và liên kết tra cứu đã được gửi đến bạn.</p>
+        <p class="booking-email-note"><i class="bi bi-envelope-fill" aria-hidden="true"></i> Một email chứa thông tin đặt chỗ chi tiết và liên kết tra cứu đã được gửi đến bạn.</p>
+      </div>
+
+      <div class="payment-success-note" *ngIf="paymentStatus === 'paid'" role="status" aria-live="polite">
+        <span class="payment-success-note__icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+        <span><strong>Thanh toán hoàn tất!</strong><small>Cảm ơn bạn đã đồng hành cùng GreenSteps. Chúc bạn có một chuyến đi thật nhiều trải nghiệm xanh.</small></span>
       </div>
 
       <div class="confirm-summary">
@@ -406,6 +430,11 @@
         <button type="button" class="booking-submit" *ngIf="currentUser" (click)="router.navigate(['/profile'])">Xem hồ sơ đặt chỗ</button>
         <button type="button" class="secondary-button" (click)="router.navigate(['/tours'])">Tiếp tục khám phá</button>
       </div>
+    </div>
+    <div class="payment-toast" *ngIf="showPaymentSuccessToast" role="status" aria-live="polite">
+      <span class="payment-toast__icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+      <span class="payment-toast__copy"><strong>Thanh toán thành công</strong><small>Đặt cọc của bạn đã được xác nhận.</small></span>
+      <span class="payment-toast__progress" aria-hidden="true"></span>
     </div>
   </section>
 
@@ -479,16 +508,18 @@
   <div class="booking-toast" *ngIf="toastMessage">{{ toastMessage }}</div>
 
   <!-- VietQR Payment Modal (Center Screen) -->
-  <div class="custom-alert-overlay" *ngIf="isQrModalOpen" style="z-index: 9999; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 10px;">
-    <div class="custom-alert-card" (click)="$event.stopPropagation()" style="max-width: 440px; width: 100%; padding: 20px; margin: auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1.5px solid #f3f4f6; padding-bottom:10px;">
-        <h3 style="font-size:1.1rem; font-weight:800; color:#111827; margin:0; display:flex; align-items:center; gap:8px;">
-          <i class="bi bi-qr-code-scan" style="color:#0E9F6E; font-size:1.25rem;"></i> Quét mã VietQR OCB
+  <div class="custom-alert-overlay payment-qr-overlay" *ngIf="isQrModalOpen || isCardModalOpen">
+    <div class="custom-alert-card payment-qr-card" (click)="$event.stopPropagation()">
+      <div class="payment-qr-header">
+        <h3 class="payment-modal-title">
+          <img *ngIf="isQrModalOpen" src="/image/vietqr-wordmark.png" alt="VietQR">
+          <img *ngIf="isCardModalOpen" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+          {{ isQrModalOpen ? 'Thanh toán qua VietQR' : 'Thanh toán thẻ thử nghiệm' }}
         </h3>
-        <button type="button" (click)="closeQrModal()" style="background:none; border:none; font-size:1.3rem; color:#9ca3af; cursor:pointer; padding:0 4px;"><i class="bi bi-x-lg"></i></button>
+        <button type="button" class="payment-close-button" aria-label="Đóng" (click)="closeQrModal()">×</button>
       </div>
 
-      <div style="background:#f0fdf4; border:1.5px dashed #10b981; border-radius:12px; padding:12px 14px; margin-bottom:12px; text-align:left;">
+      <div *ngIf="isQrModalOpen" class="qr-bank-details">
         <p style="font-size:.8rem; color:#046a38; font-weight:700; line-height:1.4; margin:0 0 8px;">
           Vui lòng mở ứng dụng ngân hàng của bạn, quét mã QR và thanh toán để hoàn tất đặt cọc tour.
         </p>
@@ -505,37 +536,43 @@
         </div>
       </div>
 
-      <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; color:#92400E; font-size:0.8rem; font-weight:700; background:#FEF3C7; border:1px solid #FDE68A; padding:8px 12px; border-radius:8px; width: 100%; box-sizing: border-box;">
-        <i class="bi bi-clock-history animate-spin" style="animation-duration: 4s; color:#D97706;"></i>
-        <span>Mã QR hết hạn sau: <strong style="font-size:0.95rem; color:#DC2626; font-family: monospace;">{{ qrCountdownFormatted }}</strong></span>
+      <div *ngIf="isCardModalOpen" class="card-sandbox-panel"><span class="sandbox-badge">SANDBOX</span><strong>Thanh toán mô phỏng</strong><span>Thông tin thẻ mẫu chỉ được kiểm tra trên trình duyệt. Không gửi số thẻ hoặc CVC lên máy chủ và không phát sinh giao dịch ngân hàng.</span><small>Mã đặt chỗ: {{ qrDescription }} · {{ qrAmount | number:'1.0-0':'vi-VN' }}đ</small></div>
+
+      <div class="payment-countdown-row">
+        <span>Thời gian còn lại</span>
+        <strong class="payment-countdown">{{ qrCountdownFormatted }}</strong>
       </div>
 
-      <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:8px; display:inline-block; margin-bottom:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
-        <img [src]="qrCodeUrl" alt="VietQR OCB Code" style="width:200px; height:200px; display:block; border-radius:6px; margin: 0 auto;">
+      <div *ngIf="isQrModalOpen" class="qr-code-frame">
+        <img [src]="qrCodeUrl" alt="VietQR OCB Code">
       </div>
 
-      <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:16px; color:#4b5563; font-size:0.8rem; font-weight:600;">
-        <div class="spinner-border animate-spin" style="width: 14px; height: 14px; border: 2px solid #0E9F6E; border-top-color: transparent; border-radius: 50%; display: inline-block;"></div>
-        <span>Đang chờ hệ thống ghi nhận thanh toán...</span>
+      <div class="payment-waiting-status">
+        <span>{{ isQrModalOpen ? 'Đang chờ xác nhận chuyển khoản. Trạng thái sẽ tự cập nhật.' : 'Đơn thẻ thử đang chờ xác nhận.' }}</span>
       </div>
 
-      <div style="display: flex; gap: 10px;">
-        <button type="button" (click)="cancelPendingBooking()" style="flex: 1; height:38px; background:#fde8e8; border:1px solid #f8b4b4; border-radius:8px; color:#e02424; font-weight:700; cursor:pointer; font-size:0.85rem; transition: background 0.2s;">
+      <button *ngIf="isLocalPaymentSandbox" type="button" class="payment-simulate-button" (click)="simulateCurrentPayment()" [disabled]="isBookingLoading">{{ isBookingLoading ? 'Đang cập nhật…' : (isQrModalOpen ? 'Mô phỏng đã chuyển khoản' : 'Mô phỏng thẻ đã thanh toán') }}</button>
+
+      <div class="payment-modal-actions">
+        <button type="button" class="payment-cancel-button" (click)="cancelPendingBooking()">
           Hủy
         </button>
-        <button type="button" (click)="temporaryExitQr()" style="flex: 1.5; height:38px; background:#0E9F6E; border:none; border-radius:8px; color:#fff; font-weight:700; cursor:pointer; font-size:0.85rem; transition: background 0.2s;">
+        <button type="button" class="payment-exit-button" (click)="temporaryExitQr()">
           Tạm thoát
         </button>
       </div>
     </div>
   </div>
 
+  <div class="qr-reopen-card" *ngIf="isPaymentStep && (paymentMethod === 'bank' || paymentMethod === 'card') && paymentStatus === 'pending' && currentBookingId && !isQrModalOpen && !isCardModalOpen">
+    <span>Đang chờ thanh toán · {{ qrCountdownFormatted }}</span>
+    <button type="button" (click)="reopenQrModal()">{{ paymentMethod === 'bank' ? 'Mở lại mã QR' : 'Mở lại thanh toán thẻ' }}</button>
+  </div>
+
   <!-- Custom Premium Alert Dialog Modal (Center Screen) -->
   <div class="custom-alert-overlay" *ngIf="alertVisible" (click)="closeAlert()">
     <div class="custom-alert-card" (click)="$event.stopPropagation()">
-      <div class="custom-alert-icon" [ngClass]="alertType">
-        <i class="bi" [ngClass]="alertIcon"></i>
-      </div>
+      <img class="custom-alert-illustration" [src]="alertIllustration" alt="">
       <h3>{{ alertTitle }}</h3>
       <p>{{ alertMessage }}</p>
       <div class="custom-alert-actions">

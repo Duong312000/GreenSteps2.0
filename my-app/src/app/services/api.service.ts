@@ -572,12 +572,16 @@ export class ApiService {
     }
   }
 
-  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
+  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
     try {
       const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings`, bookingData));
+      if (!res?.success) return { success: false, message: res?.message || 'Không thể tạo đơn đặt chỗ.' };
       return { 
-        success: true, 
-        bookingId: res.bookingId, 
+        success: true,
+        bookingId: res.bookingId || res.booking?.id || res.booking?._id || res.booking?.booking_code || res.booking?.evoucher_code,
+        bookingCode: res.booking?.evoucher_code || res.booking?.booking_code,
+        paymentStatus: res.payment?.status || res.booking?.payment?.status,
+        payment: res.payment || res.booking?.payment,
         message: res.message,
         emailAlreadyExists: res.emailAlreadyExists,
         autoCreatedUser: res.autoCreatedUser
@@ -602,6 +606,25 @@ export class ApiService {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  public async simulateBookingPayment(id: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      return await firstValueFrom(
+        this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/bookings/${id}/simulate-payment`, {}, { withCredentials: true })
+      );
+    } catch (e: any) {
+      if (e?.status === 404 && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        try {
+          return await firstValueFrom(
+            this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/bookings/${id}/approve`, {}, { withCredentials: true })
+          );
+        } catch (fallbackError: any) {
+          return { success: false, message: fallbackError?.error?.message || 'Payment simulation is unavailable.' };
+        }
+      }
+      return { success: false, message: e?.error?.message || 'Không thể chạy mô phỏng thanh toán.' };
     }
   }
 
