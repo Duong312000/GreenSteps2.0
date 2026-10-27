@@ -3,16 +3,26 @@ const router = express.Router();
 const { CommunityPost } = require('../models');
 
 // 1. Lấy danh sách bài viết cộng đồng
-router.get('/', async (req, res) => {
+router.get(['/', '/posts'], async (req, res) => {
   try {
+    const page = Math.max(0, Number.parseInt(req.query.page, 10) || 0);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 15));
     const posts = await CommunityPost.find({ status: 'published' })
       .populate('author_id', 'username profile.fullname profile.avatarUrl')
       .populate('comments.author_id', 'username profile.fullname profile.avatarUrl')
-      .sort({ created_at: -1 });
+      .sort({ created_at: -1, _id: -1 }).skip(page * limit).limit(limit);
 
     const mapped = posts.map(p => ({
       id: p._id,
       _id: p._id,
+      avatar: p.author_id?.profile?.avatarUrl || '',
+      authorId: p.author_id?._id,
+      time: new Date(p.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      rating: 0,
+      tripName: p.title,
+      dest: p.destination,
+      likes: p.likes_count,
+      image: p.image_url,
       title: p.title,
       tour_name: p.title,
       destination: p.destination,
@@ -24,7 +34,8 @@ router.get('/', async (req, res) => {
       comments_count: p.comments.length,
       author: p.author_id ? (p.author_id.profile?.fullname || p.author_id.username) : 'Du khách Xanh',
       author_avatar: p.author_id ? p.author_id.profile?.avatarUrl : '',
-      comments: p.comments.map(c => ({
+      comments: p.comments.length,
+      comment_items: p.comments.map(c => ({
         id: c._id,
         _id: c._id,
         author: c.author_id ? (c.author_id.profile?.fullname || c.author_id.username) : 'Người dùng',

@@ -313,16 +313,24 @@ const AdCampaign = store.define('AdCampaign', {
 const CommunityPost = store.define('CommunityPost', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // CUPtraXXXXXXXX
   rating: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1, max: 5 } },
+  post_type: { type: FieldTypes.ENUM('post', 'reel', 'question'), defaultValue: 'post', allowNull: false },
   text: { type: FieldTypes.TEXT, allowNull: false },
   tour_name: { type: FieldTypes.STRING },
   destination: { type: FieldTypes.STRING },
+  location: { type: FieldTypes.STRING },
+  hashtags: { type: FieldTypes.JSONB, defaultValue: [] },
+  image_urls: { type: FieldTypes.JSONB, defaultValue: [] },
   image_url: { type: FieldTypes.TEXT },
+  video_url: { type: FieldTypes.TEXT },
   tour_description: { type: FieldTypes.TEXT },
   days: { type: FieldTypes.INTEGER },
   likes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   comments_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  shares_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  saved_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   current_data: { type: FieldTypes.JSONB },
-  itinerary_id: { type: FieldTypes.STRING, allowNull: true }
+  itinerary_id: { type: FieldTypes.STRING, allowNull: true },
+  challenge_id: { type: FieldTypes.STRING, allowNull: true }
 }, { timestamps: true });
 
 // 24. CommentPost Model
@@ -335,11 +343,42 @@ const CommentPost = store.define('CommentPost', {
   service_id: { type: FieldTypes.STRING, allowNull: true },
   parent_comment_id: { type: FieldTypes.STRING, allowNull: true },
   likes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  helpful_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  helpful_by: { type: FieldTypes.JSONB, defaultValue: [] },
+  is_helpful: { type: FieldTypes.BOOLEAN, defaultValue: false },
   booking_id: { type: FieldTypes.STRING, allowNull: true },
   is_reported: { type: FieldTypes.BOOLEAN, defaultValue: false, allowNull: false },
   report_reason: { type: FieldTypes.TEXT },
   internal_notes: { type: FieldTypes.TEXT }
 }, { timestamps: true });
+
+const SavedCommunityItem = store.define('SavedCommunityItem', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  item_type: { type: FieldTypes.ENUM('post', 'itinerary'), allowNull: false },
+  item_id: { type: FieldTypes.STRING, allowNull: false },
+  source_post_id: { type: FieldTypes.STRING }
+}, { tableName: 'saved_community_items', timestamps: true });
+
+const CommunityChallenge = store.define('CommunityChallenge', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  title: { type: FieldTypes.STRING, allowNull: false },
+  description: { type: FieldTypes.TEXT, allowNull: false },
+  hashtag: { type: FieldTypes.STRING, allowNull: false },
+  points: { type: FieldTypes.INTEGER, allowNull: false, defaultValue: 100 },
+  badge_name: { type: FieldTypes.STRING, allowNull: false },
+  image_url: { type: FieldTypes.TEXT },
+  starts_at: { type: FieldTypes.DATE, allowNull: false },
+  ends_at: { type: FieldTypes.DATE, allowNull: false }
+}, { tableName: 'community_challenges', timestamps: true });
+
+const CommunityChallengeEntry = store.define('CommunityChallengeEntry', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  challenge_id: { type: FieldTypes.STRING, allowNull: false },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  post_id: { type: FieldTypes.STRING, allowNull: false },
+  points: { type: FieldTypes.INTEGER, allowNull: false }
+}, { tableName: 'community_challenge_entries', timestamps: true });
 
 // 25. CPSS Junction
 const CPSS = store.define('CPSS', {}, { timestamps: true });
@@ -631,6 +670,9 @@ module.exports = {
   AdCampaign,
   CommunityPost,
   CommentPost,
+  SavedCommunityItem,
+  CommunityChallenge,
+  CommunityChallengeEntry,
   CPSS,
   CPGS,
   Voucher,

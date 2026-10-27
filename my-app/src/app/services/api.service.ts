@@ -458,13 +458,16 @@ export class ApiService {
   }
 
   // 4. Community APIs
-  public async getCommunityPosts(page = 0, limit = 15): Promise<CommunityPost[]> {
-    const cacheKey = `community_posts_${page}_${limit}`;
+  public async getCommunityPosts(page = 0, limit = 10, type = 'all', query = ''): Promise<CommunityPost[]> {
+    const cacheKey = `community_posts_${page}_${limit}_${type}_${query}`;
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<CommunityPost[]>(`${this.BACKEND_URL}/community/posts?page=${page}&limit=${limit}`));
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (type !== 'all') params.set('type', type);
+      if (query.trim()) params.set('q', query.trim());
+      const data = await firstValueFrom(this.http.get<CommunityPost[]>(`${this.BACKEND_URL}/community/posts?${params}`));
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
@@ -482,6 +485,21 @@ export class ApiService {
     }
   }
 
+  public async createCommunityPost(postData: any): Promise<{ success: boolean; post?: CommunityPost; message?: string; challenge?: any }> {
+    this.clearCache('community_posts_');
+    try {
+      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/community/posts`, postData));
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'Không thể đăng bài.' };
+    }
+  }
+
+  public async updateCommunityPost(postId: string, postData: any): Promise<{ success: boolean; post?: CommunityPost; message?: string }> {
+    this.clearCache('community_posts_');
+    try { return await firstValueFrom(this.http.put<any>(`${this.BACKEND_URL}/community/posts/${postId}`, postData)); }
+    catch (e: any) { return { success: false, message: e?.error?.message || 'Không thể cập nhật bài viết.' }; }
+  }
+
   public async deleteCommunityPost(postId: string): Promise<boolean> {
     try {
       this.clearCache('community_posts_');
@@ -490,6 +508,33 @@ export class ApiService {
     } catch (e) {
       return false;
     }
+  }
+
+  public async toggleSavedCommunityPost(postId: string): Promise<{ success: boolean; saved: boolean }> {
+    try {
+      this.clearCache('community_posts_');
+      return await firstValueFrom(this.http.post<{ success: boolean; saved: boolean }>(`${this.BACKEND_URL}/community/posts/${postId}/save`, {}));
+    } catch { return { success: false, saved: false }; }
+  }
+
+  public async shareCommunityPost(postId: string): Promise<{ success: boolean; shares: number }> {
+    try { return await firstValueFrom(this.http.post<{ success: boolean; shares: number }>(`${this.BACKEND_URL}/community/posts/${postId}/share`, {})); }
+    catch { return { success: false, shares: 0 }; }
+  }
+
+  public async getCommunityChallenge(): Promise<any | null> {
+    try { return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/community/challenge/current`)); }
+    catch { return null; }
+  }
+
+  public async getCommunityLeaderboard(limit = 3): Promise<any[]> {
+    try { return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/community/leaderboard?limit=${limit}`)); }
+    catch { return []; }
+  }
+
+  public async getTrendingCommunityHashtags(): Promise<Array<{ tag: string; count: number }>> {
+    try { return await firstValueFrom(this.http.get<Array<{ tag: string; count: number }>>(`${this.BACKEND_URL}/community/hashtags/trending`)); }
+    catch { return []; }
   }
 
   public async cloneItinerary(id: string, userId: string): Promise<any> {
@@ -906,6 +951,12 @@ export class ApiService {
     }
   }
 
+  public async markCommunityAnswerHelpful(commentId: string): Promise<{ success: boolean; helpful: boolean; helpfulCount: number }> {
+    try {
+      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/community/comments/${commentId}/helpful`, {}));
+    } catch { return { success: false, helpful: false, helpfulCount: 0 }; }
+  }
+
   public async uploadImageBase64(base64Data: string, type?: string): Promise<{ success: boolean; url: string }> {
     try {
       return await firstValueFrom(
@@ -914,6 +965,13 @@ export class ApiService {
     } catch (e) {
       return { success: false, url: '' };
     }
+  }
+
+  public resolveCommunityMediaUrl(url: string | null | undefined): string {
+    const value = String(url || '').trim();
+    if (!value || /^(https?:|data:|blob:)/i.test(value)) return value;
+    if (value.startsWith('/uploads/')) return `${this.BACKEND_URL.replace(/\/api\/?$/, '')}${value}`;
+    return value;
   }
 
   // Admin APIs

@@ -152,6 +152,14 @@ export interface CommunityPost {
   likes: number;
   comments: number;
   image?: string;
+  images?: string[];
+  videoUrl?: string;
+  postType?: 'post' | 'reel' | 'question';
+  location?: string;
+  hashtags?: string[];
+  shares?: number;
+  isSaved?: boolean;
+  challengeId?: string | null;
   authorId?: string;
   itinerary_id?: string;
   current_data?: any;

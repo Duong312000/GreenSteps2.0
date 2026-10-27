@@ -1,0 +1,194 @@
+:host { display: block; }
+.gs-community { min-height: calc(100vh - 150px); padding: 112px 24px 72px; background: #f4f7f5; color: #24352e; font-family: inherit; }
+.gs-community-grid { width: min(1240px, 100%); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(290px, .9fr); align-items: start; gap: 22px; }
+.gs-feed, .gs-community-aside { min-width: 0; }
+.gs-composer-launch, .gs-post-card, .gs-aside-card, .gs-feed-search { background: #fff; border: 1px solid #e7eeea; border-radius: 16px; box-shadow: 0 3px 15px #193a2c08; }
+.gs-composer-launch { padding: 18px 20px 14px; margin-bottom: 18px; cursor: text; }
+.gs-composer-launch:focus-visible { outline: 3px solid #2d9366; }
+.gs-avatar { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; background: #32845f; font-weight: 750; font-size: 15px; }
+.gs-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gs-avatar-large { width: 52px; height: 52px; flex-basis: 52px; font-size: 17px; }
+.gs-avatar-small { width: 34px; height: 34px; flex-basis: 34px; font-size: 12px; }
+.gs-composer-launch { display: grid; grid-template-columns: 52px minmax(0,1fr); align-items: center; gap: 12px; }
+.gs-composer-prompt { min-height: 48px; display: flex; align-items: center; padding: 0 18px; color: #6a7972; background: #f4f7f6; border: 1px solid #e9efec; border-radius: 28px; font-size: 15px; }
+.gs-composer-actions { grid-column: 1 / -1; padding-top: 13px; border-top: 1px solid #edf1ee; display: flex; align-items: center; gap: 8px; }
+.gs-composer-actions button, .gs-tabs button, .gs-post-actions button, .gs-comment-controls button { border: 0; background: transparent; color: #52645b; font: inherit; cursor: pointer; }
+.gs-composer-actions button { padding: 9px 12px; border-radius: 9px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
+.gs-composer-actions button:hover, .gs-post-actions button:hover, .gs-comment-controls button:hover { background: #eff7f2; color: #187347; }
+.gs-composer-actions i { color: #2c9564; font-size: 17px; }
+.gs-composer-actions .gs-post-submit { margin-left: auto; padding: 10px 18px; color: #fff; background: #2d8a5b; }
+.gs-composer-actions .gs-post-submit i { color: #fff; }
+.gs-feed-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.gs-tabs { display: flex; gap: 7px; }
+.gs-tabs button { padding: 10px 17px; border-radius: 24px; background: #fff; border: 1px solid #e6ece8; font-size: 13px; font-weight: 650; white-space: nowrap; }
+.gs-tabs button.active { color: #fff; background: #32885d; border-color: #32885d; }
+.gs-feed-search { min-width: min(265px, 44%); height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 13px; color: #73847b; }
+.gs-feed-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #26372f; font: inherit; font-size: 13px; }
+.gs-post-card { margin-bottom: 16px; overflow: visible; }
+.gs-post-head { padding: 17px 19px 0; display: flex; align-items: center; gap: 11px; }
+.gs-post-byline { min-width: 0; display: grid; gap: 4px; }
+.gs-post-byline strong { color: #25352d; font-size: 14px; }
+.gs-post-byline span { color: #7b8982; font-size: 12px; }
+.gs-post-byline span i { color: #31865c; }
+.gs-post-byline span b { padding: 0 4px; color: #bdc7c1; }
+.gs-post-kind { margin-left: auto; color: #258151; background: #edf8f1; border-radius: 20px; padding: 6px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.gs-reel-kind { color: #5263a0; background: #f0f2fb; }
+.gs-post-menu { position: relative; margin-left: auto; align-self: flex-start; }
+.gs-post-kind + .gs-post-menu { margin-left: 0; }
+.gs-post-menu summary { list-style: none; cursor: pointer; padding: 6px; color: #66756d; }
+.gs-post-menu summary::-webkit-details-marker { display: none; }
+.gs-post-menu-pop { position: absolute; z-index: 3; top: 28px; right: 0; width: 150px; padding: 5px; background: #fff; border: 1px solid #e3eae5; border-radius: 10px; box-shadow: 0 8px 25px #102c1d1c; }
+.gs-post-menu-pop button { width: 100%; text-align: left; border: 0; background: transparent; padding: 9px; border-radius: 7px; color: #35463d; cursor: pointer; }
+.gs-post-menu-pop button:hover { background: #f2f7f4; }
+.gs-post-menu-pop .danger { color: #ad3c37; }
+.gs-post-copy { padding: 14px 19px 8px; }
+.gs-post-copy h2 { margin: 0 0 8px; font-size: 18px; }
+.gs-post-copy p { margin: 0; white-space: pre-line; line-height: 1.65; font-size: 14px; color: #35443c; overflow-wrap: anywhere; }
+.gs-inline-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.gs-inline-tags button { border: 0; padding: 0; background: none; color: #25844f; font: inherit; font-size: 13px; cursor: pointer; }
+.gs-itinerary-chip { margin: 5px 18px 12px; padding: 9px 10px; display: flex; align-items: center; gap: 10px; text-decoration: none; border: 1px solid #cce4d3; border-radius: 11px; color: #2d6746; background: #f5fbf6; }
+.gs-itinerary-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; background: #e4f4e8; font-size: 18px; }
+.gs-itinerary-text { min-width: 0; display: grid; gap: 4px; flex: 1; }
+.gs-itinerary-text strong { font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gs-itinerary-text small { color: #74847a; font-size: 11px; }
+.gs-outline-button { padding: 8px 10px; border: 1px solid #398b5e; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.gs-photo-grid { position: relative; padding: 0 18px 13px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: 170px; gap: 6px; }
+.gs-photo-grid.single-photo { grid-template-columns: 1fr; grid-auto-rows: minmax(230px, 380px); }
+.gs-photo-grid.two-photos { grid-auto-rows: 230px; }
+.gs-photo { min-width: 0; overflow: hidden; border-radius: 8px; background: #e8eee9; }
+.gs-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s ease; }
+.gs-photo:hover img { transform: scale(1.025); }
+.gs-more-photos { position: absolute; bottom: 13px; right: 18px; padding: 10px 14px; border-radius: 8px; color: #fff; background: #12251dc9; font-size: 18px; }
+.gs-reel-frame { width: min(430px, calc(100% - 36px)); max-height: 690px; aspect-ratio: 9/14; margin: 0 auto 14px; overflow: hidden; border-radius: 12px; background: #101b16; }
+.gs-reel-frame video { width: 100%; height: 100%; object-fit: contain; }
+.gs-post-counts { display: flex; align-items: center; gap: 14px; padding: 8px 19px 10px; color: #7a8981; font-size: 12px; }
+.gs-post-counts i { color: #e75c65; margin-right: 4px; }
+.gs-post-actions { display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #edf1ee; margin: 0 18px; padding: 4px 0; }
+.gs-post-actions button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; flex: 1; border-radius: 8px; font-size: 12px; font-weight: 650; }
+.gs-post-actions button.active { color: #248151; }
+.gs-post-actions i { font-size: 16px; }
+.gs-comments { margin: 0 18px; padding: 10px 0 14px; border-top: 1px solid #edf1ee; }
+.gs-comment { display: flex; gap: 9px; margin: 10px 0; }
+.gs-comment-content { flex: 1; min-width: 0; padding: 9px 12px; background: #f4f7f5; border-radius: 4px 12px 12px; }
+.gs-comment-content > strong, .gs-reply strong { color: #33453b; font-size: 12px; }
+.gs-comment-content p, .gs-reply p { margin: 4px 0 2px; color: #52635a; font-size: 13px; line-height: 1.5; }
+.gs-comment-controls { display: flex; gap: 12px; }
+.gs-comment-controls button { padding: 3px 0; color: #74847b; font-size: 11px; }
+.gs-comment-controls button.active { color: #218551; font-weight: 700; }
+.gs-reply { margin: 8px 0 0 12px; padding-left: 10px; border-left: 2px solid #d7e7dc; }
+.gs-comment-form, .gs-reply-form { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
+.gs-comment-form input, .gs-reply-form input { flex: 1; min-width: 0; height: 38px; padding: 0 13px; border: 1px solid #e5ebe7; border-radius: 22px; outline-color: #58a77a; background: #f8faf8; font: inherit; font-size: 12px; }
+.gs-comment-form > button, .gs-reply-form > button { width: 36px; height: 36px; border: 0; border-radius: 50%; color: #278550; background: #eef7f1; cursor: pointer; }
+.gs-community-aside { position: sticky; top: 92px; display: grid; gap: 16px; }
+.gs-aside-card { padding: 17px; }
+.gs-aside-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #edf1ee; }
+.gs-aside-head h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: #2c4537; font-size: 15px; }
+.gs-aside-head h2 i { color: #32875a; font-size: 17px; }
+.gs-aside-head h2 .gs-trophy { color: #edaa27; }
+.gs-aside-head h2 .gs-hash-icon { color: #348a60; }
+.gs-aside-head > span { color: #819087; font-size: 11px; white-space: nowrap; }
+.gs-challenge-image { width: 100%; height: 140px; object-fit: cover; border-radius: 10px; background: #eef3ef; }
+.gs-challenge-card h3 { margin: 12px 0 6px; color: #294437; font-size: 15px; }
+.gs-challenge-card p { margin: 0; color: #697971; font-size: 12px; line-height: 1.55; }
+.gs-challenge-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 11px 0 13px; color: #338454; font-size: 11px; font-weight: 650; }
+.gs-primary-button { min-height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 9px; color: #fff; background: #32885b; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.gs-primary-button:hover { background: #236c47; }
+.gs-primary-button:disabled { opacity: .72; cursor: default; }
+.gs-wide-button { width: 100%; }
+.gs-ranking-row { display: grid; grid-template-columns: 24px 34px minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid #f0f3f1; }
+.gs-ranking-row:last-of-type { border-bottom: 0; }
+.gs-rank { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #75827b; background: #eff2f0; font-size: 11px; font-weight: 750; }
+.gs-rank.rank-one { color: #fff; background: #e9a52c; }
+.gs-ranking-row > strong { overflow: hidden; color: #34463b; font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.gs-ranking-row > b { color: #25814d; font-size: 11px; white-space: nowrap; }
+.gs-hashtag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.gs-hashtag-list button { border: 0; border-radius: 20px; padding: 8px 10px; color: #327f50; background: #edf6ef; font: inherit; font-size: 11px; cursor: pointer; }
+.gs-hashtag-list button:hover { background: #dceee1; }
+.gs-hashtag-list small { margin-left: 3px; color: #7b9281; }
+.gs-aside-empty { margin: 5px 0 0; color: #839087; font-size: 12px; line-height: 1.5; }
+.gs-empty-state, .gs-feed-loading { padding: 38px 20px; display: grid; justify-items: center; gap: 9px; border: 1px dashed #d5e1d9; border-radius: 15px; background: #fff; color: #77857c; text-align: center; }
+.gs-empty-state > i { color: #52a176; font-size: 28px; }
+.gs-empty-state strong { color: #3b5044; font-size: 15px; }
+.gs-empty-state span { max-width: 390px; font-size: 12px; line-height: 1.5; }
+.gs-empty-state .gs-primary-button { margin-top: 5px; }
+.gs-feed-loading { display: flex; justify-content: center; align-items: center; padding: 18px; border-style: solid; }
+.gs-load-more { width: 100%; min-height: 42px; margin-bottom: 20px; border: 1px solid #dce8df; border-radius: 10px; color: #357951; background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.gs-load-more:hover { background: #f0f8f2; }
+.gs-spinner { width: 15px; height: 15px; display: inline-block; border: 2px solid #d5e4d9; border-top-color: #32885b; border-radius: 50%; animation: gs-spin .7s linear infinite; }
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+.gs-modal-backdrop { position: fixed; z-index: 2500; inset: 0; padding: 20px; display: grid; place-items: center; background: #10221875; }
+.gs-composer-modal { width: min(600px, 100%); max-height: min(90vh, 820px); overflow: auto; border-radius: 17px; background: #fff; box-shadow: 0 24px 80px #112c1d35; }
+.gs-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid #edf1ee; }
+.gs-modal-head h2 { margin: 0; color: #2d4236; font-size: 18px; }
+.gs-modal-head button { width: 34px; height: 34px; border: 0; border-radius: 50%; color: #65736b; background: #f1f4f2; cursor: pointer; }
+.gs-composer-modal form { padding: 17px 20px 20px; }
+.gs-modal-author { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.gs-modal-author > div:last-child { display: grid; gap: 3px; }
+.gs-modal-author strong { font-size: 13px; }
+.gs-modal-author small { color: #7b8981; font-size: 11px; }
+.gs-composer-modal textarea { width: 100%; min-height: 130px; resize: vertical; border: 0; outline: 0; color: #2d3b33; font: inherit; font-size: 15px; line-height: 1.55; }
+.gs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+.gs-form-row label { min-width: 0; height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #e6ece8; border-radius: 9px; color: #36865b; }
+.gs-form-row input { width: 100%; min-width: 0; border: 0; outline: 0; font: inherit; font-size: 12px; }
+.gs-itinerary-select { display: grid; gap: 7px; margin-top: 12px; color: #53645a; font-size: 12px; font-weight: 650; }
+.gs-itinerary-select select { width: 100%; height: 40px; padding: 0 11px; border: 1px solid #e2eae4; border-radius: 9px; background: #fff; font: inherit; font-size: 12px; }
+.gs-itinerary-select small { color: #87928b; font-weight: 400; }
+.gs-upload-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: 45px; margin-top: 13px; padding: 9px 11px; border: 1px solid #e5ece7; border-radius: 10px; }
+.gs-upload-button { position: relative; padding: 8px 10px; display: inline-flex; align-items: center; gap: 7px; border-radius: 8px; color: #318153; background: #edf7f0; font-size: 12px; font-weight: 700; cursor: pointer; }
+.gs-upload-button input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.gs-challenge-tag { color: #328052; font-size: 11px; }
+.gs-draft-media { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.gs-draft-media > div { position: relative; width: 88px; height: 76px; overflow: hidden; border-radius: 8px; }
+.gs-draft-media img { width: 100%; height: 100%; object-fit: cover; }
+.gs-draft-media button { position: absolute; top: 4px; right: 4px; width: 23px; height: 23px; border: 0; border-radius: 50%; color: #fff; background: #16251dcc; cursor: pointer; }
+.gs-draft-video { width: min(220px, 100%); max-height: 260px; margin-top: 12px; border-radius: 10px; background: #111; }
+.gs-form-error { margin: 12px 0 0; color: #bb3e3b; font-size: 12px; }
+.gs-modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 17px; padding-top: 14px; border-top: 1px solid #edf1ee; }
+.gs-cancel-button { min-height: 40px; padding: 0 15px; border: 1px solid #dde5e0; border-radius: 9px; color: #56665d; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+
+@media (max-width: 980px) {
+  .gs-community-grid { grid-template-columns: minmax(0,1fr); max-width: 760px; }
+  .gs-community-aside { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gs-challenge-card { grid-row: span 2; }
+}
+@media (max-width: 640px) {
+  .gs-community { padding: 104px 10px 48px; }
+  .gs-community-grid { gap: 13px; }
+  .gs-composer-launch { padding: 13px; gap: 9px; grid-template-columns: 42px minmax(0,1fr); }
+  .gs-avatar-large { width: 42px; height: 42px; flex-basis: 42px; }
+  .gs-composer-prompt { min-height: 42px; padding: 0 12px; font-size: 12px; }
+  .gs-composer-actions { overflow-x: auto; gap: 3px; }
+  .gs-composer-actions button { padding: 8px 9px; font-size: 11px; white-space: nowrap; }
+  .gs-composer-actions .gs-post-submit { padding: 9px 11px; }
+  .gs-feed-tools { align-items: stretch; flex-direction: column-reverse; }
+  .gs-feed-search { width: auto; min-width: 0; }
+  .gs-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .gs-tabs button { padding: 9px 6px; font-size: 11px; }
+  .gs-post-head { padding: 13px 13px 0; gap: 8px; }
+  .gs-post-copy { padding: 12px 14px 8px; }
+  .gs-post-copy p { font-size: 13px; }
+  .gs-post-byline strong { font-size: 12px; }
+  .gs-post-byline span { font-size: 10px; }
+  .gs-post-kind { padding: 5px 7px; font-size: 10px; }
+  .gs-itinerary-chip { margin: 4px 12px 10px; gap: 7px; }
+  .gs-itinerary-text strong { font-size: 10px; }
+  .gs-outline-button { max-width: 102px; padding: 7px; font-size: 10px; white-space: normal; }
+  .gs-photo-grid { padding: 0 12px 10px; grid-auto-rows: 122px; gap: 4px; }
+  .gs-photo-grid.single-photo { grid-auto-rows: 230px; }
+  .gs-photo-grid.two-photos { grid-auto-rows: 160px; }
+  .gs-more-photos { right: 12px; bottom: 10px; }
+  .gs-post-counts { padding: 6px 13px 8px; }
+  .gs-post-actions { margin: 0 9px; }
+  .gs-post-actions button { gap: 4px; font-size: 10px; }
+  .gs-post-actions i { font-size: 14px; }
+  .gs-comments { margin: 0 12px; }
+  .gs-community-aside { grid-template-columns: 1fr; gap: 12px; }
+  .gs-challenge-card { grid-row: auto; }
+  .gs-challenge-image { height: 155px; }
+  .gs-modal-backdrop { padding: 8px; }
+  .gs-composer-modal { max-height: 94vh; border-radius: 14px; }
+  .gs-modal-head { padding: 13px 15px; }
+  .gs-modal-head h2 { font-size: 15px; }
+  .gs-composer-modal form { padding: 14px; }
+  .gs-form-row { grid-template-columns: 1fr; }
+}

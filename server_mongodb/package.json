@@ -23,7 +23,8 @@
     "dev": "node --watch index.js",
     "seed": "node ../backend/scripts/seed_mongo.js",
     "seed:public": "node scripts/import_public_catalog_seed.js",
-    "test": "npm --prefix ../backend test"
+    "test": "npm --prefix ../backend test",
+    "seed:community": "node scripts/seed-community-demo.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

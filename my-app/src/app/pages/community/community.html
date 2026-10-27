@@ -1,589 +1,159 @@
-<main class="main-viewport community-viewport">
-  <div class="community-layout">
-    <!-- Left Sidebar: shortcuts & user card -->
-    <aside class="fb-left-sidebar">
-      <div class="fb-user-card" *ngIf="currentUser">
-        <div class="fb-user-avatar">
-          <img *ngIf="currentUser.avatarUrl" [src]="currentUser.avatarUrl" alt="Avatar" class="avatar-img">
-          <span *ngIf="!currentUser.avatarUrl">{{ getFirstLetter(currentUser.fullname) }}</span>
+<main class="gs-community">
+  <div class="gs-community-grid">
+    <section class="gs-feed" aria-label="Bảng tin cộng đồng">
+      <div class="gs-composer-launch" role="button" tabindex="0" (click)="openComposer('post')" (keydown.enter)="openComposer('post')">
+        <div class="gs-avatar gs-avatar-large">
+          <img *ngIf="currentUser && avatarIsUrl(currentUser.avatarUrl || '')" [src]="mediaUrl(currentUser.avatarUrl)" alt="">
+          <span *ngIf="!currentUser || !avatarIsUrl(currentUser.avatarUrl || '')">{{ firstLetter(currentUser?.fullname || 'GreenSteps') }}</span>
         </div>
-        <div class="fb-user-meta">
-          <h4>{{ currentUser.fullname }}</h4>
-          <span class="badge-green-member"><i class="bi bi-shield-check"></i> Thành viên xanh</span>
-        </div>
-      </div>
-      <div class="fb-user-card anonymous" *ngIf="!currentUser">
-        <div class="fb-user-avatar"><i class="bi bi-person-fill"></i></div>
-        <div class="fb-user-meta">
-          <h4>Khách du lịch</h4>
-          <span class="badge-anonymous">Đăng nhập để chia sẻ</span>
+        <div class="gs-composer-prompt">Chia sẻ trải nghiệm chuyến đi của bạn...</div>
+        <div class="gs-composer-actions">
+          <button type="button" (click)="$event.stopPropagation(); openComposer('post')"><i class="bi bi-images"></i> Hình ảnh</button>
+          <button type="button" (click)="$event.stopPropagation(); openComposer('post')"><i class="bi bi-map"></i> Gắn lịch trình</button>
+          <button type="button" (click)="$event.stopPropagation(); openComposer('reel')"><i class="bi bi-camera-reels"></i> Thước phim</button>
+          <button type="button" class="gs-post-submit" (click)="$event.stopPropagation(); openComposer('post')"><i class="bi bi-send-fill"></i> Đăng bài</button>
         </div>
       </div>
 
-      <nav class="fb-nav-links">
-        <a class="nav-link-item active" style="cursor: pointer;"><i class="bi bi-newspaper" style="color: #0E9F6E;"></i> Bản tin xanh</a>
-        <a class="nav-link-item" style="cursor: pointer;" (click)="showCommunityFeature('Thách thức xanh', 'Tham gia các thử thách như trồng cây, dọn rác bãi biển hoặc sử dụng bình nước cá nhân để tích lũy thêm 500 điểm xanh vào ví thưởng!')">
-          <i class="bi bi-trophy-fill" style="color: #F59E0B;"></i> Thách thức tuần
-          <span style="margin-left: auto; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; background-color: #F3F4F6; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Sắp ra mắt</span>
-        </a>
-        <a class="nav-link-item" style="cursor: pointer;" (click)="showCommunityFeature('Xếp hạng Carbon', 'Bảng vinh danh các cá nhân và tập thể đã cắt giảm lượng CO₂ phát thải nhiều nhất trong tháng qua trên hệ thống!')">
-          <i class="bi bi-bar-chart-line-fill" style="color: #3B82F6;"></i> Xếp hạng Carbon
-          <span style="margin-left: auto; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; background-color: #F3F4F6; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Sắp ra mắt</span>
-        </a>
-        <a class="nav-link-item" style="cursor: pointer;" (click)="showCommunityFeature('Nhóm tình nguyện', 'Nơi hội tụ các câu lạc bộ vì môi trường, cùng nhau lên kế hoạch thực hiện các hoạt động bảo vệ hệ sinh thái địa phương.')">
-          <i class="bi bi-people-fill" style="color: #8B5CF6;"></i> Nhóm tình nguyện
-          <span style="margin-left: auto; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; background-color: #F3F4F6; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Sắp ra mắt</span>
-        </a>
-        <a class="nav-link-item" style="cursor: pointer;" (click)="showCommunityFeature('Sự kiện xanh', 'Theo dõi và đăng ký tham gia các chiến dịch trồng rừng bản địa, dọn sạch đại dương và nâng cao nhận thức sắp diễn ra quanh bạn!')">
-          <i class="bi bi-calendar2-event-fill" style="color: #EC4899;"></i> Sự kiện xanh
-          <span style="margin-left: auto; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; background-color: #F3F4F6; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Sắp ra mắt</span>
-        </a>
-      </nav>
-
-      <div class="fb-sidebar-divider"></div>
-
-      <div class="fb-shortcuts-section">
-        <h3>Điểm đến nổi bật</h3>
-        <a class="shortcut-item-link" routerLink="/tours" [queryParams]="{dest: 'Đà Lạt'}"><i class="bi bi-pin-map-fill text-red-500" style="color: #EF4444;"></i> Đà Lạt mộng mơ</a>
-        <a class="shortcut-item-link" routerLink="/tours" [queryParams]="{dest: 'Phú Yên'}"><i class="bi bi-pin-map-fill text-red-500" style="color: #EF4444;"></i> Phú Yên hoang sơ</a>
-        <a class="shortcut-item-link" routerLink="/tours" [queryParams]="{dest: 'Đà Nẵng'}"><i class="bi bi-pin-map-fill text-red-500" style="color: #EF4444;"></i> Đà Nẵng - Hội An</a>
+      <div class="gs-feed-tools">
+        <nav class="gs-tabs" aria-label="Lọc bảng tin">
+          <button type="button" [class.active]="activeTab === 'all'" (click)="changeTab('all')">Tất cả</button>
+          <button type="button" [class.active]="activeTab === 'reel'" (click)="changeTab('reel')"><i class="bi bi-play-btn"></i> Thước phim</button>
+          <button type="button" [class.active]="activeTab === 'question'" (click)="changeTab('question')"><i class="bi bi-patch-question"></i> Hỏi đáp</button>
+        </nav>
+        <label class="gs-feed-search"><i class="bi bi-search"></i><input [(ngModel)]="query" (ngModelChange)="searchChanged()" [placeholder]="activeTab === 'question' ? 'Tìm câu hỏi hoặc địa điểm...' : 'Tìm trong cộng đồng...'" aria-label="Tìm bài viết"></label>
       </div>
+
+      <div class="gs-feed-loading" *ngIf="loading"><span class="gs-spinner"></span> Đang tải bảng tin...</div>
+      <div class="gs-empty-state" *ngIf="!loading && posts.length === 0">
+        <i class="bi bi-compass"></i>
+        <strong>{{ activeTab === 'question' ? 'Chưa có câu hỏi phù hợp' : activeTab === 'reel' ? 'Chưa có thước phim nào' : 'Bảng tin đang chờ bài chia sẻ đầu tiên' }}</strong>
+        <span>Đăng chia sẻ thật của bạn để bắt đầu kết nối với cộng đồng.</span>
+        <button type="button" class="gs-primary-button" (click)="openComposer(activeTab === 'question' ? 'question' : activeTab === 'reel' ? 'reel' : 'post')">Tạo bài viết</button>
+      </div>
+
+      <article class="gs-post-card" *ngFor="let post of posts" [id]="'post-' + post.id">
+        <header class="gs-post-head">
+          <div class="gs-avatar">
+            <img *ngIf="avatarIsUrl(post.avatar)" [src]="mediaUrl(post.avatar)" alt="">
+            <span *ngIf="!avatarIsUrl(post.avatar)">{{ firstLetter(post.author) }}</span>
+          </div>
+          <div class="gs-post-byline">
+            <strong>{{ post.author }}</strong>
+            <span><i class="bi bi-geo-alt-fill"></i> {{ post.location || post.dest || 'Việt Nam' }} <b>·</b> {{ getTimeLabel(post.time) }}</span>
+          </div>
+          <span class="gs-post-kind" *ngIf="post.postType === 'question'"><i class="bi bi-patch-question-fill"></i> Hỏi đáp</span>
+          <span class="gs-post-kind gs-reel-kind" *ngIf="post.postType === 'reel'"><i class="bi bi-play-fill"></i> Thước phim</span>
+          <details class="gs-post-menu" *ngIf="post.authorId === userId">
+            <summary aria-label="Tùy chọn bài viết"><i class="bi bi-three-dots"></i></summary>
+            <div class="gs-post-menu-pop"><button type="button" (click)="editPost(post)"><i class="bi bi-pencil"></i> Chỉnh sửa</button><button type="button" class="danger" (click)="deletePost(post)"><i class="bi bi-trash"></i> Xóa bài</button></div>
+          </details>
+        </header>
+
+        <div class="gs-post-copy">
+          <h2 *ngIf="post.postType === 'question' && post.tripName">{{ post.tripName }}</h2>
+          <p>{{ post.text }}</p>
+          <div class="gs-inline-tags" *ngIf="post.hashtags?.length">
+            <button type="button" *ngFor="let tag of post.hashtags" (click)="hashtagClick(tag)">#{{ tag }}</button>
+          </div>
+        </div>
+
+        <a class="gs-itinerary-chip" *ngIf="post.itinerary_id" href="javascript:void(0)" (click)="saveItinerary(post, $event)">
+          <span class="gs-itinerary-icon"><i class="bi bi-map-fill"></i></span>
+          <span class="gs-itinerary-text"><strong>Chia sẻ lịch trình: {{ post.tripName || post.dest }}</strong><small><i class="bi bi-clock"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small></span>
+          <span class="gs-outline-button"><i class="bi bi-bookmark-plus"></i> Lưu lịch trình</span>
+        </a>
+
+        <div class="gs-reel-frame" *ngIf="post.postType === 'reel' && post.videoUrl">
+          <video [src]="mediaUrl(post.videoUrl)" controls playsinline preload="metadata" [attr.aria-label]="post.tripName || 'Video du lịch'">Trình duyệt không hỗ trợ video.</video>
+        </div>
+
+        <div class="gs-photo-grid" *ngIf="post.images?.length && post.postType !== 'reel'" [class.single-photo]="post.images?.length === 1" [class.two-photos]="post.images?.length === 2">
+          <a *ngFor="let image of post.images | slice:0:4" [href]="mediaUrl(image)" target="_blank" rel="noopener" class="gs-photo"><img [src]="mediaUrl(image)" [alt]="post.tripName || 'Ảnh chia sẻ cộng đồng'" loading="lazy"></a>
+          <span class="gs-more-photos" *ngIf="(post.images?.length || 0) > 4">+{{ (post.images?.length || 0) - 4 }}</span>
+        </div>
+
+        <div class="gs-post-counts"><span><i class="bi bi-heart-fill"></i> {{ post.likes || 0 }}</span><span><i class="bi bi-chat"></i> {{ post.comments || 0 }} bình luận</span><span *ngIf="post.shares">{{ post.shares }} chia sẻ</span></div>
+        <div class="gs-post-actions">
+          <button type="button" [class.active]="isLiked(post)" (click)="likePost(post)"><i class="bi" [class.bi-heart]="!isLiked(post)" [class.bi-heart-fill]="isLiked(post)"></i> Thích</button>
+          <button type="button" (click)="toggleComments(post)"><i class="bi bi-chat"></i> {{ post.postType === 'question' ? 'Trả lời' : 'Bình luận' }}</button>
+          <button type="button" [class.active]="post.isSaved" (click)="toggleSave(post)"><i class="bi" [class.bi-bookmark]="!post.isSaved" [class.bi-bookmark-fill]="post.isSaved"></i> {{ post.isSaved ? 'Đã lưu' : 'Lưu' }}</button>
+          <button type="button" (click)="sharePost(post)"><i class="bi bi-share"></i> Chia sẻ</button>
+        </div>
+
+        <section class="gs-comments" *ngIf="commentsOpen.has(post.id)">
+          <div class="gs-feed-loading gs-comments-loading" *ngIf="commentsLoading.has(post.id)"><span class="gs-spinner"></span> Đang tải...</div>
+          <ng-container *ngIf="!commentsLoading.has(post.id)">
+            <div class="gs-comment" *ngFor="let comment of comments[post.id] || []">
+              <div class="gs-avatar gs-avatar-small"><span>{{ firstLetter(comment.user?.fullname) }}</span></div>
+              <div class="gs-comment-content"><strong>{{ comment.user?.fullname }}</strong><p>{{ comment.text }}</p>
+                <div class="gs-comment-controls">
+                  <button type="button" *ngIf="post.postType === 'question'" [class.active]="comment.isHelpful" (click)="markHelpful(comment, post.id)"><i class="bi bi-check2-circle"></i> Hữu ích · {{ comment.helpfulCount || 0 }}</button>
+                  <button type="button" (click)="toggleReply(comment.id)">Trả lời</button>
+                </div>
+                <form class="gs-reply-form" *ngIf="replyTo[comment.id]" (submit)="submitComment(post, comment.id); $event.preventDefault()"><input [(ngModel)]="replyDrafts[comment.id]" name="reply-{{comment.id}}" placeholder="Viết câu trả lời..." maxlength="2000"><button type="submit" aria-label="Gửi trả lời"><i class="bi bi-send-fill"></i></button></form>
+                <div class="gs-reply" *ngFor="let reply of comment.replies"><strong>{{ reply.user?.fullname }}</strong><p>{{ reply.text }}</p></div>
+              </div>
+            </div>
+            <form class="gs-comment-form" (submit)="submitComment(post); $event.preventDefault()"><div class="gs-avatar gs-avatar-small"><span>{{ firstLetter(currentUser?.fullname || 'G') }}</span></div><input [(ngModel)]="commentDrafts[post.id]" name="comment-{{post.id}}" [placeholder]="post.postType === 'question' ? 'Chia sẻ câu trả lời hữu ích...' : 'Viết bình luận...'" maxlength="2000"><button type="submit" aria-label="Gửi bình luận"><i class="bi bi-send-fill"></i></button></form>
+          </ng-container>
+        </section>
+      </article>
+      <button type="button" class="gs-load-more" *ngIf="!loading && hasMore && posts.length > 0" (click)="loadMore()">{{ loadingMore ? 'Đang tải...' : 'Xem thêm bài viết' }} <i class="bi bi-arrow-down"></i></button>
+    </section>
+
+    <aside class="gs-community-aside" aria-label="Tiện ích cộng đồng">
+      <section class="gs-aside-card gs-challenge-card" *ngIf="challenge">
+        <header class="gs-aside-head"><h2><i class="bi bi-leaf-fill"></i> Thử thách xanh tuần này</h2><span>{{ challenge.participantCount || 0 }} tham gia</span></header>
+        <img class="gs-challenge-image" [src]="challenge.image" [alt]="challenge.title" loading="lazy">
+        <h3>{{ challenge.title }}</h3>
+        <p>{{ challenge.description }}</p>
+        <div class="gs-challenge-meta"><span>#{{ challenge.hashtag }}</span><span><i class="bi bi-stars"></i> +{{ challenge.points }} điểm xanh</span></div>
+        <button type="button" class="gs-primary-button gs-wide-button" [disabled]="challenge.joined" (click)="openComposer('post', true)">{{ challenge.joined ? 'Đã tham gia tuần này' : 'Tham gia thử thách' }} <i class="bi" [class.bi-arrow-right]="!challenge.joined" [class.bi-check2]="challenge.joined"></i></button>
+      </section>
+
+      <section class="gs-aside-card">
+        <header class="gs-aside-head"><h2><i class="bi bi-trophy-fill gs-trophy"></i> Bảng xếp hạng xanh</h2><span>Top {{ leaderboard.length }}</span></header>
+        <div class="gs-ranking-row" *ngFor="let member of leaderboard; let i = index">
+          <span class="gs-rank" [class.rank-one]="i === 0">{{ i + 1 }}</span>
+          <div class="gs-avatar gs-avatar-small"><img *ngIf="avatarIsUrl(member.avatar)" [src]="mediaUrl(member.avatar)" alt=""><span *ngIf="!avatarIsUrl(member.avatar)">{{ firstLetter(member.name) }}</span></div>
+          <strong>{{ member.name }}</strong><b>{{ member.points | number }} điểm</b>
+        </div>
+        <p class="gs-aside-empty" *ngIf="leaderboard.length === 0">Chưa có thành viên tích lũy điểm xanh.</p>
+      </section>
+
+      <section class="gs-aside-card">
+        <header class="gs-aside-head"><h2><i class="bi bi-hash gs-hash-icon"></i> Hashtag nổi bật</h2><span>{{ trendingHashtags.length }} thẻ</span></header>
+        <div class="gs-hashtag-list" *ngIf="trendingHashtags.length">
+          <button type="button" *ngFor="let tag of trendingHashtags" (click)="hashtagClick(tag.tag)">#{{ tag.tag }} <small>{{ tag.count }}</small></button>
+        </div>
+        <p class="gs-aside-empty" *ngIf="trendingHashtags.length === 0">Hashtag sẽ xuất hiện khi thành viên chia sẻ bài viết.</p>
+      </section>
     </aside>
-
-    <!-- Main Feed (Center) -->
-    <div class="feed-col fb-main-feed">
-      <!-- Facebook Composer Card -->
-      <div class="create-post-card fb-composer-card">
-        <div class="composer-top-row">
-          <div class="post-author-avatar">
-            <img *ngIf="isAvatarUrl(currentUser?.avatarUrl)" [src]="currentUser?.avatarUrl" alt="Avatar" class="avatar-img">
-            <span *ngIf="!isAvatarUrl(currentUser?.avatarUrl)">{{ getFirstLetter(currentUser ? currentUser.fullname : 'Khách') }}</span>
-          </div>
-          <button type="button" class="composer-input-trigger" (click)="openComposer()">
-            {{ currentUser ? currentUser.fullname + ' ơi, bạn đang nghĩ gì thế?' : 'Bạn đang nghĩ gì thế?' }}
-          </button>
-        </div>
-
-        <div class="composer-bottom-actions">
-          <button type="button" class="action-btn" (click)="openComposer()"><i class="bi bi-image text-emerald-500" style="color: #10B981;"></i> Ảnh/Video</button>
-          <button type="button" class="action-btn" (click)="openComposer()"><i class="bi bi-geo-alt-fill text-red-500" style="color: #EF4444;"></i> Check-in</button>
-          <button type="button" class="action-btn" (click)="openComposer()"><i class="bi bi-emoji-smile-fill text-yellow-500" style="color: #F59E0B;"></i> Đánh giá sao</button>
-        </div>
-      </div>
-
-      <!-- Facebook-Style Composer Modal -->
-      <div class="composer-modal-overlay" *ngIf="showPostDetails">
-        <div class="composer-modal-card">
-          <div class="modal-header">
-            <h3>Tạo bài viết</h3>
-            <button type="button" class="btn-close-modal" (click)="showPostDetails = false"><i class="bi bi-x-lg"></i></button>
-          </div>
-
-          <div class="modal-body-content">
-            <!-- Author info row -->
-            <div class="modal-author-row">
-              <div class="post-author-avatar">
-                <img *ngIf="isAvatarUrl(currentUser?.avatarUrl)" [src]="currentUser?.avatarUrl" alt="Avatar" class="avatar-img">
-                <span *ngIf="!isAvatarUrl(currentUser?.avatarUrl)">{{ getFirstLetter(currentUser ? currentUser.fullname : 'Khách') }}</span>
-              </div>
-              <div class="modal-author-meta">
-                <h4>{{ currentUser ? currentUser.fullname : 'Khách du lịch' }}</h4>
-                <span class="privacy-badge"><i class="bi bi-globe-asia-australia"></i> Công khai</span>
-              </div>
-            </div>
-
-            <form (submit)="submitPost($event)">
-              <textarea 
-                [(ngModel)]="postText" 
-                name="postText" 
-                placeholder="Hãy chia sẻ trải nghiệm của bạn..."
-                required></textarea>
-
-              <!-- Star Rating Selection (Bắt buộc) -->
-              <div class="rating-stars-select" style="margin-bottom: 12px;">
-                <label style="font-weight: 700; font-size: 13px; color: var(--text-secondary);"><i class="bi bi-star-fill text-yellow-500" style="color: #F59E0B;"></i> Đánh giá của bạn *:</label>
-                <div class="stars-row">
-                  <i class="bi bi-star-fill star-icon" [class.active]="postRating >= 1" (click)="setRating(1)"></i>
-                  <i class="bi bi-star-fill star-icon" [class.active]="postRating >= 2" (click)="setRating(2)"></i>
-                  <i class="bi bi-star-fill star-icon" [class.active]="postRating >= 3" (click)="setRating(3)"></i>
-                  <i class="bi bi-star-fill star-icon" [class.active]="postRating >= 4" (click)="setRating(4)"></i>
-                  <i class="bi bi-star-fill star-icon" [class.active]="postRating >= 5" (click)="setRating(5)"></i>
-                </div>
-              </div>
-
-              <!-- Select Dest & Days Row (ALWAYS visible for clear metadata filtering) -->
-              <div class="post-controls-row" style="margin-bottom: 12px; display: flex; gap: 12px; background-color: #F0F2F5; padding: 12px; border-radius: 8px;">
-                <!-- Select Dest (Bắt buộc) -->
-                <div class="control-group" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                  <label style="font-weight: 700; font-size: 12px; color: var(--text-secondary);">
-                    <i class="bi bi-geo-alt-fill text-red-500" style="color: #EF4444;"></i> Điểm đến *:
-                  </label>
-                  <select [(ngModel)]="postDest" name="postDest" (change)="onDestinationChange()" required style="height: 36px; border-radius: 6px; border: 1px solid #E4E6EB; padding: 0 8px; outline: none; background: #ffffff; font-weight: 600; color: #1f2937;">
-                    <option value="Đà Lạt">Đà Lạt</option>
-                    <option value="Phú Yên">Phú Yên</option>
-                    <option value="Đà Nẵng - Hội An">Đà Nẵng - Hội An</option>
-                  </select>
-                </div>
-
-                <!-- Select Days (Khóa khi chọn lịch trình sẵn) -->
-                <div class="control-group" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                  <label style="font-weight: 700; font-size: 12px; color: var(--text-secondary);">
-                    <i class="bi bi-calendar-event text-blue-500" style="color: #3B82F6;"></i> Số ngày:
-                  </label>
-                  
-                  <!-- Option A: No itinerary attached -> Manual select -->
-                  <select *ngIf="!selectedItineraryId" [(ngModel)]="postDays" name="postDays" style="height: 36px; border-radius: 6px; border: 1px solid #E4E6EB; padding: 0 8px; outline: none; background: #ffffff; font-weight: 600; color: #1f2937;">
-                    <option [value]="0">Không có</option>
-                    <option [value]="1">1 ngày</option>
-                    <option [value]="2">2 ngày</option>
-                    <option [value]="3">3 ngày</option>
-                    <option [value]="4">4 ngày</option>
-                    <option [value]="5">5 ngày</option>
-                  </select>
-
-                  <!-- Option B: Itinerary attached -> Read-only display of itinerary days -->
-                  <div *ngIf="selectedItineraryId" style="height: 36px; border-radius: 6px; border: 1px dashed #A7F3D0; padding: 0 12px; background: #ECFDF5; color: #065F46; font-weight: 700; display: flex; align-items: center; font-size: 13px;">
-                    {{ getSelectedItineraryDays() }} ngày
-                  </div>
-                </div>
-              </div>
-
-              <!-- Select Itinerary to Share (Filtered by selected destination) -->
-              <div class="control-group" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; background-color: #ECFDF5; padding: 12px; border-radius: 8px; border: 1px solid #A7F3D0;">
-                <label style="font-weight: 700; font-size: 12px; color: #065F46;">
-                  <i class="bi bi-share-fill"></i> Đính kèm lịch trình của tôi (Tùy chọn):
-                </label>
-
-                <!-- Select dropdown if filtered list is not empty -->
-                <select [(ngModel)]="selectedItineraryId" name="selectedItineraryId" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid #A7F3D0; padding: 0 8px; outline: none; background: #ffffff; color: #065F46; font-weight: 600;">
-                  <option value="">-- Không đính kèm --</option>
-                  <option *ngFor="let iti of getFilteredUserItineraries()" [value]="iti.id">
-                    {{ iti.name }} ({{ iti.days }} ngày)
-                  </option>
-                </select>
-                
-                <!-- Notice if no itineraries match the destination -->
-                <p class="text-[11px] text-red-600 font-semibold m-0 mt-1" *ngIf="getFilteredUserItineraries().length === 0">
-                  <i class="bi bi-exclamation-triangle-fill"></i> Bạn chưa có lịch trình cho điểm đến này
-                </p>
-              </div>
-
-              <!-- Previews for selected image -->
-              <div *ngIf="postImage" class="modal-image-preview-box">
-                <img [src]="postImage">
-                <button (click)="postImage = ''" type="button" class="btn-remove-modal-preview"><i class="bi bi-x"></i></button>
-              </div>
-
-              <!-- Image Selection/Upload Field -->
-              <div class="composer-media-upload-section" style="border: 1px solid #E4E6EB; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                <label class="media-upload-label" style="font-weight: 700; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: block;">
-                  <i class="bi bi-image" style="color: #10B981;"></i> Thêm ảnh chuyến đi (Tùy chọn):
-                </label>
-                
-                <div style="display: flex; gap: 12px; align-items: center; width: 100%;">
-                  <!-- File input selector -->
-                  <label class="custom-file-upload">
-                    <i class="bi bi-cloud-arrow-up-fill" style="color: #0E9F6E; font-size: 14px;"></i> Tải ảnh từ máy
-                    <input type="file" (change)="onFileSelected($event)" accept="image/*" style="display: none;">
-                  </label>
-                  
-                  <!-- Or paste URL text option -->
-                  <input type="text" [(ngModel)]="postImage" name="postImage" placeholder="Hoặc dán URL ảnh tại đây..." class="url-input-box">
-                </div>
-
-                <!-- Upload progress indicator -->
-                <div *ngIf="isUploading" class="upload-loader" style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--primary-green);">
-                  <div class="spinner-small"></div>
-                  Đang tải ảnh lên...
-                </div>
-              </div>
-
-              <div class="modal-form-actions">
-                <button type="submit" class="btn-modal-post-submit" [disabled]="!postText.trim()">Đăng</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <!-- Skeleton Loading State -->
-      <div *ngIf="isPageLoading" class="posts-feed-container">
-        <div class="feed-post-card fb-post-card" style="padding: 16px; background: white; border-radius: 16px; margin-bottom: 16px;" *ngFor="let s of [1, 2, 3]">
-          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
-            <div class="skeleton skeleton-circle" style="width: 40px; height: 40px;"></div>
-            <div style="flex: 1;">
-              <div class="skeleton skeleton-text" style="width: 120px; height: 16px; margin-bottom: 8px;"></div>
-              <div class="skeleton skeleton-text" style="width: 80px; height: 12px;"></div>
-            </div>
-          </div>
-          <div class="skeleton skeleton-text" style="width: 90%; height: 14px; margin-bottom: 12px;"></div>
-          <div class="skeleton skeleton-text" style="width: 75%; height: 14px; margin-bottom: 16px;"></div>
-          <div class="skeleton" style="width: 100%; height: 240px; border-radius: 12px;"></div>
-        </div>
-      </div>
-
-      <!-- Feed Posts List -->
-      <div class="posts-feed-container" *ngIf="!isPageLoading">
-        <div class="feed-post-card fb-post-card" *ngFor="let post of posts" [id]="'post-card-' + post.id">
-
-          <div class="post-header">
-            <div class="post-author-avatar">
-              <img *ngIf="isAvatarUrl(post.avatar)" [src]="post.avatar" alt="Avatar" class="avatar-img">
-              <span *ngIf="!isAvatarUrl(post.avatar)">{{ getFirstLetter(post.author) }}</span>
-            </div>
-            <div class="post-author-info">
-              <h4>{{ post.author }}</h4>
-              <div class="post-meta-subline">
-                <span class="post-time">{{ post.time || 'Vừa xong' }}</span>
-                <span class="meta-dot">•</span>
-                <span class="post-dest-badge"><i class="bi bi-geo-alt-fill"></i> {{ post.dest }}</span>
-                <span class="meta-dot" *ngIf="post.days > 0">•</span>
-                <span class="post-days-badge" *ngIf="post.days > 0">{{ post.days }} ngày</span>
-              </div>
-            </div>
-            <div class="post-stars-rating" *ngIf="post.rating > 0" style="display: flex; align-items: center; gap: 4px;">
-              <i class="bi bi-star-fill" *ngFor="let s of [1,2,3,4,5]" [ngStyle]="{'color': s <= post.rating ? '#ffb300' : '#e0e0e0'}"></i>
-            </div>
-            
-            <!-- Options Dropdown (For post owner) -->
-            <div *ngIf="currentUser && post.authorId === (currentUser.id || currentUser._id)" 
-                 style="position: relative; margin-left: auto; align-self: center;">
-              <!-- 3-dots button -->
-              <button (click)="togglePostDropdown(post.id, $event)" 
-                      class="fb-more-options-btn"
-                      title="Tùy chọn bài viết"
-                      style="width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #65676B; transition: background-color 0.2s;">
-                <i class="bi bi-three-dots" style="font-size: 18px;"></i>
-              </button>
-
-              <!-- Dropdown content overlay -->
-              <div *ngIf="activeDropdownPostId === post.id" 
-                   class="fb-post-dropdown-menu"
-                   style="position: absolute; right: 0; top: 36px; z-index: 10; background: #ffffff; border: 1px solid #E4E6EB; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 140px; padding: 6px 0; display: flex; flex-direction: column;">
-                <button (click)="deletePost(post.id, $event)" 
-                        class="fb-dropdown-item-delete"
-                        style="width: 100%; border: none; background: transparent; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #DC2626; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s;">
-                  <i class="bi bi-trash" style="font-size: 14px;"></i> Xóa bài viết
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="post-body">
-            <p class="post-text-content">{{ post.text }}</p>
-            
-            <!-- Embedded Trip/Service Banner -->
-            <div class="post-trip-banner-pill" *ngIf="post.tripName" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-              <span class="trip-name-text"><i class="bi bi-leaf-fill"></i> {{ post.tripName }}</span>
-              
-              <!-- If it's a shared itinerary -->
-              <button *ngIf="post.itinerary_id" (click)="referenceItinerary(post.itinerary_id, $event)"
-                      class="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all border-0 cursor-pointer flex items-center gap-1 shadow-sm">
-                <i class="bi bi-share-fill"></i> Tham khảo lịch trình (Mã: {{ post.itinerary_id.substring(4, 12) }})
-              </button>
-
-              <!-- If it's a shared service -->
-              <button *ngIf="post.current_data?.serviceId" (click)="viewSharedService(post.current_data.serviceId, $event)"
-                      class="px-3 py-1 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] transition-all border-0 cursor-pointer flex items-center gap-1 shadow-sm">
-                <i class="bi bi-eye-fill"></i> Xem dịch vụ xanh
-              </button>
-            </div>
-
-            <!-- Post Image if available -->
-            <div class="post-media-container" *ngIf="post.image" (click)="openLightbox(post.image)" style="cursor: pointer;">
-              <img [src]="post.image" [alt]="post.tripName || 'Community Image'" class="post-image-embed">
-            </div>
-          </div>
-
-          <!-- Likes and Comments count status -->
-          <div class="fb-post-stats">
-            <span class="likes-count"><i class="bi bi-hand-thumbs-up-fill text-blue-500" style="color: #1877F2;"></i> {{ post.likes }} lượt thích</span>
-            <span class="comments-count" (click)="toggleComments(post)" style="cursor: pointer; user-select: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ post.comments }} bình luận</span>
-          </div>
-
-          <div class="fb-post-actions-divider"></div>
-
-          <div class="post-footer-actions fb-footer-actions">
-            <button class="post-action-btn fb-action-btn" (click)="handleLike(post)" [class.active-like]="likedPostsSet.has(post.id)">
-              <i class="bi" [ngClass]="likedPostsSet.has(post.id) ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"></i> Thích
-            </button>
-            <button class="post-action-btn fb-action-btn" (click)="toggleComments(post)">
-              <i class="bi bi-chat-text"></i> Bình luận
-            </button>
-          </div>
-
-          <!-- Comments dropdown container -->
-          <div class="comments-section-container fb-comments-section" *ngIf="expandedComments[post.id]">
-            
-            <!-- List of Comments -->
-            <div class="comments-list">
-              <div class="comment-item-row" *ngFor="let comment of postComments[post.id]">
-                <div class="comment-avatar">
-                  <img *ngIf="isAvatarUrl(comment.user?.avatar)" [src]="comment.user.avatar" alt="Avatar" class="avatar-img">
-                  <span *ngIf="!isAvatarUrl(comment.user?.avatar)">{{ getFirstLetter(comment.user?.fullname || 'U') }}</span>
-                </div>
-                
-                <div class="comment-block-wrapper">
-                  <div class="comment-content-card fb-speech-bubble">
-                    <strong>{{ comment.user?.fullname || 'Khách du lịch' }}</strong>
-                    <p>{{ comment.text }}</p>
-                    
-                    <!-- Embedded Comment Image -->
-                    <div class="comment-media-embed" *ngIf="comment.imageUrl">
-                      <img [src]="comment.imageUrl" alt="Comment image attachment">
-                    </div>
-                  </div>
-                  
-                  <div class="comment-actions-meta">
-                    <span class="comment-time">{{ comment.createdAt | date:'HH:mm dd/MM' }}</span>
-                    <button class="btn-reply-link" (click)="toggleReplyBox(comment.id)"><i class="bi bi-reply-fill"></i> Trả lời</button>
-                  </div>
-
-                  <!-- Nested Replies (Level 2) -->
-                  <div class="replies-list" *ngIf="comment.replies && comment.replies.length > 0">
-                    <div class="reply-item-row" *ngFor="let reply of comment.replies">
-                      <div class="reply-avatar">
-                        <img *ngIf="isAvatarUrl(reply.user?.avatar)" [src]="reply.user.avatar" alt="Avatar" class="avatar-img">
-                        <span *ngIf="!isAvatarUrl(reply.user?.avatar)">{{ getFirstLetter(reply.user?.fullname || 'U') }}</span>
-                      </div>
-                      
-                      <div class="reply-block-wrapper">
-                        <div class="reply-content-card fb-speech-bubble">
-                          <strong>{{ reply.user?.fullname || 'Khách du lịch' }}</strong>
-                          <p>{{ reply.text }}</p>
-                        </div>
-                        <div class="reply-actions-meta">
-                          <span class="reply-time">{{ reply.createdAt | date:'HH:mm dd/MM' }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Nested Reply Input box -->
-                  <div *ngIf="activeReplyTarget[comment.id]" class="nested-reply-input-box">
-                    <input 
-                      type="text" 
-                      [(ngModel)]="replyInputs[comment.id]" 
-                      placeholder="Viết phản hồi..." 
-                    (keyup.enter)="submitComment(post.id, comment.id)">
-                    <button (click)="submitComment(post.id, comment.id)"><i class="bi bi-send-fill"></i></button>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Option A: Loading state -->
-              <div *ngIf="isCommentLoading[post.id]" class="no-comments-placeholder" style="color: #65676B;">
-                <i class="bi bi-arrow-repeat" style="display: inline-block; animation: spin 1.5s infinite linear; font-size: 14px; margin-right: 4px;"></i> Đang tải bình luận...
-              </div>
-
-              <!-- Option B: Empty state (Only show when not loading and is loaded but empty) -->
-              <div *ngIf="!isCommentLoading[post.id] && postComments[post.id] && postComments[post.id].length === 0" class="no-comments-placeholder">
-                Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ!
-              </div>
-            </div>
-
-            <!-- Add Root Comment Input with Photo Upload -->
-            <div class="add-comment-row fb-add-comment-row">
-              <div class="comment-avatar-small">
-                <img *ngIf="isAvatarUrl(currentUser?.avatarUrl)" [src]="currentUser?.avatarUrl" alt="Avatar" class="avatar-img">
-                <span *ngIf="!isAvatarUrl(currentUser?.avatarUrl)">{{ getFirstLetter(currentUser ? currentUser.fullname : 'Khách') }}</span>
-              </div>
-              
-              <div class="comment-input-container">
-                <!-- Image attachment thumb preview -->
-                <div class="comment-image-draft-preview" *ngIf="commentImageDrafts[post.id]">
-                  <img [src]="commentImageDrafts[post.id]">
-                  <button type="button" class="btn-clear-comment-img" (click)="removeCommentImage(post.id)">&times;</button>
-                </div>
-
-                <div class="comment-input-main-line">
-                  <input 
-                    type="text" 
-                    [(ngModel)]="commentInputs[post.id]" 
-                    placeholder="Viết bình luận công khai..." 
-                    (keyup.enter)="submitComment(post.id)">
-                  
-                  <!-- Photo attachment button -->
-                  <label class="comment-photo-attach-btn">
-                    <i class="bi bi-camera-fill"></i>
-                    <input type="file" (change)="onCommentFileSelected($event, post.id)" accept="image/*" style="display: none;">
-                  </label>
-                  
-                  <button type="button" class="btn-comment-submit-arrow" (click)="submitComment(post.id)"><i class="bi bi-send-fill"></i></button>
-                </div>
-                
-                <!-- Comment upload loader -->
-                <div *ngIf="isCommentUploading[post.id]" class="comment-upload-loader">
-                  Đang tải ảnh bình luận lên...
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Infinite Scroll Loading Indicator -->
-        <div *ngIf="isLoadingMore" style="display: flex; align-items: center; justify-content: center; padding: 16px 0; gap: 8px; color: #6b7280; font-size: 14px;">
-          <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid #10b981; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
-          <span>Đang tải thêm bài viết...</span>
-        </div>
-        <div *ngIf="!hasMorePosts && posts.length > 0" style="text-align: center; padding: 24px 0; color: #9ca3af; font-size: 13px;">
-          Bạn đã xem hết bài viết trên Bản tin xanh rồi!
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Sidebar Widgets (Right) -->
-    <aside class="fb-right-sidebar">
-      <!-- Sustainable Tips Widget -->
-      <div class="community-widget tip-widget fb-widget">
-        <h3>Mẹo Du Lịch Xanh</h3>
-        <ul>
-          <li>
-            <div class="bullet-icon"><i class="bi bi-water"></i></div>
-            <p>Mang theo bình nước cá nhân để hạn chế tối đa chai nhựa dùng một lần.</p>
-          </li>
-          <li>
-            <div class="bullet-icon"><i class="bi bi-bicycle"></i></div>
-            <p>Ưu tiên đi bộ, thuê xe đạp hoặc xe máy điện VinFast khi di chuyển nội đô.</p>
-          </li>
-          <li>
-            <div class="bullet-icon"><i class="bi bi-house-door"></i></div>
-            <p>Lựa chọn nghỉ chân tại Homestay bản địa hoặc Eco-resort sử dụng năng lượng mặt trời.</p>
-          </li>
-          <li>
-            <div class="bullet-icon"><i class="bi bi-trash"></i></div>
-            <p>Luôn thu dọn rác thải sạch sẽ khi cắm trại hoang dã hoặc trekking đồi núi.</p>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Featured Partners Widget -->
-      <div class="community-widget partners-widget fb-widget">
-        <h3>Nhà Cung Cấp Nổi Bật</h3>
-        <div class="sidebar-partners-list">
-          <div class="partner-row-item">
-            <div class="partner-avatar"><i class="bi bi-building"></i></div>
-            <div class="partner-info">
-              <h5>Dahlia Hotel Dalat</h5>
-              <span>Khách sạn xanh tiêu chuẩn Co₂</span>
-            </div>
-          </div>
-          <div class="partner-row-item">
-            <div class="partner-avatar"><i class="bi bi-egg-fried"></i></div>
-            <div class="partner-info">
-              <h5>Lẩu gà Tao Ngộ</h5>
-              <span>Ẩm thực bản địa hữu cơ</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- Custom Premium Alert Dialog Modal (Center Screen) -->
-  <div class="custom-alert-overlay" *ngIf="alertVisible" style="z-index: 5100;">
-    <div class="custom-alert-card">
-      <div class="custom-alert-icon" [ngClass]="alertType">
-        <i class="bi" [class]="alertIcon"></i>
-      </div>
-      <h3>{{ alertTitle }}</h3>
-      <p>{{ alertMessage }}</p>
-      <div class="custom-alert-actions">
-        <button type="button" class="btn-alert-ok" (click)="closeAlert()">Đã hiểu</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Custom Premium Confirm Dialog Modal (Center Screen) -->
-  <div class="custom-alert-overlay" *ngIf="confirmVisible" style="z-index: 5000;">
-    <div class="custom-alert-card">
-      <div class="custom-alert-icon info">
-        <i class="bi bi-question-circle-fill text-blue-500" style="font-size: 2rem;"></i>
-      </div>
-      <h3>{{ confirmTitle }}</h3>
-      <p>{{ confirmMessage }}</p>
-      <div class="custom-alert-actions" style="display: flex; gap: 10px; justify-content: center;">
-        <button type="button" class="btn-alert-ok" style="background-color: #6b7280; border: 0;" (click)="closeConfirm(false)">Hủy</button>
-        <button type="button" class="btn-alert-ok" style="border: 0;" (click)="closeConfirm(true)">Xác nhận</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Fullscreen Lightbox Modal (Facebook-style Theater View) -->
-  <div class="lightbox-overlay" *ngIf="activeLightboxImage" (click)="closeLightbox()">
-    <button type="button" class="btn-close-lightbox" (click)="closeLightbox()">&times;</button>
-    <div class="lightbox-content" (click)="$event.stopPropagation()">
-      <img [src]="activeLightboxImage" alt="Full Image" class="lightbox-image">
-    </div>
-  </div>
-
-  <!-- Detailed Service Modal -->
-  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-all" *ngIf="isDetailsModalOpen && detailedService">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[85vh] text-left">
-          
-          <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-teal-50/50">
-              <div>
-                  <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <i class="bi bi-info-circle text-teal-600"></i>
-                      Chi tiết dịch vụ xanh
-                  </h3>
-              </div>
-              <button (click)="closeDetailsModal()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg border-none bg-transparent cursor-pointer transition-colors">&times;</button>
-          </div>
-          
-          <div class="p-6 overflow-y-auto space-y-6 text-sm text-gray-700">
-              <div class="h-[200px] rounded-xl overflow-hidden relative">
-                  <img [src]="getServiceImage(detailedService)" alt="Service Detail" class="w-full h-full object-cover">
-                  <div class="absolute bottom-3 left-3 bg-teal-600 text-white px-3 py-1 rounded-lg font-bold text-xs">
-                      {{ detailedService.type === 'stay' ? 'Lưu trú' : (detailedService.type === 'food' ? 'Ăn uống' : (detailedService.type === 'transport' ? 'Di chuyển' : (detailedService.type === 'tour' ? 'Tour' : 'Giải trí'))) }}
-                  </div>
-              </div>
-
-              <div>
-                  <h4 class="text-lg font-extrabold text-gray-900 mb-1">{{ detailedService.name }}</h4>
-                  <p class="text-xs text-gray-400 flex items-center gap-1"><i class="bi bi-geo-alt-fill text-teal-600"></i> {{ detailedService.destination }}{{ (detailedService.current_data?.address || detailedService.address) ? ' - ' + (detailedService.current_data?.address || detailedService.address) : '' }}</p>
-              </div>
-
-              <div class="grid grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
-                  <div>
-                      <span class="block text-xs text-gray-400 font-bold uppercase">Giá niêm yết</span>
-                      <strong class="text-teal-600 font-black text-sm">{{ detailedService.cost | number }}đ</strong>
-                  </div>
-                  <div>
-                      <span class="block text-xs text-gray-400 font-bold uppercase">CO₂ Tiết kiệm</span>
-                      <strong class="text-teal-600 font-black text-sm">{{ detailedService.carbon }} kg</strong>
-                  </div>
-                  <div>
-                      <span class="block text-xs text-gray-400 font-bold uppercase">Chỗ tối đa</span>
-                      <strong class="text-teal-600 font-black text-sm">{{ detailedService.max_capacity || 10 }} khách</strong>
-                  </div>
-              </div>
-
-              <div class="space-y-3.5">
-                  <div>
-                      <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch mở bán / hoạt động</span>
-                      <p class="text-gray-800 font-medium">{{ detailedService.current_data?.schedule || 'Tất cả các ngày trong tuần' }}</p>
-                  </div>
-                  
-                  <div>
-                      <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch trình & Hoạt động chi tiết</span>
-                      <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-teal-50/20 p-3 rounded-xl border border-teal-500/5">{{ detailedService.current_data?.itinerary || 'Tự do tham quan' }}</p>
-                  </div>
-
-                  <div>
-                      <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Chính sách hủy đơn & hoàn tiền</span>
-                      <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-red-50/20 p-3 rounded-xl border border-red-500/5">{{ detailedService.current_data?.policy || 'Theo quy định chung' }}</p>
-                  </div>
-              </div>
-          </div>
-          
-          <div class="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50">
-              <button type="button" (click)="closeDetailsModal()" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-xl border-none cursor-pointer transition-colors">
-                  Đóng cửa sổ
-              </button>
-          </div>
-      </div>
   </div>
 </main>
+
+<div class="gs-modal-backdrop" *ngIf="composerOpen" (click)="closeComposer()">
+  <section class="gs-composer-modal" role="dialog" aria-modal="true" aria-labelledby="gs-composer-title" (click)="$event.stopPropagation()">
+    <header class="gs-modal-head"><h2 id="gs-composer-title">{{ editTarget ? 'Chỉnh sửa bài viết' : composerType === 'question' ? 'Đặt câu hỏi du lịch' : composerType === 'reel' ? 'Đăng thước phim' : 'Chia sẻ với cộng đồng' }}</h2><button type="button" (click)="closeComposer()" aria-label="Đóng"><i class="bi bi-x-lg"></i></button></header>
+    <form (submit)="submitPost($event)">
+      <div class="gs-modal-author"><div class="gs-avatar"><span>{{ firstLetter(currentUser?.fullname || '') }}</span></div><div><strong>{{ currentUser?.fullname }}</strong><small>{{ composerType === 'question' ? 'Câu hỏi công khai' : 'Chia sẻ công khai' }}</small></div></div>
+      <textarea [(ngModel)]="draftText" name="draftText" maxlength="5000" [placeholder]="composerType === 'question' ? 'Bạn muốn hỏi cộng đồng điều gì?' : composerType === 'reel' ? 'Kể ngắn về video du lịch của bạn...' : 'Chia sẻ trải nghiệm chuyến đi của bạn...'" required></textarea>
+      <div class="gs-form-row"><label><i class="bi bi-geo-alt-fill"></i><input [(ngModel)]="draftLocation" name="location" placeholder="Check-in địa điểm" maxlength="160"></label><label><i class="bi bi-hash"></i><input [(ngModel)]="draftHashtags" name="hashtags" placeholder="#SongXanh #CheckinXanh"></label></div>
+      <label class="gs-itinerary-select" *ngIf="composerType !== 'question'">Gắn lịch trình cá nhân
+        <select [(ngModel)]="selectedItineraryId" name="itinerary"><option value="">Không gắn lịch trình</option><option *ngFor="let itinerary of itineraries" [value]="itinerary.id">{{ itinerary.name }} · {{ itinerary.destination }} · {{ itinerary.days }} ngày</option></select>
+        <small *ngIf="itineraries.length === 0">Tài khoản chưa có lịch trình để chia sẻ.</small>
+      </label>
+      <div class="gs-upload-row" *ngIf="composerType !== 'question'">
+        <label class="gs-upload-button" *ngIf="composerType === 'post'"><i class="bi bi-images"></i> Thêm ảnh<input type="file" accept="image/*" multiple (change)="selectImages($event)"></label>
+        <label class="gs-upload-button" *ngIf="composerType === 'reel'"><i class="bi bi-camera-reels"></i> Chọn video<input type="file" accept="video/mp4,video/webm,video/quicktime" (change)="selectVideo($event)"></label>
+        <span *ngIf="mediaUploading"><span class="gs-spinner"></span> Đang tải tệp...</span>
+        <span class="gs-challenge-tag" *ngIf="selectedChallengeId">Thử thách #{{ challenge?.hashtag }} · {{ challenge?.points }} điểm</span>
+      </div>
+      <div class="gs-draft-media" *ngIf="draftImages.length"><div *ngFor="let image of draftImages; let i = index"><img [src]="mediaUrl(image)" alt="Ảnh đính kèm"><button type="button" (click)="removeImage(i)" aria-label="Gỡ ảnh"><i class="bi bi-x"></i></button></div></div>
+      <video class="gs-draft-video" *ngIf="draftVideo" [src]="mediaUrl(draftVideo)" controls playsinline></video>
+      <p class="gs-form-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <footer class="gs-modal-actions"><button type="button" class="gs-cancel-button" (click)="closeComposer()">Hủy</button><button type="submit" class="gs-primary-button" [disabled]="submitting || mediaUploading">{{ submitting ? 'Đang đăng...' : editTarget ? 'Lưu thay đổi' : 'Đăng bài' }} <i class="bi bi-send-fill"></i></button></footer>
+    </form>
+  </section>
+</div>

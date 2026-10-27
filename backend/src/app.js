@@ -90,17 +90,29 @@ app.post('/api/upload-base64', (req, res) => {
       return res.json({ success: true, url: base64 });
     }
 
-    const mimeType = matches[1];
+    const mimeType = matches[1].toLowerCase();
+    const isVideo = type === 'video';
+    const allowedVideo = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
+    if (isVideo ? !allowedVideo.has(mimeType) : !mimeType.startsWith('image/')) {
+      return res.status(415).json({ success: false, message: isVideo ? 'Chỉ hỗ trợ video MP4, WebM hoặc MOV.' : 'Định dạng ảnh không được hỗ trợ.' });
+    }
+    const maxBytes = isVideo ? 22 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (Buffer.byteLength(matches[2], 'base64') > maxBytes) {
+      return res.status(413).json({ success: false, message: isVideo ? 'Video tối đa 22 MB.' : 'Ảnh tối đa 8 MB.' });
+    }
     const buffer = Buffer.from(matches[2], 'base64');
 
     // Deduce file extension
     let ext = 'png';
-    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+    if (mimeType.includes('quicktime')) ext = 'mov';
+    else if (mimeType.includes('webm')) ext = 'webm';
+    else if (mimeType.includes('mp4')) ext = 'mp4';
+    else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
     else if (mimeType.includes('gif')) ext = 'gif';
     else if (mimeType.includes('webp')) ext = 'webp';
 
     // Determine subfolder based on type
-    let subfolder = 'posts';
+    let subfolder = isVideo ? path.join('community', 'videos') : 'posts';
     if (type === 'avatar') subfolder = 'avatars';
     else if (type === 'service') subfolder = 'services';
     else if (type === 'post') subfolder = 'posts';
@@ -110,11 +122,11 @@ app.post('/api/upload-base64', (req, res) => {
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
-    const filename = `image_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    const filename = `community_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
     const filePath = path.join(dirPath, filename);
     fs.writeFileSync(filePath, buffer);
 
-    const relativeUrl = `/uploads/${subfolder}/${filename}`;
+    const relativeUrl = `/uploads/${subfolder.split(path.sep).join('/')}/${filename}`;
     res.json({ success: true, url: relativeUrl });
   } catch (err) {
     console.error('Base64 upload failed:', err);
