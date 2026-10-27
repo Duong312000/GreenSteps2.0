@@ -134,10 +134,10 @@ không loại bỏ outlier hoặc lỗi. Chưa đo tải đồng thời/Internet
 Trung vị câu 5 là thời gian **trả lỗi**, không phải thời gian tạo lịch trình thành
 công. Fast Path đã chứng minh không gọi Gemini (n8nMs=0, header path=fast).
 Chưa thể kết luận AI đạt mục tiêu tốc độ hoặc độ ổn định. Không có baseline đủ
-3 mẫu trước thay đổi để công bố tỷ lệ cải thiện. Raw samples gồm catalog/n8n/api
-timings và lỗi trong [performance-results.json](performance-results.json).
-Lần đo trước với backend Fast Path mới nhưng AI URL còn V2 được giữ riêng tại
-[performance-results-v2.json](performance-results-v2.json): AI timeout 35025.3 ms,
+3 mẫu trước thay đổi để công bố tỷ lệ cải thiện. Benchmark ghi raw samples gồm
+catalog/n8n/api timings và lỗi vào `performance-results.json`; đây là output local
+được bỏ qua bởi Git.
+Lần đo trước với backend Fast Path mới nhưng AI URL còn V2 ghi nhận AI timeout 35025.3 ms,
 hai lỗi upstream 6234.8/4245.6 ms. Đây không phải baseline trước khi sửa backend;
 không dùng hai lần đo này để tuyên bố V3 nhanh hơn khi AI đều chưa thành công.
 
@@ -184,8 +184,7 @@ build đạt, Aura E2E đạt, static/simulated V2 và V3 đạt.
 | integrations/n8n/build-performance-workflow.js | Tạo V3 riêng từ V2 |
 | integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json | Workflow mới để import |
 | integrations/n8n/tests/verify-performance.js | Kiểm tra V3 và giữ V2 |
-| integrations/n8n/performance-results.json | Kết quả đo thật |
-| integrations/n8n/performance-results-v2.json | Lưu phép đo URL V2 để đối chiếu |
+| integrations/n8n/performance-results*.json | Output benchmark local, không cần commit |
 | integrations/n8n/PERFORMANCE.md | Báo cáo, cấu hình, Publish, kiểm thử |
 | CHAT_WIDGET.md | Liên kết báo cáo và timeout mới |
 | integrations/n8n/SETUP.md | URL production và timeout hiện tại, dẫn tới báo cáo mới |

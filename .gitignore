@@ -13,6 +13,7 @@ node_modules/
 */.angular/
 dist/
 */dist/
+integrations/n8n/performance-results*.json
 .sass-cache/
 tmp/
 out-tsc/
