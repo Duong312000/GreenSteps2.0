@@ -1,0 +1,162 @@
+<section #panel id="greensteps-chat-panel" class="chat-panel" [class.is-open]="isChatOpen()"
+  [attr.aria-hidden]="!isChatOpen()" [attr.inert]="isChatOpen() ? null : ''" role="dialog" aria-modal="false"
+  aria-label="GreenSteps AI — Trợ lý du lịch" tabindex="-1">
+  <header class="chat-header">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><path d="M25 6C13 5 7 12 9 21c7 4 15-2 16-15Z"/><path d="M7 27c2-7 7-12 13-16"/></svg>
+    </div>
+    <div class="brand-copy">
+      <h1>GreenSteps AI</h1>
+      <p>Trợ lý AI du lịch</p>
+    </div>
+    <div class="header-actions">
+      <button id="greensteps-new-chat" type="button" class="icon-button" aria-label="Cuộc trò chuyện mới"
+        title="Cuộc trò chuyện mới" [disabled]="chat.isSending()" (click)="startNewChat()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button id="greensteps-chat-history" type="button" class="icon-button" aria-label="Lịch sử trò chuyện"
+        title="Lịch sử trò chuyện" [attr.aria-expanded]="historyOpen()" aria-controls="greensteps-chat-history-list"
+        [disabled]="chat.isSending()" (click)="toggleHistory()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5M12 7v5l3.5 2"/></svg>
+      </button>
+      <button id="greensteps-chat-close" type="button" class="icon-button close-button" aria-label="Đóng chat GreenSteps AI"
+        title="Đóng" (click)="closeChat()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div #transcript id="greensteps-chat-transcript" class="chat-transcript" role="log" aria-live="polite" aria-relevant="additions text">
+    @if (historyOpen()) {
+      <div id="greensteps-chat-history-list" class="history-menu" role="region" aria-label="Lịch sử trò chuyện">
+        <div class="history-heading"><strong>Cuộc trò chuyện gần đây</strong><button type="button" (click)="closeHistory()" aria-label="Đóng lịch sử">×</button></div>
+        @if (conversations().length) {
+          @for (conversation of conversations(); track trackConversation($index, conversation)) {
+            <button type="button" class="history-item" (click)="openConversation(conversation)">{{ conversation.title }}</button>
+          }
+        } @else {
+          <p class="history-empty">Chưa có cuộc trò chuyện đã lưu.</p>
+        }
+      </div>
+    } @else {
+    @if (chat.transcript().length === 0) {
+      <section class="welcome-state" aria-label="Chào mừng">
+        <div class="welcome-sparkle" aria-hidden="true">✦</div>
+        <p class="welcome-eyebrow">Xin chào, mình là</p>
+        <h2>GreenSteps AI</h2>
+        <p class="welcome-copy">Một chuyến đi đáng nhớ, một dấu chân xanh.</p>
+        <p class="welcome-hint">Bạn muốn khám phá nơi nào?</p>
+        <div class="welcome-prompts" aria-label="Gợi ý câu hỏi">
+          <button type="button" (click)="sendSuggestedQuestion('Gợi ý tour Đà Nẵng 3 ngày 2 đêm')">Gợi ý tour Đà Nẵng 3 ngày 2 đêm</button>
+          <button type="button" (click)="sendSuggestedQuestion('Lập lịch trình Đà Lạt 3 ngày 2 đêm')">Lập lịch trình Đà Lạt 3 ngày 2 đêm</button>
+          <button type="button" (click)="sendSuggestedQuestion('Tìm tour du lịch xanh tiết kiệm')">Tìm tour du lịch xanh tiết kiệm</button>
+        </div>
+      </section>
+    }
+
+    @for (message of chat.transcript(); track message.id) {
+      <article class="chat-message" [class.chat-message--user]="message.role === 'user'" [class.chat-message--assistant]="message.role === 'assistant'">
+        @if (message.role === 'assistant') { <div class="assistant-avatar" aria-hidden="true">✦</div> }
+        <div class="message-content">
+          <p class="message-sender">{{ message.role === 'assistant' ? 'GreenSteps AI' : 'Bạn' }}</p>
+          @if (message.result?.type === 'itinerary_proposal') {
+            <div class="message-bubble">{{ itineraryIntroduction(message.result?.itinerary, message.id) }}</div>
+          } @else {
+            <div class="message-bubble" [innerHTML]="renderMarkdown(message.content)"></div>
+          }
+          @if (message.role === 'assistant') {
+            @if (message.result; as result) {
+            @if (result.type === 'tour_recommendations') {
+              <section class="chat-structured-result planner-result" aria-label="Kết quả tour gợi ý">
+                @if (result.tours.length) {
+                  <div class="planner-tour-rail" aria-label="Tour được đề xuất">
+                    @for (tour of result.tours.slice(0, visibleToursFor(message.id, result)); track trackTour($index, tour)) {
+                      <gs-tour-card [tour]="tour"></gs-tour-card>
+                    }
+                  </div>
+                  @if (visibleToursFor(message.id, result) < result.tours.length || result.hasMoreTours || result.totalTours > result.tours.length) {
+                    <button type="button" class="planner-more" (click)="showMoreTours(result, message.id)">{{ visibleToursFor(message.id, result) < result.tours.length ? 'Xem thêm tour' : 'Xem tất cả tour tại ' + result.tours[0].destination }}</button>
+                  }
+                } @else {
+                  <div class="planner-empty-state">
+                    <span class="empty-icon" aria-hidden="true">⌕</span>
+                    <strong>{{ result.catalogAvailable ? 'Chưa tìm thấy tour phù hợp' : 'Danh mục tour chưa sẵn sàng' }}</strong>
+                    <p>{{ result.catalogAvailable ? 'Thử điều chỉnh điểm đến hoặc xem các tour đang có trong danh mục.' : 'GreenSteps chưa tải được danh mục tour. Bạn có thể thử lại sau hoặc xem các tour hiện có.' }}</p>
+                    <button type="button" class="planner-more" (click)="openToursPage()">Khám phá danh sách tour <span aria-hidden="true">→</span></button>
+                  </div>
+                }
+
+              </section>
+            } @else if (result.type === 'itinerary_proposal') {
+              @if (result.itinerary; as plan) {
+              <section class="chat-structured-result itinerary-result" aria-label="Đề xuất lịch trình">
+                <gs-itinerary-timeline [itinerary]="plan" [targetBudget]="targetBudgetFor(message.id)"></gs-itinerary-timeline>
+                <div class="planner-plan-actions">
+                  <button type="button" class="planner-primary" [disabled]="isCreatingItinerary()" (click)="createItineraryFromPlan(plan)">
+                    {{ isCreatingItinerary() ? 'Đang lưu lịch trình…' : 'Để AI tạo lịch trình' }}
+                  </button>
+                  <button type="button" class="planner-secondary" [disabled]="isCreatingItinerary()" (click)="adjustItinerary(plan)">Điều chỉnh phương án</button>
+                  @if (createItineraryError()) { <p class="planner-error" role="alert">{{ createItineraryError() }}</p> }
+                </div>
+              </section>
+              }
+            } @else if (result.type === 'clarification') {
+              <section class="chat-structured-result clarification-result" aria-label="Choose itinerary details">
+                @for (choice of result.suggestedQuestions; track choice) {
+                  <button type="button" (click)="sendSuggestedQuestion(choice)">{{ choice }}</button>
+                }
+              </section>
+            }
+            }
+          }
+        </div>
+      </article>
+    }
+
+    @if (chat.isSending()) {
+      <div class="chat-pending" role="status"><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>GreenSteps đang chuẩn bị gợi ý…</span></div>
+    }
+    @if (chat.connectionError(); as error) {
+      <div class="chat-error" role="alert"><p>{{ error }}</p><button type="button" (click)="retryLastMessage()">Thử lại</button></div>
+    }
+    }
+  </div>
+
+  <footer class="chat-composer">
+    <label class="visually-hidden" for="greensteps-chat-input">Hỏi GreenSteps về chuyến đi</label>
+    <div class="composer-box" [class.is-sending]="chat.isSending()">
+      <span class="composer-sparkle" aria-hidden="true">✦</span>
+      <input #composer id="greensteps-chat-input" type="text" maxlength="4000" autocomplete="off" [value]="draftMessage()"
+        placeholder="Hỏi mình về chuyến đi…" [disabled]="chat.isSending()"
+        (input)="onComposerInput($event)" (keydown)="onComposerKeydown($event)">
+      @if (chat.isSending()) {
+        <button type="button" class="send-button stop-button" aria-label="Dừng trả lời" title="Dừng trả lời" (click)="cancelMessage()">
+          <span aria-hidden="true">■</span>
+        </button>
+      } @else {
+        <button type="button" class="send-button" aria-label="Gửi tin nhắn" title="Gửi tin nhắn"
+          [disabled]="!draftMessage().trim()" (click)="submitMessage()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Z"/><path d="M7 12h14"/></svg>
+        </button>
+      }
+    </div>
+    <p class="composer-caption">GreenSteps AI có thể giúp bạn lên kế hoạch du lịch xanh</p>
+  </footer>
+</section>
+
+<div class="launcher-wrap" [class.chat-is-open]="isChatOpen()">
+  <span id="greensteps-chat-tooltip" class="launcher-tooltip" role="tooltip">Chat với GreenSteps AI</span>
+  <button #launcher type="button" class="chat-launcher" (click)="toggleChat()"
+    [attr.aria-expanded]="isChatOpen()" aria-controls="greensteps-chat-panel" aria-haspopup="dialog"
+    [attr.aria-label]="isChatOpen() ? 'Thu nhỏ chat GreenSteps AI' : 'Chat với GreenSteps AI'"
+    aria-describedby="greensteps-chat-tooltip">
+    @if (isChatOpen()) {
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+    } @else {
+      <svg viewBox="0 0 28 28" aria-hidden="true" class="ai-icon">
+        <path d="M20.5 7.5C11 6 6 12 8 18c5 3 12-1 12.5-10.5Z" />
+        <path d="M6.5 22c1-5 4.5-8.5 9-11M22 2v4M20 4h4M4 7v3M2.5 8.5h3" />
+      </svg>
+    }
+  </button>
+</div>

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
+import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
 import { DEFAULT_TOURS, DEFAULT_SERVICES } from './default-data';
 
 @Injectable({
@@ -254,6 +255,34 @@ export class ApiService {
     } catch (e) {
       console.error('Error saving itinerary to server:', e);
       return false;
+    }
+  }
+
+  public async createAiItinerary(plan: ChatItineraryDraft): Promise<{ success: boolean; itineraryId?: string; message?: string }> {
+    try {
+      const response = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/itineraries`, {
+        source: 'ai',
+        name: plan.name,
+        destination: plan.destination,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        days: plan.days.length,
+        daysData: plan.days.map(day => day.map(activity => ({
+          name: activity.name,
+          time: activity.time,
+          cost: activity.cost,
+          carbon: activity.carbon,
+          serviceId: activity.serviceId
+        })))
+      }, { withCredentials: true }));
+      if (!response?.success || typeof response.itineraryId !== 'string') {
+        return { success: false, message: response?.message || 'Backend chưa xác nhận đã lưu lịch trình.' };
+      }
+      this.clearCache('itineraries_');
+      this.clearCache(`itinerary_${response.itineraryId}`);
+      return { success: true, itineraryId: response.itineraryId, message: response.message };
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'Không thể lưu lịch trình AI lúc này.' };
     }
   }
 
@@ -627,15 +656,6 @@ export class ApiService {
         this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/bookings/${id}/simulate-payment`, {}, { withCredentials: true })
       );
     } catch (e: any) {
-      if (e?.status === 404 && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-        try {
-          return await firstValueFrom(
-            this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/bookings/${id}/approve`, {}, { withCredentials: true })
-          );
-        } catch (fallbackError: any) {
-          return { success: false, message: fallbackError?.error?.message || 'Payment simulation is unavailable.' };
-        }
-      }
       return { success: false, message: e?.error?.message || 'Không thể chạy mô phỏng thanh toán.' };
     }
   }

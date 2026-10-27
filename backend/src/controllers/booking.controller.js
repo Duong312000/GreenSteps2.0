@@ -325,9 +325,9 @@ exports.createBooking = async (req, res, next) => {
             guests: guests,
             value: totalValue,
             payment_method: 'card',
-            status: 'deposit',
+            status: 'pending',
             evoucher_code: evoucherCode,
-            escrow_status: 'holding',
+            escrow_status: 'none',
             voucher_code: voucherCode || null,
             customer_phone: customerPhone || null,
             customer_email: email || null
@@ -344,8 +344,8 @@ exports.createBooking = async (req, res, next) => {
             value: totalValue,
             payment_method: 'card',
             evoucher_code: evoucherCode,
-            status: 'deposit',
-            escrow_status: 'holding',
+            status: 'pending',
+            escrow_status: 'none',
             customer_phone: customerPhone || null,
             customer_email: email || null
           }, { transaction: t });
@@ -369,7 +369,7 @@ exports.createBooking = async (req, res, next) => {
             type: 'payment',
             amount: totalValue,
             description: `Thanh toán cọc bằng Thẻ Tín Dụng cho đơn #${bookingId}`,
-            status: 'success',
+            status: 'pending',
             reference_id: bookingId
           }, { transaction: t });
         }
@@ -778,7 +778,27 @@ exports.cancelBooking = async (req, res, next) => {
 
 exports.getBookings = async (req, res, next) => {
   try {
-    const { providerId, customerId } = req.query;
+    const requestedProviderId = req.query.providerId;
+    const requestedCustomerId = req.query.customerId;
+    const isAdmin = req.user.role === 'admin';
+    let providerId = null;
+    let customerId = null;
+
+    if (isAdmin) {
+      providerId = requestedProviderId || null;
+      customerId = requestedCustomerId || null;
+    } else if (req.user.role === 'provider') {
+      if ((requestedProviderId && requestedProviderId !== req.user.id) || requestedCustomerId) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+      providerId = req.user.id;
+    } else {
+      if (requestedProviderId || (requestedCustomerId && requestedCustomerId !== req.user.id)) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+      customerId = req.user.id;
+    }
+
     let serviceBookings = [];
     let tourBookings = [];
 
@@ -856,10 +876,59 @@ exports.getBookings = async (req, res, next) => {
   }
 };
 
+async function canManageBooking(req, booking) {
+  if (req.user?.role === 'admin') return true;
+  if (req.user?.role !== 'provider' || !booking.service_id) return false;
+
+  const vender = await Vender.findOne({ where: { user_id: req.user.id } });
+  if (!vender) return false;
+  const service = await GreenService.findByPk(booking.service_id);
+  return Boolean(service && service.vender_id === vender.id);
+}
+
+const bookingAccessDenied = (res) => res.status(403).json({ success: false, message: 'Access denied.' });
+
+exports.simulateBookingPayment = async (req, res, next) => {
+  const remoteAddress = req.socket?.remoteAddress || '';
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remoteAddress);
+  if (process.env.NODE_ENV === 'production' || process.env.PAYMENT_MODE === 'live' || !isLoopback) {
+    return res.status(404).json({ success: false, message: 'Not found.' });
+  }
+
+  try {
+    const { id } = req.params;
+    let booking = await ServiceBooking.findByPk(id);
+    if (!booking) booking = await TourBooking.findByPk(id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+    if (!['bank_transfer', 'card'].includes(booking.payment_method)) {
+      return res.status(400).json({ success: false, message: 'Only QR and card sandbox payments can be simulated.' });
+    }
+    if (booking.status !== 'pending') {
+      return res.status(409).json({ success: false, message: 'Booking is no longer awaiting payment.' });
+    }
+
+    booking.status = 'deposit';
+    booking.escrow_status = 'holding';
+    booking.booking_status = 'accepted';
+    booking.payment_status = 'deposit_paid';
+    booking.payment_deadline = null;
+    await booking.save();
+    await WalletTransaction.update(
+      { status: 'success' },
+      { where: { reference_id: id, status: 'pending' } }
+    );
+
+    return res.json({ success: true, message: 'Sandbox payment simulated successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.approveBooking = async (req, res, next) => {
   const { id } = req.params;
   try {
     if (id.startsWith('iti_') || id.startsWith('GD-')) {
+      if (req.user.role !== 'admin') return bookingAccessDenied(res);
       const tx = await WalletTransaction.findOne({
         where: {
           [Op.or]: [{ id: id }, { reference_id: id }],
@@ -900,6 +969,7 @@ exports.approveBooking = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
+    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
     booking.status = 'deposit';
     booking.escrow_status = 'holding';
     booking.booking_status = 'accepted';
@@ -939,6 +1009,7 @@ exports.rejectBooking = async (req, res, next) => {
   const { id } = req.params;
   try {
     if (id.startsWith('iti_') || id.startsWith('GD-')) {
+      if (req.user.role !== 'admin') return bookingAccessDenied(res);
       const tx = await WalletTransaction.findOne({
         where: {
           [Op.or]: [{ id: id }, { reference_id: id }],
@@ -961,6 +1032,7 @@ exports.rejectBooking = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
+    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
     booking.status = 'rejected';
     booking.escrow_status = 'refunded';
     booking.booking_status = 'rejected';
@@ -1147,6 +1219,7 @@ exports.completeBooking = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
+    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
     booking.booking_status = 'accepted';
     booking.payment_status = 'fully_paid';
     booking.operation_status = 'completed';
@@ -1169,6 +1242,7 @@ exports.updateBookingStatuses = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
+    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
     if (booking_status !== undefined) booking.booking_status = booking_status;
     if (payment_status !== undefined) booking.payment_status = payment_status;
     if (operation_status !== undefined) booking.operation_status = operation_status;

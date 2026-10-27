@@ -1,4 +1,5 @@
 const { Op } = require('../db/mongo-store');
+const { randomUUID } = require('node:crypto');
 const { sendItineraryInviteEmail } = require('../services/email.service');
 const {
   store,
@@ -225,7 +226,12 @@ exports.getRecommendations = async (req, res, next) => {
 
 // 4. Custom Itineraries: Save or Update Itinerary (calculates carbon footprint)
 exports.saveCustomItinerary = async (req, res, next) => {
-  const { id, name, user_id, destination, days, totalCost, daysData, status, deposit_deadline, start_date, end_date, companion_email, imageUrl, image_url } = req.body;
+  if (req.body?.source === 'ai') return exports.createAiItinerary(req, res, next);
+  return persistCustomItinerary(req, res, next, req.body);
+};
+
+async function persistCustomItinerary(req, res, next, payload, { aiGenerated = false } = {}) {
+  const { id, name, user_id, destination, days, totalCost, daysData, status, deposit_deadline, start_date, end_date, companion_email, imageUrl, image_url } = payload;
 
   try {
     // Sum carbon emissions from activities
@@ -339,7 +345,7 @@ exports.saveCustomItinerary = async (req, res, next) => {
             const actId = `act_${id}_${dIdx + 1}_${aIdx + 1}_${Math.random().toString(36).substring(2, 7)}`;
             const actName = act.name || act.title || '[Địa điểm tự do]';
             const nameKey = actName.toLowerCase().trim();
-            const serviceId = act.service_id || act.serviceId || serviceMap[nameKey] || null;
+            const serviceId = aiGenerated ? (act.service_id || null) : (act.service_id || act.serviceId || serviceMap[nameKey] || null);
 
             activitiesToSave.push({
               id: actId,
@@ -358,7 +364,57 @@ exports.saveCustomItinerary = async (req, res, next) => {
       }
     });
 
-    res.json({ success: true, message: 'Đã lưu lịch trình thành công và đồng bộ carbon!' });
+    res.json({ success: true, itineraryId: id, id, message: 'Đã lưu lịch trình thành công và đồng bộ carbon!' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+exports.createAiItinerary = async (req, res, next) => {
+  const userId = req.user?.id;
+  const body = req.body || {};
+  const destination = typeof body.destination === 'string' ? body.destination.trim().slice(0, 100) : '';
+  const name = typeof body.name === 'string' ? body.name.trim().slice(0, 120) : '';
+  const daysData = body.daysData;
+  const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+
+  if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để lưu lịch trình vào tài khoản của bạn.' });
+  if (!destination || !Array.isArray(daysData) || !daysData.length || daysData.length > 14 || daysData.some(day => !Array.isArray(day) || day.length > 12)) {
+    return res.status(400).json({ success: false, message: 'Dữ liệu lịch trình AI chưa hợp lệ.' });
+  }
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(401).json({ success: false, message: 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.' });
+    const services = await require('../models/index').GreenService.findAll({ where: { status: 'active' } });
+    const servicesById = new Map(services.map(service => [service.id, service]));
+    const canonicalDays = daysData.map(day => day.map(activity => {
+      const activityName = typeof activity?.name === 'string' ? activity.name.trim().slice(0, 140) : '';
+      if (!activityName) return null;
+      const id = typeof activity.serviceId === 'string' ? activity.serviceId : typeof activity.service_id === 'string' ? activity.service_id : '';
+      const service = id ? servicesById.get(id) : null;
+      if (service) {
+        return {
+          name: service.name_service, time: typeof activity.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(activity.time) ? activity.time : '08:00',
+          cost: Number(service.cost) || 0, carbon: Number(service.carbon) || 0, service_id: service.id
+        };
+      }
+      return {
+        name: activityName, time: typeof activity.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(activity.time) ? activity.time : '08:00',
+        cost: 0, carbon: 0
+      };
+    }).filter(Boolean));
+    if (!canonicalDays.some(day => day.length)) return res.status(400).json({ success: false, message: 'Lịch trình cần có ít nhất một hoạt động.' });
+
+    const totalCost = canonicalDays.flat().reduce((sum, activity) => sum + activity.cost, 0);
+    const id = `iti_${randomUUID()}`;
+    const payload = {
+      id, name: name || `Hành trình khám phá ${destination}`, user_id: userId, destination,
+      days: canonicalDays.length, totalCost, daysData: canonicalDays, status: 'draft',
+      start_date: validDate(body.startDate), end_date: validDate(body.endDate),
+      imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 500) : null
+    };
+    return persistCustomItinerary(req, res, next, payload, { aiGenerated: true });
   } catch (error) {
     next(error);
   }

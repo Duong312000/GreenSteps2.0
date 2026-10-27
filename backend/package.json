@@ -12,6 +12,7 @@
     "migrate:postgres": "node scripts/migrate-postgres.js",
     "seed": "node scripts/seed_mongo.js",
     "verify:mongo": "node scripts/smoke-mongo.js",
+    "verify:n8n": "node scripts/check-n8n-chat.js",
     "test": "node --test test/*.test.js"
   },
   "engines": { "node": ">=20.19" },

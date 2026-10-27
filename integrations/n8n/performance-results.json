@@ -1,0 +1,229 @@
+{
+  "measuredAt": "2026-10-24T07:27:01.978Z",
+  "frontend": "http://localhost:4200",
+  "api": "http://localhost:5055/api/support/chat",
+  "aiWorkflowPath": "/webhook/greensteps-web2-agent-v3-fast",
+  "samples": [
+    {
+      "question": 1,
+      "round": 1,
+      "frontendExpressMs": 256.8,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 114,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0, n8n;dur=0, api;dur=5.86"
+    },
+    {
+      "question": 1,
+      "round": 2,
+      "frontendExpressMs": 10.7,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 114,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0, n8n;dur=0, api;dur=0.75"
+    },
+    {
+      "question": 1,
+      "round": 3,
+      "frontendExpressMs": 8.2,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 114,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0, n8n;dur=0, api;dur=0.39"
+    },
+    {
+      "question": 2,
+      "round": 1,
+      "frontendExpressMs": 207.2,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 78,
+      "path": "fast",
+      "serverTiming": "catalog;dur=192.36, n8n;dur=0, api;dur=197.16"
+    },
+    {
+      "question": 2,
+      "round": 2,
+      "frontendExpressMs": 13.3,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 78,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.2, n8n;dur=0, api;dur=1.99"
+    },
+    {
+      "question": 2,
+      "round": 3,
+      "frontendExpressMs": 12,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 78,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.36, n8n;dur=0, api;dur=1.98"
+    },
+    {
+      "question": 3,
+      "round": 1,
+      "frontendExpressMs": 87.6,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 179,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.15, n8n;dur=0, api;dur=79.52"
+    },
+    {
+      "question": 3,
+      "round": 2,
+      "frontendExpressMs": 8.9,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 179,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.32, n8n;dur=0, api;dur=2.47"
+    },
+    {
+      "question": 3,
+      "round": 3,
+      "frontendExpressMs": 9.3,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 179,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.14, n8n;dur=0, api;dur=1.80"
+    },
+    {
+      "question": 4,
+      "round": 1,
+      "frontendExpressMs": 14,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 345,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.16, n8n;dur=0, api;dur=4.89"
+    },
+    {
+      "question": 4,
+      "round": 2,
+      "frontendExpressMs": 12.2,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 345,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.17, n8n;dur=0, api;dur=3.08"
+    },
+    {
+      "question": 4,
+      "round": 3,
+      "frontendExpressMs": 11.4,
+      "status": 200,
+      "success": true,
+      "replyCharacters": 345,
+      "path": "fast",
+      "serverTiming": "catalog;dur=0.09, n8n;dur=0, api;dur=2.74"
+    },
+    {
+      "question": 5,
+      "round": 1,
+      "frontendExpressMs": 2022.8,
+      "status": 502,
+      "success": false,
+      "code": "CHAT_UPSTREAM_UNAVAILABLE",
+      "replyCharacters": 0,
+      "path": "ai",
+      "serverTiming": "catalog;dur=0.12, n8n;dur=2010.62, api;dur=2015.32"
+    },
+    {
+      "question": 5,
+      "round": 2,
+      "frontendExpressMs": 1920.6,
+      "status": 502,
+      "success": false,
+      "code": "CHAT_UPSTREAM_UNAVAILABLE",
+      "replyCharacters": 0,
+      "path": "ai",
+      "serverTiming": "catalog;dur=0.23, n8n;dur=1909.38, api;dur=1912.01"
+    },
+    {
+      "question": 5,
+      "round": 3,
+      "frontendExpressMs": 430,
+      "status": 502,
+      "success": false,
+      "code": "CHAT_UPSTREAM_UNAVAILABLE",
+      "replyCharacters": 0,
+      "path": "ai",
+      "serverTiming": "catalog;dur=0.09, n8n;dur=420.2, api;dur=421.51"
+    }
+  ],
+  "summary": [
+    {
+      "question": "Xin chào.",
+      "timesMs": [
+        256.8,
+        10.7,
+        8.2
+      ],
+      "medianMs": 10.7,
+      "errors": []
+    },
+    {
+      "question": "GreenSteps có những điểm đến nào?",
+      "timesMs": [
+        207.2,
+        13.3,
+        12
+      ],
+      "medianMs": 13.3,
+      "errors": []
+    },
+    {
+      "question": "Tìm tour Đà Lạt 3 ngày dưới 3 triệu.",
+      "timesMs": [
+        87.6,
+        8.9,
+        9.3
+      ],
+      "medianMs": 9.3,
+      "errors": []
+    },
+    {
+      "question": "Tìm homestay tại Đà Lạt.",
+      "timesMs": [
+        14,
+        12.2,
+        11.4
+      ],
+      "medianMs": 12.2,
+      "errors": []
+    },
+    {
+      "question": "Lập lịch trình Đà Lạt 3 ngày 2 đêm.",
+      "timesMs": [
+        2022.8,
+        1920.6,
+        430
+      ],
+      "medianMs": 1920.6,
+      "errors": [
+        {
+          "round": 1,
+          "code": "CHAT_UPSTREAM_UNAVAILABLE",
+          "status": 502
+        },
+        {
+          "round": 2,
+          "code": "CHAT_UPSTREAM_UNAVAILABLE",
+          "status": 502
+        },
+        {
+          "round": 3,
+          "code": "CHAT_UPSTREAM_UNAVAILABLE",
+          "status": 502
+        }
+      ]
+    }
+  ]
+}

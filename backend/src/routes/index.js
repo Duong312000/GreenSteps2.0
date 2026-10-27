@@ -34,5 +34,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/spots', spotRoutes);
 router.use('/change-requests', changeRequestRoutes);
 router.use('/operations', operationsRoutes);
+router.use('/support', require('./support.routes'));
 
 module.exports = router;
