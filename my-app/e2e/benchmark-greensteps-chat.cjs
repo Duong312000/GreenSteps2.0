@@ -6,11 +6,12 @@ const questions = ['Xin chào.', 'GreenSteps có những điểm đến nào?', 
 const rounds = Math.max(3, Number(process.env.CHAT_BENCH_ROUNDS) || 3);
 const frontend = process.env.CHAT_BENCH_FRONTEND || 'http://localhost:4200';
 const api = process.env.CHAT_BENCH_API || 'http://localhost:5055/api/support/chat';
-const output = path.resolve(__dirname, '../../integrations/n8n/performance-results.json');
+const output = path.resolve(__dirname, '../../tmp/performance-results.json');
 const config = require('../../backend/node_modules/dotenv').parse(fs.readFileSync(path.resolve(__dirname, '../../backend/.env')));
 const aiWorkflowPath = new URL(config.N8N_WEBHOOK_URL).pathname;
 
 (async () => {
+  fs.mkdirSync(path.dirname(output), { recursive: true });
   const installed = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || (fs.existsSync(installed) ? installed : undefined) });
   const samples = [];

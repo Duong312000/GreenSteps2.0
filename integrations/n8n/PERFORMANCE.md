@@ -49,10 +49,12 @@ dừng sau 50 giây kể cả khi backend/mạng bị treo; đóng/mở widget k
 Không thêm retry tự động ở frontend hoặc Express. Nút Retry của Aura vẫn do khách
 chủ động bấm. Việc backend ngắt kết nối không bảo đảm dừng execution V2 từ xa.
 
-## Workflow V3 riêng và Publish
+## Workflow n8n và Publish
 
-File import: `workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json`.
-V2 được giữ nguyên làm dự phòng, không ghi đè path V2 đang hoạt động.
+Workflow được quản lý trực tiếp trên máy chủ n8n; repo không lưu JSON workflow
+hoặc bản dự phòng. Backend đang cấu hình path `greensteps-web2-agent-v3-fast`.
+Khi đổi workflow hoặc webhook path, cập nhật `N8N_WEBHOOK_URL` trong `backend/.env`
+và khởi động lại backend. Không đưa credential vào Git.
 
 V3 đặt maxIterations=3, bản mới tăng output lên 4096 token để hạn chế câu bị cụt,
 prompt ngắn hơn và đưa sẵn tối đa
@@ -74,10 +76,10 @@ Thinking Level và model tương thích, thử low rồi chạy lại benchmark.
 [mã node n8n chính thức](https://github.com/n8n-io/n8n/blob/master/packages/@n8n/nodes-langchain/nodes/llms/LmChatGoogleGemini/LmChatGoogleGemini.node.ts),
 [Google thinking](https://ai.google.dev/gemini-api/docs/thinking).
 
-1. n8n → tạo workflow mới → Import from File → chọn JSON V3.
+1. Mở workflow đang dùng trên n8n.
 2. Webhook Chat: chọn Header Auth có Name/Value trùng backend/.env. Không điền
    secret vào JSON hoặc frontend. Google Gemini Chat Model: chọn credential đang dùng.
-3. Save rồi Publish/Active. POST path phải là `greensteps-web2-agent-v3-fast`.
+3. Save rồi Publish/Active. POST path phải trùng `N8N_WEBHOOK_URL` trong backend.
 4. Sau khi publish, đổi duy nhất URL trong `backend/.env`:
 
    ```dotenv
@@ -135,8 +137,8 @@ Trung vị câu 5 là thời gian **trả lỗi**, không phải thời gian t�
 công. Fast Path đã chứng minh không gọi Gemini (n8nMs=0, header path=fast).
 Chưa thể kết luận AI đạt mục tiêu tốc độ hoặc độ ổn định. Không có baseline đủ
 3 mẫu trước thay đổi để công bố tỷ lệ cải thiện. Benchmark ghi raw samples gồm
-catalog/n8n/api timings và lỗi vào `performance-results.json`; đây là output local
-được bỏ qua bởi Git.
+catalog/n8n/api timings và lỗi vào `tmp/performance-results.json`; đây là output
+local bị bỏ qua bởi Git.
 Lần đo trước với backend Fast Path mới nhưng AI URL còn V2 ghi nhận AI timeout 35025.3 ms,
 hai lỗi upstream 6234.8/4245.6 ms. Đây không phải baseline trước khi sửa backend;
 không dùng hai lần đo này để tuyên bố V3 nhanh hơn khi AI đều chưa thành công.
@@ -149,9 +151,6 @@ $env:TEST_MONGODB_URI='mongodb://127.0.0.1:27018/?replicaSet=rs0'
 npm.cmd test
 
 cd D:\Web2
-node integrations/n8n/tests/verify.js
-node integrations/n8n/tests/verify-performance.js
-
 cd D:\Web2\my-app
 npm.cmd run build
 npm.cmd run test:chat:e2e
@@ -160,11 +159,10 @@ npm.cmd run benchmark:chat
 
 Benchmark cần frontend và backend đang chạy, Chrome cài sẵn (hoặc biến
 PLAYWRIGHT_CHROMIUM_EXECUTABLE). Gửi ít nhất 15 request thật; không tự retry các
-mẫu lỗi. Ghi đè performance-results.json, nên lưu bản cũ nếu muốn so sánh V2/V3.
+mẫu lỗi. Kết quả được ghi đè tại `tmp/performance-results.json`.
 Giới hạn endpoint 20 request/phút vẫn giữ nguyên. Không chạy nhiều benchmark
 đồng thời để tránh gây rate limit. E2E giao diện có fixture riêng, không dùng làm
-bằng chứng kết nối AI thật. Kết quả kiểm tra: 26 backend tests đạt, production
-build đạt, Aura E2E đạt, static/simulated V2 và V3 đạt.
+bằng chứng kết nối AI thật.
 
 ## File thay đổi trong đợt tối ưu này
 
@@ -181,11 +179,5 @@ build đạt, Aura E2E đạt, static/simulated V2 và V3 đạt.
 | my-app/src/app/components/greensteps-chat/greensteps-chat.service.ts | History ngắn, timeout 50s, log browser |
 | my-app/package.json | Lệnh benchmark:chat |
 | my-app/e2e/benchmark-greensteps-chat.cjs | 15 phép đo browser thật, lưu kết quả/lỗi |
-| integrations/n8n/build-performance-workflow.js | Tạo V3 riêng từ V2 |
-| integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json | Workflow mới để import |
-| integrations/n8n/tests/verify-performance.js | Kiểm tra V3 và giữ V2 |
-| integrations/n8n/performance-results*.json | Output benchmark local, không cần commit |
 | integrations/n8n/PERFORMANCE.md | Báo cáo, cấu hình, Publish, kiểm thử |
 | CHAT_WIDGET.md | Liên kết báo cáo và timeout mới |
-| integrations/n8n/SETUP.md | URL production và timeout hiện tại, dẫn tới báo cáo mới |
-| integrations/n8n/REPLY_COMPLETENESS.md | Chẩn đoán câu trả lời bị cụt và cách Publish bản sửa |

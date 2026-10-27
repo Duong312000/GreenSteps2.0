@@ -18,6 +18,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
+app.get(['/api', '/api/', '/api/v1', '/api/v1/'], (req, res) => {
+  const apiRoot = req.path.startsWith('/api/v1') ? '/api/v1' : '/api';
+  res.json({
+    success: true,
+    service: 'GreenSteps API',
+    status: 'running',
+    health: `${apiRoot}/health`,
+    endpoints: {
+      tours: `${apiRoot}/tours`,
+      services: `${apiRoot}/services`,
+      bookings: `${apiRoot}/bookings`
+    }
+  });
+});
+
 app.get(['/api/health', '/api/v1/health'], async (req, res) => {
   try {
     await store.authenticate();

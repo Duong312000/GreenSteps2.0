@@ -103,9 +103,8 @@ Bản tối ưu Fast Path/AI Path, kết quả đo thật và cách Publish work
 Backend hiện xử lý chào hỏi/tra cứu rõ ràng bằng JavaScript trước khi gọi n8n;
 AI có deadline mặc định 35 giây, tối đa 45 giây, frontend 50 giây.
 
-File import: `integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V2.json`.
-Hướng dẫn thao tác: [integrations/n8n/SETUP.md](integrations/n8n/SETUP.md).
-File README trong thư mục n8n là tài liệu gốc của gói được cung cấp.
+Workflow n8n được quản lý trực tiếp trên máy chủ; repo không lưu bản workflow JSON.
+Cách cấu hình và Publish nằm trong [integrations/n8n/PERFORMANCE.md](integrations/n8n/PERFORMANCE.md).
 
 Backend đọc hai GET endpoint cố định trên `127.0.0.1:${PORT}/api`, mặc định cổng
 5055. Chỉ gửi các trường công khai cho tối đa 80 tour và 80 dịch vụ có trạng thái
@@ -125,13 +124,6 @@ Lệnh kiểm tra thật (gửi một câu hỏi sang n8n, không in khóa hoặ
 ```powershell
 cd D:\Web2\backend
 npm.cmd run verify:n8n
-```
-
-Kiểm tra cấu trúc và tool giả lập, không gọi Gemini/n8n:
-
-```powershell
-cd D:\Web2
-node integrations/n8n/tests/verify.js
 ```
 
 Backend có giới hạn đầu vào, lịch sử, kích thước response, timeout, hủy request
