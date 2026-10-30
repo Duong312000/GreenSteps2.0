@@ -366,8 +366,10 @@ exports.updateProfile = async (req, res, next) => {
 
       // Check or create Provider record
       const providerId = 'PROV-' + Date.now().toString().slice(-6);
-      await Provider.create({
+      const existingProvider = await Provider.findOne({ where: { user_id: userId } });
+      if (!existingProvider) await Provider.create({
         id: providerId,
+        user_id: userId,
         contract_id: 'CON0001',
         name_provider: displayCompanyName,
         field: 'Dịch vụ sinh thái',

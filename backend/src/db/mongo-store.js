@@ -292,11 +292,49 @@ class MongoStore {
   }
   async sync() {
     await this.authenticate();
+    const reviewModel = this.models.CommentPost;
+    if (reviewModel?.fields.booking_id?.unique) {
+      let indexes;
+      try {
+        indexes = await reviewModel.collection.listIndexes().toArray();
+      } catch (error) {
+        if (error.code !== 26 && error.codeName !== 'NamespaceNotFound') throw error;
+        indexes = [];
+      }
+      const desiredIndex = indexes.find(index => index.key?.booking_id === 1
+        && Object.keys(index.key).length === 1
+        && index.unique === true
+        && index.partialFilterExpression?.booking_id?.$type === 'string');
+      if (!desiredIndex) {
+        const duplicates = await reviewModel.collection.aggregate([
+          { $match: { booking_id: { $type: 'string' } } },
+          { $group: { _id: '$booking_id', count: { $sum: 1 } } },
+          { $match: { count: { $gt: 1 } } },
+          { $limit: 10 }
+        ]).toArray();
+        if (duplicates.length) {
+          const examples = duplicates.map(item => `${item._id} (${item.count} rows)`).join(', ');
+          throw failure(`Cannot create unique CommentPost.booking_id index: duplicate booking_id values found: ${examples}`, 409);
+        }
+
+        // Replace only the legacy full, non-unique booking_id index. The duplicate
+        // scan above runs first, and this changes index metadata without touching rows.
+        const legacyIndex = indexes.find(index => index.name === 'booking_id_1'
+          && index.key?.booking_id === 1
+          && Object.keys(index.key).length === 1
+          && index.unique !== true
+          && !index.partialFilterExpression
+          && !index.sparse
+          && !index.expireAfterSeconds);
+        if (legacyIndex) await reviewModel.collection.dropIndex(legacyIndex.name);
+      }
+    }
     for (const model of Object.values(this.models)) {
       await model.collection.createIndex({ id: 1 }, { unique: true, sparse: true });
       for (const [key, field] of Object.entries(model.fields)) {
         if (field.unique || model.uniqueKeys?.includes(key)) {
           const indexOptions = field.allowNull === true ? { unique: true, partialFilterExpression: { [key]: { $type: 'string' } } } : { unique: true, sparse: true };
+          if (model === reviewModel && key === 'booking_id') indexOptions.name = 'booking_id_unique';
           await model.collection.createIndex({ [key]: 1 }, indexOptions);
         }
         else if (key.endsWith('_id')) await model.collection.createIndex({ [key]: 1 });

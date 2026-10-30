@@ -123,6 +123,7 @@ const Contract = store.define('Contract', {
 // 10. Provider Model
 const Provider = store.define('Provider', {
   id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: true, unique: true },
   name_provider: { type: FieldTypes.STRING, allowNull: false },
   field: { type: FieldTypes.STRING },
   destination: { type: FieldTypes.STRING, allowNull: false },
@@ -151,7 +152,7 @@ const ScheduleSample = store.define('ScheduleSample', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // ref: Schedule.id
   cost: { type: FieldTypes.DOUBLE, allowNull: false },
   old_cost: { type: FieldTypes.DOUBLE },
-  rating: { type: FieldTypes.DOUBLE, defaultValue: 5.0 },
+  rating: { type: FieldTypes.DOUBLE, allowNull: true, defaultValue: null },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 }
 }, { timestamps: true });
 
@@ -178,8 +179,9 @@ const GreenService = store.define('GreenService', {
   destination: { type: FieldTypes.STRING, allowNull: false },
   carbon: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   image_url: { type: FieldTypes.STRING },
-  rating: { type: FieldTypes.DOUBLE, defaultValue: 5.0 },
+  rating: { type: FieldTypes.DOUBLE, allowNull: true, defaultValue: null },
   bookings_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  reviews_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   current_data: { type: FieldTypes.JSONB },
   max_capacity: { type: FieldTypes.INTEGER, defaultValue: 10 },
   status: { type: FieldTypes.STRING, defaultValue: 'active', allowNull: false },
@@ -346,7 +348,7 @@ const CommentPost = store.define('CommentPost', {
   helpful_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   helpful_by: { type: FieldTypes.JSONB, defaultValue: [] },
   is_helpful: { type: FieldTypes.BOOLEAN, defaultValue: false },
-  booking_id: { type: FieldTypes.STRING, allowNull: true },
+  booking_id: { type: FieldTypes.STRING, allowNull: true, unique: true },
   is_reported: { type: FieldTypes.BOOLEAN, defaultValue: false, allowNull: false },
   report_reason: { type: FieldTypes.TEXT },
   internal_notes: { type: FieldTypes.TEXT }
@@ -500,6 +502,8 @@ ScheduleSample.belongsTo(Schedule, { foreignKey: 'id' });
 // ScheduleSample <-> Provider
 Provider.hasMany(ScheduleSample, { foreignKey: 'provider_id', onDelete: 'RESTRICT' });
 ScheduleSample.belongsTo(Provider, { foreignKey: 'provider_id' });
+User.hasOne(Provider, { foreignKey: 'user_id', onDelete: 'SET NULL' });
+Provider.belongsTo(User, { foreignKey: 'user_id' });
 
 // ScheduleCustom <-> Schedule
 Schedule.hasOne(ScheduleCustom, { foreignKey: 'id', onDelete: 'CASCADE' });
@@ -597,10 +601,10 @@ const updateTargetRating = async (targetId, type, storeInstance, options) => {
       rating: { [Op.ne]: null }
     }, options);
 
-    const avgRating = stats[0]?.dataValues?.avgRating
-      ? parseFloat(parseFloat(stats[0].dataValues.avgRating).toFixed(1))
-      : 5.0;
     const votesCount = parseInt(stats[0]?.dataValues?.votesCount || 0);
+    const avgRating = votesCount
+      ? parseFloat(parseFloat(stats[0].dataValues.avgRating).toFixed(1))
+      : null;
 
     if (type === 'tour') {
       await storeInstance.models.ScheduleSample.update(
@@ -609,7 +613,14 @@ const updateTargetRating = async (targetId, type, storeInstance, options) => {
       );
     } else if (type === 'service') {
       await storeInstance.models.GreenService.update(
-        { rating: avgRating, bookings_count: votesCount }, // synchronize bookings_count with rating reviews count
+        {
+          rating: avgRating,
+          reviews_count: votesCount,
+          bookings_count: await storeInstance.models.ServiceBooking.count({
+            where: { service_id: targetId },
+            transaction: options?.transaction
+          })
+        },
         { where: { id: targetId }, transaction: options?.transaction }
       );
     }

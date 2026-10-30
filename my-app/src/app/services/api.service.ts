@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
 import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
-import { DEFAULT_TOURS, DEFAULT_SERVICES } from './default-data';
 
 @Injectable({
   providedIn: 'root'
@@ -57,7 +56,7 @@ export class ApiService {
       oldCost: Number(tour.old_cost || tour.oldCost || tour.cost * 1.2),
       image: tour.image_url || tour.image,
       tags: tour.badges || tour.tags || [],
-      rating: Number(tour.rating || 5.0),
+      rating: this.optionalRating(tour.rating),
       votes: Number(tour.votes_count || tour.votes || 0),
       carbon: Number(tour.carbon || 0),
       data: tour.data || []
@@ -73,17 +72,15 @@ export class ApiService {
     try {
       const url = userId ? `${this.BACKEND_URL}/tours?userId=${userId}` : `${this.BACKEND_URL}/tours`;
       const res = await firstValueFrom(this.http.get<any[]>(url));
-      if (res && res.length >= 5) {
+      if (Array.isArray(res)) {
         const data = res.map(t => this.mapTourToFrontend(t));
         this.setCachedData(cacheKey, data);
         return data;
       }
     } catch (e) {
-      console.warn('Backend tours unavailable or fewer than 5, using default tours');
+      console.warn('Backend tours unavailable.');
     }
-
-    this.setCachedData(cacheKey, DEFAULT_TOURS);
-    return DEFAULT_TOURS;
+    return [];
   }
 
   public async getPresetTour(id: string): Promise<Tour | null> {
@@ -107,8 +104,8 @@ export class ApiService {
             oldCost: Number(s.cost * 1.12),
             image: s.image_url || s.image || 'image/Viet Nam.png',
             tags: [mappedType, ...(s.badges || [])],
-            rating: Number(s.rating || 5.0),
-            votes: Number(s.bookings_count || s.bookingsCount || 0),
+            rating: this.optionalRating(s.rating),
+            votes: Number(s.reviews_count || s.reviewsCount || 0),
             carbon: Number(s.carbon || 0),
             data: [
               [
@@ -154,7 +151,6 @@ export class ApiService {
       const cleanId = String(id).replace('preset_', '');
       const tours = await this.getPresetTours();
       const tour = tours.find(t => t.id === id || String(t.id).replace('preset_', '') === cleanId || String(t.id) === cleanId)
-        || DEFAULT_TOURS.find(t => t.id === id || String(t.id).replace('preset_', '') === cleanId || String(t.id) === cleanId)
         || null;
       if (tour) {
         this.setCachedData(cacheKey, tour);
@@ -555,16 +551,14 @@ export class ApiService {
 
     try {
       const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services`));
-      if (data && data.length >= 20) {
+      if (Array.isArray(data)) {
         this.setCachedData(cacheKey, data);
         return data;
       }
     } catch (e) {
-      console.warn('Backend services unavailable or fewer than 20, using default services');
+      console.warn('Backend services unavailable.');
     }
-
-    this.setCachedData(cacheKey, DEFAULT_SERVICES);
-    return DEFAULT_SERVICES;
+    return [];
   }
 
   public async getServicesByDestination(destination: string): Promise<any[]> {
@@ -617,10 +611,14 @@ export class ApiService {
       let query = '';
       if (providerId) query = `providerId=${providerId}`;
       else if (customerId) query = `customerId=${customerId}`;
-      return await firstValueFrom(this.http.get<Booking[]>(`${this.BACKEND_URL}/bookings?${query}`));
+      return await firstValueFrom(this.http.get<Booking[]>(`${this.BACKEND_URL}/bookings?${query}`, { withCredentials: true }));
     } catch (e) {
       return [];
     }
+  }
+
+  public async getBookingsForReviewEligibility(customerId: string): Promise<any[]> {
+    return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/bookings?customerId=${encodeURIComponent(customerId)}`, { withCredentials: true }));
   }
 
   public async getBooking(id: string): Promise<any> {
@@ -705,6 +703,11 @@ export class ApiService {
     }
   }
 
+  private optionalRating(value: any): number | null {
+    const rating = Number(value);
+    return value !== null && value !== undefined && value !== '' && Number.isFinite(rating) ? rating : null;
+  }
+
   // 5. Reviews & Ratings APIs
   public async getTourReviews(tourId: string): Promise<any[]> {
     const cleanId = String(tourId).replace('preset_', '');
@@ -718,17 +721,17 @@ export class ApiService {
       return data;
     } catch (e) {
       console.error('Failed to load tour reviews:', e);
-      return [];
+      throw e;
     }
   }
 
-  public async postTourReview(reviewData: { userId: string; tourId: string; rating?: number | null; text: string; parentCommentId?: string | null }): Promise<any> {
+  public async postTourReview(reviewData: { bookingId?: string; tourId: string; rating?: number | null; text: string; parentCommentId?: string | null }): Promise<any> {
     const cleanId = String(reviewData.tourId).replace('preset_', '');
     this.clearCache(`tour_reviews_${cleanId}`);
     this.clearCache(`preset_tour_`);
     this.clearCache(`preset_tours_`);
     const data = { ...reviewData, tourId: cleanId };
-    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/tour`, data));
+    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/tour`, data, { withCredentials: true }));
   }
 
   public async likeComment(commentId: string): Promise<any> {
@@ -753,19 +756,22 @@ export class ApiService {
       return data;
     } catch (e) {
       console.error('Failed to load service reviews:', e);
-      return [];
+      throw e;
     }
   }
 
-  public async postServiceReview(reviewData: { userId: string; serviceId: string; rating: number; text: string }): Promise<any> {
+  public async postServiceReview(reviewData: { bookingId: string; serviceId: string; rating: number; text: string }): Promise<any> {
     this.clearCache(`service_reviews_${reviewData.serviceId}`);
-    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/service`, reviewData));
+    this.clearCache(`service_detail_tour_${reviewData.serviceId}`);
+    this.clearCache(`preset_tour_${reviewData.serviceId}`);
+    this.clearCache('services_');
+    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/service`, reviewData, { withCredentials: true }));
   }
 
   public async replyToComment(commentId: string, userId: string, text: string): Promise<any> {
     this.clearCache(`tour_reviews_`);
     this.clearCache(`service_reviews_`);
-    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/${commentId}/reply`, { userId, text }));
+    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/reviews/${commentId}/reply`, { userId, text }, { withCredentials: true }));
   }
   // 6. Recommendation APIs
   public async getDestinations(): Promise<string[]> {
@@ -1119,9 +1125,7 @@ export class ApiService {
     } catch (e) {
       // ignore
     }
-    const cleanId = String(id).toLowerCase();
-    const fallback = DEFAULT_SERVICES.find(s => s.id === id || String(s.id).toLowerCase() === cleanId) || null;
-    return fallback;
+    return null;
   }
 
   public async getServiceAsTour(id: string): Promise<Tour | null> {
@@ -1150,8 +1154,8 @@ export class ApiService {
         description: s.current_data?.shortDesc || s.current_data?.description || s.description,
         tags: [mappedType, ...(s.badges || [])],
         badges: s.badges || [],
-        rating: Number(s.rating || 5.0),
-        votes: Number(s.bookings_count || s.bookingsCount || 0),
+        rating: this.optionalRating(s.rating),
+        votes: Number(s.reviews_count || s.reviewsCount || 0),
         carbon: Number(s.carbon || 0),
         data: [
           [
@@ -1323,21 +1327,26 @@ export class ApiService {
     }
   }
 
-  public async getProviderReviews(providerId: string, filters: any): Promise<any[]> {
+  public async getProviderReviews(_providerId: string, filters: any): Promise<any[]> {
     try {
-      let query = `providerId=${providerId}`;
-      if (filters.rating) query += `&rating=${filters.rating}`;
-      if (filters.serviceId) query += `&serviceId=${filters.serviceId}`;
-      if (filters.answered !== undefined) query += `&answered=${filters.answered}`;
-      return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/reviews/provider?${query}`, { withCredentials: true }));
+      const queryParams = new URLSearchParams();
+      if (filters.serviceId) queryParams.set('serviceId', filters.serviceId);
+      if (filters.tourId) queryParams.set('tourId', filters.tourId);
+      if (filters.type) queryParams.set('type', filters.type);
+      if (filters.rating) queryParams.set('rating', filters.rating);
+      if (filters.answered !== undefined) queryParams.set('answered', filters.answered);
+      const query = queryParams.toString();
+      return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/reviews/provider${query ? `?${query}` : ''}`, { withCredentials: true }));
     } catch (e) {
-      return [];
+      throw e;
     }
   }
 
   public async replyToReview(commentId: string, text: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.post(`${this.BACKEND_URL}/reviews/${commentId}/reply`, { text }, { withCredentials: true }));
+      this.clearCache('tour_reviews_');
+      this.clearCache('service_reviews_');
       return true;
     } catch (e) {
       return false;

@@ -41,7 +41,7 @@ export interface Tour {
   image_url?: string;
   gallery?: string[];
   description?: string;
-  rating?: number;
+  rating?: number | null;
   votes?: number;
   votes_count?: number;
   discountPercent?: number;
@@ -86,7 +86,7 @@ export interface Service {
   icon?: string;
   status: string;
   views_count?: number;
-  rating?: number;
+  rating?: number | null;
   oldCost?: number;
   old_cost?: number;
   discountPercent?: number;

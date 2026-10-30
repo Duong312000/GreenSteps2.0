@@ -96,9 +96,9 @@
             </div>
 
             <div class="rating-line" (click)="scrollToReviews()" style="cursor: pointer;">
-                <span><i class="bi bi-star-fill"></i> {{ activeTour.rating || 4.8 }}</span>
+                <span><i class="bi bi-star-fill"></i> {{ activeTour.rating ?? '—' }}</span>
                 <span>·</span>
-                <a href="#" (click)="$event.preventDefault(); $event.stopPropagation(); scrollToReviews()">{{ reviewsList.length > 0 ? reviewsList.length : '126' }} đánh giá</a>
+                <a href="#" (click)="$event.preventDefault(); $event.stopPropagation(); scrollToReviews()">{{ totalReviewsCount }} đánh giá</a>
             </div>
 
             <div class="price-block">
@@ -483,7 +483,7 @@
                     <div class="review-score-block">
                         <span class="section-kicker">{{ activeTour.isService ? 'Đánh giá dịch vụ' : 'Đánh giá tour' }}</span>
                         <div class="review-score">
-                            <strong>{{ averageScore | number:'1.1-1':'vi-VN' }}</strong>
+                            <strong>{{ activeTour.rating ?? '—' }}</strong>
                             <span>/5</span>
                         </div>
                         <div class="review-stars" [attr.aria-label]="averageScore + ' sao'">
@@ -507,72 +507,19 @@
                     </div>
                 </div>
 
-                <section class="review-criteria-section" aria-label="Khách hàng đánh giá cao">
-                    <div class="review-section-heading">
-                        <span class="section-kicker">Điểm nổi bật</span>
-                        <h3>Khách hàng đánh giá cao</h3>
-                    </div>
-                    <div class="review-criteria-grid">
-                        <article>
-                            <i class="bi bi-person-heart"></i>
-                            <span>{{ activeTour.isService ? 'Dịch vụ chu đáo' : 'Hướng dẫn viên' }}</span>
-                            <strong>{{ guideRating | number:'1.1-1':'vi-VN' }}</strong>
-                            <div class="criteria-progress"><span [style.width.%]="guideRating * 20"></span></div>
-                            <p *ngIf="activeTour.isService"><i class="bi bi-star"></i> Phục vụ thân thiện, nhiệt tình</p>
-                            <p *ngIf="!activeTour.isService"><i class="bi bi-leaf"></i> 96% khách khen thân thiện</p>
-                        </article>
-                        <article>
-                            <i class="bi bi-map"></i>
-                            <span>{{ activeTour.isService ? 'Không gian xanh' : 'Lịch trình' }}</span>
-                            <strong>{{ itineraryRating | number:'1.1-1':'vi-VN' }}</strong>
-                            <div class="criteria-progress"><span [style.width.%]="itineraryRating * 20"></span></div>
-                            <p *ngIf="activeTour.isService"><i class="bi bi-leaf"></i> Cơ sở vật chất thân thiện môi trường</p>
-                            <p *ngIf="!activeTour.isService"><i class="bi bi-calendar-check"></i> Lịch trình vừa sức, hợp lý</p>
-                        </article>
-                        <article>
-                            <i class="bi bi-people"></i>
-                            <span>Phù hợp gia đình</span>
-                            <strong>{{ familyRating | number:'1.1-1':'vi-VN' }}</strong>
-                            <div class="criteria-progress"><span [style.width.%]="familyRating * 20"></span></div>
-                            <p *ngIf="activeTour.isService"><i class="bi bi-heart"></i> Phù hợp với mọi đối tượng khách</p>
-                            <p *ngIf="!activeTour.isService"><i class="bi bi-heart"></i> Rất phù hợp cho gia đình có trẻ nhỏ</p>
-                        </article>
-                        <article>
-                            <i class="bi bi-leaf"></i>
-                            <span>Trải nghiệm xanh</span>
-                            <strong>{{ ecoRatingHighlight | number:'1.1-1':'vi-VN' }}</strong>
-                            <div class="criteria-progress"><span [style.width.%]="ecoRatingHighlight * 20"></span></div>
-                            <p><i class="bi bi-leaf"></i> Ưu tiên bảo vệ môi trường</p>
-                        </article>
-                        <article>
-                            <i class="bi bi-wallet2"></i>
-                            <span>Đáng tiền</span>
-                            <strong>{{ valueRating | number:'1.1-1':'vi-VN' }}</strong>
-                            <div class="criteria-progress"><span [style.width.%]="valueRating * 20"></span></div>
-                            <p><i class="bi bi-patch-check"></i> Chi phí xứng đáng với trải nghiệm</p>
-                        </article>
-                    </div>
-                </section>
-
-                <section class="guest-photo-strip" aria-label="Ảnh từ du khách">
-                    <div class="review-section-heading">
-                        <span class="section-kicker">Khoảnh khắc thật</span>
-                        <h3>Ảnh từ du khách</h3>
-                    </div>
-                    <div class="guest-photo-grid">
-                        <figure *ngFor="let img of slideImages.slice(0, 5); let idx = index" [class.more-photos]="idx === 4">
-                            <img [src]="img" [alt]="'Ảnh đánh giá Đà Lạt ' + (idx + 1)">
-                            <figcaption *ngIf="idx === 4">+12 ảnh</figcaption>
-                        </figure>
-                    </div>
-                </section>
-
                 <section id="reviews-section" class="review-list-section" aria-label="Đánh giá từ du khách">
                     <!-- Form viết đánh giá mới -->
-                    <div class="add-review-card" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid #dde6e0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                    <div class="add-review-card" *ngIf="reviewBookings.length > 0" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid #dde6e0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
                         <h4 style="font-size: 16px; font-weight: 800; color: #111816; margin: 0 0 16px;">Để lại đánh giá của bạn</h4>
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                             <span style="font-size: 14px; font-weight: 700; color: #5f6863;">Điểm đánh giá:</span>
+                            <div *ngIf="reviewBookings.length > 1" style="margin-bottom:12px;">
+                                <label>Booking
+                                    <select [(ngModel)]="selectedReviewBookingId">
+                                        <option *ngFor="let booking of reviewBookings" [value]="booking.id">{{ booking.id }} · {{ booking.date }}</option>
+                                    </select>
+                                </label>
+                            </div>
                             <div class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
                                 <i *ngFor="let star of [1,2,3,4,5]" 
                                    [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
@@ -584,13 +531,17 @@
                                       placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi..." 
                                       style="flex: 1; min-height: 80px; border: 1px solid #dde6e0; border-radius: 12px; padding: 12px; font-size: 14px; resize: vertical; outline: none;"></textarea>
                             <button type="button" 
-                                    (click)="submitRootReview()" 
+                                    (click)="submitRootReview()" [disabled]="isSubmittingReview"
                                     style="background-color: var(--g, #174c39); color: white; border: none; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
                                 Gửi đánh giá
                             </button>
                         </div>
                     </div>
 
+                    <p *ngIf="reviewLoadError" class="review-empty-state">Reviews could not be loaded. Please try again.</p>
+                    <p *ngIf="!reviewLoadError && !reviewsList.length" class="review-empty-state">No reviews yet.</p>
+                    <p *ngIf="reviewEligibilityError" class="review-empty-state">Booking eligibility could not be checked. Please try again.</p>
+                    <p *ngIf="!reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Only customers with a completed booking can submit a review.</p>
                     <div class="review-filter-bar">
                         <div>
                             <span class="section-kicker">Review</span>

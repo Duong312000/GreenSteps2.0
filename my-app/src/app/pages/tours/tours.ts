@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Tour, Itinerary } from '../../models/models';
-import { DEFAULT_TOURS } from '../../services/default-data';
 
 declare const L: any;
 
@@ -99,10 +98,10 @@ export class ToursComponent implements OnInit {
   async ngOnInit() {
     try {
       const allTours = await this.apiService.getPresetTours();
-      this.toursData = allTours && allTours.length > 0 ? allTours : DEFAULT_TOURS;
+      this.toursData = allTours || [];
     } catch (e) {
-      console.warn('Fallback to local default tours:', e);
-      this.toursData = DEFAULT_TOURS;
+      console.warn('Unable to load tours:', e);
+      this.toursData = [];
     }
 
     // Enrich missing fields
