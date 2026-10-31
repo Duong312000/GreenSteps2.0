@@ -4,6 +4,11 @@ import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
 import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
 
+export interface AdminQueueResult<T> {
+  data: T[];
+  available: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -981,6 +986,41 @@ export class ApiService {
   }
 
   // Admin APIs
+  private async getAdminQueue<T>(path: string, wrapperKey?: string, pendingOnly = false): Promise<AdminQueueResult<T>> {
+    try {
+      const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}${path}`, { withCredentials: true }));
+      const rows = Array.isArray(response)
+        ? response
+        : wrapperKey && Array.isArray(response?.[wrapperKey])
+          ? response[wrapperKey]
+          : null;
+      if (!rows) return { data: [], available: false };
+      return { data: pendingOnly ? rows.filter((row: any) => row.status === 'pending') : rows, available: true };
+    } catch {
+      return { data: [], available: false };
+    }
+  }
+
+  public getAdminPendingProviders(): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue('/partner/pending');
+  }
+
+  public getAdminPendingDeposits(): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue('/wallet/deposits/pending');
+  }
+
+  public getAdminPendingWithdrawals(): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue('/wallet/withdrawals', 'withdrawals', true);
+  }
+
+  public getAdminPendingWallets(): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue('/wallet/pending-activations');
+  }
+
+  public getAdminPendingBookings(): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue('/bookings/pending');
+  }
+
   public async getPendingProviders(): Promise<any[]> {
     try {
       return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/partner/pending`, { withCredentials: true }));
@@ -1025,12 +1065,8 @@ export class ApiService {
   }
 
   public async getPendingWithdrawals(): Promise<any[]> {
-    try {
-      const all = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/wallet/withdrawals`, { withCredentials: true }));
-      return all.filter((w: any) => w.status === 'pending');
-    } catch (e) {
-      return [];
-    }
+    const result = await this.getAdminPendingWithdrawals();
+    return result.data;
   }
 
   public async approveWithdrawal(id: string): Promise<boolean> {
