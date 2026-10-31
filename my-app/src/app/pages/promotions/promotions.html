@@ -1,0 +1,86 @@
+<main class="promo-page">
+  <div class="promo-container">
+    <nav class="breadcrumb"><a routerLink="/home">Trang chủ</a><span>/</span><b>Khuyến mãi</b></nav>
+    <div class="layout">
+      <aside class="filters" [class.mobile-open]="mobileFilters">
+        <div class="filter-head"><h2>Bộ lọc <i class="bi bi-sliders"></i></h2><button (click)="resetFilters()">Đặt lại</button></div>
+        <section>
+          <h3>Danh mục ưu đãi</h3>
+          <div class="pills">
+            <button [class.selected]="selectedCategory==='all'" (click)="setCategory('all')">Tất cả</button>
+            <button [class.selected]="selectedCategory==='trip'" (click)="setCategory('trip')">Chuyến đi</button>
+            <button [class.selected]="selectedCategory==='stay'" (click)="setCategory('stay')">Lưu trú</button>
+            <button [class.selected]="selectedCategory==='transport'" (click)="setCategory('transport')">Di chuyển</button>
+            <button [class.selected]="selectedCategory==='eco'" (click)="setCategory('eco')">Ưu đãi xanh</button>
+          </div>
+        </section>
+        <section>
+          <h3>Điểm đến</h3>
+          <div class="pills">
+            <button [class.selected]="selectedDestination==='all'" (click)="setDestination('all')">Tất cả</button>
+            <button *ngFor="let destination of destinations" [class.selected]="selectedDestination===destination" (click)="setDestination(destination)">{{ destination }}</button>
+          </div>
+        </section>
+        <section>
+          <h3>Loại ưu đãi</h3>
+          <label><input type="radio" name="offerType" value="all" [checked]="selectedOfferType==='all'" (change)="setOfferType('all')">Tất cả</label>
+          <label *ngFor="let item of [{id:'flash',label:'Flash Sale',icon:'bi-lightning-fill'},{id:'coupon',label:'Mã giảm giá',icon:'bi-tag'},{id:'eco',label:'Ưu đãi xanh',icon:'bi-leaf'},{id:'early',label:'Đặt sớm',icon:'bi-clock'}]">
+            <input type="radio" name="offerType" [value]="item.id" [checked]="selectedOfferType===item.id" (change)="setOfferType(item.id)">
+            <i class="bi" [ngClass]="item.icon"></i>{{ item.label }}
+          </label>
+        </section>
+      </aside>
+
+      <section class="content">
+        <div class="page-heading">
+          <div><h1>Khuyến mãi</h1><button class="mobile-filter" (click)="mobileFilters=!mobileFilters"><i class="bi bi-sliders"></i> Bộ lọc</button></div>
+          <div class="sort">
+            <span>Hiển thị {{ filtered.length }} ưu đãi</span>
+            <label>Sắp xếp theo:
+              <select [(ngModel)]="sort" (change)="applyFilters()">
+                <option value="popular">Phổ biến nhất</option><option value="discount">Giảm giá cao nhất</option>
+                <option value="priceAsc">Giá thấp nhất</option><option value="priceDesc">Giá cao nhất</option>
+                <option value="expiry">Sắp hết hạn</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <nav class="tabs section-tabs" aria-label="Danh mục khuyến mãi">
+          <a *ngFor="let tab of tabs" [routerLink]="['/promotions', tab.route]" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <i class="bi" [ngClass]="tab.icon"></i>{{ tab.label }}
+          </a>
+        </nav>
+        <div class="search"><i class="bi bi-search"></i><input [(ngModel)]="query" (input)="applyFilters()" placeholder="Tìm ưu đãi, dịch vụ, điểm đến..."></div>
+
+        <div class="skeleton-grid" *ngIf="loading"><div *ngFor="let item of [1,2,3,4,5,6,7,8]" class="skeleton"></div></div>
+        <div class="state" *ngIf="loadError && !loading"><i class="bi bi-wifi-off"></i><h2>Chưa thể tải ưu đãi</h2><p>Vui lòng thử lại sau.</p><button (click)="loadOffers(true)">Thử lại</button></div>
+
+        <div #results class="promo-results" *ngIf="!loading && !loadError">
+          <h2 class="category-title"><i class="bi" [ngClass]="activeTabInfo.icon"></i>{{ activeTabInfo.label }}</h2>
+          <div class="state" *ngIf="!sectionHasOffers"><i class="bi bi-gift"></i><h2>Chưa có ưu đãi phù hợp</h2><p>Hãy thử điều chỉnh bộ lọc.</p></div>
+          <section *ngFor="let group of offerGroups" class="offer-group" [attr.data-offer-group]="group.id">
+            <div class="offer-group-heading"><h3><i class="bi" [ngClass]="group.icon"></i>{{ group.label }}</h3><span>{{ sectionOffers(group.id).length }} ưu đãi</span></div>
+            <div class="grid" *ngIf="sectionOffers(group.id).length">
+              <article class="offer-card" *ngFor="let offer of sectionOffers(group.id)" [class.coupon-shell]="offer.type==='voucher'" (click)="offer.type==='voucher' ? null : open(offer)">
+                <ng-container *ngIf="offer.type==='voucher'; else serviceOffer">
+                  <div class="coupon-card">
+                    <span class="coupon-expiry" *ngIf="isEndingSoon(offer)">Sắp hết hạn</span>
+                    <div class="coupon-symbol"><img src="image/greensteps_logo_header.png" alt="GreenSteps"></div>
+                    <div class="coupon-info"><span class="coupon-kind">Mã giảm giá</span><h2>{{ discountLabel(offer) }}</h2><p class="coupon-condition">{{ minOrderLabel(offer) }}</p><p class="coupon-scope">{{ scopeLabel(offer) }}</p><p class="coupon-code" *ngIf="offer.code">Mã: <b>{{ offer.code }}</b></p><p class="coupon-date">Hạn dùng đến {{ offer.end_at | date:'dd/MM/yyyy' }}</p></div>
+                    <button class="coupon-claim" type="button" (click)="copyOfferCode(offer,$event)">{{ copiedOfferId===offerKey(offer) ? 'Đã sao chép' : 'Nhận ngay' }}</button>
+                  </div>
+                </ng-container>
+                <ng-template #serviceOffer>
+                  <div class="photo"><img [src]="offer.service.image || 'image/Viet Nam.png'" [alt]="offer.service.name"><span class="discount">-{{ offer.discountPercent }}%</span><span class="kind">Flash Sale</span><button class="heart" (click)="toggleFavorite(offer,$event)"><i class="bi" [ngClass]="isFavorite(offer) ? 'bi-heart-fill' : 'bi-heart'"></i></button></div>
+                  <div class="card-body"><span class="recommend">Dành cho bạn</span><h2>{{ offer.service.name }}</h2><p><i class="bi bi-geo-alt"></i> {{ offer.service.destination || 'Việt Nam' }}</p><div class="prices"><del>{{ money(offer.service.cost) }}</del><strong>{{ money(offer.salePrice) }}</strong></div><small *ngIf="offer.min_order">Đơn tối thiểu {{ money(offer.min_order) }}</small></div>
+                </ng-template>
+              </article>
+            </div>
+            <p class="group-empty" *ngIf="!sectionOffers(group.id).length">Chưa có ưu đãi trong nhóm này.</p>
+          </section>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>

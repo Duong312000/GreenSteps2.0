@@ -13,6 +13,7 @@ import { FooterComponent } from './components/footer/footer';
 import { LoginModalComponent } from './components/login-modal/login-modal';
 import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
+import { PromotionsComponent } from './pages/promotions/promotions';
 import { TourDetailComponent } from './pages/tour-detail/tour-detail';
 import { BookingComponent } from './pages/booking/booking';
 import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
@@ -54,6 +55,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     LoginModalComponent,
     HomeComponent,
     ToursComponent,
+    PromotionsComponent,
     TourDetailComponent,
     BookingComponent,
     BookingLookupComponent,

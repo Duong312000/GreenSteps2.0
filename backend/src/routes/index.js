@@ -24,6 +24,7 @@ router.use('/wallet', walletRoutes);
 router.use('/ai', aiRoutes);
 router.use('/vouchers', voucherRoutes);
 router.use('/partner', partnerRoutes);
+router.use('/partner/promotions', require('./partner-promotions.routes'));
 router.use('/tours', tourRoutes);
 router.use('/itineraries', itineraryRoutes);
 router.use('/services', serviceRoutes);

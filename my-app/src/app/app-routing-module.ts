@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
+import { PromotionsComponent } from './pages/promotions/promotions';
 import { TourDetailComponent } from './pages/tour-detail/tour-detail';
 import { ProfileComponent } from './pages/profile/profile';
 import { CommunityComponent } from './pages/community/community';
@@ -22,6 +23,8 @@ const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'tours', component: ToursComponent },
+  { path: 'promotions', redirectTo: 'promotions/for-you', pathMatch: 'full' },
+  { path: 'promotions/:section', component: PromotionsComponent },
   { path: 'tours/:id', component: TourDetailComponent },
   { path: 'tour-detail/:id', component: TourDetailComponent },
   { path: 'services/:type/:id', component: TourDetailComponent },

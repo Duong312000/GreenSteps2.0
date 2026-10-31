@@ -309,6 +309,33 @@ const AdCampaign = store.define('AdCampaign', {
   discount_percent: { type: FieldTypes.INTEGER, defaultValue: 0 }
 }, { timestamps: true });
 
+// Partner-owned promotions. Vender is the existing provider identity used by GreenService.
+const PartnerCampaign = store.define('PartnerCampaign', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  vender_id: { type: FieldTypes.STRING },
+  service_id: { type: FieldTypes.STRING },
+  name: { type: FieldTypes.STRING, allowNull: false },
+  type: { type: FieldTypes.ENUM('promotion', 'flash_sale', 'voucher'), allowNull: false },
+  status: { type: FieldTypes.ENUM('active', 'paused', 'cancelled'), defaultValue: 'active', allowNull: false },
+  start_at: { type: FieldTypes.DATE, allowNull: false },
+  end_at: { type: FieldTypes.DATE, allowNull: false },
+  package: { type: FieldTypes.STRING },
+  budget: { type: FieldTypes.DOUBLE, defaultValue: 0 },
+  code: { type: FieldTypes.STRING },
+  discount_type: { type: FieldTypes.ENUM('percent', 'fixed'), defaultValue: 'percent' },
+  discount_value: { type: FieldTypes.DOUBLE, defaultValue: 0 },
+  min_order: { type: FieldTypes.DOUBLE, defaultValue: 0 },
+  usage_limit: { type: FieldTypes.INTEGER, defaultValue: 1 },
+  used_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  views: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  clicks: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  bookings: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  revenue: { type: FieldTypes.DOUBLE, defaultValue: 0 },
+  spent: { type: FieldTypes.DOUBLE, defaultValue: 0 },
+  archived_at: { type: FieldTypes.DATE },
+}, { timestamps: true });
+
 // 23. CommunityPost Model
 const CommunityPost = store.define('CommunityPost', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // CUPtraXXXXXXXX
@@ -550,6 +577,9 @@ GreenService.hasMany(ScheduleActivity, { foreignKey: 'service_id', onDelete: 'SE
 ScheduleActivity.belongsTo(GreenService, { foreignKey: 'service_id' });
 
 // AdCampaign <-> User
+PartnerCampaign.belongsTo(User, { foreignKey: 'user_id' });
+PartnerCampaign.belongsTo(Vender, { foreignKey: 'vender_id' });
+PartnerCampaign.belongsTo(GreenService, { foreignKey: 'service_id' });
 User.hasMany(AdCampaign, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 AdCampaign.belongsTo(User, { foreignKey: 'user_id' });
 
@@ -668,6 +698,7 @@ module.exports = {
   WithdrawalRequest,
   ScheduleActivity,
   AdCampaign,
+  PartnerCampaign,
   CommunityPost,
   CommentPost,
   SavedCommunityItem,

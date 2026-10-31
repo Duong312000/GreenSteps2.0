@@ -1,125 +1,563 @@
-<main class="min-h-screen bg-[#fcfdfc] pt-28 pb-12 px-6 font-sans">
-    <div class="max-w-[1440px] mx-auto space-y-8">
-
-        <!-- Header Title Row -->
-        <div class="flex items-start justify-between">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">Chiến dịch Quảng bá & Flash Sale</h1>
-                <p class="text-sm text-gray-500 mt-1">Đẩy mạnh tiếp cận khách hàng tiềm năng và tối ưu hóa doanh số cùng trợ lý AI</p>
-            </div>
-        </div>
-
-        <!-- Feature Campaign Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Card 1: Top AI -->
-            <div class="bg-white border border-teal-600/10 rounded-2xl p-6 flex flex-col justify-between h-[340px] shadow-sm hover:shadow-[0_12px_30px_rgba(13,148,136,0.08)] hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer">
-                <div>
-                    <div class="w-12 h-12 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center text-xl mb-4 group-hover:scale-105 transition-transform duration-300">
-                        <i class="bi bi-robot"></i>
-                    </div>
-                    <h3 class="text-[17px] font-bold text-gray-800">Đẩy dịch vụ lên gợi ý hàng đầu</h3>
-                    <p class="text-xs text-gray-500 leading-relaxed mt-2 font-medium">Nâng hạng hiển thị cơ sở của bạn ở mục ưu tiên của AI Recommendation khi người dùng lên lịch trình tại Phú Yên, Đà Lạt, Đà Nẵng.</p>
-                </div>
-                <div>
-                    <div class="text-lg font-black text-teal-700 mb-4">150.000đ / ngày</div>
-                    <button (click)="registerCampaign('Đẩy dịch vụ lên top AI')" class="w-full h-11 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-xl border-none cursor-pointer transition-colors shadow-sm text-sm">Đăng ký chiến dịch</button>
-                </div>
-            </div>
-
-            <!-- Card 2: Flash Sale -->
-            <div class="bg-white border border-red-200 rounded-2xl p-6 flex flex-col justify-between h-[340px] shadow-sm hover:shadow-[0_12px_30px_rgba(239,68,68,0.08)] hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer">
-                <div>
-                    <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xl mb-4 group-hover:scale-105 transition-transform duration-300">
-                        <i class="bi bi-percent"></i>
-                    </div>
-                    <h3 class="text-[17px] font-bold text-gray-800">Tạo chương trình Flash Sale giờ vàng</h3>
-                    <p class="text-xs text-gray-500 leading-relaxed mt-2 font-medium">Đưa dịch vụ homestay/tour của bạn vào mục ưu đãi đặc biệt để khách du lịch tiết kiệm ngân sách lựa chọn nhanh.</p>
-                </div>
-                <div>
-                    <div class="text-lg font-black text-red-600 mb-4">Miễn phí tạo</div>
-                    <button (click)="registerCampaign('Flash Sale Giờ Vàng')" class="w-full h-11 bg-white hover:bg-red-50 text-red-600 font-bold rounded-xl border border-red-200 cursor-pointer transition-colors text-sm">Tạo ưu đãi ngay</button>
-                </div>
-            </div>
-
-            <!-- Card 3: Eco Certified -->
-            <div class="bg-white border border-[#f59e0b]/20 rounded-2xl p-6 flex flex-col justify-between h-[340px] shadow-sm hover:shadow-[0_12px_30px_rgba(245,158,11,0.08)] hover:-translate-y-1.5 transition-all duration-300 group cursor-pointer">
-                <div>
-                    <div class="w-12 h-12 rounded-full bg-amber-50 text-[#d97706] flex items-center justify-center text-xl mb-4 group-hover:scale-105 transition-transform duration-300">
-                        <i class="bi bi-award-fill"></i>
-                    </div>
-                    <h3 class="text-[17px] font-bold text-gray-800">Tài trợ huy hiệu sinh thái đặc biệt</h3>
-                    <p class="text-xs text-gray-500 leading-relaxed mt-2 font-medium">Gắn nhãn chứng nhận "Eco-Certified Partner" nổi bật trên thẻ gợi ý để thu hút tệp du khách có trách nhiệm cao.</p>
-                </div>
-                <div>
-                    <div class="text-lg font-black text-[#d97706] mb-4">300.000đ / tháng</div>
-                    <button (click)="registerCampaign('Eco-Certified Partner')" class="w-full h-11 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-xl border-none cursor-pointer transition-colors shadow-sm text-sm">Đăng ký ngay</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Active Campaigns List -->
-        <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <div>
-                    <h2 class="text-base font-bold text-gray-800">Chiến dịch quảng bá</h2>
-                    <p class="text-xs text-gray-500 mt-0.5">Quản lý hiệu suất các chương trình khuyến mãi hiện tại.</p>
-                </div>
-                <button (click)="registerCampaign('Chiến dịch mới')" class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-600 text-teal-700 text-sm font-semibold hover:bg-teal-50 transition-colors">
-                    <i class="bi bi-plus-lg"></i> Tạo chiến dịch mới
-                </button>
-            </div>
-
-            <div *ngFor="let campaign of campaigns" class="flex items-center gap-4 px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                <div class="w-16 h-16 rounded-xl bg-teal-50 flex items-center justify-center text-2xl text-teal-600 flex-shrink-0">
-                    <i class="bi bi-megaphone-fill"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span [class]="'text-xs px-2 py-0.5 rounded-full font-semibold ' + (campaign.type === 'Flash Sale' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700')">
-                            {{ campaign.type }}
-                        </span>
-                        <span class="text-sm font-semibold text-gray-800 truncate">{{ campaign.name }}</span>
-                    </div>
-                    <p class="text-xs text-gray-500">{{ campaign.views }} Lượt xem &bull; {{ campaign.bookings }} Lượt đặt</p>
-                </div>
-                <div class="text-right flex-shrink-0">
-                    <div [class]="'text-xs font-semibold flex items-center gap-1 ' + (campaign.status === 'active' ? 'text-teal-600' : 'text-gray-400')">
-                        <span [class]="'w-2 h-2 rounded-full ' + (campaign.status === 'active' ? 'bg-teal-500' : 'bg-gray-300')"></span>
-                        {{ campaign.statusLabel }}
-                        <span *ngIf="campaign.status === 'active'" class="text-gray-400 font-normal">(Còn {{ campaign.daysLeft }} ngày)</span>
-                    </div>
-                </div>
-                <button class="text-sm text-teal-700 font-semibold hover:underline px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-colors">
-                    {{ campaign.status === 'active' ? 'Chỉnh sửa' : 'Báo cáo' }}
-                </button>
-            </div>
-        </div>
-
-        <!-- Vouchers Section -->
-        <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 class="text-base font-bold text-gray-800">Mã ưu đãi đang lưu hành</h2>
-                <button class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors">
-                    <i class="bi bi-plus-lg"></i> Tạo mã ưu đãi mới
-                </button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                <div *ngFor="let v of vouchers" [class]="'border-2 border-dashed rounded-2xl p-5 ' + (v.colorClass === 'voucher-yellow' ? 'border-yellow-300 bg-yellow-50' : 'border-teal-300 bg-teal-50')">
-                    <div class="flex items-start justify-between mb-3">
-                        <div [class]="'text-xl font-black tracking-wide ' + (v.colorClass === 'voucher-yellow' ? 'text-yellow-700' : 'text-teal-700')">{{ v.code }}</div>
-                        <span [class]="'text-xs font-bold px-2 py-0.5 rounded-full ' + (v.colorClass === 'voucher-yellow' ? 'bg-yellow-200 text-yellow-800' : 'bg-teal-200 text-teal-800')">{{ v.discountLabel }}</span>
-                    </div>
-                    <p class="text-xs text-gray-600 mb-1">Áp dụng: {{ v.scope }}</p>
-                    <p class="text-xs text-gray-500">Đã dùng: {{ v.used }} / {{ v.max ?? 'Không giới hạn' }} lượt</p>
-                    <p class="text-xs text-gray-400 mt-1">Hết hạn: {{ v.expires }}</p>
-                </div>
-                <!-- Add new voucher placeholder -->
-                <div class="border-2 border-dashed border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <i class="bi bi-plus-circle text-2xl"></i>
-                    <span class="text-sm">Tạo mã ưu đãi mới</span>
-                </div>
-            </div>
-        </div>
-
+﻿<section class="promotions-page" aria-labelledby="promotions-title">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">KHÔNG GIAN ĐỐI TÁC</p>
+      <h1 id="promotions-title">Chiến dịch quảng bá</h1>
+      <p>Quản lý, tạo mới và theo dõi các chiến dịch quảng bá dịch vụ của bạn.</p>
     </div>
-</main>
+    <button type="button" class="primary" (click)="openCreate()" [disabled]="optionsLoading">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i> Tạo chiến dịch mới
+    </button>
+  </header>
+  <div *ngIf="notice" class="notice success" role="status">
+    <i aria-hidden="true" class="bi bi-check-circle"></i>{{ notice
+    }}<button aria-label="Đóng thông báo" (click)="notice = ''"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
+  </div>
+  <div *ngIf="error" class="notice error" role="alert">
+    {{ error }}<button (click)="load()">Thử lại</button>
+  </div>
+  <nav class="campaign-tabs" aria-label="Loại chiến dịch">
+    <button
+      *ngFor="let item of tabs"
+      type="button"
+      [class.selected]="tab === item.id"
+      [attr.aria-pressed]="tab === item.id"
+      (click)="changeTab(item.id)"
+    >
+      {{ item.label }}
+    </button>
+  </nav>
+  <div class="campaign-panel">
+    <div class="filters">
+      <label class="search"
+        ><i class="bi bi-search" aria-hidden="true"></i
+        ><input
+          aria-label="Tìm kiếm chiến dịch"
+          placeholder="Tìm tên chiến dịch, dịch vụ, mã ưu đãi…"
+          maxlength="120"
+          [(ngModel)]="query"
+          (ngModelChange)="search()"
+      /></label>
+      <select
+        *ngIf="!tab"
+        aria-label="Loại chiến dịch"
+        [(ngModel)]="typeFilter"
+        (change)="filter()"
+      >
+        <option value="">Loại chiến dịch</option>
+        <option *ngFor="let type of tabs.slice(1)" [value]="type.id">{{ type.label }}</option>
+      </select>
+      <select aria-label="Trạng thái" [(ngModel)]="statusFilter" (change)="filter()">
+        <option value="">Mọi trạng thái</option>
+        <option *ngFor="let status of statuses | keyvalue" [value]="status.key">
+          {{ status.value }}
+        </option>
+      </select>
+      <button class="reset" (click)="reset()"><i aria-hidden="true" class="bi bi-arrow-clockwise"></i> Đặt lại</button>
+    </div>
+    <div class="date-filters">
+      <span><i aria-hidden="true" class="bi bi-calendar3"></i> Thời gian chạy</span
+      ><label
+        >Từ
+        <input type="date" aria-label="Lọc từ ngày" [(ngModel)]="from" (change)="filter()" /></label
+      ><label
+        >Đến
+        <input type="date" aria-label="Lọc đến ngày" [(ngModel)]="to" (change)="filter()" /></label
+      ><span class="result-count">{{ total }} chiến dịch</span>
+    </div>
+    <div class="table-scroll" [attr.aria-busy]="loading">
+      <table>
+        <thead>
+          <tr>
+            <th>Chiến dịch</th>
+            <th>{{ tab === 'voucher' ? 'Mã & Giá trị' : 'Loại chiến dịch' }}</th>
+            <th>Thời gian</th>
+            <th>
+              {{
+                tab === 'promotion'
+                  ? 'Ngân sách'
+                  : tab === 'flash_sale'
+                    ? 'Ưu đãi & Lượt dùng'
+                    : 'Hiệu quả'
+              }}
+            </th>
+            <th>Trạng thái</th>
+            <th class="actions-heading">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loading">
+          <tr *ngFor="let row of items; trackBy: track">
+            <td>
+              <div class="campaign-name">
+                <div class="campaign-cover" [class.sale]="row.type !== 'promotion'">
+                  <img
+                    *ngIf="row.service?.image"
+                    [src]="row.service?.image"
+                    alt=""
+                    (error)="$any($event.target).style.display = 'none'"
+                  /><i [class]="'bi ' + icon(row.type)" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <button class="name-link" (click)="view(row)">{{ row.name }}</button>
+                  <p>
+                    {{
+                      row.service?.name ||
+                        (row.type === 'voucher'
+                          ? 'Tất cả dịch vụ của bạn'
+                          : 'Dịch vụ đã ngừng cung cấp')
+                    }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <ng-container *ngIf="tab !== 'voucher'; else voucherCell"
+                ><span class="type-badge" [class.sale]="row.type !== 'promotion'"
+                  ><i aria-hidden="true" [class]="'bi ' + icon(row.type)"></i>{{ types[row.type] }}</span
+                ></ng-container
+              ><ng-template #voucherCell
+                ><strong class="voucher-code">{{ row.code }}</strong>
+                <p class="muted">
+                  Giảm {{ row.discount_value | number
+                  }}{{ row.discount_type === 'percent' ? '%' : ' đ' }}
+                </p></ng-template
+              >
+            </td>
+            <td class="dates">
+              <span>{{ row.start_at | date: 'dd/MM/yyyy' }}</span
+              ><span>{{ row.start_at | date: 'HH:mm' }} → {{ row.end_at | date: 'HH:mm' }}</span
+              ><span>{{ row.end_at | date: 'dd/MM/yyyy' }}</span>
+            </td>
+            <td>
+              <ng-container *ngIf="tab === 'promotion'; else otherMetrics"
+                ><strong>{{ row.budget | number }} đ</strong>
+                <p class="muted">{{ packageNames[row.package || ''] }}</p></ng-container
+              ><ng-template #otherMetrics
+                ><ng-container *ngIf="tab === 'flash_sale'; else metrics"
+                  ><strong
+                    >Giảm {{ row.discount_value | number
+                    }}{{ row.discount_type === 'percent' ? '%' : ' đ' }}</strong
+                  >
+                  <p class="muted">
+                    {{ row.used_count }} / {{ row.usage_limit }} lượt
+                  </p></ng-container
+                ><ng-template #metrics
+                  ><div class="metrics">
+                    <span
+                      ><i aria-hidden="true" class="bi bi-eye"></i><strong>{{ row.views | number }}</strong
+                      ><small>Lượt xem</small></span
+                    ><span
+                      ><i aria-hidden="true" class="bi bi-cursor"></i><strong>{{ row.clicks | number }}</strong
+                      ><small>Lượt nhấp</small></span
+                    ><span
+                      ><i aria-hidden="true" class="bi bi-calendar-check"></i
+                      ><strong>{{ row.bookings | number }}</strong
+                      ><small>Booking</small></span
+                    >
+                  </div></ng-template
+                ></ng-template
+              >
+            </td>
+            <td>
+              <span [class]="'status-badge ' + row.effective_status"
+                ><span class="dot"></span>{{ statuses[row.effective_status] }}</span
+              >
+            </td>
+            <td class="actions">
+              <button
+                class="icon-button"
+                aria-label="Xem chi tiết"
+                title="Xem chi tiết"
+                (click)="view(row)"
+              >
+                <i aria-hidden="true" class="bi bi-eye"></i></button
+              ><button
+                class="icon-button"
+                [attr.aria-label]="'Thao tác: ' + row.name"
+                [attr.aria-expanded]="menuId === row.id"
+                (click)="menuId = menuId === row.id ? '' : row.id"
+              >
+                <i aria-hidden="true" class="bi bi-three-dots"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="items.length === 0">
+            <td colspan="6">
+              <div class="empty-state">
+                <span class="empty-icon"><i aria-hidden="true" class="bi bi-megaphone"></i></span>
+                <h2>
+                  {{
+                    query || statusFilter || typeFilter || from || to
+                      ? 'Không tìm thấy chiến dịch'
+                      : 'Bắt đầu chiến dịch đầu tiên'
+                  }}
+                </h2>
+                <p>
+                  {{
+                    query || statusFilter || typeFilter || from || to
+                      ? 'Thử thay đổi từ khóa hoặc bộ lọc của bạn.'
+                      : 'Đưa dịch vụ đến gần du khách hơn với quảng bá, Flash Sale và mã ưu đãi.'
+                  }}
+                </p>
+                <button class="primary" (click)="openCreate()">
+                  <i aria-hidden="true" class="bi bi-plus-lg"></i> Tạo chiến dịch mới
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="loading" class="loading" role="status">
+        <i aria-hidden="true" class="bi bi-arrow-repeat"></i> Đang tải chiến dịch…
+      </div>
+    </div>
+    <ng-container *ngFor="let row of items">
+      <div
+        *ngIf="menuId === row.id"
+        class="action-bar"
+        role="group"
+        [attr.aria-label]="'Thao tác cho ' + row.name"
+      >
+        <strong>{{ row.name }}</strong
+        ><button (click)="view(row, true)"><i aria-hidden="true" class="bi bi-bar-chart"></i> Báo cáo</button
+        ><button *ngIf="editable(row)" (click)="openEdit(row)">
+          <i aria-hidden="true" class="bi bi-pencil"></i> Chỉnh sửa</button
+        ><button
+          *ngIf="editable(row) && row.status === 'active'"
+          [disabled]="saving"
+          (click)="changeStatus(row, 'paused')"
+        >
+          <i aria-hidden="true" class="bi bi-pause-circle"></i> Tạm dừng</button
+        ><button
+          *ngIf="editable(row) && row.status === 'paused'"
+          [disabled]="saving"
+          (click)="changeStatus(row, 'active')"
+        >
+          <i aria-hidden="true" class="bi bi-play-circle"></i> Tiếp tục</button
+        ><button *ngIf="editable(row)" class="danger-text" (click)="confirm(row, 'cancel')">
+          Hủy chiến dịch</button
+        ><button class="danger-text" (click)="confirm(row, 'delete')">
+          <i aria-hidden="true" class="bi bi-archive"></i> Xóa / Lưu trữ</button
+        ><button aria-label="Đóng thao tác" (click)="menuId = ''">
+          <i aria-hidden="true" class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </ng-container>
+    <footer class="pagination">
+      <span>Hiển thị {{ first }}–{{ last }} trên tổng {{ total }} chiến dịch</span>
+      <div>
+        <label
+          >Số dòng
+          <select aria-label="Số dòng mỗi trang" [(ngModel)]="pageSize" (change)="filter()">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select></label
+        ><button
+          class="icon-button"
+          aria-label="Trang trước"
+          [disabled]="page <= 1 || loading"
+          (click)="paginate(page - 1)"
+        >
+          <i aria-hidden="true" class="bi bi-chevron-left"></i></button
+        ><span class="page-number">{{ page }} / {{ pages }}</span
+        ><button
+          class="icon-button"
+          aria-label="Trang sau"
+          [disabled]="page >= pages || loading"
+          (click)="paginate(page + 1)"
+        >
+          <i aria-hidden="true" class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </footer>
+  </div>
+  <p class="workspace-note">
+    <i aria-hidden="true" class="bi bi-shield-check"></i> Chỉ bạn có quyền quản lý các chiến dịch của tài khoản này.
+  </p>
+</section>
+
+<dialog
+  #editor
+  class="campaign-dialog"
+  aria-labelledby="editor-title"
+  (cancel)="cancelDialog($event)"
+>
+  <form (ngSubmit)="save()" #campaignForm="ngForm" novalidate>
+    <header class="dialog-heading">
+      <div>
+        <p class="eyebrow">QUẢNG BÁ & KHUYẾN MÃI</p>
+        <h2 id="editor-title">{{ editing ? 'Chỉnh sửa chiến dịch' : 'Tạo chiến dịch mới' }}</h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        aria-label="Đóng biểu mẫu"
+        (click)="closeEditor()"
+        [disabled]="saving"
+      >
+        <i aria-hidden="true" class="bi bi-x-lg"></i>
+      </button>
+    </header>
+    <div class="dialog-body">
+      <div *ngIf="optionsError" class="notice error" role="alert">
+        {{ optionsError }}<button type="button" (click)="loadOptions()">Tải lại dịch vụ</button>
+      </div>
+      <div *ngIf="formMessage" class="notice error" role="alert">{{ formMessage }}</div>
+      <div class="form-grid">
+        <label class="full"
+          >Tên chiến dịch <span>*</span
+          ><input
+            name="name"
+            [(ngModel)]="form.name"
+            required
+            minlength="3"
+            maxlength="120"
+            placeholder="Ví dụ: Hành trình xanh cuối tuần"
+            autofocus
+        /></label>
+        <label
+          >Loại chiến dịch <span>*</span
+          ><select name="type" [(ngModel)]="form.type" [disabled]="!!editing">
+            <option value="promotion">Quảng bá dịch vụ</option>
+            <option value="flash_sale">Flash Sale</option>
+            <option value="voucher">Mã ưu đãi</option>
+          </select></label
+        >
+        <label
+          >Dịch vụ {{ form.type === 'voucher' ? '(tùy chọn)' : '*'
+          }}<select name="service" [(ngModel)]="form.service_id">
+            <option value="">
+              {{ form.type === 'voucher' ? 'Tất cả dịch vụ của bạn' : 'Chọn dịch vụ' }}
+            </option>
+            <option *ngFor="let service of services" [value]="service.id">
+              {{ service.name }} · {{ service.cost | number }} đ
+            </option>
+          </select></label
+        >
+        <p *ngIf="!services.length && !optionsLoading && !optionsError" class="form-help full">
+          Bạn chưa có dịch vụ đang hoạt động. Hãy thêm dịch vụ trong
+          <a routerLink="/partner-services" (click)="closeEditor()">Quản lý dịch vụ</a> trước khi
+          tạo quảng bá hoặc Flash Sale. Bạn vẫn có thể tạo mã ưu đãi.
+        </p>
+        <label
+          >Bắt đầu <span>*</span
+          ><input type="datetime-local" name="start" [(ngModel)]="form.start_at" required
+        /></label>
+        <label
+          >Kết thúc <span>*</span
+          ><input type="datetime-local" name="end" [(ngModel)]="form.end_at" required
+        /></label>
+        <ng-container *ngIf="form.type === 'promotion'">
+          <label
+            >Gói quảng cáo <span>*</span
+            ><select name="package" [(ngModel)]="form.package">
+              <option *ngFor="let package of packages | keyvalue" [value]="package.key">
+                {{ packageNames[package.key] }} · {{ package.value | number }} đ/ngày
+              </option>
+            </select></label
+          >
+          <label
+            >Ngân sách (đ) <span>*</span
+            ><input
+              type="number"
+              name="budget"
+              [(ngModel)]="form.budget"
+              [min]="requiredBudget"
+              max="1000000000000"
+              required
+          /></label>
+          <p class="form-help full">
+            <i aria-hidden="true" class="bi bi-info-circle"></i> Ngân sách tối thiểu:
+            <strong>{{ requiredBudget | number }} đ</strong>. Thời gian được làm tròn lên theo ngày.
+            Tạo chiến dịch không tự động trừ tiền.
+          </p>
+        </ng-container>
+        <ng-container *ngIf="form.type !== 'promotion'">
+          <label *ngIf="form.type === 'voucher'" class="full"
+            >Mã ưu đãi <span>*</span
+            ><input
+              name="code"
+              [(ngModel)]="form.code"
+              maxlength="32"
+              placeholder="Ví dụ: GREENWEEKEND"
+              required
+              pattern="[A-Za-z0-9_-]{3,32}"
+            /><small
+              >3–32 ký tự, không dấu và không có khoảng trắng. Mã sẽ được viết hoa.</small
+            ></label
+          >
+          <label
+            >Hình thức giảm <span>*</span
+            ><select name="discountType" [(ngModel)]="form.discount_type">
+              <option value="percent">Theo phần trăm (%)</option>
+              <option value="fixed">Số tiền cố định (đ)</option>
+            </select></label
+          >
+          <label
+            >Giá trị giảm <span>*</span
+            ><input
+              name="discount"
+              type="number"
+              [(ngModel)]="form.discount_value"
+              min="1"
+              [max]="form.discount_type === 'percent' ? 100 : 1000000000000"
+              required
+          /></label>
+          <label
+            >Đơn tối thiểu (đ)<input
+              name="minimum"
+              type="number"
+              [(ngModel)]="form.min_order"
+              min="0"
+              required
+          /></label>
+          <label
+            >Giới hạn sử dụng <span>*</span
+            ><input
+              name="limit"
+              type="number"
+              [(ngModel)]="form.usage_limit"
+              [min]="editing?.used_count || 1"
+              max="1000000000"
+              step="1"
+              required
+          /></label>
+        </ng-container>
+      </div>
+      <p
+        *ngIf="editing && (editing.used_count || editing.bookings || editing.spent)"
+        class="form-help"
+      >
+        Chiến dịch đã phát sinh giao dịch: dịch vụ, mã và điều kiện ưu đãi được giữ nguyên để bảo
+        toàn lịch sử.
+      </p>
+    </div>
+    <footer class="dialog-footer">
+      <button type="button" class="secondary" (click)="closeEditor()" [disabled]="saving">
+        Đóng</button
+      ><button class="primary" type="submit" [disabled]="saving || optionsLoading">
+        {{ saving ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Tạo chiến dịch' }}
+      </button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog #viewer class="campaign-dialog" aria-labelledby="detail-title">
+  <ng-container *ngIf="selected as row">
+    <header class="dialog-heading">
+      <div>
+        <p class="eyebrow">{{ report ? 'BÁO CÁO CHIẾN DỊCH' : types[row.type] }}</p>
+        <h2 id="detail-title">{{ row.name }}</h2>
+      </div>
+      <button class="icon-button" aria-label="Đóng chi tiết" (click)="viewer.close()">
+        <i aria-hidden="true" class="bi bi-x-lg"></i>
+      </button>
+    </header>
+    <div class="dialog-body">
+      <span [class]="'status-badge ' + row.effective_status"
+        ><span class="dot"></span>{{ statuses[row.effective_status] }}</span
+      >
+      <dl class="details">
+        <div>
+          <dt>Dịch vụ</dt>
+          <dd>{{ row.service?.name || 'Tất cả dịch vụ của bạn' }}</dd>
+        </div>
+        <div>
+          <dt>Thời gian chạy</dt>
+          <dd>
+            {{ row.start_at | date: 'dd/MM/yyyy HH:mm' }} →
+            {{ row.end_at | date: 'dd/MM/yyyy HH:mm' }}
+          </dd>
+        </div>
+        <ng-container *ngIf="row.type === 'promotion'; else discountDetails"
+          ><div>
+            <dt>Gói quảng cáo</dt>
+            <dd>{{ packageNames[row.package || ''] }}</dd>
+          </div>
+          <div>
+            <dt>Ngân sách</dt>
+            <dd>{{ row.budget | number }} đ</dd>
+          </div></ng-container
+        ><ng-template #discountDetails
+          ><div *ngIf="row.code">
+            <dt>Mã ưu đãi</dt>
+            <dd>{{ row.code }}</dd>
+          </div>
+          <div>
+            <dt>Mức giảm</dt>
+            <dd>
+              {{ row.discount_value | number }}{{ row.discount_type === 'percent' ? '%' : ' đ' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Đơn tối thiểu</dt>
+            <dd>{{ row.min_order | number }} đ</dd>
+          </div>
+          <div>
+            <dt>Lượt sử dụng</dt>
+            <dd>{{ row.used_count }} / {{ row.usage_limit }}</dd>
+          </div></ng-template
+        >
+      </dl>
+      <div *ngIf="report" class="report">
+        <h3>Hiệu quả được ghi nhận</h3>
+        <div class="report-grid">
+          <div>
+            <i aria-hidden="true" class="bi bi-eye"></i><strong>{{ report['views'] | number }}</strong
+            ><span>Lượt xem</span>
+          </div>
+          <div>
+            <i aria-hidden="true" class="bi bi-cursor"></i><strong>{{ report['clicks'] | number }}</strong
+            ><span>Lượt nhấp</span>
+          </div>
+          <div>
+            <i aria-hidden="true" class="bi bi-calendar-check"></i><strong>{{ report['bookings'] | number }}</strong
+            ><span>Booking</span>
+          </div>
+          <div>
+            <i aria-hidden="true" class="bi bi-graph-up-arrow"></i
+            ><strong>{{ report['ctr'] | number: '1.0-2' }}%</strong><span>Tỷ lệ nhấp</span>
+          </div>
+        </div>
+        <dl class="details">
+          <div>
+            <dt>Doanh thu</dt>
+            <dd>{{ report['revenue'] | number }} đ</dd>
+          </div>
+          <div>
+            <dt>Đã chi</dt>
+            <dd>{{ report['spent'] | number }} đ</dd>
+          </div>
+        </dl>
+        <p class="form-help">{{ report['note'] }}</p>
+      </div>
+    </div>
+    <footer class="dialog-footer">
+      <button class="secondary" (click)="viewer.close()">Đóng</button>
+    </footer>
+  </ng-container>
+</dialog>
+<dialog
+  #confirmation
+  class="confirm-dialog"
+  aria-labelledby="confirm-title"
+  (cancel)="cancelDialog($event)"
+>
+  <div class="dialog-body">
+    <span class="warning-icon"><i aria-hidden="true" class="bi bi-archive"></i></span>
+    <h2 id="confirm-title">
+      {{ pending?.action === 'delete' ? 'Lưu trữ chiến dịch?' : 'Hủy chiến dịch?' }}
+    </h2>
+    <p>
+      “{{ pending?.row?.name }}” sẽ ngừng hoạt động. Lịch sử và dữ liệu giao dịch được giữ lại. Thao
+      tác này không thể hoàn tác.
+    </p>
+  </div>
+  <footer class="dialog-footer">
+    <button class="secondary" [disabled]="saving" (click)="confirmation.close()">Quay lại</button
+    ><button class="danger" [disabled]="saving" (click)="execute()">
+      {{ saving ? 'Đang xử lý…' : 'Xác nhận' }}
+    </button>
+  </footer>
+</dialog>

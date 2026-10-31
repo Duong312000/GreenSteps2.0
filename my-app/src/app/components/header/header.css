@@ -179,6 +179,8 @@
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 42px;
   padding: 0 1rem;
   border-radius: 9999px;
@@ -198,13 +200,21 @@
 }
 
 .shopco-search-pill input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  text-overflow: ellipsis;
   background: transparent;
   border: none;
   outline: none;
   font-size: 0.875rem;
   color: #111827;
   padding-left: 0.5rem;
+}
+
+.shopco-search-pill > i,
+.shopco-search-pill > button {
+  flex-shrink: 0;
 }
 
 .shopco-search-suggestions {
@@ -279,4 +289,36 @@
   .mobile-hamburger {
     display: none !important;
   }
+}
+
+/* Fit navigation and account controls within laptop screens. */
+.main-header-row{width:100%;min-width:0;box-sizing:border-box;gap:1rem}
+.main-header-row .shopco-header-search{flex:1 0 230px;min-width:230px;max-width:280px;margin-left:.5rem;margin-right:.5rem}
+@media(min-width:1024px) and (max-width:1599px){
+  .main-header-row{padding-left:1.5rem;padding-right:1.5rem;gap:.75rem}
+  .main-header-row>div:first-child{margin-right:.5rem}
+  .main-header-row>nav{gap:1rem}
+  .main-header-row .shopco-header-search{display:flex;flex:1 0 210px;max-width:250px;min-width:210px;margin:0}
+  .main-header-row .nav-tab-item{font-size:14px}
+}
+@media(min-width:1280px) and (max-width:1399px){
+  .main-header-row{gap:.5rem;padding-left:1rem;padding-right:1rem}
+  .main-header-row>nav{gap:.4rem}
+  .main-header-row .nav-tab-item{font-size:13px}
+}
+@media(min-width:768px) and (max-width:1023px){
+  .main-header-row>nav{display:none}
+}
+@media(min-width:1024px) and (max-width:1279px){
+  .main-header-row>nav{display:none}
+  .main-header-row .mobile-hamburger{display:grid!important}
+}
+
+/* Override legacy fixed side-column widths so account controls stay inside the row. */
+@media(min-width:1024px){
+  .main-header-row>div:first-child,
+  .main-header-row>div:last-child{width:auto!important;flex:0 0 auto}
+  .main-header-row>div:first-child{margin-right:.5rem}
+  .main-header-row>div:last-child{margin-left:0;gap:.6rem}
+  .main-header-row{justify-content:space-between}
 }

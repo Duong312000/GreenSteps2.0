@@ -592,6 +592,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   public updateNavigation() {
     const travelerTabs = [
+      { label: 'Khuyến mãi', link: '/promotions' },
       { label: 'Cộng đồng', link: '/community' },
       { label: 'Chuyến đi trọn gói', link: '/tours' },
       { label: 'Lưu trú', link: '/services', queryParams: { type: 'stay' } },

@@ -7,7 +7,7 @@
     <!-- ════════════════════════════════════════════════════════
          MAIN HEADER ROW — 3 độc lập divs: Logo | Nav | Controls
     ════════════════════════════════════════════════════════ -->
-    <div #headerWrapper class="mx-auto flex max-w-[1720px] items-center justify-between px-6 lg:px-10" style="height: 88px;">
+    <div #headerWrapper class="main-header-row mx-auto flex max-w-[1720px] items-center justify-between px-6 lg:px-10" style="height: 88px;">
 
         <!-- ── DIV 1: LOGO (flex-shrink-0) ── -->
         <div class="flex items-center flex-shrink-0 mr-4 lg:mr-8">
@@ -34,6 +34,11 @@
         <nav #navContainer
              class="hidden md:flex items-center gap-5 xl:gap-7 flex-shrink-0"
              style="height: 88px;">
+
+            <a routerLink="/promotions" routerLinkActive="active-nav-tab" class="nav-tab-item"
+               [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
+                Khuyến mãi
+            </a>
 
             <!-- 1. Cộng đồng -->
             <a routerLink="/community"
