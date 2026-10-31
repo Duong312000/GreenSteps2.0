@@ -3,7 +3,7 @@ const router = express.Router();
 const partnerController = require('../controllers/partner.controller');
 const { authMiddleware, softAuth, checkRole } = require('../middlewares/auth.middleware');
 
-router.post('/register', softAuth, partnerController.registerProvider);
+router.post('/register', authMiddleware, partnerController.registerProvider);
 router.get('/stats', softAuth, partnerController.getMonthlyStats);
 
 // Admin-only endpoints

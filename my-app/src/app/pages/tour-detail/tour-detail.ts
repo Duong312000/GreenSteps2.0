@@ -21,6 +21,9 @@ export class TourDetailComponent implements OnInit {
 
   public reviewsList: any[] = [];
   public filteredReviews: any[] = [];
+  public reviewLoadError = false;
+  public reviewEligibilityError = false;
+  public isSubmittingReview = false;
   public activeFilter: string = 'Tất cả';
   public activeSort: string = 'Mới nhất';
   public likedReviewsSet: Set<string> = new Set();
@@ -29,6 +32,8 @@ export class TourDetailComponent implements OnInit {
   public activeReplyTarget: { [commentId: string]: boolean } = {};
   public newReviewRating: number = 5;
   public newReviewText: string = '';
+  public reviewBookings: any[] = [];
+  public selectedReviewBookingId = '';
 
   public galleryPhotoUrl: string = '';
   public activeDayIndex: number = 0;
@@ -44,7 +49,6 @@ export class TourDetailComponent implements OnInit {
   // Dynamic reviews rating statistics
   public getRatingCount(stars: number): number {
     if (!this.reviewsList || this.reviewsList.length === 0) {
-      if (stars === 5) return 1;
       return 0;
     }
     return this.reviewsList.filter(r => Math.round(r.rating) === stars).length;
@@ -52,43 +56,27 @@ export class TourDetailComponent implements OnInit {
 
   public getRatingPercentage(stars: number): number {
     if (!this.reviewsList || this.reviewsList.length === 0) {
-      if (stars === 5) return 100;
       return 0;
     }
     return Math.round((this.getRatingCount(stars) / this.reviewsList.length) * 100);
   }
 
   public get totalReviewsCount(): number {
-    return this.reviewsList ? this.reviewsList.length : 0;
+    return Number(this.activeTour?.votes_count ?? this.activeTour?.votes ?? this.reviewsList?.length ?? 0);
   }
 
   public get averageScore(): number {
-    if (!this.activeTour) return 5.0;
-    return this.activeTour.rating || 5.0;
+    if (!this.activeTour || this.activeTour.rating == null || !Number.isFinite(Number(this.activeTour.rating))) return 0;
+    return Number(this.activeTour.rating);
   }
 
   public get ratingText(): string {
     const score = this.averageScore;
+    if (!this.totalReviewsCount) return 'ChÆ°a cÃ³ Ä‘Ã¡nh giÃ¡';
     if (score >= 4.7) return 'Tuyệt vời';
     if (score >= 4.3) return 'Rất tốt';
     if (score >= 3.8) return 'Tốt';
     return 'Trung bình';
-  }
-
-  public get guideRating(): number {
-    return Math.min(5.0, Number((this.averageScore * 1.02).toFixed(1))) || 4.9;
-  }
-  public get itineraryRating(): number {
-    return Math.min(5.0, Number((this.averageScore * 0.98).toFixed(1))) || 4.8;
-  }
-  public get familyRating(): number {
-    return Math.min(5.0, Number((this.averageScore * 1.01).toFixed(1))) || 4.9;
-  }
-  public get ecoRatingHighlight(): number {
-    return Math.min(5.0, Number((this.averageScore * 0.97).toFixed(1))) || 4.7;
-  }
-  public get valueRating(): number {
-    return Math.min(5.0, Number((this.averageScore * 1.00).toFixed(1))) || 4.8;
   }
 
   // Fallback slider images by destination
@@ -140,6 +128,7 @@ export class TourDetailComponent implements OnInit {
   async ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+      if (this.activeTour) void this.loadReviewEligibility();
     });
 
     const liked = JSON.parse(localStorage.getItem('greensteps_liked_reviews') || '[]');
@@ -170,6 +159,7 @@ export class TourDetailComponent implements OnInit {
         if (this.activeTour) {
           this.setupSlides();
           await this.loadReviews(id);
+          await this.loadReviewEligibility();
         }
         this.isPageLoading = false;
         this.cdr.detectChanges();
@@ -402,13 +392,44 @@ export class TourDetailComponent implements OnInit {
 
   // REVIEWS & COMMENTS FEATURE INTEGRATION
   public async loadReviews(tourId: string) {
-    if (this.activeTour?.isService || (tourId && (tourId.toLowerCase().startsWith('srv_') || tourId.toLowerCase().startsWith('srv-') || tourId.startsWith('SRV_')))) {
-      this.reviewsList = await this.apiService.getServiceReviews(tourId);
-    } else {
-      this.reviewsList = await this.apiService.getTourReviews(tourId);
+    this.reviewLoadError = false;
+    try {
+      if (this.activeTour?.isService || (tourId && (tourId.toLowerCase().startsWith('srv_') || tourId.toLowerCase().startsWith('srv-') || tourId.startsWith('SRV_')))) {
+        this.reviewsList = await this.apiService.getServiceReviews(tourId);
+      } else {
+        this.reviewsList = await this.apiService.getTourReviews(tourId);
+      }
+    } catch {
+      this.reviewsList = [];
+      this.reviewLoadError = true;
     }
     this.applyFilterAndSort();
     this.cdr.detectChanges();
+  }
+
+  public async loadReviewEligibility() {
+    this.reviewEligibilityError = false;
+    const userId = this.currentUser?.id || this.currentUser?._id;
+    if (!userId || this.currentUser?.role !== 'traveler' || !this.activeTour) {
+      this.reviewBookings = [];
+      this.selectedReviewBookingId = '';
+      return;
+    }
+    const type = this.activeTour.isService ? 'service' : 'tour';
+    let bookings: any[];
+    try {
+      bookings = await this.apiService.getBookingsForReviewEligibility(userId);
+    } catch {
+      this.reviewBookings = [];
+      this.selectedReviewBookingId = '';
+      this.reviewEligibilityError = true;
+      return;
+    }
+    const alreadyReviewed = new Set(this.reviewsList.map(review => review.bookingId).filter(Boolean));
+    this.reviewBookings = bookings.filter((booking: any) =>
+      booking.status === 'completed' && booking.type === type && booking.targetId === this.activeTour?.id && !alreadyReviewed.has(booking.id)
+    );
+    this.selectedReviewBookingId = this.reviewBookings[0]?.id || '';
   }
 
   public applyFilterAndSort() {
@@ -499,7 +520,6 @@ export class TourDetailComponent implements OnInit {
       res = await this.apiService.replyToComment(parentCommentId, userId, text);
     } else {
       res = await this.apiService.postTourReview({
-        userId,
         tourId,
         text,
         parentCommentId
@@ -518,45 +538,51 @@ export class TourDetailComponent implements OnInit {
   }
 
   public async submitRootReview() {
-    if (!this.newReviewText || !this.newReviewText.trim()) return;
+    if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim() || !this.selectedReviewBookingId) return;
 
     if (!this.currentUser) {
       alert('Vui lòng đăng nhập để gửi đánh giá!');
       return;
     }
 
-    const userId = this.currentUser.id || this.currentUser._id;
     const tourId = this.activeTour?.id || '';
 
+    this.isSubmittingReview = true;
     let res;
-    if (this.activeTour?.isService) {
-      res = await this.apiService.postServiceReview({
-        userId,
-        serviceId: tourId,
-        rating: this.newReviewRating,
-        text: this.newReviewText
-      });
-    } else {
-      res = await this.apiService.postTourReview({
-        userId,
-        tourId,
-        rating: this.newReviewRating,
-        text: this.newReviewText
-      });
+    try {
+      if (this.activeTour?.isService) {
+        res = await this.apiService.postServiceReview({
+          bookingId: this.selectedReviewBookingId,
+          serviceId: tourId,
+          rating: this.newReviewRating,
+          text: this.newReviewText
+        });
+      } else {
+        res = await this.apiService.postTourReview({
+          bookingId: this.selectedReviewBookingId,
+          tourId,
+          rating: this.newReviewRating,
+          text: this.newReviewText
+        });
+      }
+    } catch (error: any) {
+      alert(error?.error?.message || 'Could not submit the review. Please try again.');
+      this.isSubmittingReview = false;
+      return;
     }
+    this.isSubmittingReview = false;
 
     if (res && res.success) {
       this.newReviewText = '';
       this.newReviewRating = 5;
       if (this.activeTour) {
         await this.loadReviews(this.activeTour.id);
+        await this.loadReviewEligibility();
         this.activeTour.rating = res.rating;
-        if (res.votes_count !== undefined) {
-          this.activeTour.votes_count = res.votes_count;
-          this.activeTour.votes = res.votes_count;
-        } else {
-          // Increment fallback
-          this.activeTour.votes = (this.activeTour.votes || 0) + 1;
+        const reviewCount = res.votes_count ?? res.reviews_count;
+        if (reviewCount !== undefined) {
+          this.activeTour.votes_count = reviewCount;
+          this.activeTour.votes = reviewCount;
         }
       }
     } else {

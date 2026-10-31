@@ -9,13 +9,25 @@ test('MongoDB API, relationships, financial transactions and migrated response s
   const databaseName = `GreenStepsMigrationTest_${Date.now()}`;
   uri.pathname = `/${databaseName}`;
   process.env.MONGODB_URI = uri.toString();
-  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, Badge, BadgeService } = require('../src/models');
+  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, TourBooking, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, CPSS, Provider, Vender, Badge, BadgeService } = require('../src/models');
   const { Op } = require('../src/db/mongo-store');
   const app = require('../src/app');
   const bcrypt = require('bcrypt');
   let server;
   try {
     await store.sync();
+    await t.test('review booking IDs have a unique partial index and no duplicates in the isolated database', async () => {
+      const indexes = await CommentPost.collection.listIndexes().toArray();
+      const bookingIndex = indexes.find(index => index.key?.booking_id === 1 && index.unique === true);
+      assert.ok(bookingIndex, 'CommentPost.booking_id unique index is missing');
+      assert.equal(bookingIndex.partialFilterExpression?.booking_id?.$type, 'string');
+      const duplicates = await CommentPost.collection.aggregate([
+        { $match: { booking_id: { $type: 'string' } } },
+        { $group: { _id: '$booking_id', count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } }
+      ]).toArray();
+      assert.deepEqual(duplicates, []);
+    });
     const password = 'TestMongo123!';
     await User.create({ id: 'test-user', username: 'mongo_test', email: 'mongo-test@example.com', password_hash: await bcrypt.hash(password, 4), is_verified: true });
     await Wallet.create({ id: 'test-wallet', user_id: 'test-user', balance: 1000000, registered: true });
@@ -83,10 +95,10 @@ test('MongoDB API, relationships, financial transactions and migrated response s
     server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
-    async function request(route, body, token) {
+    async function request(route, body, token, expectedStatus = 200) {
       const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
       const json = await response.json();
-      assert.equal(response.status, 200, JSON.stringify(json));
+      assert.equal(response.status, expectedStatus, JSON.stringify(json));
       return json;
     }
     await t.test('HTTP login, both API prefixes, tours, services, wallet and itinerary round trip', async () => {
@@ -120,6 +132,183 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       await Wallet.update({ green_points: 1000 }, { where: { id: 'test-wallet' } });
       assert.equal((await request('/vouchers/redeem', {}, login.token)).remainingPoints, 0);
+    });
+    await t.test('completed booking review writes are owner-bound, unique, and linked for tour and service', async () => {
+      await ServiceBooking.create({
+        id: 'service-review-booking', user_id: 'test-user', service_id: 'test-service',
+        fullname: 'Test customer', name_service: 'Nhà xanh', booking_date: '2026-12-01',
+        guests: 1, value: 200000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-SRV-REVIEW'
+      });
+      await TourBooking.create({
+        id: 'tour-review-booking', user_id: 'test-user', schedule_id: 'test-tour',
+        fullname: 'Test customer', tour_name: 'Tour xanh', booking_date: '2026-12-01',
+        guests: 1, value: 300000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-TOUR-REVIEW'
+      });
+      const login = await request('/auth/login', { username: 'mongo_test', password });
+
+      const tourResult = await request('/reviews/tour', {
+        userId: 'forged-user', bookingId: 'tour-review-booking', tourId: 'test-tour', rating: 5, text: 'Tour tốt'
+      }, login.token, 201);
+      const tourReview = await CommentPost.findOne({ where: { booking_id: 'tour-review-booking' } });
+      assert.equal(tourReview.user_id, 'test-user');
+      assert.equal(tourReview.tour_id, 'test-tour');
+      assert.equal((await CPSS.findOne({ where: { comment_id: tourReview.id } })).schedule_sample_id, 'test-tour');
+      assert.equal(tourResult.reviews_count, 1);
+      assert.equal((await ScheduleSample.findByPk('test-tour')).rating, 5);
+      assert.equal((await request('/reviews/tour', {
+        bookingId: 'tour-review-booking', tourId: 'test-tour', rating: 4, text: 'Lần hai'
+      }, login.token, 409)).success, false);
+      await TourBooking.create({
+        id: 'concurrent-tour-review-booking', user_id: 'test-user', schedule_id: 'test-tour',
+        fullname: 'Test customer', tour_name: 'Tour xanh', booking_date: '2026-12-02',
+        guests: 1, value: 300000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-TOUR-CONCURRENT'
+      });
+      const concurrentRequests = await Promise.all([1, 2].map(() => fetch(base + '/reviews/tour', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${login.token}` },
+        body: JSON.stringify({ bookingId: 'concurrent-tour-review-booking', tourId: 'test-tour', rating: 3, text: 'Tour okay' })
+      })));
+      assert.deepEqual(concurrentRequests.map(response => response.status).sort(), [201, 409]);
+      assert.equal((await ScheduleSample.findByPk('test-tour')).rating, 4);
+      assert.equal((await ScheduleSample.findByPk('test-tour')).votes_count, 2);
+
+      const serviceResult = await request('/reviews/service', {
+        bookingId: 'service-review-booking', serviceId: 'test-service', rating: 4, text: 'Dịch vụ tốt'
+      }, login.token, 201);
+      const serviceReview = await CommentPost.findOne({ where: { booking_id: 'service-review-booking' } });
+      assert.equal(serviceReview.user_id, 'test-user');
+      assert.equal(serviceReview.service_id, 'test-service');
+      assert.equal((await CPGS.findOne({ where: { comment_id: serviceReview.id } })).service_id, 'test-service');
+      assert.equal(serviceResult.reviews_count, 2); // the existing review-hook fixture plus this booking review
+      assert.equal((await GreenService.findByPk('test-service')).bookings_count, await ServiceBooking.count({ where: { service_id: 'test-service' } }));
+
+      await TourBooking.create({
+        id: 'rollback-tour-review-booking', user_id: 'test-user', schedule_id: 'test-tour',
+        fullname: 'Test customer', tour_name: 'Tour xanh', booking_date: '2026-12-03',
+        guests: 1, value: 300000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-TOUR-ROLLBACK'
+      });
+      const tourBeforeFailedReview = await ScheduleSample.findByPk('test-tour');
+      const tourRatingBeforeFailedReview = { rating: tourBeforeFailedReview.rating, votes_count: tourBeforeFailedReview.votes_count };
+      const originalCPSSCreate = CPSS.create;
+      try {
+        CPSS.create = async () => { throw new Error('injected CPSS write failure'); };
+        await request('/reviews/tour', { bookingId: 'rollback-tour-review-booking', tourId: 'test-tour', rating: 1, text: 'rollback' }, login.token, 500);
+      } finally {
+        CPSS.create = originalCPSSCreate;
+      }
+      assert.equal(await CommentPost.findOne({ where: { booking_id: 'rollback-tour-review-booking' } }), null);
+      const tourAfterFailedReview = await ScheduleSample.findByPk('test-tour');
+      assert.deepEqual({ rating: tourAfterFailedReview.rating, votes_count: tourAfterFailedReview.votes_count }, tourRatingBeforeFailedReview);
+
+      await ServiceBooking.create({
+        id: 'rollback-service-review-booking', user_id: 'test-user', service_id: 'test-service',
+        fullname: 'Test customer', name_service: 'Nhà xanh', booking_date: '2026-12-04',
+        guests: 1, value: 200000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-SRV-ROLLBACK'
+      });
+      const serviceBeforeFailedReview = await GreenService.findByPk('test-service');
+      const serviceRatingBeforeFailedReview = { rating: serviceBeforeFailedReview.rating, votes_count: serviceBeforeFailedReview.votes_count, reviews_count: serviceBeforeFailedReview.reviews_count };
+      const originalCPGSCreate = CPGS.create;
+      try {
+        CPGS.create = async () => { throw new Error('injected CPGS write failure'); };
+        await request('/reviews/service', { bookingId: 'rollback-service-review-booking', serviceId: 'test-service', rating: 1, text: 'rollback' }, login.token, 500);
+      } finally {
+        CPGS.create = originalCPGSCreate;
+      }
+      assert.equal(await CommentPost.findOne({ where: { booking_id: 'rollback-service-review-booking' } }), null);
+      const serviceAfterFailedReview = await GreenService.findByPk('test-service');
+      assert.deepEqual({ rating: serviceAfterFailedReview.rating, votes_count: serviceAfterFailedReview.votes_count, reviews_count: serviceAfterFailedReview.reviews_count }, serviceRatingBeforeFailedReview);
+
+      const password_hash = await bcrypt.hash(password, 4);
+      await User.create({ id: 'test-provider', username: 'mongo_provider', email: 'mongo-provider@example.com', password_hash, is_verified: true, role: 'provider', company_name: 'Green Provider' });
+      await Vender.create({ id: 'test-vender', user_id: 'test-provider', registration_date: new Date() });
+      await Provider.create({ id: 'test-provider-record', user_id: 'test-provider', name_provider: 'Green Provider', destination: 'Da Lat', provider_status: 'active' });
+      await GreenService.update({ vender_id: 'test-vender' }, { where: { id: 'test-service' } });
+      await ScheduleSample.update({ provider_id: 'test-provider-record' }, { where: { id: 'test-tour' } });
+      const customerLogin = await request('/auth/login', { username: 'mongo_test', password });
+      const providerLogin = await request('/auth/login', { username: 'mongo_provider', password });
+      const providerReviews = await request('/reviews/provider?providerId=forged-provider', undefined, providerLogin.token);
+      assert.equal(providerReviews.length, 4); // Includes the earlier aggregate-hook fixture review and concurrent-booking review.
+      assert.deepEqual(new Set(providerReviews.map(review => review.type)), new Set(['tour', 'service']));
+      assert.equal((await request('/reviews/provider?serviceId=someone-elses-service', undefined, providerLogin.token, 403)).success, false);
+      await request(`/reviews/${tourReview.id}/reply`, { text: 'Tour reply' }, providerLogin.token, 201);
+      await request(`/reviews/${serviceReview.id}/reply`, { text: 'Service reply' }, providerLogin.token, 201);
+      const tourReviewsAfterReply = await request('/reviews/tour/test-tour');
+      const serviceReviewsAfterReply = await request('/reviews/service/test-service');
+      assert.equal(tourReviewsAfterReply.find(review => review.id === tourReview.id).replies[0].text, 'Tour reply');
+      assert.equal(serviceReviewsAfterReply.find(review => review.id === serviceReview.id).replies[0].text, 'Service reply');
+      const providerReviewsAfterReload = await request('/reviews/provider', undefined, providerLogin.token);
+      assert.equal(providerReviewsAfterReload.find(review => review.id === tourReview.id).providerReply.text, 'Tour reply');
+      assert.equal(providerReviewsAfterReload.find(review => review.id === serviceReview.id).providerReply.text, 'Service reply');
+
+      const createdServiceBooking = await request('/bookings', {
+        type: 'service', targetId: 'test-service', bookingDate: '2020-12-01', guests: 1, paymentMethod: 'counter'
+      }, customerLogin.token);
+      const lifecycleServiceBookingId = createdServiceBooking.bookingId;
+      assert.ok(lifecycleServiceBookingId?.startsWith('BKS-'));
+      await request(`/bookings/${lifecycleServiceBookingId}/approve`, {}, providerLogin.token);
+      await request(`/bookings/${lifecycleServiceBookingId}/complete`, {}, providerLogin.token);
+      assert.equal((await ServiceBooking.findByPk(lifecycleServiceBookingId)).status, 'completed');
+      const serviceLifecycleResponse = await request('/reviews/service', {
+        bookingId: lifecycleServiceBookingId, serviceId: 'test-service', rating: 5, text: 'Review sau service completed'
+      }, customerLogin.token, 201);
+      const serviceLifecycleReview = await CommentPost.findOne({ where: { booking_id: lifecycleServiceBookingId } });
+      assert.equal(serviceLifecycleReview.user_id, 'test-user');
+      assert.equal((await CPGS.findOne({ where: { comment_id: serviceLifecycleReview.id } })).service_id, 'test-service');
+      assert.equal(serviceLifecycleResponse.reviews_count, 3);
+      const providerServiceReviews = await request('/reviews/provider?serviceId=test-service', undefined, providerLogin.token);
+      assert.ok(providerServiceReviews.some(review => review.id === serviceLifecycleReview.id));
+      await request(`/reviews/${serviceLifecycleReview.id}/reply`, { text: 'Phản hồi cho service vừa hoàn thành' }, providerLogin.token, 201);
+      const customerReloadedServiceReviews = await request('/reviews/service/test-service');
+      assert.equal(customerReloadedServiceReviews.find(review => review.id === serviceLifecycleReview.id).replies[0].text, 'Phản hồi cho service vừa hoàn thành');
+
+      await Schedule.create({ id: 'other-tour', tour_name: 'Other tour', destination: 'Da Nang', days: 1 });
+      await ScheduleSample.create({ id: 'other-tour', cost: 150000, provider_id: 'other-provider-record' });
+      await Provider.create({ id: 'other-provider-record', user_id: 'other-provider', name_provider: 'Other Provider', destination: 'Da Nang', provider_status: 'active' });
+      const createdTourBooking = await request('/bookings', {
+        type: 'tour', targetId: 'test-tour', bookingDate: '2999-12-01', guests: 1, paymentMethod: 'counter'
+      }, customerLogin.token);
+      const lifecycleBookingId = createdTourBooking.bookingId;
+      assert.ok(lifecycleBookingId?.startsWith('BKT-'));
+      await TourBooking.create({
+        id: 'foreign-provider-tour-booking', user_id: 'test-user', schedule_id: 'other-tour',
+        fullname: 'Test customer', tour_name: 'Other tour', booking_date: '2020-12-01',
+        guests: 1, value: 150000, payment_method: 'card', status: 'deposit', booking_status: 'accepted',
+        payment_status: 'deposit_paid', evoucher_code: 'EV-FOREIGN-TOUR'
+      });
+      const providerBookings = await request('/bookings?providerId=test-provider', undefined, providerLogin.token);
+      assert.ok(providerBookings.some(booking => booking.id === 'service-review-booking' && booking.type === 'service'));
+      assert.ok(providerBookings.some(booking => booking.id === lifecycleBookingId && booking.type === 'tour'));
+      assert.equal(providerBookings.some(booking => booking.id === 'foreign-provider-tour-booking'), false);
+      assert.equal((await request(`/bookings/${lifecycleBookingId}`, undefined, providerLogin.token)).booking.id, lifecycleBookingId);
+      await request('/bookings/foreign-provider-tour-booking', undefined, providerLogin.token, 403);
+      await request(`/reviews/provider?tourId=other-tour`, undefined, providerLogin.token, 403);
+      await request(`/bookings/${lifecycleBookingId}/approve`, {}, providerLogin.token);
+      await request(`/bookings/${lifecycleBookingId}/complete`, {}, providerLogin.token, 409);
+      assert.equal((await TourBooking.findByPk(lifecycleBookingId)).status, 'deposit');
+      await TourBooking.update({ booking_date: '2020-12-01' }, { where: { id: lifecycleBookingId } });
+      await request(`/bookings/${lifecycleBookingId}/complete`, {}, providerLogin.token);
+      assert.equal((await TourBooking.findByPk(lifecycleBookingId)).operation_status, 'completed');
+      const lifecycleReviewResponse = await request('/reviews/tour', {
+        bookingId: lifecycleBookingId, tourId: 'test-tour', rating: 5, text: 'Review sau tour completed'
+      }, customerLogin.token, 201);
+      const lifecycleReview = await CommentPost.findOne({ where: { booking_id: lifecycleBookingId } });
+      assert.equal(lifecycleReview.user_id, 'test-user');
+      assert.equal((await CPSS.findOne({ where: { comment_id: lifecycleReview.id } })).schedule_sample_id, 'test-tour');
+      assert.equal(lifecycleReviewResponse.reviews_count, 3);
+      const providerLifecycleReviews = await request('/reviews/provider?tourId=test-tour', undefined, providerLogin.token);
+      assert.ok(providerLifecycleReviews.some(review => review.id === lifecycleReview.id));
+      await request(`/reviews/${lifecycleReview.id}/reply`, { text: 'Phản hồi cho booking vừa hoàn thành' }, providerLogin.token, 201);
+      const customerReloadedTourReviews = await request('/reviews/tour/test-tour');
+      assert.equal(customerReloadedTourReviews.find(review => review.id === lifecycleReview.id).replies[0].text, 'Phản hồi cho booking vừa hoàn thành');
+      await request('/bookings/foreign-provider-tour-booking/complete', {}, providerLogin.token, 403);
+      await TourBooking.update({ status: 'completed' }, { where: { id: 'foreign-provider-tour-booking' } });
+      const foreignReviewResponse = await request('/reviews/tour', {
+        bookingId: 'foreign-provider-tour-booking', tourId: 'other-tour', rating: 4, text: 'Đánh giá tour provider khác'
+      }, customerLogin.token, 201);
+      const foreignTourReview = await CommentPost.findOne({ where: { booking_id: 'foreign-provider-tour-booking' } });
+      assert.ok(foreignReviewResponse.success);
+      await request(`/reviews/${foreignTourReview.id}/reply`, { text: 'Không có quyền trả lời' }, providerLogin.token, 403);
+      assert.equal(await CommentPost.count({ where: { parent_comment_id: foreignTourReview.id } }), 0);
     });
     await t.test('existing checkout OTP and registration OTP persist and consume in MongoDB', async () => {
       const { createHmac } = require('node:crypto');

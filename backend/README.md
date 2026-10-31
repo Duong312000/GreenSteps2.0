@@ -99,9 +99,11 @@ npm.cmd run migrate:postgres -- --source-mongo --apply
 ```powershell
 npm.cmd test
 npm.cmd run verify:mongo
-$env:TEST_MONGODB_URI='mongodb://127.0.0.1:27018/?replicaSet=rs0'
+$env:TEST_MONGODB_URI='mongodb://127.0.0.1:27019/?replicaSet=rs0'
 npm.cmd test
 ```
+
+`TEST_MONGODB_URI` must point to a disposable local MongoDB replica set with a separate data directory. For example, run a test-only `mongod` on port 27019 with `D:\Web2\tmp\mongodb-test`, initialize it once using `mongosh "mongodb://127.0.0.1:27019" --eval "rs.initiate()"`, and then set the environment variable above. Do not point it at the application or production database.
 
 Integration test tạo database tên ngẫu nhiên `GreenStepsMigrationTest_*` rồi
 xóa đúng database đó khi kết thúc. Bao gồm đăng nhập, cả hai tiền tố API,

@@ -12,20 +12,29 @@ const {
 
 exports.registerProvider = async (req, res, next) => {
   const { nameProvider, field, destination, contractText } = req.body;
-  const userId = req.user ? req.user.id : (req.body.userId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, message: 'Login required.' });
 
   const t = await store.transaction();
   try {
+    const existingProvider = await Provider.findOne({ where: { user_id: userId }, transaction: t });
+    if (existingProvider) {
+      await t.rollback();
+      return res.status(409).json({ success: false, message: 'Provider profile already exists.' });
+    }
     // 1. Create Vendor & Provider entries in pending state
     const venderId = `provider_${userId}`;
-    await Vender.create({
-      id: venderId,
-      user_id: userId,
-      registration_date: new Date() // Date format
-    }, { transaction: t });
-
+    const existingVender = await Vender.findOne({ where: { user_id: userId }, transaction: t });
+    if (!existingVender) {
+      await Vender.create({
+        id: venderId,
+        user_id: userId,
+        registration_date: new Date()
+      }, { transaction: t });
+    }
     await Provider.create({
       id: 'PROV-' + Date.now().toString().slice(-6),
+      user_id: userId,
       contract_id: 'CON0001', // template link
       name_provider: nameProvider,
       field: field || 'Dịch vụ sinh thái',
@@ -69,10 +78,25 @@ exports.approveProvider = async (req, res, next) => {
     await user.save({ transaction: t });
 
     // Update provider status
-    await Provider.update(
-      { provider_status: 'active' },
-      { where: { id: { [Op.like]: '%' } }, transaction: t } // update provider linked to this user
-    );
+    let provider = await Provider.findOne({ where: { user_id: targetUserId }, transaction: t });
+    if (!provider && user.company_name) {
+      const legacyMatches = await Provider.findAll({ where: { name_provider: user.company_name }, transaction: t });
+      if (legacyMatches.length > 1) {
+        await t.rollback();
+        return res.status(409).json({ success: false, message: 'Provider ownership is ambiguous; manual resolution is required.' });
+      }
+      if (legacyMatches.length === 1 && !legacyMatches[0].user_id) {
+        provider = legacyMatches[0];
+        provider.user_id = targetUserId;
+        await provider.save({ transaction: t });
+      }
+    }
+    if (!provider) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Provider profile not found.' });
+    }
+    provider.provider_status = 'active';
+    await provider.save({ transaction: t });
 
     await t.commit();
     res.json({

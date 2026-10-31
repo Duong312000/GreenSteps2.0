@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Service } from '../../models/models';
-import { DEFAULT_SERVICES } from '../../services/default-data';
 
 @Component({
   selector: 'app-services',
@@ -88,10 +87,10 @@ export class ServicesComponent implements OnInit {
       
       try {
         const allServices = await this.apiService.getServices();
-        this.servicesData = allServices && allServices.length > 0 ? allServices : DEFAULT_SERVICES;
+        this.servicesData = allServices || [];
       } catch (e) {
-        console.warn('Fallback to local default services:', e);
-        this.servicesData = DEFAULT_SERVICES;
+        console.warn('Unable to load services:', e);
+        this.servicesData = [];
       }
 
       // Check recommendation
@@ -163,7 +162,8 @@ export class ServicesComponent implements OnInit {
       if (this.filterPrice === 'above1M' && s.cost <= 1000000) return false;
 
       // 5. Rating filter
-      const rating = s.rating || 5.0;
+      const rating = s.rating;
+      if (rating == null) return false;
       if (this.filterRating === '5.0' && rating < 5.0) return false;
       if (this.filterRating === '4.8' && rating < 4.8) return false;
       if (this.filterRating === '4.5' && rating < 4.5) return false;

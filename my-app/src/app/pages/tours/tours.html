@@ -186,13 +186,13 @@
               <!-- Rating Row -->
               <div class="card-rating-row">
                 <div class="stars-box">
-                  <i *ngFor="let star of [1,2,3,4,5]" class="bi" [class.bi-star-fill]="star <= (tour.rating || 5.0)"
-                    [class.bi-star-half]="star - 0.5 === (tour.rating || 5.0)"
-                    [class.bi-star]="star > (tour.rating || 5.0)">
+                  <i *ngFor="let star of [1,2,3,4,5]" class="bi" [class.bi-star-fill]="star <= (tour.rating || 0)"
+                    [class.bi-star-half]="star - 0.5 === (tour.rating || 0)"
+                    [class.bi-star]="star > (tour.rating || 0)">
                   </i>
                 </div>
-                <span class="rating-number">{{ tour.rating || 5.0 }}<span class="rating-total">/5</span></span>
-                <span class="reviews-count">({{ tour.votes || tour.votes_count || 24 }})</span>
+                <span class="rating-number">{{ tour.rating ?? '—' }}<span class="rating-total">/5</span></span>
+                <span class="reviews-count">({{ tour.votes_count || 0 }})</span>
               </div>
 
               <!-- Eco Highlights -->

@@ -1,6 +1,7 @@
 const { Op } = require('../db/mongo-store');
 const { randomUUID } = require('node:crypto');
 const { sendItineraryInviteEmail } = require('../services/email.service');
+const { createBookingReview } = require('../services/review.service');
 const {
   store,
   Schedule,
@@ -549,63 +550,86 @@ exports.getDestinations = async (req, res, next) => {
 
 // 9. Post Tour Review
 exports.postTourReview = async (req, res, next) => {
-  const { userId, tourId, rating, text, parentCommentId } = req.body;
-  if (!userId || !tourId || !text) {
-    return res.status(400).json({ success: false, message: 'Thiếu thông tin đánh giá!' });
-  }
-  if (!parentCommentId && rating === undefined) {
-    return res.status(400).json({ success: false, message: 'Thiếu số điểm đánh giá (rating)!' });
-  }
-
+  const { tourId, rating, text, parentCommentId } = req.body;
+  const userId = req.user?.id;
   try {
-    const commentId = 'CEPtra' + Date.now().toString().slice(-8);
-
-    const comment = await CommentPost.create({
-      id: commentId,
-      user_id: userId,
-      rating: parentCommentId ? null : rating,
-      text: text,
-      tour_id: tourId,
-      parent_comment_id: parentCommentId || null
-    });
-
-    if (!parentCommentId) {
-      await CPSS.create({
-        comment_id: commentId,
-        schedule_sample_id: tourId
+    if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
+    if (parentCommentId) {
+      if (req.user.role !== 'traveler') {
+        return res.status(403).json({ success: false, message: 'Provider replies must use the owner-validated review reply endpoint.' });
+      }
+      if (typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
+        return res.status(400).json({ success: false, message: 'Nội dung phản hồi không hợp lệ.' });
+      }
+      const parent = await CommentPost.findByPk(parentCommentId);
+      if (!parent || parent.parent_comment_id) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đánh giá gốc.' });
+      }
+      if (tourId && parent.tour_id && tourId !== parent.tour_id) {
+        return res.status(400).json({ success: false, message: 'Đánh giá không thuộc tour này.' });
+      }
+      const comment = await CommentPost.create({
+        id: 'CEPtra' + Date.now().toString().slice(-8),
+        user_id: userId,
+        rating: null,
+        text: text.trim(),
+        tour_id: parent.tour_id || tourId,
+        parent_comment_id: parentCommentId
+      });
+      const user = await User.findByPk(userId);
+      return res.status(201).json({
+        success: true,
+        comment: {
+          id: comment.id,
+          user: user ? { id: user.id, fullname: user.fullname, role: user.role } : null,
+          rating: null,
+          text: comment.text,
+          parentCommentId: comment.parent_comment_id,
+          likesCount: 0,
+          createdAt: comment.createdAt,
+          replies: []
+        }
       });
     }
 
-    // Rating hooks inside CommentPost automatically update ScheduleSample rating in DB.
-    // Fetch newly updated rating to return to client.
-    const updatedSample = await ScheduleSample.findByPk(tourId);
-    const userObj = await User.findByPk(userId);
-
-    res.json({
+    const result = await createBookingReview({
+      type: 'tour',
+      bookingId: req.body.bookingId,
+      targetId: tourId,
+      rating,
+      text,
+      userId,
+      role: req.user.role
+    });
+    const user = await User.findByPk(userId);
+    const storedComment = result.comment.toJSON ? result.comment.toJSON() : { ...result.comment };
+    const comment = {
+      ...storedComment,
+      user: user ? {
+        id: user.id,
+        fullname: user.fullname,
+        role: user.role,
+        avatar: user.avatarUrl || (user.fullname || 'U').charAt(0).toUpperCase()
+      } : null,
+      parentCommentId: null,
+      likesCount: 0,
+      replies: []
+    };
+    res.status(201).json({
       success: true,
-      comment: {
-        id: comment.id,
-        user: userObj ? {
-          id: userObj.id,
-          fullname: userObj.fullname,
-          role: userObj.role,
-          avatar: userObj.avatarUrl || userObj.fullname.charAt(0).toUpperCase()
-        } : { fullname: 'Người dùng ẩn danh', avatar: 'U' },
-        rating: comment.rating,
-        text: comment.text,
-        parentCommentId: comment.parent_comment_id,
-        likesCount: comment.likes_count || 0,
-        createdAt: comment.createdAt,
-        replies: []
-      },
-      rating: updatedSample ? updatedSample.rating : rating,
-      votes_count: updatedSample ? updatedSample.votes_count : 1
+      review: comment,
+      comment,
+      bookingId: result.booking.id,
+      type: 'tour',
+      targetId: result.target.id,
+      rating: result.rating,
+      votes_count: result.reviews_count,
+      reviews_count: result.reviews_count
     });
   } catch (error) {
     next(error);
   }
 };
-
 // 10. Get Tour Reviews
 exports.getTourReviews = async (req, res, next) => {
   const { tourId } = req.params;
@@ -630,11 +654,12 @@ exports.getTourReviews = async (req, res, next) => {
       const user = await User.findByPk(c.user_id);
       const cJson = {
         id: c.id,
+        bookingId: c.booking_id || null,
         user: user ? {
           id: user.id,
           fullname: user.fullname,
           role: user.role,
-          avatar: user.avatarUrl || user.fullname.charAt(0).toUpperCase()
+          avatar: user.avatarUrl || user.fullname?.charAt(0).toUpperCase() || 'U'
         } : { fullname: 'Người dùng ẩn danh', avatar: 'U' },
         rating: c.rating,
         text: c.text,

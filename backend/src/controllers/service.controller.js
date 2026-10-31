@@ -12,6 +12,7 @@ const {
   CommentPost,
   CPGS
 } = require('../models/index');
+const { createBookingReview } = require('../services/review.service');
 
 function saveBase64Image(base64Data, subfolder = 'services') {
   if (!base64Data || typeof base64Data !== 'string') return base64Data;
@@ -73,6 +74,7 @@ exports.getServices = async (req, res, next) => {
         status: s.status || 'active',
         views_count: s.views_count || 0,
         rating: s.rating,
+        reviews_count: s.reviews_count,
         bookings_count: s.bookings_count,
         max_capacity: s.max_capacity || 10,
         badges: badges,
@@ -251,6 +253,7 @@ exports.getRecommendations = async (req, res, next) => {
         icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
         status: 'active',
         rating: s.rating,
+        reviews_count: s.reviews_count,
         bookings_count: s.bookings_count,
         max_capacity: s.max_capacity || 10,
         badges: badgeServices.map(bs => bs.badge_name),
@@ -267,40 +270,37 @@ exports.getRecommendations = async (req, res, next) => {
 
 // 5. Post Service Review
 exports.postServiceReview = async (req, res, next) => {
-  const { userId, serviceId, rating, text } = req.body;
-  if (!userId || !serviceId || !rating || !text) {
-    return res.status(400).json({ success: false, message: 'Thiếu thông tin đánh giá!' });
-  }
-
   try {
-    const commentId = 'CEPser' + Date.now().toString().slice(-8);
-
-    const comment = await CommentPost.create({
-      id: commentId,
-      user_id: userId,
-      rating: rating,
-      text: text,
-      service_id: serviceId
+    const result = await createBookingReview({
+      type: 'service',
+      bookingId: req.body.bookingId,
+      targetId: req.body.serviceId,
+      rating: req.body.rating,
+      text: req.body.text,
+      userId: req.user?.id,
+      role: req.user?.role
     });
-
-    await CPGS.create({
-      comment_id: commentId,
-      service_id: serviceId
-    });
-
-    // Recalculate
-    const updatedService = await GreenService.findByPk(serviceId);
-
-    res.json({
+    const user = await User.findByPk(result.comment.user_id);
+    const storedComment = result.comment.toJSON ? result.comment.toJSON() : { ...result.comment };
+    const comment = {
+      ...storedComment,
+      user: user ? { id: user.id, fullname: user.fullname, role: user.role } : null,
+      service: { id: result.target.id, name: result.target.name_service }
+    };
+    res.status(201).json({
       success: true,
+      review: comment,
       comment,
-      rating: updatedService ? updatedService.rating : rating
+      bookingId: result.booking.id,
+      type: 'service',
+      targetId: result.target.id,
+      rating: result.rating,
+      reviews_count: result.reviews_count
     });
   } catch (error) {
     next(error);
   }
 };
-
 // 6. Get Service Reviews
 exports.getServiceReviews = async (req, res, next) => {
   const { serviceId } = req.params;
@@ -313,10 +313,23 @@ exports.getServiceReviews = async (req, res, next) => {
     });
 
     const reviews = [];
-    for (let c of comments) {
+    for (let c of comments.filter(row => !row.parent_comment_id)) {
       const user = await User.findByPk(c.user_id);
+      const children = await CommentPost.findAll({ where: { parent_comment_id: c.id }, order: [['createdAt', 'ASC']] });
+      const replies = [];
+      for (const child of children) {
+        const replyUser = await User.findByPk(child.user_id);
+        replies.push({
+          id: child.id,
+          parentCommentId: c.id,
+          text: child.text,
+          createdAt: child.createdAt,
+          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role, avatar: replyUser.avatarUrl || replyUser.fullname?.charAt(0) || 'U' } : { fullname: 'NgÆ°á»i dÃ¹ng áº©n danh', avatar: 'U' }
+        });
+      }
       reviews.push({
         id: c.id,
+        bookingId: c.booking_id || null,
         user: user ? {
           id: user.id,
           fullname: user.fullname,
@@ -324,7 +337,9 @@ exports.getServiceReviews = async (req, res, next) => {
         } : { fullname: 'Người dùng ẩn danh' },
         rating: c.rating,
         text: c.text,
-        createdAt: c.createdAt
+        createdAt: c.createdAt,
+        likesCount: c.likes_count || 0,
+        replies
       });
     }
 

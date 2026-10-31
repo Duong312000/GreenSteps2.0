@@ -68,6 +68,9 @@ export class PartnerBookingsComponent implements OnInit {
 
   // Reviews Tab Filters & Modals
   public reviews: any[] = [];
+  public reviewTargets: any[] = [];
+  public reviewTypeFilter = 'all';
+  public reviewLoadError = false;
   public reviewRatingFilter: string = 'Tất cả';
   public reviewServiceFilter: string = 'Tất cả';
   public reviewReplyFilter: string = 'Tất cả';
@@ -430,15 +433,31 @@ export class PartnerBookingsComponent implements OnInit {
   public async loadReviews() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    
+    this.reviewLoadError = false;
     const filters: any = {};
     if (this.reviewRatingFilter !== 'Tất cả') filters.rating = this.reviewRatingFilter;
-    if (this.reviewServiceFilter !== 'Tất cả') filters.serviceId = this.reviewServiceFilter;
+    if (this.reviewTypeFilter !== 'all') filters.type = this.reviewTypeFilter;
+    if (this.reviewServiceFilter !== 'Tất cả') {
+      const target = this.reviewTargets.find(item => item.id === this.reviewServiceFilter);
+      if (target?.type === 'tour') filters.tourId = target.id;
+      else filters.serviceId = this.reviewServiceFilter;
+    }
     if (this.reviewReplyFilter !== 'Tất cả') {
       filters.answered = this.reviewReplyFilter === 'Đã phản hồi' ? 'true' : 'false';
     }
-    
-    this.reviews = await this.apiService.getProviderReviews(providerId, filters) || [];
+
+    try {
+      this.reviews = await this.apiService.getProviderReviews(providerId, filters);
+      if (!this.reviewTargets.length) {
+        this.reviewTargets = this.reviews.reduce((targets: any[], review: any) => {
+          if (review.target && !targets.some(target => target.id === review.target.id)) targets.push(review.target);
+          return targets;
+        }, []);
+      }
+    } catch {
+      this.reviews = [];
+      this.reviewLoadError = true;
+    }
   }
 
   public initiateReply(reviewId: string) {

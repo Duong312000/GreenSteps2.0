@@ -1,292 +1,268 @@
-<main class="min-h-screen bg-[#f8f9fa] pt-28 pb-12 px-6 font-sans">
-    <div class="max-w-[1200px] mx-auto space-y-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-4 mb-6">
-            <h1 class="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                <i class="bi bi-shield-lock-fill text-[#0E9F6E]"></i> Phân hệ Quản trị viên (Bảng điều khiển Admin)
-            </h1>
-            <p class="text-xs text-gray-500 mt-1">Phê duyệt yêu cầu đăng ký đối tác, nạp tiền ví du khách và đối soát rút tiền đối tác.</p>
-        </div>
-
-        <!-- Tab Selector -->
-        <div class="flex flex-wrap items-center gap-6 border-b border-gray-200 pb-2 mb-6">
-            <button (click)="setActiveTab('providers')" 
-                    [ngClass]="activeTab === 'providers' ? 'border-b-2 border-[#0E9F6E] text-[#0E9F6E] font-bold' : 'text-gray-500'"
-                    class="text-sm pb-2 transition-all bg-transparent border-none cursor-pointer">
-                Duyệt nhà cung cấp ({{ pendingProviders.length }})
-            </button>
-            <button (click)="setActiveTab('deposits')" 
-                    [ngClass]="activeTab === 'deposits' ? 'border-b-2 border-[#0E9F6E] text-[#0E9F6E] font-bold' : 'text-gray-500'"
-                    class="text-sm pb-2 transition-all bg-transparent border-none cursor-pointer">
-                Duyệt nạp tiền ({{ pendingDeposits.length }})
-            </button>
-            <button (click)="setActiveTab('withdrawals')" 
-                    [ngClass]="activeTab === 'withdrawals' ? 'border-b-2 border-[#0E9F6E] text-[#0E9F6E] font-bold' : 'text-gray-500'"
-                    class="text-sm pb-2 transition-all bg-transparent border-none cursor-pointer">
-                Duyệt rút tiền ({{ pendingWithdrawals.length }})
-            </button>
-            <button (click)="setActiveTab('wallets')" 
-                    [ngClass]="activeTab === 'wallets' ? 'border-b-2 border-[#0E9F6E] text-[#0E9F6E] font-bold' : 'text-gray-500'"
-                    class="text-sm pb-2 transition-all bg-transparent border-none cursor-pointer">
-                Duyệt đăng ký ví ({{ pendingWallets.length }})
-            </button>
-            <button (click)="setActiveTab('bookings')" 
-                    [ngClass]="activeTab === 'bookings' ? 'border-b-2 border-[#0E9F6E] text-[#0E9F6E] font-bold' : 'text-gray-500'"
-                    class="text-sm pb-2 transition-all bg-transparent border-none cursor-pointer">
-                Duyệt chuyển khoản & giữ chỗ ({{ pendingBookings.length }})
-            </button>
-        </div>
-
-        <!-- TAB 1: Provider Applications -->
-        <div *ngIf="activeTab === 'providers'" class="space-y-4">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Yêu cầu đăng ký nhà cung cấp</h3>
-                    <button (click)="loadProviders()" class="text-xs text-[#0E9F6E] hover:underline bg-transparent border-none cursor-pointer font-semibold"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100/50 text-gray-500 font-bold border-b border-gray-100">
-                                <th class="px-6 py-3.5">Mã Hợp Đồng</th>
-                                <th class="px-6 py-3.5">Họ Tên Đăng Ký</th>
-                                <th class="px-6 py-3.5">Tên Tài Khoản</th>
-                                <th class="px-6 py-3.5">Hợp Đồng Ký Kết</th>
-                                <th class="px-6 py-3.5 text-right">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let item of pendingProviders" class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-gray-700">{{ item.id }}</td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{{ item.User?.fullname }}</td>
-                                <td class="px-6 py-4 text-gray-600">@{{ item.User?.username }}</td>
-                                <td class="px-6 py-4 text-gray-500 truncate max-w-[250px]" [title]="item.text">{{ item.text }}</td>
-                                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button (click)="approveProvider(item.User?.id)" class="px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none text-[11px] transition-colors cursor-pointer shadow-sm">Phê Duyệt</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="pendingProviders.length === 0">
-                                <td colspan="5" class="text-center py-12 text-gray-400 font-medium">Không có yêu cầu đăng ký nhà cung cấp nào đang chờ duyệt.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: Deposit Approvals -->
-        <div *ngIf="activeTab === 'deposits'" class="space-y-4">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Yêu cầu nạp tiền ví điện tử</h3>
-                    <button (click)="loadDeposits()" class="text-xs text-[#0E9F6E] hover:underline bg-transparent border-none cursor-pointer font-semibold"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100/50 text-gray-500 font-bold border-b border-gray-100">
-                                <th class="px-6 py-3.5">Mã Giao Dịch</th>
-                                <th class="px-6 py-3.5">Người Yêu Cầu</th>
-                                <th class="px-6 py-3.5">Số Tiền Nạp</th>
-                                <th class="px-6 py-3.5">Nội Dung</th>
-                                <th class="px-6 py-3.5 text-right">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let tx of pendingDeposits" class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-gray-700">{{ tx.id }}</td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{{ tx.Wallet?.User?.fullname || 'Khách hàng' }} (@{{ tx.Wallet?.User?.username }})</td>
-                                <td class="px-6 py-4 font-black text-[#0E9F6E] text-sm">{{ tx.amount | number:'1.0-0':'vi-VN' }} đ</td>
-                                <td class="px-6 py-4 text-gray-500">{{ tx.description }}</td>
-                                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button (click)="approveDeposit(tx.id)" class="px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none text-[11px] transition-colors cursor-pointer shadow-sm">Duyệt</button>
-                                    <button (click)="rejectDeposit(tx.id)" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg border border-red-200 text-[11px] transition-colors cursor-pointer">Từ Chối</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="pendingDeposits.length === 0">
-                                <td colspan="5" class="text-center py-12 text-gray-400 font-medium">Không có yêu cầu nạp tiền nào đang chờ duyệt.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: Withdrawal Approvals -->
-        <div *ngIf="activeTab === 'withdrawals'" class="space-y-4">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Yêu cầu rút tiền từ ví đối tác</h3>
-                    <button (click)="loadWithdrawals()" class="text-xs text-[#0E9F6E] hover:underline bg-transparent border-none cursor-pointer font-semibold"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100/50 text-gray-500 font-bold border-b border-gray-100">
-                                <th class="px-6 py-3.5">Mã Yêu Cầu</th>
-                                <th class="px-6 py-3.5">Đối Tác Rút Tiền</th>
-                                <th class="px-6 py-3.5">Số Tiền</th>
-                                <th class="px-6 py-3.5">Ngân Hàng / Số Tài Khoản</th>
-                                <th class="px-6 py-3.5 text-right">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let wd of pendingWithdrawals" class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-gray-700">{{ wd.id }}</td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{{ wd.User?.fullname || 'Đối tác' }}</td>
-                                <td class="px-6 py-4 font-black text-red-600 text-sm">{{ wd.amount | number:'1.0-0':'vi-VN' }} đ</td>
-                                <td class="px-6 py-4 text-gray-600">
-                                    <span class="font-semibold">{{ wd.bank_name }}</span> - <code class="bg-gray-100 px-1 py-0.5 rounded font-mono">{{ wd.bank_account }}</code>
-                                </td>
-                                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button (click)="approveWithdrawal(wd.id)" class="px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none text-[11px] transition-colors cursor-pointer shadow-sm">Duyệt Rút</button>
-                                    <button (click)="rejectWithdrawal(wd.id)" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg border border-red-200 text-[11px] transition-colors cursor-pointer">Từ Chối</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="pendingWithdrawals.length === 0">
-                                <td colspan="5" class="text-center py-12 text-gray-400 font-medium">Không có yêu cầu rút tiền nào đang chờ duyệt.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: Wallet Activations -->
-        <div *ngIf="activeTab === 'wallets'" class="space-y-4">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Yêu cầu kích hoạt ví GreenSteps</h3>
-                    <button (click)="loadWallets()" class="text-xs text-[#0E9F6E] hover:underline bg-transparent border-none cursor-pointer font-semibold"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100/50 text-gray-500 font-bold border-b border-gray-100">
-                                <th class="px-6 py-3.5">Mã Yêu Cầu</th>
-                                <th class="px-6 py-3.5">Khách Hàng</th>
-                                <th class="px-6 py-3.5">Số Tài Khoản Ví</th>
-                                <th class="px-6 py-3.5">Quà Tặng Khởi Tạo</th>
-                                <th class="px-6 py-3.5 text-right">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let tx of pendingWallets" class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-gray-700">{{ tx.id }}</td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{{ tx.Wallet?.User?.fullname || 'Khách hàng' }} (@{{ tx.Wallet?.User?.username }})</td>
-                                <td class="px-6 py-4 font-mono text-gray-600">{{ tx.wallet_id }}</td>
-                                <td class="px-6 py-4 font-black text-[#0E9F6E] text-sm">+{{ tx.amount | number:'1.0-0':'vi-VN' }} đ</td>
-                                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button (click)="approveWallet(tx.id)" class="px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none text-[11px] transition-colors cursor-pointer shadow-sm">Duyệt Kích Hoạt</button>
-                                    <button (click)="rejectWallet(tx.id)" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg border border-red-200 text-[11px] transition-colors cursor-pointer">Từ Chối</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="pendingWallets.length === 0">
-                                <td colspan="5" class="text-center py-12 text-gray-400 font-medium">Không có yêu cầu kích hoạt ví nào đang chờ duyệt.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 5: Bookings QR Transfer & Giữ chỗ -->
-        <div *ngIf="activeTab === 'bookings'" class="space-y-4">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Yêu cầu duyệt chuyển khoản QR & Giữ chỗ</h3>
-                    <div class="flex items-center gap-2">
-                        <button (click)="approveAllBookings()" *ngIf="pendingBookings.length > 0"
-                                class="text-xs px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm">
-                            <i class="bi bi-check-all"></i> Duyệt tất cả ({{ pendingBookings.length }})
-                        </button>
-                        <button (click)="rejectAllBookings()" *ngIf="pendingBookings.length > 0"
-                                class="text-xs px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg border border-red-200 cursor-pointer transition-colors">
-                            <i class="bi bi-x-circle"></i> Từ chối tất cả
-                        </button>
-                        <button (click)="loadBookings()" class="text-xs text-[#0E9F6E] hover:underline bg-transparent border-none cursor-pointer font-semibold"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100/50 text-gray-500 font-bold border-b border-gray-100">
-                                <th class="px-6 py-3.5">Mã Đơn / GD</th>
-                                <th class="px-6 py-3.5">Khách Hàng</th>
-                                <th class="px-6 py-3.5">Dịch Vụ / Lịch Trình</th>
-                                <th class="px-6 py-3.5">Số Tiền Cọc</th>
-                                <th class="px-6 py-3.5">Ngày Đặt</th>
-                                <th class="px-6 py-3.5 text-right">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let item of pendingBookings" class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 font-mono font-bold text-gray-700">
-                                    {{ item.id }}
-                                </td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{{ item.customer }}</td>
-                                <td class="px-6 py-4 text-gray-600 font-semibold">{{ item.service }}</td>
-                                <td class="px-6 py-4 font-black text-amber-600 text-sm">{{ item.value | number:'1.0-0':'vi-VN' }} đ</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.date }}</td>
-                                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button (click)="approveBooking(item.id)" class="px-3 py-1.5 bg-[#0E9F6E] hover:bg-[#0c875d] text-white font-bold rounded-lg border-none text-[11px] transition-colors cursor-pointer shadow-sm">Phê Duyệt</button>
-                                    <button (click)="rejectBooking(item.id)" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg border border-red-200 text-[11px] transition-colors cursor-pointer">Từ Chối</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="pendingBookings.length === 0">
-                                <td colspan="6" class="text-center py-12 text-gray-400 font-medium">Không có đơn đặt chỗ chuyển khoản hoặc yêu cầu giữ chỗ nào đang chờ duyệt.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Custom Center Alert & Confirm Dialog Modal -->
-        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-all animate-fade-in" *ngIf="customDialog">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-150 p-6 flex flex-col items-center text-center space-y-4 animate-scale-up">
-                <!-- Icon -->
-                <div class="w-12 h-12 rounded-full flex items-center justify-center"
-                     [ngClass]="customDialog.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 
-                                (customDialog.type === 'error' ? 'bg-rose-50 text-rose-600' : 
-                                (customDialog.type === 'confirm' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'))">
-                    <i class="bi" [ngClass]="customDialog.type === 'success' ? 'bi-check-circle-fill text-2xl' : 
-                                             (customDialog.type === 'error' ? 'bi-x-circle-fill text-2xl' : 
-                                             (customDialog.type === 'confirm' ? 'bi-question-circle-fill text-2xl' : 'bi-info-circle-fill text-2xl'))"></i>
-                </div>
-                
-                <!-- Message -->
-                <div class="space-y-1">
-                    <h4 class="font-extrabold text-gray-900 text-sm uppercase tracking-wider">
-                        {{ customDialog.type === 'confirm' ? 'Xác nhận yêu cầu' : 'Thông báo hệ thống' }}
-                    </h4>
-                    <p class="text-xs text-gray-600 leading-relaxed font-semibold">{{ customDialog.message }}</p>
-                </div>
-                
-                <!-- Buttons -->
-                <div class="flex gap-2 w-full pt-1">
-                    <ng-container *ngIf="customDialog.type === 'confirm'; else alertButton">
-                        <button type="button" (click)="customDialog.onCancel ? customDialog.onCancel() : closeCustomDialog()" class="flex-1 py-2.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-bold rounded-xl text-xs cursor-pointer bg-white transition-colors">
-                            Hủy bỏ
-                        </button>
-                        <button type="button" (click)="customDialog.onConfirm && customDialog.onConfirm()" class="flex-1 py-2.5 bg-teal-600 text-white font-bold rounded-xl text-xs hover:bg-teal-700 cursor-pointer border-none transition-colors">
-                            Đồng ý
-                        </button>
-                    </ng-container>
-                    <ng-template #alertButton>
-                        <button type="button" (click)="closeCustomDialog()" class="w-full py-2.5 bg-teal-600 text-white font-bold rounded-xl text-xs hover:bg-teal-700 cursor-pointer border-none transition-colors">
-                            Đồng ý
-                        </button>
-                    </ng-template>
-                </div>
-            </div>
-        </div>
-
+<div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
+  <header class="admin-topbar">
+    <div class="admin-brand">
+      <button type="button" class="admin-mobile-menu" aria-label="Mở menu" (click)="mobileMenuOpen = !mobileMenuOpen">
+        <i class="bi bi-list" aria-hidden="true"></i>
+      </button>
+      <img src="image/greensteps_logo_header.png" alt="GreenSteps Travel" />
+      <span class="admin-brand-wordmark"><strong>GreenSteps</strong><small>TRAVEL</small></span>
     </div>
-</main>
+
+    <div class="admin-global-search" [class.search-focused]="globalSearch.length > 0">
+      <i class="bi bi-search"></i>
+      <input #globalSearchInput [(ngModel)]="globalSearch" type="search" placeholder="Tìm kiếm người dùng, nhà cung cấp, booking..." aria-label="Tìm kiếm toàn hệ thống" />
+      <kbd>Ctrl K</kbd>
+      <div class="global-search-note" *ngIf="globalSearch">Tìm kiếm toàn hệ thống chưa được kết nối API.</div>
+    </div>
+
+    <div class="admin-topbar-actions">
+      <div class="topbar-popover-wrap date-wrap">
+        <button type="button" class="topbar-date" (click)="isDateMenuOpen = !isDateMenuOpen" [attr.aria-expanded]="isDateMenuOpen">
+          <i class="bi bi-calendar3"></i><span>{{ activeDateRange }}</span><i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="topbar-popover date-menu" *ngIf="isDateMenuOpen">
+          <span class="popover-title">Khoảng thời gian</span>
+          <button type="button" *ngFor="let range of ['Hôm nay', '7 ngày qua', 'Tháng này', '30 ngày qua']" (click)="setDateRange(range)">{{ range }}</button>
+          <small>Bộ lọc giao diện; chưa tác động đến số liệu API.</small>
+        </div>
+      </div>
+
+      <div class="topbar-popover-wrap notification-wrap">
+        <button type="button" class="icon-button notification-button" aria-label="Thông báo" (click)="isNotificationMenuOpen = !isNotificationMenuOpen" [attr.aria-expanded]="isNotificationMenuOpen">
+          <i class="bi bi-bell"></i><span class="notification-dot" *ngIf="isPreviewMode">3</span>
+        </button>
+        <div class="topbar-popover notification-menu" *ngIf="isNotificationMenuOpen">
+          <strong>Thông báo</strong>
+          <p *ngIf="!isPreviewMode">Chưa có API tổng hợp thông báo quản trị.</p>
+          <p *ngIf="isPreviewMode">Dữ liệu minh họa: 3 mục cần chú ý.</p>
+        </div>
+      </div>
+
+      <div class="topbar-popover-wrap create-wrap">
+        <button type="button" class="create-button" (click)="isCreateMenuOpen = !isCreateMenuOpen" [attr.aria-expanded]="isCreateMenuOpen"><i class="bi bi-plus-lg"></i><span>Tạo mới</span><i class="bi bi-chevron-down"></i></button>
+        <div class="topbar-popover create-menu" *ngIf="isCreateMenuOpen">
+          <strong>Tạo mới</strong>
+          <p>Chưa có API tạo dữ liệu từ bảng quản trị.</p>
+          <span class="popover-hint">Các lựa chọn đang phát triển</span>
+        </div>
+      </div>
+
+      <div class="topbar-popover-wrap profile-wrap">
+        <button type="button" class="admin-profile-button" (click)="isProfileMenuOpen = !isProfileMenuOpen" [attr.aria-expanded]="isProfileMenuOpen">
+          <span class="profile-avatar">{{ (currentUser?.fullname || currentUser?.username || 'A').slice(0, 1).toUpperCase() }}</span>
+          <span class="profile-copy"><strong>{{ currentUser?.username || 'Admin' }}</strong><small>Quản trị viên</small></span>
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="topbar-popover profile-menu" *ngIf="isProfileMenuOpen">
+          <strong>{{ currentUser?.fullname || currentUser?.username || 'Quản trị viên' }}</strong>
+          <small>{{ currentUser?.email || 'Tài khoản quản trị' }}</small>
+          <button type="button" class="logout-button" (click)="logout()"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-frame">
+    <button type="button" class="mobile-scrim" *ngIf="mobileMenuOpen" aria-label="Đóng menu" (click)="mobileMenuOpen = false"></button>
+
+    <aside class="admin-sidebar" [class.mobile-open]="mobileMenuOpen" aria-label="Điều hướng quản trị">
+      <div class="sidebar-nav">
+        <button type="button" class="sidebar-item" *ngFor="let item of navigationItems"
+          [class.active]="activeSection === item.id" [attr.title]="item.label"
+          (click)="setSection(item.id)">
+          <i class="bi" [ngClass]="item.icon"></i>
+          <span class="sidebar-label">{{ item.label }}</span>
+          <span class="sidebar-badge" *ngIf="item.badgeKey && getQueueCount(item.badgeKey) !== null">{{ getQueueCount(item.badgeKey) }}</span>
+        </button>
+      </div>
+
+      <button type="button" class="collapse-sidebar-button" (click)="sidebarCollapsed = !sidebarCollapsed" [attr.aria-label]="sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'">
+        <i class="bi" [ngClass]="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+        <span class="sidebar-label">{{ sidebarCollapsed ? 'Mở rộng' : 'Thu gọn menu' }}</span>
+      </button>
+    </aside>
+
+    <main class="admin-main">
+      <div class="admin-content-grid">
+        <section class="admin-primary-column">
+          <div class="page-heading">
+            <div class="breadcrumb"><span>Tổng quan</span><i class="bi bi-chevron-right"></i><strong>{{ isOverview ? 'Bảng điều khiển' : activeSectionLabel }}</strong></div>
+            <div class="heading-line">
+              <div>
+                <p class="eyebrow">GREENSTEPS TRAVEL · ADMIN</p>
+                <h1>{{ isOverview ? 'Bảng điều khiển Quản trị viên' : activeSectionLabel }}</h1>
+                <p class="page-description">Trung tâm điều hành GreenSteps Travel — theo dõi hoạt động, phê duyệt, tài chính và vận hành hệ thống.</p>
+              </div>
+              <span class="preview-label" *ngIf="isPreviewMode"><i class="bi bi-eye"></i> DỮ LIỆU MINH HỌA</span>
+            </div>
+          </div>
+
+          <ng-container *ngIf="!unsupportedSection; else unsupportedSectionView">
+            <section class="overview-content" *ngIf="isOverview">
+              <div class="metrics-grid">
+                <article class="metric-card" *ngFor="let metric of metrics">
+                  <div class="metric-card-top">
+                    <span class="metric-icon" [ngClass]="'tone-' + metric.tone"><i class="bi" [ngClass]="metric.icon"></i></span>
+                    <span class="metric-label">{{ metric.label }}</span>
+                    <span class="metric-menu"><i class="bi bi-three-dots"></i></span>
+                  </div>
+                  <strong class="metric-value">{{ metric.value }}</strong>
+                  <div class="metric-foot"><span>{{ metric.note }}</span></div>
+                </article>
+              </div>
+
+              <section class="urgent-panel panel-card">
+                <div class="panel-heading urgent-heading">
+                  <h2><span class="urgent-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>Cảnh báo / Việc cần xử lý</h2>
+                  <span class="count-pill" *ngIf="isPreviewMode">5</span>
+                  <button type="button" class="text-action" (click)="setSection('support')">Xem tất cả <i class="bi bi-arrow-right"></i></button>
+                </div>
+                <div class="urgent-list" *ngIf="isPreviewMode; else noLiveAlerts">
+                  <div class="urgent-row" *ngFor="let item of [
+                    {level:'Cao',label:'Yêu cầu rút tiền cần đối soát',time:'2 giờ trước',icon:'bi-wallet2'},
+                    {level:'Cao',label:'Booking cần kiểm tra trạng thái thanh toán',time:'3 giờ trước',icon:'bi-calendar2-check'},
+                    {level:'Trung bình',label:'Nội dung được người dùng báo cáo',time:'5 giờ trước',icon:'bi-flag'},
+                    {level:'Trung bình',label:'Hồ sơ nhà cung cấp cần bổ sung giấy tờ',time:'1 ngày trước',icon:'bi-file-earmark-text'},
+                    {level:'Thấp',label:'Đối soát giao dịch đang chờ kiểm tra',time:'1 ngày trước',icon:'bi-arrow-left-right'}
+                  ]">
+                    <span class="severity-tag" [ngClass]="item.level === 'Cao' ? 'severity-high' : item.level === 'Trung bình' ? 'severity-medium' : 'severity-low'">{{ item.level }}</span>
+                    <i class="urgent-row-icon bi" [ngClass]="item.icon"></i>
+                    <span class="urgent-row-label">{{ item.label }}</span><time>{{ item.time }}</time>
+                    <button type="button" class="small-outline-button" disabled>Chi tiết</button>
+                  </div>
+                </div>
+                <ng-template #noLiveAlerts>
+                  <div class="panel-empty"><span class="empty-icon"><i class="bi bi-check2-circle"></i></span><div><strong>Chưa kết nối API tổng hợp cảnh báo</strong><p>Không hiển thị cảnh báo minh họa trong chế độ dữ liệu thật.</p></div></div>
+                </ng-template>
+              </section>
+            </section>
+
+            <section class="workspace-panel panel-card">
+              <div class="workspace-tabs-wrap">
+                <div class="workspace-tabs" role="tablist" aria-label="Danh sách quản trị">
+                  <button type="button" class="workspace-tab" *ngFor="let tab of managementTabs" [class.selected]="activeTab === tab.id" (click)="setActiveTab(tab.id)" role="tab" [attr.aria-selected]="activeTab === tab.id">
+                    <i class="bi" [ngClass]="tab.icon"></i><span>{{ tab.label }}</span>
+                    <span class="tab-count" *ngIf="tab.badgeKey && getQueueCount(tab.badgeKey) !== null">{{ getQueueCount(tab.badgeKey) }}</span>
+                  </button>
+                </div>
+                <div class="workspace-tools" *ngIf="activeTab !== 'services' && activeTab !== 'refunds' && activeTab !== 'reports'">
+                  <label class="queue-search"><i class="bi bi-search"></i><input [(ngModel)]="queueSearch" (ngModelChange)="currentPage = 1" placeholder="Tìm trong danh sách..." /></label>
+                  <button type="button" class="filter-button" disabled title="Bộ lọc nâng cao chưa kết nối"><i class="bi bi-funnel"></i><span>Bộ lọc</span></button>
+                </div>
+              </div>
+
+              <div class="workspace-title-row">
+                <div><h2>{{ activeTableTitle }}</h2><p *ngIf="isPreviewMode" class="workspace-caption">Dữ liệu minh họa — thao tác quản trị đã tắt.</p></div>
+                <div class="booking-bulk-actions" *ngIf="activeTab === 'bookings' && !isPreviewMode && pendingBookings.length">
+                  <button type="button" class="button-primary button-small" (click)="approveAllBookings()"><i class="bi bi-check2-all"></i> Duyệt tất cả</button>
+                  <button type="button" class="button-danger-light button-small" (click)="rejectAllBookings()"><i class="bi bi-x-circle"></i> Từ chối tất cả</button>
+                </div>
+                <button type="button" class="refresh-button" *ngIf="activeTab !== 'services' && activeTab !== 'refunds' && activeTab !== 'reports' && !isPreviewMode" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
+              </div>
+
+              <div class="queue-state" *ngIf="currentQueueState === 'loading'"><span class="loading-spinner"></span><span>Đang tải dữ liệu từ API...</span></div>
+              <div class="queue-state queue-unavailable" *ngIf="currentQueueState === 'unavailable'"><i class="bi bi-cloud-slash"></i><div><strong>Không tải được dữ liệu</strong><span>Kiểm tra kết nối API hoặc quyền truy cập rồi thử tải lại.</span></div><button type="button" class="small-outline-button" (click)="refreshActiveQueue()">Thử lại</button></div>
+              <div class="queue-state queue-empty" *ngIf="currentQueueState === 'unsupported'"><i class="bi bi-cone-striped"></i><div><strong>Chưa có API cho mục này</strong><span>Giao diện đã sẵn sàng; dữ liệu sẽ hiển thị khi backend hỗ trợ.</span></div></div>
+              <div class="queue-state queue-empty" *ngIf="currentQueueState === 'ready' && filteredRows.length === 0"><i class="bi bi-inbox"></i><div><strong>{{ queueSearch ? 'Không tìm thấy kết quả' : 'Không có yêu cầu đang chờ' }}</strong><span>{{ queueSearch ? 'Thử đổi cụm từ tìm kiếm.' : 'Hàng đợi này hiện không có dữ liệu cần xử lý.' }}</span></div></div>
+
+              <div class="table-scroll" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
+                <table class="admin-data-table">
+                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column">Thao tác</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let row of pageRows">
+                      <td class="checkbox-column"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
+                      <td *ngFor="let column of activeTableColumns" [class.cell-strong]="column.key === 'id' || column.key === 'name'" [class.detail-cell]="column.key === 'detail'" [title]="cellValue(row, column.key)">
+                        <span *ngIf="column.key === 'status'" class="status-badge" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
+                        <span *ngIf="column.key !== 'status'">{{ cellValue(row, column.key) }}</span>
+                      </td>
+                      <td class="row-actions">
+                        <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">{{ activeTab === 'providers' ? 'Phê duyệt' : 'Duyệt' }}</button>
+                        <button type="button" class="row-more-button" *ngIf="activeTab !== 'providers'" [disabled]="isPreviewMode" (click)="runRowAction(row, 'reject')" aria-label="Từ chối"><i class="bi bi-x-lg"></i></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
+                <span>Hiển thị {{ (currentPage - 1) * pageSize + 1 }}–{{ pageEnd }} trong {{ filteredRows.length }} kết quả</span>
+                <div class="pagination-controls">
+                  <button type="button" (click)="changePage(currentPage - 1)" [disabled]="currentPage <= 1" aria-label="Trang trước"><i class="bi bi-chevron-left"></i></button>
+                  <span class="current-page">{{ currentPage }}</span><span>/ {{ pageCount }}</span>
+                  <button type="button" (click)="changePage(currentPage + 1)" [disabled]="currentPage >= pageCount" aria-label="Trang sau"><i class="bi bi-chevron-right"></i></button>
+                  <select [ngModel]="pageSize" disabled aria-label="Số kết quả mỗi trang"><option>5 / trang</option></select>
+                </div>
+              </div>
+            </section>
+          </ng-container>
+
+          <ng-template #unsupportedSectionView>
+            <section class="module-placeholder panel-card">
+              <span class="placeholder-symbol"><i class="bi bi-cone-striped"></i></span>
+              <p class="eyebrow">ĐANG PHÁT TRIỂN</p>
+              <h2>{{ activeSectionLabel }}</h2>
+              <p>{{ sectionPlaceholderText }}</p>
+              <button type="button" class="button-primary" (click)="setSection('overview')"><i class="bi bi-arrow-left"></i> Về tổng quan</button>
+            </section>
+          </ng-template>
+        </section>
+
+        <aside class="admin-insights-column">
+          <section class="insight-card panel-card system-card">
+            <div class="insight-card-heading"><div><h2>Tình trạng hệ thống</h2><small>Giám sát dịch vụ</small></div></div>
+            <div class="system-overview"><span class="system-status-dot"></span><div><strong>Chưa có dữ liệu giám sát</strong><small>Trạng thái dịch vụ chưa được cung cấp trong dashboard.</small></div></div>
+          </section>
+
+          <section class="insight-card panel-card booking-chart-card">
+            <div class="insight-card-heading"><div><h2>Trạng thái booking</h2><small>{{ isPreviewMode ? 'Bản xem trước' : 'Phân bố theo trạng thái' }}</small></div><button type="button" class="subtle-icon-button" aria-label="Thông tin biểu đồ" title="API hiện tại chỉ trả booking đang chờ."><i class="bi bi-info-circle"></i></button></div>
+            <div class="chart-empty" *ngIf="!isPreviewMode"><span class="empty-icon"><i class="bi bi-pie-chart"></i></span><strong>Chưa đủ dữ liệu phân bố</strong><small>API hiện tại chỉ cung cấp booking đang chờ xử lý.</small></div>
+            <div class="booking-chart-content" *ngIf="isPreviewMode">
+              <div class="donut-chart" [style.background]="bookingDonutStyle"><div><strong>1,248</strong><small>booking<br />(tháng này)</small></div></div>
+              <div class="chart-legend"><div *ngFor="let item of demoBookingDistribution"><span class="legend-dot" [style.background]="item.color"></span><span>{{ item.label }}</span><strong>{{ item.percent }}%</strong></div></div>
+            </div>
+          </section>
+
+          <section class="insight-card panel-card activity-card">
+            <div class="insight-card-heading"><div><h2>Hoạt động gần đây</h2><small>{{ isPreviewMode ? 'Dữ liệu minh họa' : 'Chưa có API tổng hợp' }}</small></div><button type="button" class="text-action" (click)="setSection('reports')">Xem tất cả <i class="bi bi-arrow-right"></i></button></div>
+            <div class="activity-list" *ngIf="isPreviewMode; else noLiveActivity">
+              <div class="activity-item" *ngFor="let item of [
+                {icon:'bi-person-plus',tone:'green',text:'Nhà cung cấp gửi hồ sơ đăng ký',time:'10 phút trước'},
+                {icon:'bi-calendar-plus',tone:'green',text:'Người dùng tạo booking mới',time:'28 phút trước'},
+                {icon:'bi-wallet2',tone:'orange',text:'Có yêu cầu rút tiền chờ xử lý',time:'2 giờ trước'},
+                {icon:'bi-flag',tone:'red',text:'Nội dung được báo cáo',time:'3 giờ trước'},
+                {icon:'bi-check2-circle',tone:'green',text:'Dịch vụ được phê duyệt',time:'5 giờ trước'}
+              ]"><span class="activity-icon" [ngClass]="'activity-' + item.tone"><i class="bi" [ngClass]="item.icon"></i></span><span class="activity-copy"><strong>{{ item.text }}</strong><small>{{ item.time }}</small></span></div>
+            </div>
+            <ng-template #noLiveActivity><div class="mini-empty"><i class="bi bi-clock-history"></i><span>Chưa có hoạt động để hiển thị.</span></div></ng-template>
+          </section>
+
+          <section class="insight-card panel-card report-card">
+            <div class="insight-card-heading"><div><h2>Báo cáo đang chờ xử lý</h2><small>{{ isPreviewMode ? 'Dữ liệu minh họa' : 'Chưa kết nối dữ liệu' }}</small></div><button type="button" class="text-action" (click)="setSection('reports')">Xem tất cả <i class="bi bi-arrow-right"></i></button></div>
+            <div class="report-list" *ngIf="isPreviewMode; else noLiveReports">
+              <div *ngFor="let item of [
+                {icon:'bi-flag',label:'Nội dung bị báo cáo',count:5,tone:'red'},
+                {icon:'bi-headset',label:'Khiếu nại mới',count:4,tone:'orange'},
+                {icon:'bi-arrow-counterclockwise',label:'Yêu cầu hoàn tiền',count:3,tone:'blue'},
+                {icon:'bi-shop',label:'Nhà cung cấp cần theo dõi',count:6,tone:'purple'}
+              ]"><span class="report-icon" [ngClass]="'report-' + item.tone"><i class="bi" [ngClass]="item.icon"></i></span><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
+            </div>
+            <ng-template #noLiveReports><div class="mini-empty"><i class="bi bi-inbox"></i><span>Chưa có báo cáo để hiển thị.</span></div></ng-template>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="custom-dialog-backdrop" *ngIf="customDialog" role="presentation">
+    <section class="custom-dialog" role="dialog" aria-modal="true" aria-live="polite">
+      <span class="dialog-icon" [ngClass]="'dialog-' + customDialog.type"><i class="bi" [ngClass]="customDialog.type === 'success' ? 'bi-check-circle-fill' : customDialog.type === 'error' ? 'bi-x-circle-fill' : customDialog.type === 'confirm' ? 'bi-question-circle-fill' : 'bi-info-circle-fill'"></i></span>
+      <h2>{{ customDialog.type === 'confirm' ? 'Xác nhận thao tác' : 'Thông báo' }}</h2>
+      <p>{{ customDialog.message }}</p>
+      <div class="dialog-actions" *ngIf="customDialog.type === 'confirm'; else dialogOk">
+        <button type="button" class="button-secondary" (click)="cancelDialog()">Hủy</button>
+        <button type="button" class="button-primary" (click)="confirmDialog()">Đồng ý</button>
+      </div>
+      <ng-template #dialogOk><button type="button" class="button-primary dialog-ok" (click)="closeCustomDialog()">Đóng</button></ng-template>
+    </section>
+  </div>
+</div>
