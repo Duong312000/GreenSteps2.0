@@ -116,14 +116,29 @@
           </div>
         </div>
 
-        <!-- Search Input Bar -->
-        <div class="shopco-search-bar">
+        <!-- Search Input Bar with Autocomplete -->
+        <div class="shopco-search-bar" style="position: relative;">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" [(ngModel)]="searchQuery" (input)="filterTours()"
-            placeholder="Tìm kiếm tour theo tên, địa danh hoặc hoạt động trải nghiệm..." class="search-input">
-          <button *ngIf="searchQuery" (click)="searchQuery = ''; filterTours()" class="clear-search-btn" type="button">
+          <input type="text" [(ngModel)]="searchQuery"
+            (input)="filterTours(); isSearchSuggestionsOpen = searchQuery.length >= 2"
+            (focus)="isSearchSuggestionsOpen = searchQuery.length >= 2"
+            (blur)="closeSearchSuggestions()"
+            placeholder="Tìm tour theo tên, địa danh, hoạt động trải nghiệm..."
+            class="search-input" autocomplete="off">
+          <button *ngIf="searchQuery" (click)="searchQuery = ''; filterTours(); isSearchSuggestionsOpen = false"
+            class="clear-search-btn" type="button">
             <i class="bi bi-x-circle-fill"></i>
           </button>
+          <!-- Autocomplete dropdown -->
+          <div *ngIf="isSearchSuggestionsOpen && getFilteredSuggestions().length > 0"
+            class="search-autocomplete-dropdown">
+            <div *ngFor="let s of getFilteredSuggestions()"
+              (mousedown)="selectSuggestion(s)"
+              class="autocomplete-item">
+              <i class="bi bi-geo-alt-fill" style="color: #0f6b45; font-size: 12px; flex-shrink: 0;"></i>
+              <span>{{ s }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Active Filter Badges -->
@@ -199,6 +214,18 @@
               <div class="card-eco-desc" *ngIf="tour.ecoFeature || tour.description">
                 <i class="bi bi-check-circle-fill check-icon"></i>
                 <span class="eco-desc-text">{{ tour.ecoFeature || tour.description }}</span>
+              </div>
+
+              <!-- Matched activity highlights -->
+              <div *ngIf="searchQuery && matchedActivities.get(tour.id)?.length"
+                class="matched-activity-box">
+                <span class="matched-activity-label">
+                  <i class="bi bi-geo-alt-fill"></i> Địa điểm phù hợp
+                </span>
+                <span *ngFor="let act of matchedActivities.get(tour.id)?.slice(0, 2)"
+                  class="matched-activity-item">
+                  ✓ {{ act }}
+                </span>
               </div>
 
               <!-- Price Row (Shop.co signature layout) -->

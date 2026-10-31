@@ -830,49 +830,98 @@ exports.getBookings = async (req, res, next) => {
       tourBookings = await TourBooking.findAll({ order: [['createdAt', 'DESC']] });
     }
 
-    const mappedServices = serviceBookings.map(row => ({
-      id: row.id,
-      customer: row.fullname,
-      service: row.name_service,
-      date: row.booking_date,
-      guests: row.guests,
-      value: row.value,
-      status: row.status,
-      evoucher: row.evoucher_code,
-      type: 'service',
-      targetId: row.service_id,
-      escrow: row.escrow_status,
-      booking_status: row.booking_status,
-      payment_status: row.payment_status,
-      operation_status: row.operation_status,
-      confirm_deadline: row.confirm_deadline,
-      payment_deadline: row.payment_deadline,
-      special_requests: row.special_requests,
-      rejection_reason: row.rejection_reason
+    const mappedServices = await Promise.all(serviceBookings.map(async row => {
+      let image_url = '';
+      let destination = '';
+      if (row.service_id) {
+        try {
+          const s = await GreenService.findByPk(row.service_id);
+          if (s) {
+            image_url = s.image_url || '';
+            destination = s.destination || '';
+          }
+        } catch (_) {}
+      }
+      return {
+        id: row.id,
+        customer: row.fullname,
+        service: row.name_service,
+        tour_name: row.name_service,
+        title: row.name_service,
+        date: row.booking_date,
+        booking_date: row.booking_date,
+        guests: row.guests,
+        value: row.value,
+        status: row.status,
+        booking_status: row.status,
+        evoucher: row.evoucher_code,
+        evoucher_code: row.evoucher_code,
+        type: 'service',
+        kind: 'service',
+        targetId: row.service_id,
+        service_id: row.service_id,
+        destination: destination || 'Việt Nam',
+        image: image_url,
+        image_url: image_url,
+        escrow: row.escrow_status,
+        escrow_status: row.escrow_status,
+        payment_status: row.payment_status || (row.status === 'deposit' || row.status === 'completed' ? 'paid' : 'unpaid'),
+        operation_status: row.operation_status,
+        confirm_deadline: row.confirm_deadline,
+        payment_deadline: row.payment_deadline,
+        special_requests: row.special_requests,
+        rejection_reason: row.rejection_reason,
+        createdAt: row.createdAt
+      };
     }));
 
-    const mappedTours = tourBookings.map(row => ({
-      id: row.id,
-      customer: row.fullname,
-      service: row.tour_name,
-      date: row.booking_date,
-      guests: row.guests,
-      value: row.value,
-      status: row.status,
-      evoucher: row.evoucher_code,
-      type: 'tour',
-      targetId: row.schedule_id,
-      escrow: row.escrow_status,
-      booking_status: row.booking_status,
-      payment_status: row.payment_status,
-      operation_status: row.operation_status,
-      confirm_deadline: row.confirm_deadline,
-      payment_deadline: row.payment_deadline,
-      special_requests: row.special_requests,
-      rejection_reason: row.rejection_reason
+    const mappedTours = await Promise.all(tourBookings.map(async row => {
+      let image_url = '';
+      let destination = '';
+      if (row.schedule_id) {
+        try {
+          const t = await Schedule.findByPk(row.schedule_id);
+          if (t) {
+            image_url = t.image_url || '';
+            destination = t.destination || '';
+          }
+        } catch (_) {}
+      }
+      return {
+        id: row.id,
+        customer: row.fullname,
+        service: row.tour_name,
+        tour_name: row.tour_name,
+        title: row.tour_name,
+        date: row.booking_date,
+        booking_date: row.booking_date,
+        guests: row.guests,
+        value: row.value,
+        status: row.status,
+        booking_status: row.status,
+        evoucher: row.evoucher_code,
+        evoucher_code: row.evoucher_code,
+        type: 'tour',
+        kind: 'tour',
+        targetId: row.schedule_id,
+        schedule_id: row.schedule_id,
+        destination: destination || (row.tour_name?.includes('Hội An') ? 'Hội An' : (row.tour_name?.includes('Phú Yên') ? 'Phú Yên' : (row.tour_name?.includes('Đà Lạt') || row.tour_name?.includes('Tuyền Lâm') ? 'Đà Lạt' : 'Việt Nam'))),
+        image: image_url,
+        image_url: image_url,
+        escrow: row.escrow_status,
+        escrow_status: row.escrow_status,
+        payment_status: row.payment_status || (row.status === 'deposit' || row.status === 'completed' ? 'paid' : 'unpaid'),
+        operation_status: row.operation_status,
+        confirm_deadline: row.confirm_deadline,
+        payment_deadline: row.payment_deadline,
+        special_requests: row.special_requests,
+        rejection_reason: row.rejection_reason,
+        createdAt: row.createdAt
+      };
     }));
 
-    res.json([...mappedServices, ...mappedTours]);
+    const allBookings = [...mappedServices, ...mappedTours].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    res.json(allBookings);
   } catch (error) {
     next(error);
   }

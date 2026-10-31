@@ -246,17 +246,23 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const bookings: any[] = await this.apiService.getBookings(undefined, userId);
       
       const depositedToursMapped = (bookings || [])
-        .filter(b => b.type === 'tour' && (b.status === 'deposit' || b.status === 'confirmed' || b.status === 'accepted' || b.status === 'completed'))
-        .map(b => ({
-          id: b.id,
-          name: b.tour_name || 'Lịch trình Tour',
-          destination: b.tour_name || 'Việt Nam',
-          days: 3,
-          totalCost: b.value,
-          totalCarbon: 0,
-          status: 'deposited',
-          isTourBooking: true
-        }));
+        .filter(b => b.status !== 'rejected' && b.status !== 'cancelled')
+        .map(b => {
+          const tName = b.tour_name || b.service || b.title || (b.type === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái');
+          const dest = b.destination || (tName.includes('Hội An') ? 'Hội An' : (tName.includes('Phú Yên') ? 'Phú Yên' : (tName.includes('Đà Lạt') || tName.includes('Tuyền Lâm') ? 'Đà Lạt' : 'Việt Nam')));
+          return {
+            id: b.id,
+            name: tName,
+            destination: dest,
+            days: b.days || 3,
+            totalCost: b.value,
+            totalCarbon: 0,
+            status: b.status === 'deposit' ? 'deposited' : b.status,
+            bookingDate: b.booking_date || b.date,
+            isTourBooking: true,
+            bookingStatusText: b.status === 'confirmed' ? 'Đã xác nhận' : (b.status === 'deposit' ? 'Đã đặt cọc' : (b.status === 'completed' ? 'Đã hoàn thành' : 'Đang chuẩn bị'))
+          };
+        });
 
       this.savedItineraries = [...customs, ...depositedToursMapped];
     } catch (e) {
@@ -285,8 +291,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public openItinerary(id: string) {
-    if (id && id.startsWith('BKT-')) {
-      this.router.navigate(['/profile']);
+    if (id && (id.startsWith('BKT-') || id.startsWith('BKS-') || id.startsWith('BKG_'))) {
+      this.router.navigate(['/profile'], { queryParams: { section: 'tickets' } });
       return;
     }
     this.router.navigate(['/schedule', id]);

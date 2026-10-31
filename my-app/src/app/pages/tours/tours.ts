@@ -28,6 +28,10 @@ export class ToursComponent implements OnInit {
   public selectedEcoBadge: string = 'all';
   public sortOrder: string = 'popular';
 
+  // Autocomplete & activity highlight
+  public isSearchSuggestionsOpen: boolean = false;
+  public matchedActivities: Map<string, string[]> = new Map();
+
   // Pagination
   public currentPage: number = 1;
   public pageSize: number = 6;
@@ -155,12 +159,15 @@ export class ToursComponent implements OnInit {
     const query = this.searchQuery.toLowerCase().trim();
 
     let list = this.toursData.filter(tour => {
-      // 1. Search match
+      // 1. Search match (title, destination, description, activity names in itinerary)
       if (query) {
         const titleMatch = (tour.title || '').toLowerCase().includes(query);
         const destMatch = (tour.destination || '').toLowerCase().includes(query);
         const descMatch = (tour.description || '').toLowerCase().includes(query);
-        if (!titleMatch && !destMatch && !descMatch) return false;
+        const activityMatch = (tour.data || []).some((day: any[]) =>
+          (day || []).some((act: any) => (act.name || '').toLowerCase().includes(query))
+        );
+        if (!titleMatch && !destMatch && !descMatch && !activityMatch) return false;
       }
 
       // 2. Destination match
@@ -206,6 +213,22 @@ export class ToursComponent implements OnInit {
     } else {
       // Most popular / votes
       list.sort((a, b) => (b.votes || b.votes_count || 0) - (a.votes || a.votes_count || 0));
+    }
+
+    // Build matched activity map for highlights
+    this.matchedActivities = new Map();
+    if (query) {
+      list.forEach(tour => {
+        const matched: string[] = [];
+        (tour.data || []).forEach((day: any[]) => {
+          (day || []).forEach((act: any) => {
+            if ((act.name || '').toLowerCase().includes(query) && !matched.includes(act.name)) {
+              matched.push(act.name);
+            }
+          });
+        });
+        if (matched.length > 0) this.matchedActivities.set(tour.id, matched);
+      });
     }
 
     this.filteredTours = list;
@@ -410,6 +433,35 @@ export class ToursComponent implements OnInit {
     await this.apiService.saveItinerary(newIti);
     this.router.navigate(['/schedule', newIti.id]);
   }
+  // ── Autocomplete helpers ──────────────────────────────────────────
+  public buildSearchSuggestions(): string[] {
+    const all = new Set<string>();
+    this.toursData.forEach(tour => {
+      ((tour as any).data || []).forEach((day: any[]) => {
+        (day || []).forEach((act: any) => {
+          if (act.name && act.name !== '[Địa điểm tự do]') all.add(act.name);
+        });
+      });
+    });
+    return Array.from(all).sort();
+  }
+
+  public getFilteredSuggestions(): string[] {
+    if (!this.searchQuery || this.searchQuery.length < 2) return [];
+    const q = this.searchQuery.toLowerCase();
+    return this.buildSearchSuggestions().filter(s => s.toLowerCase().includes(q)).slice(0, 8);
+  }
+
+  public selectSuggestion(suggestion: string) {
+    this.searchQuery = suggestion;
+    this.isSearchSuggestionsOpen = false;
+    this.filterTours();
+  }
+
+  public closeSearchSuggestions() {
+    setTimeout(() => { this.isSearchSuggestionsOpen = false; }, 180);
+  }
+
 }
 
 export { ToursComponent as Tours };

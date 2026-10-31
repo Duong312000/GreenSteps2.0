@@ -80,6 +80,7 @@ export class ProfileComponent implements OnInit {
   public savedItinerariesCount = 0;
   public bookedToursCount = 0;
   public userGreenPoints = 0;
+  public userTickets: any[] = [];
   public upcomingTrip: {
     id: string;
     title: string;
@@ -476,24 +477,60 @@ export class ProfileComponent implements OnInit {
 
     try {
       userBookings = await this.apiService.getBookings(undefined, userId);
-      this.bookedToursCount = userBookings.length;
+      const activeBookings = (userBookings || []).filter(b => b.status !== 'rejected' && b.status !== 'cancelled');
+      this.bookedToursCount = activeBookings.length;
     } catch (e) {
       this.bookedToursCount = 0;
     }
 
     try {
       userItineraries = await this.apiService.getItineraries(userId);
-      this.savedItinerariesCount = userItineraries.length;
+      this.savedItinerariesCount = (userItineraries || []).length;
     } catch (e) {
       this.savedItinerariesCount = 0;
     }
 
-    // 1. Ưu tiên kiểm tra đơn đặt tour / dịch vụ (Bookings) thực tế trong CSDL
-    const validBookings = userBookings.filter(b => b.booking_status !== 'cancelled' && b.booking_status !== 'rejected');
+    // Filter active bookings
+    const validBookings = (userBookings || []).filter(b => b.status !== 'cancelled' && b.status !== 'rejected');
+    
+    // Map userTickets for Tickets section
+    this.userTickets = validBookings.map(b => {
+      const bDate = b.booking_date || b.date || '';
+      const tourTitle = b.tour_name || b.service || b.title || (b.type === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái');
+      let statusText = 'Đang chuẩn bị';
+      if (b.status === 'confirmed') statusText = 'Sắp khởi hành';
+      else if (b.status === 'deposit') statusText = 'Đã đặt cọc';
+      else if (b.status === 'completed') statusText = 'Đã hoàn thành';
+      else if (b.status === 'pending') statusText = 'Đang chuẩn bị';
+
+      let tripImg = b.image || b.image_url || this.tripImage;
+      if (tripImg && tripImg.startsWith('/images/')) {
+        tripImg = 'http://localhost:5055' + tripImg;
+      } else if (!tripImg || tripImg === this.tripImage) {
+        const dest = (tourTitle + ' ' + (b.destination || '')).toLowerCase();
+        if (dest.includes('hội an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
+        else if (dest.includes('phú yên')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
+        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
+      }
+
+      return {
+        id: b.id || b._id,
+        title: tourTitle,
+        destination: b.destination || (tourTitle.includes('Đà Lạt') || tourTitle.includes('Tuyền Lâm') ? 'Đà Lạt' : (tourTitle.includes('Hội An') ? 'Hội An' : 'Việt Nam')),
+        dates: bDate ? `Khởi hành: ${this.formatDisplayDate(bDate)}` : 'Lịch trình sắp xếp',
+        guests: b.guests || 2,
+        cost: b.value || 0,
+        status: b.status,
+        statusText,
+        image: tripImg,
+        evoucher: b.evoucher || b.evoucher_code || ('GS-' + (b.id || '24411').replace(/\D/g, '').slice(-8))
+      };
+    });
+
     if (validBookings.length > 0) {
+      // 1. Most recent booking
       const b = validBookings[0];
-      const target = b.target || {};
-      const bookingDate = b.booking_date || '';
+      const bookingDate = b.booking_date || b.date || '';
       const checkOutDate = b.check_out_date || '';
 
       let dateDisplay = bookingDate;
@@ -520,31 +557,39 @@ export class ProfileComponent implements OnInit {
       }
 
       let statusText = 'Sắp khởi hành';
-      if (b.booking_status === 'confirmed') statusText = 'Sắp khởi hành';
-      else if (b.booking_status === 'deposit') statusText = 'Đã đặt cọc';
-      else if (b.booking_status === 'completed') statusText = 'Đã hoàn thành';
+      if (b.status === 'confirmed') statusText = 'Sắp khởi hành';
+      else if (b.status === 'deposit') statusText = 'Đã đặt cọc';
+      else if (b.status === 'completed') statusText = 'Đã hoàn thành';
       else statusText = 'Đang chuẩn bị';
 
-      let tripImg = target.image || target.image_url || b.image_url || this.tripImage;
+      const tourTitle = b.tour_name || b.service || b.title || (b.type === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái');
+      const tourDest = b.destination || (tourTitle.includes('Đà Lạt') || tourTitle.includes('Tuyền Lâm') ? 'Đà Lạt' : (tourTitle.includes('Hội An') ? 'Hội An' : 'Việt Nam'));
+
+      let tripImg = b.image || b.image_url || this.tripImage;
       if (tripImg && tripImg.startsWith('/images/')) {
-        tripImg = `http://localhost:5055${tripImg}`;
+        tripImg = 'http://localhost:5055' + tripImg;
+      } else if (!tripImg || tripImg === this.tripImage) {
+        const dest = (tourTitle + ' ' + tourDest).toLowerCase();
+        if (dest.includes('hội an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
+        else if (dest.includes('phú yên')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
+        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
       }
 
       this.upcomingTrip = {
         id: b.id || b._id,
-        title: target.title || target.name || b.tour_name || b.title || (b.kind === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái'),
-        destination: target.destination || b.destination || 'Việt Nam',
+        title: tourTitle,
+        destination: tourDest,
         dates: dateDisplay || 'Lịch trình sắp xếp',
         guests: b.guests || 2,
-        cost: b.value || target.cost || 0,
+        cost: b.value || 0,
         daysLeftText,
         statusText,
         image: tripImg,
         type: 'booking',
-        link: '/tours'
+        link: '/profile'
       };
     } else if (userItineraries.length > 0) {
-      // 2. Nếu chưa có đơn đặt nhưng có lịch trình tự thiết kế lưu trong CSDL
+      // 2. Custom itinerary
       const iti = userItineraries[0];
       let dateDisplay = iti.start_date
         ? `${this.formatDisplayDate(iti.start_date)} - ${this.formatDisplayDate(iti.end_date)}`
@@ -572,8 +617,17 @@ export class ProfileComponent implements OnInit {
         link: `/schedule?id=${iti.id || iti._id}`
       };
     } else {
-      // 3. Tài khoản chưa có dữ liệu nào trong database
       this.upcomingTrip = null;
+    }
+  }
+
+  public openTripDetails(trip: any) {
+    if (!trip) return;
+    if (trip.type === 'booking') {
+      this.activeSection = 'tickets';
+      this.cdr.detectChanges();
+    } else if (trip.link) {
+      this.router.navigateByUrl(trip.link);
     }
   }
 

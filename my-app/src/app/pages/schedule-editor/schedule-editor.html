@@ -580,7 +580,7 @@
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <ng-container *ngFor="let iti of savedItineraries">
-                    <div *ngIf="iti.status !== 'deposited'" (click)="openItinerary(iti.id)" class="group bg-white rounded-2xl border border-[#184A37]/10 overflow-hidden shadow-sm hover:shadow-md hover:border-[#0E9F6E]/40 transition-all duration-300 cursor-pointer flex flex-col justify-between">
+                    <div *ngIf="!iti.isTourBooking && iti.status !== 'deposited'" (click)="openItinerary(iti.id)" class="group bg-white rounded-2xl border border-[#184A37]/10 overflow-hidden shadow-sm hover:shadow-md hover:border-[#0E9F6E]/40 transition-all duration-300 cursor-pointer flex flex-col justify-between">
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-gray-100">
@@ -660,11 +660,11 @@
         <div>
             <h2 class="text-xl font-bold text-[#184A37] mb-6 flex items-center gap-2">
                 <i class="bi bi-shield-lock text-[#0E9F6E]"></i>
-                Lịch trình đã đặt cọc (Khóa sửa đổi)
+                Chuyến đi & Tour đã đặt
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <ng-container *ngFor="let iti of savedItineraries">
-                    <div *ngIf="iti.status === 'deposited'" (click)="openItinerary(iti.id)" class="group bg-white rounded-2xl border border-emerald-250 overflow-hidden shadow-sm hover:shadow-md hover:border-emerald-500/40 transition-all duration-300 cursor-pointer flex flex-col justify-between">
+                    <div *ngIf="iti.isTourBooking || iti.status === 'deposited'" (click)="openItinerary(iti.id)" class="group bg-white rounded-2xl border border-emerald-250 overflow-hidden shadow-sm hover:shadow-md hover:border-emerald-500/40 transition-all duration-300 cursor-pointer flex flex-col justify-between">
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-gray-100">
@@ -683,7 +683,7 @@
                                 </span>
                                 <span *ngIf="!getCountdownLabel(iti)"
                                       class="absolute top-4 left-4 bg-emerald-600 text-white border border-emerald-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                                    <i class="bi bi-lock-fill"></i> Đã đặt cọc
+                                    <i class="bi bi-lock-fill"></i> {{ iti.bookingStatusText || 'Đã đặt chỗ' }}
                                 </span>
 
                                 <div class="absolute top-4 right-4 flex items-center gap-2">
