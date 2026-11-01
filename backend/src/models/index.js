@@ -160,7 +160,7 @@ const ScheduleSample = store.define('ScheduleSample', {
 const ScheduleCustom = store.define('ScheduleCustom', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // ref: Schedule.id
   total_cost: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
-  status: { type: FieldTypes.ENUM('draft', 'deposited', 'cancelled'), defaultValue: 'draft', allowNull: false },
+  status: { type: FieldTypes.ENUM('draft', 'pending_payment', 'deposited', 'cancelled'), defaultValue: 'draft', allowNull: false },
   deposit_deadline: { type: FieldTypes.DATEONLY, allowNull: true },
   start_date: { type: FieldTypes.DATEONLY, allowNull: true },
   end_date: { type: FieldTypes.DATEONLY, allowNull: true },
@@ -199,7 +199,7 @@ const ServiceBooking = store.define('ServiceBooking', {
   name_service: { type: FieldTypes.STRING, allowNull: false },
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
-  value: { type: FieldTypes.DOUBLE, allowNull: false },
+  value: { type: FieldTypes.INTEGER, allowNull: false },
   payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter') },
   status: { type: FieldTypes.ENUM('pending', 'deposit', 'completed', 'rejected', 'refunded'), defaultValue: 'pending', allowNull: false },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
@@ -208,6 +208,11 @@ const ServiceBooking = store.define('ServiceBooking', {
   escrow_status: { type: FieldTypes.ENUM('none', 'holding', 'released', 'refunded'), defaultValue: 'none', allowNull: false },
   booking_status: { type: FieldTypes.STRING, defaultValue: 'new', allowNull: false },
   payment_status: { type: FieldTypes.STRING, defaultValue: 'pending', allowNull: false },
+  idempotency_key: { type: FieldTypes.STRING, unique: true, allowNull: true },
+  idempotency_hash: { type: FieldTypes.STRING },
+  pricing_snapshot: { type: FieldTypes.JSONB },
+  order_details_snapshot: { type: FieldTypes.JSONB },
+  check_out_date: { type: FieldTypes.DATEONLY },
   operation_status: { type: FieldTypes.STRING, defaultValue: 'preparing', allowNull: false },
   confirm_deadline: { type: FieldTypes.DATE },
   payment_deadline: { type: FieldTypes.DATE },
@@ -224,7 +229,7 @@ const TourBooking = store.define('TourBooking', {
   tour_name: { type: FieldTypes.STRING, allowNull: false },
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
-  value: { type: FieldTypes.DOUBLE, allowNull: false },
+  value: { type: FieldTypes.INTEGER, allowNull: false },
   payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter'), allowNull: false },
   voucher_code: { type: FieldTypes.STRING },
   evoucher_code: { type: FieldTypes.STRING, allowNull: false },
@@ -232,6 +237,11 @@ const TourBooking = store.define('TourBooking', {
   escrow_status: { type: FieldTypes.ENUM('none', 'holding', 'released', 'refunded'), defaultValue: 'none', allowNull: false },
   booking_status: { type: FieldTypes.STRING, defaultValue: 'new', allowNull: false },
   payment_status: { type: FieldTypes.STRING, defaultValue: 'pending', allowNull: false },
+  idempotency_key: { type: FieldTypes.STRING, unique: true, allowNull: true },
+  idempotency_hash: { type: FieldTypes.STRING },
+  pricing_snapshot: { type: FieldTypes.JSONB },
+  order_details_snapshot: { type: FieldTypes.JSONB },
+  check_out_date: { type: FieldTypes.DATEONLY },
   operation_status: { type: FieldTypes.STRING, defaultValue: 'preparing', allowNull: false },
   confirm_deadline: { type: FieldTypes.DATE },
   payment_deadline: { type: FieldTypes.DATE },
@@ -239,6 +249,13 @@ const TourBooking = store.define('TourBooking', {
   rejection_reason: { type: FieldTypes.TEXT },
   customer_phone: { type: FieldTypes.STRING(20) },
   customer_email: { type: FieldTypes.STRING(100) }
+}, { timestamps: true });
+
+const BookingAddon = store.define('BookingAddon', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  name: { type: FieldTypes.STRING, allowNull: false },
+  unit_price: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 0 } },
+  active: { type: FieldTypes.BOOLEAN, defaultValue: true, allowNull: false }
 }, { timestamps: true });
 
 // 20. WithdrawalRequest Model (NEW - B2B withdrawal tracking)
@@ -469,6 +486,7 @@ const Notification = store.define('Notification', {
   user_id: { type: FieldTypes.STRING, allowNull: false },
   title: { type: FieldTypes.STRING, allowNull: false },
   message: { type: FieldTypes.TEXT, allowNull: false },
+  link: { type: FieldTypes.STRING, allowNull: true },
   type: {
     type: FieldTypes.ENUM('system', 'community', 'booking', 'wallet'),
     defaultValue: 'system',
@@ -706,6 +724,7 @@ module.exports = {
   BadgeService,
   ServiceBooking,
   TourBooking,
+  BookingAddon,
   WithdrawalRequest,
   ScheduleActivity,
   AdCampaign,

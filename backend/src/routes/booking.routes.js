@@ -4,6 +4,7 @@ const bookingController = require('../controllers/booking.controller');
 const { softAuth, authMiddleware, checkRole } = require('../middlewares/auth.middleware');
 
 router.post('/', softAuth, bookingController.createBooking);
+router.post('/quote', softAuth, bookingController.quoteBooking);
 router.post('/checkin', softAuth, bookingController.checkInEVoucher);
 router.post('/cancel', softAuth, bookingController.cancelBooking);
 router.get('/', authMiddleware, bookingController.getBookings);

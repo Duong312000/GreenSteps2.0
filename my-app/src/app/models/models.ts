@@ -170,6 +170,11 @@ export interface Notification {
   user_id: string;
   title: string;
   message: string;
+  link?: string | null;
+    link_url?: string | null;
+    bookingId?: string | null;
+    booking_id?: string | null;
+    reference_id?: string | null;
   type: 'system' | 'community' | 'booking' | 'wallet';
   read: boolean;
   createdAt: string;

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
 import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
+import { getApiUrl } from '../config/api-config';
 
 export interface AdminQueueResult<T> {
   data: T[];
@@ -13,9 +14,7 @@ export interface AdminQueueResult<T> {
   providedIn: 'root'
 })
 export class ApiService {
-  private BACKEND_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? 'http://localhost:5055/api' 
-    : 'https://greensteps-6swn.onrender.com/api';
+  private BACKEND_URL = getApiUrl();
 
   private cache = new Map<string, { data: any; expiry: number }>();
 
@@ -337,6 +336,7 @@ export class ApiService {
   public async markAllNotificationsRead(userId: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.post(`${this.BACKEND_URL}/notifications/user/${userId}/read-all`, {}));
+      this.markLocalCounterNotificationsRead(userId);
       return true;
     } catch (e) {
       console.error('Error marking all notifications read:', e);
@@ -347,9 +347,19 @@ export class ApiService {
   public async clearNotifications(userId: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.delete(`${this.BACKEND_URL}/notifications/user/${userId}`));
+      this.clearLocalCounterNotifications(userId);
       return true;
     } catch (e) {
       console.error('Error clearing notifications:', e);
+      return false;
+    }
+  }
+
+  public async deleteNotification(id: string): Promise<boolean> {
+    try {
+      await firstValueFrom(this.http.delete(`${this.BACKEND_URL}/notifications/${id}`));
+      return true;
+    } catch (e) {
       return false;
     }
   }
@@ -649,13 +659,16 @@ export class ApiService {
     }
   }
 
-  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
+  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
     try {
       const payload = {
         type: bookingData.type ?? bookingData.kind,
         targetId: bookingData.targetId ?? bookingData.target_id,
         bookingDate: bookingData.bookingDate ?? bookingData.booking_date,
+        checkOutDate: bookingData.checkOutDate ?? bookingData.check_out_date,
         guests: bookingData.guests,
+        addonIds: bookingData.addonIds ?? bookingData.addon_ids ?? [],
+        idempotencyKey: bookingData.idempotencyKey ?? bookingData.idempotency_key,
         paymentMethod: bookingData.paymentMethod ?? bookingData.payment_method,
         voucherCode: bookingData.voucherCode ?? bookingData.voucher_code,
         customerId: bookingData.customerId ?? bookingData.userId ?? bookingData.user_id,
@@ -665,12 +678,18 @@ export class ApiService {
       };
       const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings`, payload));
       if (!res?.success) return { success: false, message: res?.message || 'Không thể tạo đơn đặt chỗ.' };
+      const createdBookingId = res.bookingId || res.booking?.id || res.booking?._id || res.booking?.booking_code || res.booking?.evoucher_code;
+      if (String(payload.paymentMethod || '').toLowerCase() === 'counter' && payload.customerId && createdBookingId) {
+        this.ensureLocalCounterBookingNotification(String(payload.customerId), String(createdBookingId));
+        window.dispatchEvent(new Event('greensteps-notifications-refresh'));
+      }
       return { 
         success: true,
-        bookingId: res.bookingId || res.booking?.id || res.booking?._id || res.booking?.booking_code || res.booking?.evoucher_code,
+        bookingId: createdBookingId,
         bookingCode: res.booking?.evoucher_code || res.booking?.booking_code,
         paymentStatus: res.payment?.status || res.booking?.payment?.status,
         payment: res.payment || res.booking?.payment,
+        pricing: res.pricing || res.booking?.pricing_snapshot,
         message: res.message,
         emailAlreadyExists: res.emailAlreadyExists,
         autoCreatedUser: res.autoCreatedUser
@@ -678,6 +697,54 @@ export class ApiService {
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Có lỗi xảy ra khi tạo đặt chỗ.' };
     }
+  }
+
+  public getLocalCounterBookingNotifications(userId: string): any[] {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      return Array.isArray(rows) ? rows.filter(row => row.user_id === userId) : [];
+    } catch { return []; }
+  }
+
+  public markLocalNotificationRead(id: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.map(row => row.id === id ? { ...row, read: true } : row)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  private markLocalCounterNotificationsRead(userId: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.map(row => row.user_id === userId ? { ...row, read: true } : row)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  private clearLocalCounterNotifications(userId: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.filter(row => row.user_id !== userId)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  public ensureLocalCounterBookingNotification(userId: string, bookingId: string): void {
+    try {
+      const key = 'greensteps-counter-notifications';
+      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const rows = Array.isArray(stored) ? stored : [];
+      const id = `counter-${bookingId}`;
+      if (rows.some(row => row.id === id)) return;
+      rows.unshift({
+        id, user_id: userId, title: 'Đặt chỗ tại quầy đang chờ duyệt',
+        message: `Yêu cầu đặt chỗ ${bookingId} đang chờ nhân viên xác nhận sau khi bạn thanh toán tại quầy.`,
+        type: 'booking', link: `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`,
+        read: false, createdAt: new Date().toISOString()
+      });
+      localStorage.setItem(key, JSON.stringify(rows.slice(0, 50)));
+    } catch { /* The server notification remains the durable source. */ }
+  }
+  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string }): Promise<any> {
+    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings/quote`, quoteData));
   }
 
   public async approveBooking(id: string): Promise<boolean> {

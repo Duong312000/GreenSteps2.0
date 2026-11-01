@@ -586,7 +586,7 @@ export class ProfileComponent implements OnInit {
         statusText,
         image: tripImg,
         type: 'booking',
-        link: '/profile'
+        link: `/booking/confirm?bookingId=${encodeURIComponent(b.id || b.evoucher_code || '')}`
       };
     } else if (userItineraries.length > 0) {
       // 2. Custom itinerary

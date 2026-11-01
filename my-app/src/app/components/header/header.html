@@ -232,6 +232,10 @@
                                     <span class="text-[10px] text-[#184A37]/40 whitespace-nowrap">{{ notif.time }}</span>
                                 </div>
                                 <p class="text-[11px] mt-1 mb-0 leading-relaxed text-[#184A37]/80">{{ notif.message }}</p>
+                                <button *ngIf="notif.type === 'booking' && notif.link" type="button" (click)="$event.stopPropagation(); markNotificationRead(notif)"
+                                        class="mt-2 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-50">
+                                  Xem chi tiết
+                                </button>
                             </div>
                         </div>
                     </div>
