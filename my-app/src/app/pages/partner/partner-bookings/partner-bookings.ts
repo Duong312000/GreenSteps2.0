@@ -11,6 +11,7 @@ import { User, Booking, Service } from '../../../models/models';
   selector: 'app-partner-bookings',
   standalone: false,
   templateUrl: './partner-bookings.html',
+  styleUrl: './partner-bookings.css',
 })
 export class PartnerBookingsComponent implements OnInit {
   public currentUser: User | null = null;
