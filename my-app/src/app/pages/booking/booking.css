@@ -903,6 +903,7 @@ input[type="radio"] {
 .brand-greensteps-lockup small { color: #658373; font-size: 7px; font-weight: 750; letter-spacing: .12em; }
 .brand-vietqr-image { display: block; width: 78px; height: 29px; object-fit: contain; object-position: center; }
 .brand-card-image { display: block; width: min(96px, 100%); max-width: 100%; height: 28px; margin-inline: auto; object-fit: contain; object-position: center; }
+.brand-momo-image { display: block; width: 48px; height: 48px; object-fit: contain; border-radius: 14px; }
 .brand-counter { width: 100%; justify-content: center; gap: 0 !important; color: #167653; }
 .brand-counter > i { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 0; background: #fff; color: #167653; font-size: 28px; line-height: 1; }
 
@@ -1679,6 +1680,479 @@ input[type="radio"] {
 @media print {
   .confirm-shell.confirm-page { padding: 0; }
   .confirm-layout { width: 100%; box-shadow: none; }
+}
+
+/* Confirmation receipt polish. Keep every rule within this page wrapper. */
+.confirm-shell.confirm-page {
+  --cf-surface: var(--bg-secondary);
+  --cf-surface-soft: color-mix(in srgb, var(--bg-primary) 72%, var(--bg-secondary));
+  --cf-border-muted: color-mix(in srgb, var(--border-color) 76%, transparent);
+  --cf-shadow: 0 2px 8px rgba(23, 34, 28, .035), 0 16px 40px rgba(23, 34, 28, .065);
+  --cf-shadow-hover: 0 5px 14px rgba(23, 34, 28, .045), 0 20px 46px rgba(23, 34, 28, .075);
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--primary) 5%, var(--bg-primary)), var(--bg-primary) 70%);
+  color: var(--text-primary);
+  padding-bottom: 38px;
+}
+
+.confirm-shell.confirm-page .confirm-layout {
+  border: 1px solid var(--cf-border-muted);
+  border-radius: var(--border-radius-xl);
+  background: var(--cf-surface);
+  box-shadow: var(--cf-shadow);
+  color: var(--text-primary);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.confirm-shell.confirm-page .confirm-hero {
+  position: relative;
+  border-bottom: 1px solid var(--cf-border-muted);
+  padding: 10px 28px 20px;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-paid {
+  border-color: color-mix(in srgb, var(--ui-success) 18%, var(--cf-border-muted));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ui-success) 8%, var(--cf-surface)), var(--cf-surface) 78%);
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-pending {
+  border-color: color-mix(in srgb, var(--ui-warning) 24%, var(--cf-border-muted));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ui-warning) 10%, var(--cf-surface)), var(--cf-surface) 78%);
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-failed {
+  border-color: color-mix(in srgb, var(--ui-danger) 20%, var(--cf-border-muted));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ui-danger) 8%, var(--cf-surface)), var(--cf-surface) 78%);
+}
+
+.confirm-shell.confirm-page .confirm-mark {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--cf-border-muted));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 8%, var(--cf-surface));
+  color: var(--primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.confirm-shell.confirm-page .confirm-mark__ring {
+  border-color: color-mix(in srgb, var(--primary) 16%, var(--cf-border-muted));
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-pending .confirm-mark,
+.confirm-shell.confirm-page .confirm-hero.is-pending .confirm-mark__ring {
+  border-color: color-mix(in srgb, var(--ui-warning) 30%, var(--cf-border-muted));
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-pending .confirm-mark {
+  background: color-mix(in srgb, var(--ui-warning) 12%, var(--cf-surface));
+  color: var(--ui-warning);
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-failed .confirm-mark,
+.confirm-shell.confirm-page .confirm-hero.is-failed .confirm-mark__ring {
+  border-color: color-mix(in srgb, var(--ui-danger) 28%, var(--cf-border-muted));
+}
+
+.confirm-shell.confirm-page .confirm-hero.is-failed .confirm-mark {
+  background: color-mix(in srgb, var(--ui-danger) 10%, var(--cf-surface));
+  color: var(--ui-danger);
+}
+
+.confirm-shell.confirm-page .confirm-eyebrow {
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+
+.confirm-shell.confirm-page .confirm-hero h1 {
+  color: var(--text-primary);
+  font-size: clamp(21px, 2.5vw, 27px);
+  font-weight: 650;
+  letter-spacing: -.025em;
+  line-height: 1.25;
+}
+
+.confirm-shell.confirm-page .confirm-message {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-shell.confirm-page .confirm-success-note,
+.confirm-shell.confirm-page .confirm-next-note {
+  justify-content: flex-start;
+  border: 1px solid var(--cf-border-muted);
+  border-radius: var(--border-radius-md);
+  background: var(--cf-surface-soft);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.confirm-shell.confirm-page .confirm-success-note {
+  border-color: color-mix(in srgb, var(--ui-success) 20%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--ui-success) 8%, var(--cf-surface));
+  color: var(--ui-success);
+}
+
+.confirm-shell.confirm-page .confirm-next-note {
+  border-color: color-mix(in srgb, var(--ui-warning) 24%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--ui-warning) 9%, var(--cf-surface));
+  color: var(--ui-warning);
+}
+
+.confirm-shell.confirm-page .confirm-close {
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--cf-border-muted);
+  border-radius: var(--border-radius-full);
+  background: var(--cf-surface);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.confirm-shell.confirm-page .confirm-close:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--primary) 7%, var(--cf-surface));
+  color: var(--primary);
+}
+
+.confirm-shell.confirm-page .confirm-close:focus-visible,
+.confirm-shell.confirm-page .confirm-actions button:focus-visible,
+.confirm-shell.confirm-page .confirm-print-button:focus-visible,
+.confirm-shell.confirm-page .confirm-error-actions button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 34%, transparent);
+  outline-offset: 3px;
+}
+
+.confirm-shell.confirm-page .confirm-columns {
+  align-items: stretch;
+  background: var(--cf-surface);
+}
+
+.confirm-shell.confirm-page .payment-details,
+.confirm-shell.confirm-page .itinerary-details,
+.confirm-shell.confirm-page .confirm-summary-panel {
+  min-width: 0;
+  border-color: var(--cf-border-muted);
+  color: var(--text-primary);
+}
+
+.confirm-shell.confirm-page .payment-details,
+.confirm-shell.confirm-page .confirm-summary-panel {
+  height: 100%;
+}
+
+.confirm-shell.confirm-page .confirm-section h2,
+.confirm-shell.confirm-page .confirm-summary-panel h2 {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.confirm-shell.confirm-page .confirm-section h2 i {
+  color: var(--primary);
+}
+
+.confirm-shell.confirm-page .confirm-rows {
+  gap: 0;
+}
+
+.confirm-shell.confirm-page .confirm-rows > div {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cf-border-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.confirm-shell.confirm-page .confirm-rows dt {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.confirm-shell.confirm-page .confirm-rows dd {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirm-shell.confirm-page .confirm-code,
+.confirm-shell.confirm-page .confirm-barcode-caption {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .025em;
+}
+
+.confirm-shell.confirm-page .confirm-code {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.confirm-shell.confirm-page .confirm-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--cf-border-muted);
+  border-radius: var(--border-radius-full);
+  background: var(--cf-surface-soft);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.confirm-shell.confirm-page .confirm-status-text.is-paid {
+  border-color: color-mix(in srgb, var(--ui-success) 22%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--ui-success) 9%, var(--cf-surface));
+  color: var(--ui-success);
+}
+
+.confirm-shell.confirm-page .confirm-status-text.is-pending {
+  border-color: color-mix(in srgb, var(--ui-warning) 24%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--ui-warning) 10%, var(--cf-surface));
+  color: var(--ui-warning);
+}
+
+.confirm-shell.confirm-page .confirm-status-text.is-failed {
+  border-color: color-mix(in srgb, var(--ui-danger) 22%, var(--cf-border-muted));
+  background: color-mix(in srgb, var(--ui-danger) 8%, var(--cf-surface));
+  color: var(--ui-danger);
+}
+
+.confirm-shell.confirm-page .confirm-barcode {
+  position: relative;
+  margin-block: 16px 5px;
+  border-bottom: 1px dashed var(--cf-border-muted);
+  padding-bottom: 10px;
+}
+
+.confirm-shell.confirm-page .confirm-barcode::before,
+.confirm-shell.confirm-page .confirm-barcode::after {
+  position: absolute;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cf-surface);
+  content: "";
+  transform: translateY(50%);
+}
+
+.confirm-shell.confirm-page .confirm-barcode::before { left: -7px; }
+.confirm-shell.confirm-page .confirm-barcode::after { right: -7px; }
+
+.confirm-shell.confirm-page .confirm-barcode-caption {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.confirm-shell.confirm-page .confirm-trip-heading h3 {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.confirm-shell.confirm-page .confirm-trip-heading p,
+.confirm-shell.confirm-page .confirm-trip-meta dt,
+.confirm-shell.confirm-page .confirm-trip-meta dd,
+.confirm-shell.confirm-page .confirm-day p,
+.confirm-shell.confirm-page .confirm-empty-day {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.confirm-shell.confirm-page .confirm-day h3 {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.confirm-shell.confirm-page .confirm-summary-panel {
+  background: var(--cf-surface-soft);
+}
+
+.confirm-shell.confirm-page .confirm-summary-panel h2 {
+  margin-bottom: 12px;
+}
+
+.confirm-shell.confirm-page .confirm-price-row,
+.confirm-shell.confirm-page .confirm-total-row {
+  align-items: baseline;
+  margin-inline: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--cf-border-muted);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.confirm-shell.confirm-page .confirm-price-row b {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirm-shell.confirm-page .confirm-total-row {
+  margin-top: 5px;
+  padding-block: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.confirm-shell.confirm-page .confirm-total-row strong {
+  color: var(--primary);
+  font-size: 21px;
+  font-weight: 750;
+}
+
+.confirm-shell.confirm-page .confirm-account-note {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.confirm-shell.confirm-page .confirm-account-note small {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.confirm-shell.confirm-page details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.confirm-shell.confirm-page details > summary::-webkit-details-marker { display: none; }
+
+.confirm-shell.confirm-page details > summary::after {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 180ms ease;
+}
+
+.confirm-shell.confirm-page details[open] > summary::after {
+  transform: rotate(225deg) translate(-2px, -1px);
+}
+
+.confirm-shell.confirm-page .confirm-print-button {
+  min-height: 42px;
+  margin-top: 16px;
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--cf-border-muted));
+  border-radius: var(--border-radius-md);
+  background: var(--cf-surface);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 650;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.confirm-shell.confirm-page .confirm-print-button:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--cf-surface));
+  box-shadow: var(--cf-shadow);
+  transform: translateY(-1px);
+}
+
+.confirm-shell.confirm-page .confirm-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 16px 0 2px;
+  border-top: 1px solid var(--cf-border-muted);
+}
+
+.confirm-shell.confirm-page .confirm-actions button,
+.confirm-shell.confirm-page .confirm-error-actions button {
+  min-height: 42px;
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 650;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.confirm-shell.confirm-page .confirm-primary-action {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--bg-secondary);
+}
+
+.confirm-shell.confirm-page .confirm-primary-action:hover {
+  border-color: var(--ui-primary-hover);
+  background: var(--ui-primary-hover);
+  box-shadow: var(--cf-shadow);
+  transform: translateY(-1px);
+}
+
+.confirm-shell.confirm-page .confirm-secondary-action {
+  border-color: color-mix(in srgb, var(--text-secondary) 38%, var(--cf-border-muted));
+  background: var(--cf-surface);
+  color: var(--text-primary);
+}
+
+.confirm-shell.confirm-page .confirm-secondary-action:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--cf-surface));
+}
+
+.confirm-shell.confirm-page .confirm-primary-action:disabled,
+.confirm-shell.confirm-page .confirm-secondary-action:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .confirm-shell.confirm-page { padding: 14px 10px 28px; }
+  .confirm-shell.confirm-page .confirm-layout {
+    padding: 18px 16px 16px;
+    border-radius: var(--border-radius-lg);
+  }
+  .confirm-shell.confirm-page .confirm-hero { padding: 8px 14px 16px; }
+  .confirm-shell.confirm-page .confirm-close { top: 2px; right: 0; }
+  .confirm-shell.confirm-page .confirm-actions { flex-direction: column; }
+  .confirm-shell.confirm-page .confirm-actions button,
+  .confirm-shell.confirm-page .confirm-error-actions button { width: 100%; }
+  .confirm-shell.confirm-page .confirm-status-text { white-space: normal; }
+  .confirm-shell.confirm-page .confirm-summary-panel { padding-block: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-shell.confirm-page .confirm-layout,
+  .confirm-shell.confirm-page .confirm-hero,
+  .confirm-shell.confirm-page .confirm-close,
+  .confirm-shell.confirm-page .confirm-print-button,
+  .confirm-shell.confirm-page .confirm-actions button,
+  .confirm-shell.confirm-page details > summary::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }
 
 /* Receipt proportions: one vertical sheet over a quiet Vietnamese landscape. */
@@ -2809,4 +3283,331 @@ input[type="radio"] {
   .confirm-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(240px, .8fr); }
   .confirm-main { display: contents; }
   .confirm-summary-panel { position: static; }
+}
+
+/* Payment page polish. Scoped to the checkout shell so customer and shared
+   pages retain their existing appearance. */
+.payment-shell {
+  --pay-surface: var(--bg-secondary);
+  --pay-surface-tint: color-mix(in srgb, var(--bg-primary) 58%, var(--bg-secondary));
+  --pay-border-muted: color-mix(in srgb, var(--border-color) 72%, transparent);
+  --pay-shadow: 0 2px 8px rgba(23, 34, 28, .035), 0 12px 28px rgba(23, 34, 28, .04);
+  --pay-shadow-hover: 0 4px 12px rgba(23, 34, 28, .045), 0 16px 34px rgba(23, 34, 28, .055);
+  background: linear-gradient(145deg, var(--pay-surface-tint), var(--bg-primary) 58%, var(--pay-surface));
+  color: var(--text-primary);
+}
+
+.payment-shell .payment-card,
+.payment-shell .payment-sticky-card {
+  border: 1px solid var(--pay-border-muted);
+  background: var(--pay-surface);
+  box-shadow: var(--pay-shadow);
+  transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.payment-shell .payment-card:hover,
+.payment-shell .payment-sticky-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--pay-border-muted));
+  box-shadow: var(--pay-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.payment-shell .payment-title h1,
+.payment-shell .payment-card h2,
+.payment-shell .payment-summary-heading,
+.payment-shell .payment-tour-name {
+  color: var(--text-primary);
+}
+
+.payment-shell .payment-title p,
+.payment-shell .payment-sticky-card > .muted,
+.payment-shell .payment-sticky-card .detail-list.compact span,
+.payment-shell .payment-sticky-card .price-lines p span,
+.payment-shell .payment-sticky-card .cancel-mini,
+.payment-shell .payment-security-note {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.payment-shell .payment-section-number {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pay-surface-tint);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-shell .pay-choice,
+.payment-shell .payment-method-card {
+  border-color: var(--pay-border-muted);
+  border-radius: var(--border-radius-md);
+  background: var(--pay-surface);
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.payment-shell .pay-choice:hover,
+.payment-shell .payment-method-card:hover:not([style*="not-allowed"]) {
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--pay-border-muted));
+  box-shadow: var(--pay-shadow);
+  transform: translateY(-1px);
+}
+
+.payment-shell .pay-choice.active,
+.payment-shell .payment-method-card.active,
+.payment-shell .pay-choice:has(input:checked),
+.payment-shell .payment-method-card:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--pay-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent), 0 2px 8px color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.payment-shell .pay-choice:focus-within,
+.payment-shell .payment-method-card:focus-within,
+.payment-shell .terms-check:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  outline-offset: 3px;
+}
+
+.payment-shell .pay-choice input[type="radio"],
+.payment-shell .payment-method-card input[type="radio"] {
+  width: 20px;
+  height: 20px;
+}
+
+.payment-shell .payment-method-card input::before {
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+}
+
+.payment-shell .pay-choice input[type="radio"]:focus-visible,
+.payment-shell .payment-method-card input[type="radio"]:focus-visible,
+.payment-shell .terms-check input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 34%, transparent);
+  outline-offset: 3px;
+}
+
+.payment-shell .pay-choice label b,
+.payment-shell .payment-method-card b {
+  color: var(--text-primary);
+}
+
+.payment-shell .pay-choice label small,
+.payment-shell .payment-method-card small {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.payment-shell .payment-brand {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  border: 1px solid var(--pay-border-muted);
+  border-radius: var(--border-radius-md);
+  background: var(--pay-surface);
+  object-fit: contain;
+}
+
+.payment-shell .brand-vietqr-image,
+.payment-shell .brand-card-image,
+.payment-shell .brand-momo-image {
+  max-width: 40px;
+  max-height: 32px;
+  object-fit: contain;
+}
+
+.payment-shell .brand-greensteps-lockup {
+  flex-direction: column;
+  gap: 2px !important;
+  text-align: center;
+}
+
+.payment-shell .brand-greensteps-lockup > img { width: 20px; height: 20px; }
+.payment-shell .brand-greensteps-lockup > span { text-align: center; }
+.payment-shell .brand-greensteps-lockup b { font-size: 8px; }
+.payment-shell .brand-greensteps-lockup small { font-size: 6px; }
+
+.payment-shell .method-status-tag,
+.payment-shell .sandbox-badge {
+  min-height: 24px;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid var(--pay-border-muted);
+  border-radius: var(--border-radius-full);
+  background: var(--pay-surface-tint);
+  color: var(--text-secondary) !important;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.payment-shell .method-status-tag.warning {
+  border-color: color-mix(in srgb, var(--ui-warning) 22%, transparent);
+  background: color-mix(in srgb, var(--ui-warning) 10%, var(--pay-surface));
+  color: var(--ui-warning) !important;
+}
+
+.payment-shell .payment-method-card > div[style*="flex-grow: 1"] > div[style*="background-color"] {
+  border: 1px solid color-mix(in srgb, var(--primary) 17%, var(--pay-border-muted)) !important;
+  border-radius: var(--border-radius-md) !important;
+  background: color-mix(in srgb, var(--primary) 6%, var(--pay-surface)) !important;
+}
+
+.payment-shell .payment-method-card > div[style*="flex-grow: 1"] > div[style*="background-color"] > span {
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+}
+
+.payment-shell .payment-method-card > div[style*="flex-grow: 1"] > div[style*="background-color"] button {
+  min-height: 38px !important;
+  padding-inline: 14px !important;
+  border-radius: var(--border-radius-sm) !important;
+  background: var(--ui-primary) !important;
+  font-size: 13px !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.payment-shell .counter-notice {
+  border: 0 !important;
+  border-left: 3px solid var(--primary) !important;
+  border-radius: var(--border-radius-sm) var(--border-radius-md) var(--border-radius-md) var(--border-radius-sm) !important;
+  background: color-mix(in srgb, var(--primary) 6%, var(--pay-surface)) !important;
+  padding: 14px 16px !important;
+}
+
+.payment-shell .counter-notice > div {
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+}
+
+.payment-shell .counter-notice p {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+}
+
+.payment-shell .payment-sticky-card {
+  gap: 16px;
+}
+
+.payment-shell .payment-sticky-card .detail-list.compact {
+  border: 0;
+  border-top: 1px solid var(--pay-border-muted);
+  border-bottom: 1px solid var(--pay-border-muted);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0;
+}
+
+.payment-shell .payment-sticky-card .price-lines {
+  gap: 12px;
+}
+
+.payment-shell .payment-sticky-card .price-lines p,
+.payment-shell .payment-sticky-card .price-lines p b,
+.payment-shell .payment-sticky-card .detail-list.compact b {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.payment-shell .payment-sticky-card .choice-total {
+  gap: 12px;
+  margin-block: 4px;
+  padding: 18px 0;
+  border-top: 1px solid var(--pay-border-muted);
+  border-bottom: 1px solid var(--pay-border-muted);
+}
+
+.payment-shell .payment-sticky-card .choice-total span {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.payment-shell .payment-sticky-card .choice-total strong {
+  color: var(--primary);
+  font-size: 26px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-shell .payment-sticky-card .cancel-mini {
+  display: flex;
+  gap: 9px;
+  border: 1px solid var(--pay-border-muted);
+  border-radius: var(--border-radius-md);
+  background: var(--pay-surface-tint);
+  padding: 11px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.payment-shell .payment-sticky-card .cancel-mini::before {
+  display: grid;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 12%, var(--pay-surface));
+  color: var(--primary);
+  content: "i";
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payment-shell .booking-submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--border-radius-md);
+  background: var(--ui-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--bg-secondary);
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.payment-shell .booking-submit:hover:not(:disabled) {
+  background: var(--ui-primary-hover);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--primary) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.payment-shell .booking-submit:disabled {
+  background: color-mix(in srgb, var(--primary) 34%, var(--bg-tertiary));
+  box-shadow: none;
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.payment-shell .booking-submit:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 34%, transparent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .payment-shell { padding-bottom: 16px; }
+  .payment-shell .payment-card,
+  .payment-shell .payment-sticky-card { box-shadow: var(--pay-shadow); }
+  .payment-shell .payment-brand { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
+  .payment-shell .payment-method-card { grid-template-columns: 20px 48px minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-shell .payment-card,
+  .payment-shell .payment-sticky-card,
+  .payment-shell .pay-choice,
+  .payment-shell .payment-method-card,
+  .payment-shell .booking-submit {
+    scroll-behavior: auto;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }
