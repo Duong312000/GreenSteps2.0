@@ -45,7 +45,16 @@ function createUserId() {
   return 'UG' + Math.floor(10000000 + Math.random() * 90000000);
 }
 
-function signAuthToken(user) {
+async function signAuthToken(user) {
+  const accountStatus = user.account_status || 'active';
+  if (accountStatus !== 'active') {
+    const error = new Error(accountStatus === 'suspended' ? 'Tài khoản đang tạm khóa.' : 'Tài khoản đã bị vô hiệu hóa.');
+    error.statusCode = 403;
+    error.code = 'ACCOUNT_DISABLED';
+    throw error;
+  }
+  user.last_login_at = new Date();
+  await user.save();
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role, fullname: user.fullname },
     JWT_SECRET,
@@ -187,7 +196,7 @@ exports.verifyRegisterOtp = async (req, res, next) => {
       return createdUser;
     });
 
-    const token = signAuthToken(createdAccount);
+    const token = await signAuthToken(createdAccount);
     setAuthCookie(res, token);
 
     return res.json({
@@ -234,6 +243,11 @@ exports.login = async (req, res, next) => {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) return res.status(401).json({ success: false, message: 'Email/tên đăng nhập hoặc mật khẩu không chính xác!' });
 
+    const accountStatus = user.account_status || 'active';
+    if (accountStatus !== 'active') {
+      return res.status(403).json({ success: false, code: 'ACCOUNT_DISABLED', message: accountStatus === 'suspended' ? 'Tài khoản đang tạm khóa.' : 'Tài khoản đã bị vô hiệu hóa.' });
+    }
+
     if (!user.is_verified) {
       return res.status(403).json({
         success: false,
@@ -243,7 +257,7 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const token = signAuthToken(user);
+    const token = await signAuthToken(user);
     setAuthCookie(res, token);
 
     res.json({
@@ -504,7 +518,7 @@ exports.googleLogin = async (req, res, next) => {
       });
     }
 
-    const token = signAuthToken(user);
+    const token = await signAuthToken(user);
     setAuthCookie(res, token);
 
     res.json({
@@ -572,7 +586,7 @@ exports.facebookLogin = async (req, res, next) => {
       });
     }
 
-    const token = signAuthToken(user);
+    const token = await signAuthToken(user);
     setAuthCookie(res, token);
 
     res.json({
@@ -626,11 +640,6 @@ exports.requestCheckoutOtp = async (req, res, next) => {
         expires_at: new Date(Date.now() + 5 * 60 * 1000),
         resend_available_at: new Date(Date.now() + 60 * 1000)
       });
-
-      console.log(`\n==================================================`);
-      console.log(`[OTP LOG] Đăng nhập Checkout: ${email}`);
-      console.log(`MÃ OTP: ${otp}`);
-      console.log(`==================================================\n`);
 
       const { sendOtpEmail } = require('../services/email.service');
       await sendOtpEmail({ to: email, otp, purpose: 'RESET_PASSWORD' }).catch(err => console.error(err));
@@ -713,7 +722,7 @@ exports.verifyCheckoutOtp = async (req, res, next) => {
       await latest.save();
 
       // Log the existing user in!
-      const token = signAuthToken(existingUser);
+      const token = await signAuthToken(existingUser);
       setAuthCookie(res, token);
 
       return res.json({
@@ -766,7 +775,7 @@ exports.verifyCheckoutOtp = async (req, res, next) => {
         is_verified: true
       });
 
-      const token = signAuthToken(user);
+      const token = await signAuthToken(user);
       setAuthCookie(res, token);
 
       return res.json({

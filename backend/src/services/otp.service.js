@@ -49,22 +49,15 @@ async function compareResetJti(jti, storedHash) {
   return bcrypt.compare(jti, storedHash);
 }
 
-async function sendOtpEmailInBackground({ to, otp, purpose }) {
-  // Always print the OTP to server console logs for easier debugging and demo tracking
-  console.log(`\n==================================================`);
-  console.log(`[OTP LOG] Mã xác thực gửi tới: ${to}`);
-  console.log(`Mục đích: ${purpose}`);
-  console.log(`MÃ OTP: ${otp}`);
-  console.log(`==================================================\n`);
-
-  await sendOtpEmail({ to, otp, purpose }).catch((error) => {
-    console.error('OTP email delivery failed:', {
-      to,
-      purpose,
-      code: error.code,
-      message: error.message
-    });
-  });
+async function sendOtpEmailInBackground({ to, otp, purpose }, { throwOnFailure = false, sendOtp = sendOtpEmail } = {}) {
+  try {
+    await sendOtp({ to, otp, purpose });
+    return true;
+  } catch (error) {
+    if (throwOnFailure) throw error;
+    console.error('OTP email delivery failed:', { purpose, code: error.code, message: error.message });
+    return false;
+  }
 }
 
 async function consumeActiveOtps(userId, purpose, transaction) {
@@ -103,7 +96,7 @@ function createResendTooSoonError(resendAvailableAt) {
   return error;
 }
 
-async function createAndSendOtp(user, purpose, transaction) {
+async function createAndSendOtp(user, purpose, transaction, { awaitDelivery = false } = {}) {
   await assertMailDomainCanReceive(user.email);
 
   const latest = await AuthOtp.findOne({
@@ -129,7 +122,7 @@ async function createAndSendOtp(user, purpose, transaction) {
 
   const otp = generateOtp();
   const otpHash = hashOtp(otp);
-  await AuthOtp.create({
+  const otpRecord = await AuthOtp.create({
     user_id: user.id,
     purpose,
     otp_hash: otpHash,
@@ -137,8 +130,18 @@ async function createAndSendOtp(user, purpose, transaction) {
     resend_available_at: futureDate(RESEND_SECONDS * 1000)
   }, { transaction });
 
-  sendOtpEmailInBackground({ to: user.email, otp, purpose });
-  return { queued: true };
+  if (awaitDelivery) {
+    try {
+      await sendOtpEmailInBackground({ to: user.email, otp, purpose }, { throwOnFailure: true });
+      return { queued: true, delivered: true };
+    } catch (error) {
+      otpRecord.consumed_at = new Date();
+      await otpRecord.save({ transaction });
+      throw error;
+    }
+  }
+  void sendOtpEmailInBackground({ to: user.email, otp, purpose });
+  return { queued: true, delivered: null };
 }
 
 async function createAndSendPendingRegistrationOtp({ username, email, passwordHash }, transaction) {
@@ -170,7 +173,7 @@ async function createAndSendPendingRegistrationOtp({ username, email, passwordHa
     resend_available_at: futureDate(RESEND_SECONDS * 1000)
   }, { transaction });
 
-  sendOtpEmailInBackground({ to: email, otp, purpose: 'REGISTER' });
+  void sendOtpEmailInBackground({ to: email, otp, purpose: 'REGISTER' });
   return { queued: true };
 }
 
@@ -359,6 +362,7 @@ async function consumeResetToken(resetToken) {
 
 module.exports = {
   createAndSendOtp,
+  sendOtpEmailInBackground,
   createAndSendPendingRegistrationOtp,
   resendPendingRegistrationOtp,
   verifyPendingRegistrationOtp,

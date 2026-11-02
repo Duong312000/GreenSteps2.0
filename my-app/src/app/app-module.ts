@@ -22,6 +22,8 @@ import { CommunityComponent } from './pages/community/community';
 import { ProfileComponent } from './pages/profile/profile';
 import { ScheduleEditorComponent } from './pages/schedule-editor/schedule-editor';
 import { AdminComponent } from './pages/admin/admin';
+import { AdminUsersComponent } from './pages/admin/admin-users';
+import { AccountDetailModalComponent } from './pages/admin/account-detail-modal.component';
 import { PartnerDashboardComponent } from './pages/partner/partner-dashboard/partner-dashboard';
 import { PartnerServicesComponent } from './pages/partner/partner-services/partner-services';
 import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partner-bookings';
@@ -78,7 +80,9 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     ReactiveFormsModule,
     AppRoutingModule,
     GreenStepsChatComponent,
-    PartnerIconComponent
+    PartnerIconComponent,
+    AdminUsersComponent,
+    AccountDetailModalComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

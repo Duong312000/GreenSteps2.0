@@ -10,6 +10,18 @@ export interface AdminQueueResult<T> {
   available: boolean;
 }
 
+export interface AdminUserQuery {
+  search?: string;
+  role?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -17,6 +29,9 @@ export class ApiService {
   private BACKEND_URL = getApiUrl();
 
   private cache = new Map<string, { data: any; expiry: number }>();
+  private adminUserRequests = new Map<string, Promise<any>>();
+  private adminUserCacheVersion = 0;
+  private adminUserCacheScope = 'anonymous';
 
   private getCachedData(key: string): any | null {
     const cached = this.cache.get(key);
@@ -32,13 +47,60 @@ export class ApiService {
     this.cache.set(key, { data, expiry: Date.now() + ttlMs });
   }
 
+  private getAdminUserCachedRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
+    const cached = this.getCachedData(key);
+    if (cached !== null) return Promise.resolve(cached as T);
+
+    const pending = this.adminUserRequests.get(key);
+    if (pending) return pending as Promise<T>;
+
+    const version = this.adminUserCacheVersion;
+    let pendingRequest: Promise<T>;
+    pendingRequest = request()
+      .then(response => {
+        if (version === this.adminUserCacheVersion && (response as any)?.success === true) this.setCachedData(key, response, 30_000);
+        return response;
+      })
+      .finally(() => {
+        if (this.adminUserRequests.get(key) === pendingRequest) this.adminUserRequests.delete(key);
+      });
+    this.adminUserRequests.set(key, pendingRequest);
+    return pendingRequest;
+  }
+
+  private invalidateAdminUserCache(): void {
+    this.refreshAdminUserData();
+    this.clearCache('admin_user_detail:');
+    this.clearCache('admin_user_events:');
+    this.clearCache('admin_user_activity:');
+    this.clearCache('admin_user_bookings:');
+  }
+
+  public setAdminUserCacheScope(scope: string | null | undefined): void {
+    const nextScope = String(scope || 'anonymous');
+    if (nextScope === this.adminUserCacheScope) return;
+    this.adminUserCacheScope = nextScope;
+    this.refreshAdminUserData();
+    this.clearCache('admin_user_detail:');
+    this.clearCache('admin_user_activity:');
+    this.clearCache('admin_user_bookings:');
+  }
+
   public clearCache(prefix?: string): void {
     if (!prefix) {
       this.cache.clear();
+      this.adminUserCacheVersion++;
+      this.adminUserRequests.clear();
     } else {
       for (const key of this.cache.keys()) {
         if (key.startsWith(prefix)) {
           this.cache.delete(key);
+        }
+      }
+      if (prefix.startsWith('admin_users:') || prefix.startsWith('admin_user_') || prefix === 'admin_user_stats') {
+        this.adminUserCacheVersion++;
+        for (const key of this.adminUserRequests.keys()) {
+          if (key.startsWith(prefix)) this.adminUserRequests.delete(key);
         }
       }
     }
@@ -1053,6 +1115,114 @@ export class ApiService {
   }
 
   // Admin APIs
+  private adminUserQuery(query: AdminUserQuery): string {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    }
+    return params.toString();
+  }
+
+  public getAdminUsers(query: AdminUserQuery): Promise<any> {
+    const params = this.adminUserQuery(query);
+    const cacheParams = new URLSearchParams(params);
+    cacheParams.sort();
+    return this.getAdminUserCachedRequest(`admin_users:${this.adminUserCacheScope}:${cacheParams.toString()}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users${params ? `?${params}` : ''}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserStats(): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_stats:${this.adminUserCacheScope}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/stats`, { withCredentials: true }))
+    );
+  }
+
+  public refreshAdminUserData(): void {
+    this.clearCache('admin_users:');
+    this.clearCache('admin_user_stats:');
+  }
+
+  public getAdminUser(id: string): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_detail:${this.adminUserCacheScope}:${id}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserActivity(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_activity:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/activity?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserBookings(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_bookings:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/bookings?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserEvents(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_events:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/events?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminProvider(id: string): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}`, { withCredentials: true }));
+  }
+
+  public getAdminProviderServices(id: string, page = 1, limit = 10): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}/services?page=${page}&limit=${limit}`, { withCredentials: true }));
+  }
+
+  public updateAdminProvider(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.clearCache('admin_user_activity:');
+      return response;
+    });
+  }
+
+  public updateAdminProviderStatus(id: string, action: 'suspend' | 'unsuspend', reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}/${action}`, { reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.clearCache('admin_user_activity:');
+      return response;
+    });
+  }
+
+  public createAdminUser(data: { fullname: string; email: string; phone?: string; role: string; reason: string }): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/users`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public updateAdminUser(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public changeAdminUserRole(id: string, role: string, reason: string): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/role`, { role, reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public updateAdminUserStatus(id: string, action: 'suspend' | 'unsuspend' | 'deactivate' | 'reactivate', reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/${action}`, { reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public async exportAdminUsers(query: AdminUserQuery, selectedIds: string[] = []): Promise<Blob> {
+    const params = new URLSearchParams(this.adminUserQuery(query));
+    selectedIds.forEach(id => params.append('id', id));
+    return firstValueFrom(this.http.get(`${this.BACKEND_URL}/admin/users/export?${params.toString()}`, { withCredentials: true, responseType: 'blob' }));
+  }
+
   private async getAdminQueue<T>(path: string, wrapperKey?: string, pendingOnly = false): Promise<AdminQueueResult<T>> {
     try {
       const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}${path}`, { withCredentials: true }));

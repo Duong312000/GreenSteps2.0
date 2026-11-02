@@ -1,0 +1,73 @@
+<div class="account-modal-overlay" (click)="!busy && close.emit()" role="presentation">
+  <section class="account-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+    <header class="account-modal-header">
+      <div class="account-modal-avatar">
+        <img *ngIf="avatar" [src]="avatar" [alt]="displayName" />
+        <span *ngIf="!avatar">{{ initials(displayName) }}</span>
+      </div>
+      <div class="account-modal-identity">
+        <span class="account-modal-eyebrow">{{ accountType === 'provider' ? 'HỒ SƠ NHÀ CUNG CẤP' : 'HỒ SƠ NGƯỜI DÙNG' }}</span>
+        <h2 id="account-modal-title">{{ displayName }}</h2>
+        <small>{{ account?.id || '—' }} <span *ngIf="account?.email">· {{ account.email }}</span></small>
+        <div class="account-modal-statuses">
+          <span class="account-status" [class.status-suspended]="suspended" [class.status-pending]="account?.is_verified === false">
+            <i class="bi bi-circle-fill"></i>{{ account?.accountStatusLabel || (suspended ? 'Đã khóa' : account?.is_verified === false ? 'Chưa xác minh' : 'Đang hoạt động') }}
+          </span>
+          <span class="account-status status-provider" *ngIf="accountType === 'provider'">
+            <i class="bi bi-patch-check-fill"></i>{{ account?.verificationStatusLabel || 'Chưa có trạng thái xác minh' }}
+          </span>
+          <span class="account-status" *ngIf="accountType === 'user'">{{ account?.roleLabel || 'Người dùng' }}</span>
+        </div>
+      </div>
+      <button type="button" class="account-modal-close" (click)="close.emit()" aria-label="Đóng" [disabled]="busy"><i class="bi bi-x-lg"></i></button>
+    </header>
+
+    <nav class="account-modal-tabs" role="tablist">
+      <button type="button" *ngFor="let tab of tabs" role="tab" [attr.aria-selected]="activeTab === tab.id" [class.active]="activeTab === tab.id" [disabled]="editing || busy" (click)="tabChange.emit(tab.id)">{{ tab.label }}</button>
+    </nav>
+
+    <main class="account-modal-content">
+      <div class="account-modal-state state-loading" *ngIf="loading"><span class="account-spinner"></span><span>Đang tải thông tin...</span></div>
+      <div class="account-modal-state state-error" *ngIf="!loading && error"><i class="bi bi-exclamation-circle"></i><span>{{ error }}</span><button type="button" (click)="retry.emit()">Thử lại</button></div>
+
+      <ng-container *ngIf="!loading && !error">
+        <form *ngIf="editing" class="account-edit-form" (ngSubmit)="submitEdit()">
+          <div class="account-field-grid">
+            <label *ngFor="let field of fields">
+              <span>{{ field.label }}</span>
+              <input [type]="field.type || 'text'" [name]="field.key || field.label" [readonly]="!field.key" [required]="field.required || false" [ngModel]="field.key ? editValues[field.key] : field.value" (ngModelChange)="field.key && (editValues[field.key] = $event)" />
+            </label>
+          </div>
+          <label class="account-reason"><span>Lý do cập nhật</span><textarea name="editReason" [ngModel]="editReason" (ngModelChange)="editReasonChange.emit($event)" rows="2" required maxlength="1000"></textarea></label>
+          <div class="account-edit-actions"><button type="button" class="account-button button-muted" (click)="editCancel.emit()">Hủy chỉnh sửa</button><button type="submit" class="account-button button-primary" [disabled]="busy || !editReason.trim()">{{ busy ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
+        </form>
+
+        <section *ngIf="!editing && (fields.length || records.length)" class="account-field-section">
+          <h3 *ngIf="sectionHeading">{{ sectionHeading }}</h3>
+          <dl class="account-field-grid" *ngIf="fields.length"><div *ngFor="let field of fields"><dt>{{ field.label }}</dt><dd>{{ displayValue(field.value) }}</dd></div></dl>
+        </section>
+
+        <div class="account-record-list" *ngIf="!editing && records.length">
+          <article class="account-record" *ngFor="let record of records">
+            <span class="record-marker"><i class="bi bi-circle-fill"></i></span>
+            <div><strong>{{ record.title }}</strong><p *ngIf="record.detail">{{ record.detail }}</p><small>{{ record.meta }}</small></div>
+            <span class="record-status" *ngIf="record.status">{{ record.status }}</span>
+          </article>
+        </div>
+        <button type="button" class="account-load-more" *ngIf="!editing && canLoadMore" [disabled]="loadMoreBusy" (click)="loadMore.emit()">{{ loadMoreBusy ? 'Đang tải...' : 'Tải thêm' }}</button>
+        <div class="account-modal-state state-empty" *ngIf="!editing && emptyMessage"><i class="bi bi-inbox"></i><strong>Chưa có dữ liệu</strong><span>{{ emptyMessage }}</span></div>
+        <div class="account-modal-state state-empty" *ngIf="!editing && !fields.length && !records.length && !emptyMessage"><i class="bi bi-inbox"></i><strong>Chưa có dữ liệu</strong><span>Chưa có thông tin được lưu cho mục này.</span></div>
+      </ng-container>
+    </main>
+
+    <footer class="account-modal-footer">
+      <div class="account-action-reason" *ngIf="!editing && account?.role !== 'admin'">
+        <input [(ngModel)]="lockReason" name="lockReason" placeholder="Lý do khóa/mở khóa (bắt buộc)" aria-label="Lý do khóa hoặc mở khóa tài khoản" />
+        <button type="button" class="account-button" [class.button-danger]="!suspended" [class.button-primary]="suspended" [disabled]="busy || loading || !lockReason.trim()" (click)="submitLockToggle()">{{ suspended ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</button>
+      </div>
+      <button type="button" class="account-button button-muted" *ngFor="let action of actions" [disabled]="busy || action.disabled" (click)="accountAction.emit(action.id)"><i class="bi" *ngIf="action.icon" [ngClass]="action.icon"></i>{{ action.label }}</button>
+      <button type="button" class="account-button button-muted" (click)="close.emit()" [disabled]="busy">Đóng</button>
+      <button type="button" class="account-button button-primary" *ngIf="!editing && canEdit && account?.role !== 'admin' && !loading && !error" (click)="editStart.emit()"><i class="bi bi-pencil"></i> Chỉnh sửa thông tin</button>
+    </footer>
+  </section>
+</div>

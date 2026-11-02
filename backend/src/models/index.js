@@ -12,6 +12,12 @@ const User = store.define('User', {
   email: { type: FieldTypes.STRING, unique: true, allowNull: false },
   phone: { type: FieldTypes.STRING },
   is_verified: { type: FieldTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  // Existing MongoDB accounts predate this field; tolerate missing/null values as active.
+  account_status: { type: FieldTypes.ENUM('active', 'suspended', 'deactivated'), defaultValue: 'active', allowNull: true },
+  account_status_reason: { type: FieldTypes.TEXT },
+  account_status_changed_by: { type: FieldTypes.STRING },
+  account_status_changed_at: { type: FieldTypes.DATE },
+  last_login_at: { type: FieldTypes.DATE },
   dob: { type: FieldTypes.DATEONLY }, // DATEONLY
   gender: { type: FieldTypes.ENUM('Nam', 'Nữ', 'Khác'), defaultValue: 'Khác' }, // ENUM
   address: { type: FieldTypes.STRING },
@@ -20,7 +26,21 @@ const User = store.define('User', {
   company_name: { type: FieldTypes.STRING },
   avatarUrl: { type: FieldTypes.TEXT }
 
-}, { timestamps: true });
+}, { timestamps: true, indexes: [
+  { key: { createdAt: 1 }, options: { name: 'createdAt_1' } },
+  { key: { last_login_at: 1 }, options: { name: 'last_login_at_1' } }
+] });
+
+const AdminAuditLog = store.define('AdminAuditLog', {
+  id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
+  actor_id: { type: FieldTypes.STRING, allowNull: false },
+  target_user_id: { type: FieldTypes.STRING, allowNull: false },
+  action: { type: FieldTypes.STRING, allowNull: false },
+  reason: { type: FieldTypes.TEXT, allowNull: false },
+  previous_state: { type: FieldTypes.JSONB },
+  new_state: { type: FieldTypes.JSONB },
+  result: { type: FieldTypes.ENUM('success', 'failure'), defaultValue: 'success', allowNull: false }
+}, { tableName: 'admin_audit_logs', timestamps: true });
 
 const AuthOtp = store.define('AuthOtp', {
   id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
@@ -704,6 +724,7 @@ ScheduleActivity.addScope('defaultScope', {
 module.exports = {
   store,
   User,
+  AdminAuditLog,
   AuthOtp,
   PendingRegistration,
   Badge,

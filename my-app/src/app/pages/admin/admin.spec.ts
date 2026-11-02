@@ -2,6 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdminComponent } from './admin';
 
 describe('AdminComponent dashboard interactions', () => {
+  it('routes the users sidebar section to a supported user-management view', () => {
+    const component = Object.create(AdminComponent.prototype) as any;
+    component.activeSection = 'overview';
+    component.navigationItems = [{ id: 'users' }];
+
+    component.setSection('users');
+
+    expect(component.isUserManagement).toBe(true);
+    expect(component.unsupportedSection).toBe(false);
+  });
+
   it('changes the selected section when a sidebar item is chosen', () => {
     const component = Object.create(AdminComponent.prototype) as any;
     component.activeSection = 'overview';

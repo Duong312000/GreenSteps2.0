@@ -2,6 +2,7 @@ import { Component, ElementRef, HostListener, OnInit, ViewChild, ChangeDetectorR
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { AccountModalField, AccountModalRecord, AccountModalTab } from './account-detail-modal.component';
 
 type AdminTab = 'providers' | 'services' | 'bookings' | 'deposits' | 'refunds' | 'withdrawals' | 'wallets' | 'reports';
 type QueueState = 'loading' | 'ready' | 'unavailable';
@@ -73,6 +74,26 @@ export class AdminComponent implements OnInit {
   public queueState: Record<QueueKey, QueueState> = {
     providers: 'loading', deposits: 'loading', withdrawals: 'loading', wallets: 'loading', bookings: 'loading'
   };
+  private requestedQueues = new Set<QueueKey>();
+  public providerDetail: any = null;
+  public providerModalLoading = false;
+  public providerModalError = '';
+  public providerModalTab = 'info';
+  public providerTabLoading = false;
+  public providerTabError = '';
+  public providerServices: any[] = [];
+  public providerServicesPage = 0;
+  public providerServicesPages = 0;
+  public providerServicesLoaded = false;
+  public providerAdminHistory: any[] = [];
+  public providerAdminHistoryPage = 0;
+  public providerAdminHistoryPages = 0;
+  public providerAdminHistoryLoaded = false;
+  public providerEditing = false;
+  public providerBusy = false;
+  public providerEditValues: Record<string, any> = {};
+  public providerEditReason = '';
+  private providerDetailRequestId = 0;
 
   public readonly navigationItems: AdminNavItem[] = [
     { id: 'overview', label: 'Tổng quan', icon: 'bi-house-door' },
@@ -151,10 +172,40 @@ export class AdminComponent implements OnInit {
     if (item?.tab) this.setActiveTab(item.tab);
   }
 
+  public prefetchUsers(): void {
+    void Promise.all([
+      this.apiService.getAdminUsers({ page: 1, limit: 10, sort: 'createdAt', order: 'desc' }),
+      this.apiService.getAdminUserStats()
+    ]).catch(() => undefined);
+  }
+
   public setActiveTab(tab: AdminTab) {
     this.activeTab = tab;
     this.queueSearch = '';
     this.currentPage = 1;
+    this.loadQueueOnDemand(tab);
+  }
+
+  private loadQueueOnDemand(tab: AdminTab): void {
+    if (this.isPreviewMode) return;
+    const keyByTab: Partial<Record<AdminTab, QueueKey>> = {
+      providers: 'providers',
+      bookings: 'bookings',
+      deposits: 'deposits',
+      withdrawals: 'withdrawals',
+      wallets: 'wallets'
+    };
+    const key = keyByTab[tab];
+    if (!key || this.requestedQueues.has(key)) return;
+
+    this.requestedQueues.add(key);
+    switch (key) {
+      case 'providers': void this.loadProviders(); break;
+      case 'deposits': void this.loadDeposits(); break;
+      case 'withdrawals': void this.loadWithdrawals(); break;
+      case 'wallets': void this.loadWallets(); break;
+      case 'bookings': void this.loadBookings(); break;
+    }
   }
 
   public setDateRange(range: string) {
@@ -208,11 +259,10 @@ export class AdminComponent implements OnInit {
       this.loadPreviewData();
       return;
     }
+    this.requestedQueues.add('providers');
+    this.requestedQueues.add('bookings');
     await Promise.all([
       this.loadProviders(),
-      this.loadDeposits(),
-      this.loadWithdrawals(),
-      this.loadWallets(),
       this.loadBookings()
     ]);
   }
@@ -285,8 +335,10 @@ export class AdminComponent implements OnInit {
 
   public get isOverview(): boolean { return this.activeSection === 'overview'; }
 
+  public get isUserManagement(): boolean { return this.activeSection === 'users'; }
+
   public get unsupportedSection(): boolean {
-    return !this.isOverview && !this.navigationItems.find(item => item.id === this.activeSection)?.tab;
+    return !this.isOverview && !this.isUserManagement && !this.navigationItems.find(item => item.id === this.activeSection)?.tab;
   }
 
   public get currentQueueState(): QueueState | 'unsupported' {
@@ -426,6 +478,290 @@ export class AdminComponent implements OnInit {
         await this.loadProviders();
       } else this.showAlert('Phê duyệt thất bại. Vui lòng thử lại.', 'error');
     });
+  }
+
+  public async openProviderDetail(row: AdminTableRow): Promise<void> {
+    if (this.isPreviewMode || !row.actionId) return;
+    const requestId = ++this.providerDetailRequestId;
+    const userId = row.actionId;
+    this.providerDetail = { id: userId, displayName: row.name, email: row.raw?.User?.email, contracts: [], businessStats: {} };
+    this.providerModalTab = 'info';
+    this.providerModalLoading = true;
+    this.providerModalError = '';
+    this.providerTabLoading = false;
+    this.providerTabError = '';
+    this.providerServices = [];
+    this.providerServicesPage = 0;
+    this.providerServicesPages = 0;
+    this.providerServicesLoaded = false;
+    this.providerAdminHistory = [];
+    this.providerAdminHistoryPage = 0;
+    this.providerAdminHistoryPages = 0;
+    this.providerAdminHistoryLoaded = false;
+    this.providerEditing = false;
+    try {
+      const response = await this.apiService.getAdminProvider(userId);
+      if (requestId !== this.providerDetailRequestId || this.providerDetail?.id !== userId) return;
+      if (!response?.success || !response.user || !response.provider) throw new Error('Provider unavailable');
+      this.providerDetail = {
+        ...response.user,
+        ...response.provider,
+        id: response.user.id,
+        provider_id: response.provider.id,
+        displayName: response.provider.name_provider || response.user.fullname || response.user.username,
+        accountStatusLabel: this.providerAccountStatus(response.user.account_status),
+        verificationStatusLabel: this.providerVerificationStatus(response.provider.provider_status),
+        contracts: response.contracts || [],
+        businessStats: response.businessStats || {}
+      };
+    } catch {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId) this.providerModalError = 'Không tải được hồ sơ nhà cung cấp.';
+    } finally {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId) {
+        this.providerModalLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public closeProviderDetail(): void {
+    this.providerDetailRequestId++;
+    this.providerDetail = null;
+    this.providerModalLoading = false;
+    this.providerTabLoading = false;
+    this.providerEditing = false;
+  }
+
+  public retryProviderDetail(): void {
+    const row = this.pageRows.find(item => item.actionId === this.providerDetail?.id);
+    if (row) void this.openProviderDetail(row);
+  }
+
+  public get providerTabs(): AccountModalTab[] {
+    return [
+      { id: 'info', label: 'Thông tin chung' },
+      { id: 'legal', label: 'Hồ sơ pháp lý' },
+      { id: 'business', label: 'Hoạt động kinh doanh' },
+      { id: 'admin', label: 'Lịch sử quản trị' }
+    ];
+  }
+
+  public setProviderTab(tab: string): void {
+    if (!this.providerTabs.some(item => item.id === tab)) return;
+    this.providerModalTab = tab;
+    this.providerTabError = '';
+    if (tab === 'business' && !this.providerServicesLoaded) void this.loadProviderServices();
+    if (tab === 'admin' && !this.providerAdminHistoryLoaded) void this.loadProviderAdminHistory();
+  }
+
+  public async loadProviderServices(page = 1, append = false): Promise<void> {
+    if (!this.providerDetail || this.providerTabLoading) return;
+    const userId = this.providerDetail.id;
+    const requestId = this.providerDetailRequestId;
+    this.providerTabLoading = true;
+    this.providerTabError = '';
+    try {
+      const response = await this.apiService.getAdminProviderServices(userId, page);
+      if (requestId !== this.providerDetailRequestId || this.providerDetail?.id !== userId || this.providerModalTab !== 'business') return;
+      if (!response?.success || !Array.isArray(response.data)) throw new Error('Provider services unavailable');
+      this.providerServices = append ? [...this.providerServices, ...response.data] : response.data;
+      this.providerServicesPage = response.pagination?.page || page;
+      this.providerServicesPages = response.pagination?.pages || 0;
+      this.providerServicesLoaded = true;
+    } catch {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId && this.providerModalTab === 'business') this.providerTabError = 'Không tải được hoạt động kinh doanh.';
+    } finally {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId) {
+        this.providerTabLoading = false;
+        this.cdr.detectChanges();
+        if (this.providerModalTab !== 'business' && this.providerModalTab === 'admin' && !this.providerAdminHistoryLoaded) void this.loadProviderAdminHistory();
+      }
+    }
+  }
+
+  public async loadProviderAdminHistory(page = 1, append = false): Promise<void> {
+    if (!this.providerDetail || this.providerTabLoading) return;
+    const userId = this.providerDetail.id;
+    const requestId = this.providerDetailRequestId;
+    this.providerTabLoading = true;
+    this.providerTabError = '';
+    try {
+      const response = await this.apiService.getAdminUserActivity(userId, page);
+      if (requestId !== this.providerDetailRequestId || this.providerDetail?.id !== userId || this.providerModalTab !== 'admin') return;
+      if (!response?.success || !Array.isArray(response.data)) throw new Error('Provider history unavailable');
+      this.providerAdminHistory = append ? [...this.providerAdminHistory, ...response.data] : response.data;
+      this.providerAdminHistoryPage = response.pagination?.page || page;
+      this.providerAdminHistoryPages = response.pagination?.pages || 0;
+      this.providerAdminHistoryLoaded = true;
+    } catch {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId && this.providerModalTab === 'admin') this.providerTabError = 'Không tải được lịch sử quản trị.';
+    } finally {
+      if (requestId === this.providerDetailRequestId && this.providerDetail?.id === userId) {
+        this.providerTabLoading = false;
+        this.cdr.detectChanges();
+        if (this.providerModalTab !== 'admin' && this.providerModalTab === 'business' && !this.providerServicesLoaded) void this.loadProviderServices();
+      }
+    }
+  }
+
+  public retryProviderTab(): void {
+    this.providerTabError = '';
+    if (this.providerModalTab === 'business') {
+      this.providerServicesLoaded = false;
+      void this.loadProviderServices(1);
+    } else if (this.providerModalTab === 'admin') {
+      this.providerAdminHistoryLoaded = false;
+      void this.loadProviderAdminHistory(1);
+    } else {
+      this.retryProviderDetail();
+    }
+  }
+
+  public get providerCanLoadMore(): boolean {
+    return (this.providerModalTab === 'business' && this.providerServicesPage > 0 && this.providerServicesPage < this.providerServicesPages)
+      || (this.providerModalTab === 'admin' && this.providerAdminHistoryPage > 0 && this.providerAdminHistoryPage < this.providerAdminHistoryPages);
+  }
+
+  public get providerLoadMoreBusy(): boolean { return this.providerTabLoading; }
+
+  public loadMoreProviderTab(): void {
+    if (this.providerModalTab === 'business') void this.loadProviderServices(this.providerServicesPage + 1, true);
+    else if (this.providerModalTab === 'admin') void this.loadProviderAdminHistory(this.providerAdminHistoryPage + 1, true);
+  }
+
+  public get providerFields(): AccountModalField[] {
+    const account = this.providerDetail;
+    if (!account) return [];
+    if (this.providerModalTab === 'info') {
+      const fields: AccountModalField[] = [
+        { label: 'Tên nhà cung cấp', value: account.name_provider, key: 'name_provider', required: true },
+        { label: 'Người đại diện', value: account.fullname, key: 'fullname' },
+        { label: 'Email', value: account.email },
+        { label: 'Số điện thoại', value: account.phone, key: 'phone', type: 'tel' },
+        { label: 'Địa chỉ tài khoản', value: account.address, key: 'address' },
+        { label: 'Ngày đăng ký', value: this.formatDate(account.createdAt) },
+        { label: 'Trạng thái xác minh', value: this.providerVerificationStatus(account.provider_status) },
+        { label: 'Trạng thái tài khoản', value: this.providerAccountStatus(account.account_status) }
+      ];
+      return this.providerEditing ? fields.filter(field => Boolean(field.key)) : fields;
+    }
+    if (this.providerModalTab === 'legal') {
+      const providerFields: AccountModalField[] = [
+        { label: 'Mã hồ sơ nhà cung cấp', value: account.provider_id },
+        { label: 'Lĩnh vực kinh doanh', value: account.field, key: 'field' },
+        { label: 'Địa điểm kinh doanh', value: account.destination, key: 'destination', required: true },
+        { label: 'Ảnh hồ sơ đã lưu', value: account.image_url },
+        ...account.contracts.map((contract: any, index: number) => ({ label: 'Hợp đồng ' + (index + 1), value: contract.name_contract + ' · ' + this.formatDate(contract.createdAt) }))
+      ];
+      return this.providerEditing ? providerFields.filter(field => Boolean(field.key)) : providerFields;
+    }
+    if (this.providerModalTab === 'business') {
+      return [
+        { label: 'Tổng dịch vụ', value: account.businessStats?.services ?? 0 },
+        { label: 'Booking dịch vụ', value: account.businessStats?.serviceBookings ?? 0 },
+        { label: 'Tour liên kết', value: account.businessStats?.tourProducts ?? 0 }
+      ];
+    }
+    return [];
+  }
+
+  public get providerSectionHeading(): string {
+    return this.providerTabs.find(tab => tab.id === this.providerModalTab)?.label || '';
+  }
+
+  public get providerEmptyMessage(): string {
+    const account = this.providerDetail;
+    if (!account) return '';
+    if (this.providerModalTab === 'legal' && !account.contracts.length) return 'Chưa có hợp đồng pháp lý được lưu cho hồ sơ này.';
+    if (this.providerModalTab === 'business' && this.providerServicesLoaded && !this.providerServices.length) return 'Nhà cung cấp chưa có dịch vụ kinh doanh được lưu.';
+    if (this.providerModalTab === 'admin' && this.providerAdminHistoryLoaded && !this.providerAdminHistory.length) return 'Chưa có lịch sử quản trị được ghi nhận.';
+    return '';
+  }
+
+  public get providerRecords(): AccountModalRecord[] {
+    const account = this.providerDetail;
+    if (!account) return [];
+    if (this.providerModalTab === 'legal') {
+      return account.contracts.map((contract: any) => ({ title: contract.name_contract, detail: contract.text, meta: this.formatDate(contract.createdAt) }));
+    }
+    if (this.providerModalTab === 'business') {
+      return this.providerServices.map((service: any) => ({ title: service.name_service, detail: service.destination, meta: 'Tạo ngày ' + this.formatDate(service.createdAt), status: service.status }));
+    }
+    if (this.providerModalTab === 'admin') {
+      return this.providerAdminHistory.map((item: any) => ({ title: item.action, detail: item.reason, meta: this.formatDate(item.createdAt) + ' · ' + item.actor_id }));
+    }
+    return [];
+  }
+
+  public startProviderEdit(): void {
+    if (!this.providerDetail) return;
+    this.providerEditValues = {
+      name_provider: this.providerDetail.name_provider || '',
+      fullname: this.providerDetail.fullname || '',
+      phone: this.providerDetail.phone || '',
+      address: this.providerDetail.address || '',
+      field: this.providerDetail.field || '',
+      destination: this.providerDetail.destination || ''
+    };
+    this.providerEditReason = '';
+    this.providerEditing = true;
+  }
+
+  public async saveProviderEdit(event: { values: Record<string, any>; reason: string }): Promise<void> {
+    if (!this.providerDetail) return;
+    this.providerBusy = true;
+    try {
+      await this.apiService.updateAdminProvider(this.providerDetail.id, { ...event.values, reason: event.reason });
+      this.providerEditing = false;
+      this.providerEditReason = '';
+      await this.reloadProviderDetailAndList();
+      this.showAlert('Đã cập nhật hồ sơ nhà cung cấp.', 'success');
+    } catch { this.showAlert('Cập nhật hồ sơ nhà cung cấp thất bại.', 'error'); }
+    finally { this.providerBusy = false; this.cdr.detectChanges(); }
+  }
+
+  public async toggleProviderStatus(event: { reason: string }): Promise<void> {
+    if (!this.providerDetail) return;
+    this.providerBusy = true;
+    const action = this.providerDetail.account_status === 'suspended' || this.providerDetail.account_status === 'deactivated' ? 'unsuspend' : 'suspend';
+    try {
+      await this.apiService.updateAdminProviderStatus(this.providerDetail.id, action, event.reason);
+      await this.reloadProviderDetailAndList();
+      this.showAlert(action === 'suspend' ? 'Đã khóa tài khoản nhà cung cấp.' : 'Đã mở khóa tài khoản nhà cung cấp.', 'success');
+    } catch { this.showAlert('Không thể cập nhật trạng thái tài khoản nhà cung cấp.', 'error'); }
+    finally { this.providerBusy = false; this.cdr.detectChanges(); }
+  }
+
+  private async reloadProviderDetailAndList(): Promise<void> {
+    if (!this.providerDetail) return;
+    const userId = this.providerDetail.id;
+    const response = await this.apiService.getAdminProvider(userId);
+    if (!response?.success || !response.user || !response.provider) throw new Error('Provider unavailable');
+    this.providerDetail = {
+      ...response.user, ...response.provider, id: response.user.id,
+      provider_id: response.provider.id,
+      displayName: response.provider.name_provider || response.user.fullname || response.user.username,
+      accountStatusLabel: this.providerAccountStatus(response.user.account_status),
+      verificationStatusLabel: this.providerVerificationStatus(response.provider.provider_status),
+      contracts: response.contracts || [],
+      businessStats: response.businessStats || {}
+    };
+    await this.loadProviders();
+    if (this.providerModalTab === 'business') {
+      this.providerServicesLoaded = false;
+      await this.loadProviderServices(1);
+    } else if (this.providerModalTab === 'admin') {
+      this.providerAdminHistoryLoaded = false;
+      await this.loadProviderAdminHistory(1);
+    }
+  }
+
+  private providerAccountStatus(status: string): string {
+    return status === 'suspended' || status === 'deactivated' ? 'Đã khóa' : 'Đang hoạt động';
+  }
+
+  private providerVerificationStatus(status: string): string {
+    return status === 'active' ? 'Đã xác minh' : status === 'rejected' ? 'Bị từ chối' : 'Chờ xác minh';
   }
 
   public approveDeposit(id: string) {

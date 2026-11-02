@@ -47,7 +47,9 @@ export class AuthService {
         this.setCurrentUser(null);
         return;
       }
-      this.currentUserSubject.next(JSON.parse(userStr));
+      const user = JSON.parse(userStr);
+      this.currentUserSubject.next(user);
+      this.apiService.setAdminUserCacheScope(user?.id || user?._id || null);
     } catch {
       localStorage.removeItem('greensteps_user');
     }
@@ -59,6 +61,7 @@ export class AuthService {
 
   public setCurrentUser(user: User | null) {
     if (user) {
+      this.apiService.setAdminUserCacheScope(user.id || (user as any)._id || null);
       localStorage.setItem('greensteps_user', JSON.stringify(user));
       document.cookie = `isLoggedIn=true; path=/; max-age=86400`;
       document.cookie = `role=${user.role}; path=/; max-age=86400`;
@@ -66,6 +69,7 @@ export class AuthService {
       document.cookie = `fullname=${encodeURIComponent(user.fullname || user.username)}; path=/; max-age=86400`;
       this.apiService.preloadAppData(user.id || user._id);
     } else {
+      this.apiService.setAdminUserCacheScope(null);
       localStorage.removeItem('greensteps_user');
       localStorage.removeItem('greensteps_token');
       this.apiService.clearCache();
