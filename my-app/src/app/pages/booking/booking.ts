@@ -1138,8 +1138,6 @@ export class BookingComponent implements OnInit, OnDestroy {
   public get confirmationIsPaid(): boolean {
     const booking = this.confirmationBooking;
     const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
-    const method = this.confirmationPaymentMethodCode;
-    if (method === 'counter') return false;
     return ['deposit', 'completed', 'confirmed', 'accepted'].includes(String(booking?.status || '').toLowerCase())
       || ['paid', 'deposit_paid', 'fully_paid', 'success'].includes(paymentStatus);
   }
@@ -1157,22 +1155,20 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (this.confirmationFetchFailed) return 'Chưa tải được thông tin đơn';
     if (!this.confirmationBooking) return 'Không tìm thấy đơn đặt';
     if (this.confirmationIsFailed) return 'Đơn chưa được xác nhận';
+    if (this.confirmationIsPaid) return 'Đặt chỗ thành công';
     if (this.confirmationPaymentMethodCode === 'counter') return 'Đang chờ xác nhận thanh toán tại quầy';
-    if (this.confirmationIsPaid) return 'Đặt tour thành công';
-    if (this.confirmationPaymentMethod === 'counter') return 'Đã gửi yêu cầu giữ chỗ';
     return 'Đang chờ thanh toán';
   }
 
   public get confirmationMessage(): string {
     if (this.confirmationFetchFailed) return 'Không lấy được trạng thái mới nhất từ máy chủ. Kiểm tra mạng rồi thử tải lại đơn.';
     if (!this.confirmationBooking) return 'Đường dẫn này chưa có mã đơn. Hãy mở trang xác nhận từ đơn đặt chỗ của bạn.';
-    if (this.confirmationPaymentMethodCode === 'counter' && !this.confirmationIsFailed) return 'Yêu cầu đặt chỗ đã được gửi. Nhân viên sẽ xác nhận sau khi bạn thanh toán tại quầy.';
     if (this.confirmationIsFailed) {
       const reason = this.confirmationBooking?.rejection_reason;
       return reason ? `Đơn đã bị từ chối: ${reason}` : 'Đơn đã hết hạn hoặc bị hủy. Bạn có thể quay lại tour để đặt lại.';
     }
     if (this.confirmationIsPaid) return 'Thanh toán đã được ghi nhận. Thông tin chuyến đi của bạn nằm bên dưới.';
-    if (this.confirmationPaymentMethod === 'counter') return 'GreenSteps đã nhận yêu cầu. Đây là yêu cầu giữ chỗ, chưa phải xác nhận thanh toán. Vui lòng thanh toán tại quầy trước hạn giữ chỗ.';
+    if (this.confirmationPaymentMethodCode === 'counter') return 'Yêu cầu giữ chỗ đã được gửi. Nhân viên sẽ xác nhận sau khi bạn thanh toán tại quầy.';
     return 'Đơn vẫn đang chờ hệ thống xác nhận thanh toán. Trạng thái sẽ được cập nhật khi có kết quả.';
   }
 
@@ -1187,7 +1183,9 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get confirmationStatusLabel(): string {
     if (this.confirmationIsPaid) return 'Đặt chỗ thành công';
-    if (this.confirmationIsFailed) return 'Chưa được duyệt';
+    const status = String(this.confirmationBooking?.payment_status || this.confirmationBooking?.status || '').toLowerCase();
+    if (status === 'expired') return 'Đã hết hạn';
+    if (this.confirmationIsFailed) return 'Thanh toán thất bại';
     return this.confirmationPaymentMethodCode === 'counter' ? 'Chờ duyệt thanh toán tại quầy' : 'Đang chờ thanh toán';
   }
 

@@ -241,9 +241,9 @@
                    [id]="'payMethod_' + method.id" 
                    (click)="$event.stopPropagation()">
             <div class="payment-brand" [attr.aria-label]="method.label">
-              <span *ngIf="method.id === 'wallet'" class="brand-wordmark brand-greensteps">GreenSteps</span>
-              <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="/image/vietqr-wordmark.png" alt="VietQR">
-              <img *ngIf="method.id === 'card'" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+              <span *ngIf="method.id === 'wallet'" class="brand-greensteps-lockup"><img src="image/greensteps_logo_header.png" alt=""><span><b>GreenSteps</b><small>WALLET</small></span></span>
+              <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="image/vietqr-wordmark.png" alt="VietQR">
+              <img *ngIf="method.id === 'card'" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
               <span *ngIf="method.id === 'counter'" class="brand-wordmark brand-counter"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
             </div>
             <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -384,7 +384,7 @@
         <p class="confirm-eyebrow">GREENSTEPS · THÔNG TIN ĐẶT CHỖ</p>
         <h1>{{ confirmationTitle }}</h1>
         <p class="confirm-message">{{ confirmationMessage }}</p>
-        <div class="confirm-success-note" *ngIf="confirmationIsPaid" role="status" aria-live="polite">
+        <div class="confirm-success-note" *ngIf="confirmationIsPaid">
           <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
           <span>GreenSteps đã ghi nhận thanh toán. Mã vé và lịch trình của bạn ở bên dưới.</span>
         </div>
@@ -403,7 +403,7 @@
               <div><dt>Mã đơn</dt><dd class="confirm-code">{{ confirmationOrderCode || '—' }}</dd></div>
               <div><dt>Ngày tạo</dt><dd>{{ booking.createdAt | date:'HH:mm, dd/MM/yyyy' }}</dd></div>
               <div><dt>Phương thức</dt><dd>{{ confirmationPaymentMethod }}</dd></div>
-              <div><dt>Trạng thái</dt><dd><span class="confirm-status-text" [class.is-paid]="confirmationIsPaid" [class.is-failed]="confirmationIsFailed" [class.is-pending]="!confirmationIsPaid && !confirmationIsFailed"><i class="bi" [class.bi-check-circle-fill]="confirmationIsPaid" [class.bi-clock-fill]="!confirmationIsPaid && !confirmationIsFailed" [class.bi-x-circle-fill]="confirmationIsFailed" aria-hidden="true"></i>{{ confirmationIsPaid ? 'Đã xác nhận' : confirmationIsFailed ? (booking.payment_status === 'expired' ? 'Đã hết hạn' : 'Chưa được duyệt') : 'Đang chờ xử lý' }}</span></dd></div>
+              <div><dt>Trạng thái</dt><dd><span class="confirm-status-text" role="status" aria-live="polite" aria-atomic="true" [class.is-paid]="confirmationIsPaid" [class.is-failed]="confirmationIsFailed" [class.is-pending]="!confirmationIsPaid && !confirmationIsFailed"><i class="bi" [class.bi-check-circle-fill]="confirmationIsPaid" [class.bi-clock-fill]="!confirmationIsPaid && !confirmationIsFailed" [class.bi-x-circle-fill]="confirmationIsFailed" aria-hidden="true"></i>{{ confirmationStatusLabel }}</span></dd></div>
               <div><dt>Đã thanh toán</dt><dd>{{ confirmationPaidNow | number:'1.0-0':'vi-VN' }}đ</dd></div>
               <div *ngIf="booking.payment_deadline"><dt>Hạn xử lý</dt><dd>{{ booking.payment_deadline | date:'HH:mm, dd/MM/yyyy' }}</dd></div>
             </dl>
@@ -542,8 +542,8 @@
     <div class="custom-alert-card payment-qr-card" (click)="$event.stopPropagation()">
       <div class="payment-qr-header">
         <h3 class="payment-modal-title">
-          <img *ngIf="isQrModalOpen" src="/image/vietqr-wordmark.png" alt="VietQR">
-          <img *ngIf="isCardModalOpen" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+          <img *ngIf="isQrModalOpen" src="image/vietqr-wordmark.png" alt="VietQR">
+          <img *ngIf="isCardModalOpen" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
           {{ isQrModalOpen ? 'Thanh toán qua VietQR' : 'Thanh toán thẻ thử nghiệm' }}
         </h3>
         <button type="button" class="payment-close-button" aria-label="Đóng" (click)="closeQrModal()">×</button>

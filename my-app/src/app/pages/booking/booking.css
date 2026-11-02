@@ -830,7 +830,7 @@ input[type="radio"] {
 }
 
 .payment-method-card {
-  grid-template-columns: 20px 84px minmax(0, 1fr);
+  grid-template-columns: 20px 98px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 66px;
@@ -875,8 +875,11 @@ input[type="radio"] {
 .payment-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
+  justify-self: center;
+  width: 100%;
   min-width: 0;
-  min-height: 30px;
+  min-height: 44px;
   color: #1e3028;
 }
 
@@ -893,9 +896,13 @@ input[type="radio"] {
   letter-spacing: -.035em;
 }
 
-.brand-greensteps { color: #1c6848; font-size: 13px; }
-.brand-vietqr-image { display: block; width: 78px; height: 29px; object-fit: contain; object-position: left center; }
-.brand-card-image { display: block; width: 84px; height: 26px; object-fit: contain; object-position: left center; }
+.brand-greensteps-lockup { display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: #176a49; }
+.brand-greensteps-lockup > img { display: block; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.brand-greensteps-lockup > span { display: grid; gap: 1px; text-align: left; line-height: 1; }
+.brand-greensteps-lockup b { font-size: 9px; font-weight: 800; letter-spacing: -.04em; }
+.brand-greensteps-lockup small { color: #658373; font-size: 7px; font-weight: 750; letter-spacing: .12em; }
+.brand-vietqr-image { display: block; width: 78px; height: 29px; object-fit: contain; object-position: center; }
+.brand-card-image { display: block; width: min(96px, 100%); max-width: 100%; height: 28px; margin-inline: auto; object-fit: contain; object-position: center; }
 .brand-counter { width: 100%; justify-content: center; gap: 0 !important; color: #167653; }
 .brand-counter > i { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 0; background: #fff; color: #167653; font-size: 28px; line-height: 1; }
 
@@ -929,7 +936,7 @@ input[type="radio"] {
 .payment-method-card.unavailable .payment-brand { filter: grayscale(1); opacity: .6; }
 
 @media (max-width: 520px) {
-  .payment-method-card { grid-template-columns: 20px 72px minmax(0, 1fr); gap: 9px; padding: 12px; }
+  .payment-method-card { grid-template-columns: 20px 84px minmax(0, 1fr); gap: 9px; padding: 12px; }
   .payment-method-card small { font-size: 11px; }
 }
 
@@ -2517,4 +2524,289 @@ input[type="radio"] {
   .confirm-total-row strong {
     font-size: 19px;
   }
+}
+
+/* Confirmation page refresh: clear state, trip details, and payment summary. */
+:host:has(.confirm-shell.confirm-page) {
+  background: #f4f8f5;
+}
+
+.confirm-shell.confirm-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: clamp(14px, 2.2vh, 24px) clamp(12px, 2.4vw, 28px);
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(213, 236, 221, .58), transparent 34%),
+    #f4f8f5;
+}
+
+.confirm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "hero" "details" "error" "actions";
+  gap: clamp(8px, 1.4vh, 14px);
+  width: min(1120px, 100%);
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  align-content: start;
+}
+
+.confirm-layout > .confirm-hero,
+.confirm-layout > .confirm-error-actions,
+.confirm-layout > .confirm-actions { grid-area: auto; }
+.confirm-layout > .confirm-hero { grid-area: hero; }
+.confirm-layout > .confirm-columns { grid-area: details; min-width: 0; }
+.confirm-columns > .confirm-main,
+.confirm-columns > .confirm-summary-panel,
+.confirm-main > .confirm-section { grid-area: auto; }
+
+.confirm-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-areas: "mark eyebrow" "mark title" "mark copy" "mark note";
+  align-items: center;
+  justify-items: start;
+  column-gap: 18px;
+  padding: 16px 56px 16px 22px;
+  border: 1px solid #dce9df;
+  border-radius: 22px;
+  background: linear-gradient(120deg, #fff 0%, #f8fcf9 100%);
+  box-shadow: 0 12px 34px rgba(31, 72, 49, .07);
+  text-align: left;
+}
+
+.confirm-hero.is-paid { border-color: #cfe5d7; background: linear-gradient(120deg, #fff 0%, #f1faf4 100%); }
+.confirm-hero.is-pending { border-color: #eddfbd; background: linear-gradient(120deg, #fff 0%, #fffaf0 100%); }
+.confirm-hero.is-failed { border-color: #efd5d1; background: linear-gradient(120deg, #fff 0%, #fff6f4 100%); }
+
+.confirm-close {
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #e1ebe4;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .8);
+  color: #496456;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.confirm-close:hover { transform: translateY(-1px); border-color: #c9dbcf; background: #fff; }
+.confirm-close:focus-visible,
+.confirm-primary-action:focus-visible,
+.confirm-secondary-action:focus-visible,
+.confirm-print-button:focus-visible { outline: 3px solid rgba(20, 131, 93, .28); outline-offset: 3px; }
+
+.confirm-mark {
+  grid-area: mark;
+  width: 60px;
+  height: 60px;
+  margin: 0;
+  border-radius: 19px;
+  background: #eaf6ee;
+  color: #13734c;
+  font-size: 27px;
+}
+
+.confirm-mark__ring { inset: -5px; border-color: rgba(30, 116, 77, .14); border-radius: 23px; }
+.confirm-hero.is-pending .confirm-mark { background: #fff2d6; color: #9a6b13; }
+.confirm-hero.is-failed .confirm-mark { background: #fbe9e6; color: #a54336; }
+.confirm-hero.is-pending .confirm-mark__ring { border-color: rgba(154, 107, 19, .17); }
+.confirm-hero.is-failed .confirm-mark__ring { border-color: rgba(165, 67, 54, .15); }
+
+.confirm-eyebrow {
+  grid-area: eyebrow;
+  margin: 0 0 3px;
+  color: #547766;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .12em;
+}
+
+.confirm-hero h1 {
+  grid-area: title;
+  margin: 0;
+  color: #174b36;
+  font-size: clamp(25px, 3vw, 34px);
+  font-weight: 720;
+  line-height: 1.18;
+  letter-spacing: -.035em;
+}
+
+.confirm-hero.is-pending h1 { color: #725415; }
+.confirm-hero.is-failed h1 { color: #823c32; }
+.confirm-message { grid-area: copy; max-width: 680px; margin: 5px 0 0; color: #5c7166; font-size: 14px; line-height: 1.55; }
+
+.confirm-success-note,
+.confirm-next-note {
+  grid-area: note;
+  justify-content: flex-start;
+  max-width: 720px;
+  margin: 10px 0 0;
+  padding: 10px 13px;
+  border: 1px solid #d9eadf;
+  border-radius: 12px;
+  background: #f0f8f2;
+  color: #236243;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.confirm-next-note { border-color: #eee2c6; background: #fff8e9; color: #795d20; }
+.confirm-columns { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.05fr) minmax(260px, .9fr); gap: 14px; align-items: stretch; overflow: visible; background: transparent; }
+.confirm-main { display: contents; padding: 0; }
+
+.confirm-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e0eae3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(31, 72, 49, .045);
+}
+
+.confirm-section h2,
+.confirm-summary-panel h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: #1e513b; font-size: 15px; font-weight: 680; line-height: 1.35; }
+.confirm-section h2 i { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: #eff7f1; color: #26734f; font-size: 15px; }
+.confirm-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.confirm-rows > div { grid-template-columns: minmax(92px, .72fr) minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 0; border-bottom: 1px solid #edf2ee; font-size: 12px; line-height: 1.4; }
+.confirm-rows > div:last-child { border-bottom: 0; }
+.confirm-rows dt { color: #718178; font-size: 12px; }
+.confirm-rows dd { color: #253f32; font-size: 12px; font-weight: 620; font-variant-numeric: tabular-nums; }
+.confirm-code { color: #176344 !important; font-size: 12px !important; }
+
+.confirm-status-text { display: inline-flex; max-width: 100%; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid #eee1c2; border-radius: 999px; background: #fff8e9; color: #80601b; font-size: 11px; font-weight: 700; line-height: 1.3; white-space: normal; }
+.confirm-status-text.is-paid { border-color: #d5e9dc; background: #edf8f0; color: #176747; }
+.confirm-status-text.is-failed { border-color: #efd8d4; background: #fff1ef; color: #9d4539; }
+.confirm-status-text i { flex: 0 0 auto; }
+
+.confirm-barcode { width: min(280px, 88%); height: 30px; margin: 12px auto 5px; border-radius: 2px; opacity: .82; }
+.confirm-barcode-caption { margin: 0; color: #64766b; font-size: 10px; letter-spacing: .12em; }
+.confirm-trip-heading { gap: 13px; margin: 0 0 14px; }
+.confirm-trip-heading img { width: 76px; height: 68px; flex-basis: 76px; border: 1px solid #e5ede7; border-radius: 12px; }
+.confirm-trip-heading h3 { color: #1d3e2e; font-size: 15px; font-weight: 680; line-height: 1.35; }
+.confirm-trip-heading p { margin-top: 4px; color: #718178; font-size: 12px; }
+.confirm-trip-meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; padding-bottom: 8px; border-bottom: 1px solid #edf2ee; }
+.confirm-trip-meta > div { grid-template-columns: 1fr; gap: 3px; padding: 8px 0; border: 0; font-size: 11px; }
+.confirm-trip-meta dt { font-size: 11px; }
+.confirm-trip-meta dd { color: #324d3e; font-size: 12px; text-align: left; }
+.confirm-itinerary-toggle { margin-top: 12px; border-top: 0; }
+.confirm-itinerary-toggle summary,
+.confirm-price-breakdown summary { width: fit-content; color: #176747; font-size: 12px; font-weight: 650; cursor: pointer; }
+.confirm-day { padding-top: 12px; }
+.confirm-day h3 { color: #245b43; font-size: 13px; }
+.confirm-day p { font-size: 12px; }
+
+.confirm-summary-panel {
+  position: static;
+  align-self: start;
+  padding: 17px;
+  border: 1px solid #dfeae3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(31, 72, 49, .05);
+}
+
+.confirm-summary-panel .confirm-eyebrow { margin: 0 0 5px; color: #6b8174; font-size: 9px; }
+.confirm-summary-panel h2 { margin-bottom: 14px; font-size: 17px; }
+.confirm-price-breakdown { margin: 0 0 8px; }
+.confirm-price-breakdown summary { margin-bottom: 8px; }
+.confirm-price-row { gap: 12px; padding: 9px 0; border-color: #edf2ee; color: #718178; font-size: 12px; }
+.confirm-price-row b { color: #314d3e; font-size: 12px; font-weight: 620; }
+.confirm-total-row { min-height: 50px; margin: 9px 0 4px; padding: 9px 12px; border: 1px solid #d9eade; border-radius: 13px; background: #f1f8f3; color: #27573e; font-size: 13px; font-weight: 650; }
+.confirm-total-row strong { color: #116444; font-size: clamp(19px, 2vw, 23px); font-weight: 730; }
+.confirm-account-note { margin-top: 14px; padding: 13px; border: 1px solid #e3ece6; border-radius: 12px; background: #f8fbf9; font-size: 12px; }
+.confirm-account-note summary { color: #25583f; font-weight: 680; cursor: pointer; }
+.confirm-account-note small { color: #718178; font-size: 11px; }
+.confirm-print-button { min-height: 42px; margin-top: 11px; border-color: #cbdcd1; border-radius: 11px; color: #285b41; font-size: 12px; font-weight: 650; }
+.confirm-print-button:hover { border-color: #a8c7b4; background: #f5faf6; }
+.confirm-actions { justify-content: flex-end; gap: 10px; padding: 0; }
+.confirm-primary-action,
+.confirm-secondary-action { min-height: 46px; padding: 0 18px; border-radius: 12px; font-size: 13px; font-weight: 650; }
+.confirm-primary-action { border-color: #176a49; background: #176a49; box-shadow: 0 5px 12px rgba(23, 106, 73, .13); }
+.confirm-primary-action:hover:not(:disabled) { background: #11583b; box-shadow: 0 7px 16px rgba(23, 106, 73, .18); }
+.confirm-secondary-action { border-color: #d1e0d6; color: #315d46; }
+.confirm-secondary-action:hover:not(:disabled) { border-color: #b2cdbb; background: #f8fbf9; }
+.confirm-loading { border: 1px solid #e0eae3; border-radius: 18px; box-shadow: 0 8px 24px rgba(31, 72, 49, .05); font-size: 14px; }
+
+@media (min-width: 1001px) and (min-height: 760px) {
+  .confirm-shell.confirm-page { min-height: 0; padding-block: clamp(12px, 2vh, 22px); }
+  .confirm-layout { gap: clamp(8px, 1.2vh, 12px); }
+  .confirm-columns { gap: 12px; }
+  .confirm-section, .confirm-summary-panel { padding: 14px; }
+  .confirm-section h2, .confirm-summary-panel h2 { margin-bottom: 9px; }
+  .confirm-rows > div { padding-block: 6px; }
+  .confirm-trip-heading { margin-bottom: 8px; }
+  .confirm-trip-heading img { width: 64px; height: 58px; flex-basis: 64px; }
+  .confirm-trip-meta { gap: 0 10px; padding-bottom: 3px; }
+  .confirm-trip-meta > div { padding-block: 5px; }
+  .confirm-itinerary-toggle { margin-top: 7px; }
+  .confirm-price-row { padding-block: 6px; }
+  .confirm-total-row { min-height: 46px; margin-top: 6px; padding-block: 7px; }
+  .confirm-print-button { min-height: 38px; margin-top: 7px; }
+}
+
+@media (max-width: 1000px) {
+  .confirm-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .confirm-columns > .confirm-summary-panel { grid-column: 1 / -1; }
+  .confirm-summary-panel { position: static; }
+}
+
+@media (max-width: 760px) {
+  .confirm-shell.confirm-page { min-height: 0; padding: 14px 12px 20px; }
+  .confirm-layout { gap: 12px; }
+  .confirm-hero { grid-template-columns: 52px minmax(0, 1fr); column-gap: 13px; padding: 20px 48px 20px 18px; border-radius: 18px; }
+  .confirm-mark { width: 48px; height: 48px; border-radius: 15px; font-size: 22px; }
+  .confirm-mark__ring { border-radius: 19px; }
+  .confirm-eyebrow { font-size: 9px; }
+  .confirm-hero h1 { font-size: clamp(22px, 5vw, 28px); }
+  .confirm-message { font-size: 13px; }
+  .confirm-success-note, .confirm-next-note { padding: 9px 10px; font-size: 11px; }
+  .confirm-columns { gap: 12px; }
+  .confirm-main { display: contents; }
+  .confirm-columns { grid-template-columns: minmax(0, 1fr); }
+  .confirm-columns > .confirm-summary-panel { grid-column: auto; }
+  .confirm-section, .confirm-summary-panel { padding: 17px; border-radius: 15px; }
+  .confirm-section h2 { margin-bottom: 12px; font-size: 15px; }
+  .confirm-trip-heading img { width: 66px; height: 60px; flex-basis: 66px; }
+  .confirm-actions { flex-direction: column; }
+  .confirm-primary-action, .confirm-secondary-action { width: 100%; min-height: 46px; }
+}
+
+@media (max-width: 420px) {
+  .confirm-shell.confirm-page { padding-inline: 9px; }
+  .confirm-hero { grid-template-columns: 42px minmax(0, 1fr); column-gap: 10px; padding-left: 13px; }
+  .confirm-mark { width: 40px; height: 40px; border-radius: 13px; font-size: 19px; }
+  .confirm-mark__ring { inset: -4px; border-radius: 16px; }
+  .confirm-close { top: 9px; right: 9px; width: 32px; height: 32px; }
+  .confirm-hero h1 { padding-right: 4px; font-size: 22px; }
+  .confirm-rows > div { grid-template-columns: minmax(86px, .7fr) minmax(0, 1fr); gap: 8px; }
+  .confirm-trip-meta { grid-template-columns: minmax(0, 1fr); }
+  .confirm-total-row { align-items: flex-start; flex-direction: column; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-mark > i,
+  .confirm-success-note,
+  .confirm-next-note { animation: none !important; transition: none !important; }
+}
+
+@media print {
+  .confirm-shell.confirm-page { min-height: 0; padding: 0; background: #fff; }
+  .confirm-layout { width: 100%; gap: 10px; }
+  .confirm-hero, .confirm-section, .confirm-summary-panel { box-shadow: none; }
+  .confirm-layout { grid-template-areas: "hero" "details" "error" "actions"; }
+  .confirm-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(240px, .8fr); }
+  .confirm-main { display: contents; }
+  .confirm-summary-panel { position: static; }
 }
