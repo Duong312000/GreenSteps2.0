@@ -1,3 +1,4 @@
+import { GreenWalletComponent } from './pages/profile/green-wallet';
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -72,6 +73,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerRegisterComponent,
   ],
   imports: [
+    GreenWalletComponent,
     BrowserModule,
     CommonModule,
     FormsModule,

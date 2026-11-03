@@ -137,7 +137,55 @@
               </section>
             </section>
 
-            <section class="workspace-panel panel-card">
+            <section class="community-moderation-workspace" *ngIf="activeTab === 'reports'">
+              <div class="community-report-metrics">
+                <article class="community-report-metric" *ngFor="let metric of reportMetrics" [ngClass]="'report-tone-' + metric.tone">
+                  <span class="report-metric-symbol"><i class="bi" [ngClass]="metric.icon" aria-hidden="true"></i></span>
+                  <div><span>{{ metric.label }}</span><strong>{{ metric.value }}</strong></div>
+                </article>
+              </div>
+
+              <div class="community-report-toolbar panel-card">
+                <label class="community-report-search"><i class="bi bi-search" aria-hidden="true"></i><input [(ngModel)]="queueSearch" (ngModelChange)="currentPage = 1" placeholder="Tìm kiếm nội dung, tác giả, lý do báo cáo..." aria-label="Tìm báo cáo cộng đồng"></label>
+                <button type="button" class="report-tool-button" [class.filter-active]="reportFiltersOpen || reportTypeFilter !== 'all' || reportReasonFilter !== 'all'" (click)="reportFiltersOpen = !reportFiltersOpen" [attr.aria-expanded]="reportFiltersOpen"><i class="bi bi-funnel" aria-hidden="true"></i> Bộ lọc</button>
+                <select aria-label="Trạng thái báo cáo" [(ngModel)]="reportStatusFilter" (ngModelChange)="currentPage = 1"><option value="all">Tất cả trạng thái</option><option value="pending">Chờ kiểm duyệt</option><option value="hidden">Đã ẩn</option><option value="dismissed">Giữ nội dung</option><option value="restored">Đã khôi phục</option></select>
+                <button type="button" class="report-tool-button" (click)="loadReports()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Tải lại</button>
+                <div class="community-report-filters" *ngIf="reportFiltersOpen">
+                  <label>Loại nội dung<select [(ngModel)]="reportTypeFilter" (ngModelChange)="currentPage = 1"><option value="all">Tất cả nội dung</option><option value="post">Bài viết / video</option><option value="comment">Bình luận</option></select></label>
+                  <label>Lý do báo cáo<select [(ngModel)]="reportReasonFilter" (ngModelChange)="currentPage = 1"><option value="all">Tất cả lý do</option><option *ngFor="let reason of reportReasons" [value]="reason">{{ reason }}</option></select></label>
+                  <button type="button" class="text-action" (click)="reportTypeFilter = 'all'; reportReasonFilter = 'all'; reportStatusFilter = 'all'; queueSearch = ''; currentPage = 1">Đặt lại</button>
+                </div>
+              </div>
+
+              <section class="community-report-table panel-card" aria-label="Danh sách báo cáo cộng đồng">
+                <div class="queue-state" *ngIf="reportsState === 'loading'"><span class="loading-spinner"></span>Đang tải báo cáo...</div>
+                <div class="queue-state queue-unavailable" *ngIf="reportsState === 'unavailable'"><i class="bi bi-cloud-slash"></i><span>Không tải được báo cáo.</span><button class="report-tool-button" type="button" (click)="loadReports()">Thử lại</button></div>
+                <div class="report-selection-summary" *ngIf="selectedReportIds.size">Đã chọn {{ selectedReportIds.size }} báo cáo <button type="button" class="text-action" (click)="selectedReportIds.clear()">Bỏ chọn</button></div>
+                <div class="table-scroll" *ngIf="reportsState === 'ready'">
+                  <table>
+                    <thead><tr><th class="report-checkbox"><input type="checkbox" aria-label="Chọn tất cả báo cáo trên trang" [checked]="allPageReportsSelected" (change)="togglePageReportSelection()" [disabled]="!pageRows.length"></th><th>Tác giả</th><th>Loại nội dung</th><th>Lý do báo cáo</th><th>Ngày báo cáo</th><th>Trạng thái</th><th class="report-actions-heading">Thao tác</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let row of pageRows">
+                        <td class="report-checkbox"><input type="checkbox" [attr.aria-label]="'Chọn báo cáo của ' + row.raw.author" [checked]="selectedReportIds.has(row.id)" (change)="toggleReportSelection(row.id)"></td>
+                        <td><div class="report-author"><span class="report-author-avatar">{{ (row.raw.author || 'G').slice(0, 1).toUpperCase() }}</span><strong>{{ row.raw.author }}</strong></div></td>
+                        <td><span class="report-content-kind"><i class="bi" [ngClass]="row.raw.targetType === 'post' ? 'bi-file-earmark-text' : 'bi-chat-left-text'" aria-hidden="true"></i>{{ row.raw.targetType === 'post' ? 'Bài viết / video' : 'Bình luận' }}</span></td>
+                        <td><div class="report-reason-copy" [title]="row.detail"><strong>{{ row.raw.reasonLabel }}</strong><span>{{ row.raw.details || row.raw.text }}</span></div></td>
+                        <td class="report-date">{{ row.raw.createdAt | date:'dd/MM/yyyy' }}<small>{{ row.raw.createdAt | date:'HH:mm' }}</small></td>
+                        <td><span class="report-status" [ngClass]="'report-status-' + row.raw.status">{{ reportStatusLabel(row.raw.status) }}</span></td>
+                        <td><div class="report-row-actions"><button type="button" class="report-tool-button" (click)="openReportReview(row.raw)" [disabled]="isPreviewMode">Xem và xử lý</button><button type="button" class="report-more-button" (click)="openReportReview(row.raw)" aria-label="Xem chi tiết và lịch sử báo cáo" [disabled]="isPreviewMode"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button></div></td>
+                      </tr>
+                      <tr *ngIf="!filteredRows.length"><td colspan="7" class="report-empty"><i class="bi bi-inbox"></i><strong>Không có báo cáo phù hợp</strong><span>Thử thay đổi tìm kiếm hoặc bộ lọc.</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="community-report-pagination" *ngIf="reportsState === 'ready'">
+                  <span>Hiển thị {{ filteredRows.length ? (currentPage - 1) * pageSize + 1 : 0 }}–{{ pageEnd }} trong {{ filteredRows.length }} kết quả</span>
+                  <div><button type="button" (click)="changePage(currentPage - 1)" [disabled]="currentPage <= 1" aria-label="Trang báo cáo trước"><i class="bi bi-chevron-left"></i></button><span class="report-page-number">{{ currentPage }}</span><button type="button" (click)="changePage(currentPage + 1)" [disabled]="currentPage >= pageCount" aria-label="Trang báo cáo sau"><i class="bi bi-chevron-right"></i></button><select [(ngModel)]="reportsPageSize" (ngModelChange)="currentPage = 1" aria-label="Số báo cáo mỗi trang"><option [ngValue]="10">10 / trang</option><option [ngValue]="20">20 / trang</option><option [ngValue]="50">50 / trang</option></select></div>
+                </div>
+              </section>
+            </section>
+
+            <section class="workspace-panel panel-card" *ngIf="activeTab !== 'reports'">
               <div class="workspace-tabs-wrap">
                 <div class="workspace-tabs" role="tablist" aria-label="Danh sách quản trị">
                   <button type="button" class="workspace-tab" *ngFor="let tab of managementTabs" [class.selected]="activeTab === tab.id" (click)="setActiveTab(tab.id)" role="tab" [attr.aria-selected]="activeTab === tab.id">
@@ -145,7 +193,7 @@
                     <span class="tab-count" *ngIf="tab.badgeKey && getQueueCount(tab.badgeKey) !== null">{{ getQueueCount(tab.badgeKey) }}</span>
                   </button>
                 </div>
-                <div class="workspace-tools" *ngIf="activeTab !== 'services' && activeTab !== 'refunds' && activeTab !== 'reports'">
+                <div class="workspace-tools" *ngIf="activeTab !== 'refunds'">
                   <label class="queue-search"><i class="bi bi-search"></i><input [(ngModel)]="queueSearch" (ngModelChange)="currentPage = 1" placeholder="Tìm trong danh sách..." /></label>
                   <button type="button" class="filter-button" disabled title="Bộ lọc nâng cao chưa kết nối"><i class="bi bi-funnel"></i><span>Bộ lọc</span></button>
                 </div>
@@ -157,17 +205,17 @@
                   <button type="button" class="button-primary button-small" (click)="approveAllBookings()"><i class="bi bi-check2-all"></i> Duyệt tất cả</button>
                   <button type="button" class="button-danger-light button-small" (click)="rejectAllBookings()"><i class="bi bi-x-circle"></i> Từ chối tất cả</button>
                 </div>
-                <button type="button" class="refresh-button" *ngIf="activeTab !== 'services' && activeTab !== 'refunds' && activeTab !== 'reports' && !isPreviewMode" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
+                <button type="button" class="refresh-button" *ngIf="activeTab !== 'refunds' && !isPreviewMode" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
               </div>
 
               <div class="queue-state" *ngIf="currentQueueState === 'loading'"><span class="loading-spinner"></span><span>Đang tải dữ liệu từ API...</span></div>
               <div class="queue-state queue-unavailable" *ngIf="currentQueueState === 'unavailable'"><i class="bi bi-cloud-slash"></i><div><strong>Không tải được dữ liệu</strong><span>Kiểm tra kết nối API hoặc quyền truy cập rồi thử tải lại.</span></div><button type="button" class="small-outline-button" (click)="refreshActiveQueue()">Thử lại</button></div>
               <div class="queue-state queue-empty" *ngIf="currentQueueState === 'unsupported'"><i class="bi bi-cone-striped"></i><div><strong>Chưa có API cho mục này</strong><span>Giao diện đã sẵn sàng; dữ liệu sẽ hiển thị khi backend hỗ trợ.</span></div></div>
-              <div class="queue-state queue-empty" *ngIf="currentQueueState === 'ready' && filteredRows.length === 0"><i class="bi bi-inbox"></i><div><strong>{{ queueSearch ? 'Không tìm thấy kết quả' : 'Không có yêu cầu đang chờ' }}</strong><span>{{ queueSearch ? 'Thử đổi cụm từ tìm kiếm.' : 'Hàng đợi này hiện không có dữ liệu cần xử lý.' }}</span></div></div>
+              <div class="queue-state queue-empty" *ngIf="currentQueueState === 'ready' && filteredRows.length === 0"><i class="bi bi-inbox"></i><div><strong>{{ queueSearch ? 'Không tìm thấy kết quả' : (isCatalogTab ? 'Chưa có dữ liệu' : 'Không có yêu cầu đang chờ') }}</strong><span>{{ queueSearch ? 'Thử đổi cụm từ tìm kiếm.' : 'Hàng đợi này hiện không có dữ liệu cần xử lý.' }}</span></div></div>
 
               <div class="table-scroll" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
                 <table class="admin-data-table">
-                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column">Thao tác</th></tr></thead>
+                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab">Thao tác</th></tr></thead>
                   <tbody>
                     <tr *ngFor="let row of pageRows">
                       <td class="checkbox-column"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
@@ -175,7 +223,7 @@
                         <span *ngIf="column.key === 'status'" class="status-badge" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
                         <span *ngIf="column.key !== 'status'">{{ cellValue(row, column.key) }}</span>
                       </td>
-                      <td class="row-actions">
+                      <td class="row-actions" *ngIf="!isCatalogTab">
                         <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">{{ activeTab === 'providers' ? 'Phê duyệt' : 'Duyệt' }}</button>
                         <button type="button" class="row-more-button" *ngIf="activeTab !== 'providers'" [disabled]="isPreviewMode" (click)="runRowAction(row, 'reject')" aria-label="Từ chối"><i class="bi bi-x-lg"></i></button>
                       </td>
@@ -237,7 +285,7 @@
           </section>
 
           <section class="insight-card panel-card report-card">
-            <div class="insight-card-heading"><div><h2>Báo cáo đang chờ xử lý</h2><small>{{ isPreviewMode ? 'Dữ liệu minh họa' : 'Chưa kết nối dữ liệu' }}</small></div><button type="button" class="text-action" (click)="setSection('reports')">Xem tất cả <i class="bi bi-arrow-right"></i></button></div>
+            <div class="insight-card-heading"><div><h2>Báo cáo đang chờ xử lý</h2><small>{{ isPreviewMode ? 'Dữ liệu minh họa' : 'Nội dung cộng đồng' }}</small></div><button type="button" class="text-action" (click)="setSection('community')">Xem tất cả <i class="bi bi-arrow-right"></i></button></div>
             <div class="report-list" *ngIf="isPreviewMode; else noLiveReports">
               <div *ngFor="let item of [
                 {icon:'bi-flag',label:'Nội dung bị báo cáo',count:5,tone:'red'},
@@ -246,7 +294,7 @@
                 {icon:'bi-shop',label:'Nhà cung cấp cần theo dõi',count:6,tone:'purple'}
               ]"><span class="report-icon" [ngClass]="'report-' + item.tone"><i class="bi" [ngClass]="item.icon"></i></span><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
             </div>
-            <ng-template #noLiveReports><div class="mini-empty"><i class="bi bi-inbox"></i><span>Chưa có báo cáo để hiển thị.</span></div></ng-template>
+            <ng-template #noLiveReports><div class="mini-empty"><i class="bi bi-flag"></i><span>{{ reportsState === 'ready' ? pendingCommunityReportCount + ' báo cáo cộng đồng chờ kiểm duyệt.' : reportsState === 'loading' ? 'Đang tải báo cáo...' : 'Không tải được báo cáo.' }}</span><button type="button" class="text-action" (click)="setSection('community')">Xem báo cáo</button></div></ng-template>
           </section>
         </aside>
       </div>
@@ -265,4 +313,24 @@
       <ng-template #dialogOk><button type="button" class="button-primary dialog-ok" (click)="closeCustomDialog()">Đóng</button></ng-template>
     </section>
   </div>
+</div>
+
+<div class="custom-dialog-backdrop" *ngIf="reviewTarget" (click)="!reviewing && (reviewTarget = null)">
+  <section class="community-review-dialog" role="dialog" aria-modal="true" aria-labelledby="community-review-title" (click)="$event.stopPropagation()">
+    <header><h2 id="community-review-title">Kiểm duyệt nội dung cộng đồng</h2><button type="button" [disabled]="reviewing" (click)="reviewTarget = null" aria-label="Đóng">×</button></header>
+    <p><b>{{ reviewTarget.author }}</b> · {{ reviewTarget.targetType === 'post' ? 'Bài viết / video' : 'Bình luận' }}</p>
+    <p><b>Lý do báo cáo:</b> {{ reviewTarget.reasonLabel }}<br>{{ reviewTarget.details }}</p>
+    <blockquote>{{ reviewTarget.text }}</blockquote>
+    <details *ngIf="reviewTarget.snapshot !== reviewTarget.text"><summary>Nội dung tại thời điểm bị báo cáo</summary><blockquote>{{ reviewTarget.snapshot }}</blockquote></details>
+    <img *ngFor="let image of reviewTarget.images" [src]="moderationMediaUrl(image)" alt="Ảnh trong nội dung được báo cáo">
+    <video *ngIf="reviewTarget.video" [src]="moderationMediaUrl(reviewTarget.video)" controls preload="metadata"></video>
+    <p *ngIf="reviewTarget.deleted">Nội dung đã được tác giả xóa.</p>
+    <details *ngIf="reviewTarget.history?.length"><summary>Lịch sử kiểm duyệt</summary><p *ngFor="let entry of reviewTarget.history">{{ entry.at | date:'dd/MM/yyyy HH:mm' }} · {{ entry.action }}: {{ entry.note }}</p></details>
+    <form (submit)="submitReportReview($event)">
+      <label>Quyết định<select [(ngModel)]="reviewAction" name="reviewAction"><option value="hide" *ngIf="!reviewTarget.deleted && !reviewTarget.hidden">Ẩn nội dung vi phạm</option><option value="restore" *ngIf="!reviewTarget.deleted && reviewTarget.hidden">Khôi phục nội dung</option><option value="dismiss" *ngIf="reviewTarget.status === 'pending'">Bác báo cáo, giữ nguyên nội dung</option></select></label>
+      <label>Lý do quyết định<textarea [(ngModel)]="reviewNote" name="reviewNote" required minlength="5" maxlength="1000" rows="3" placeholder="Nêu tiêu chuẩn vi phạm hoặc lý do giữ/khôi phục nội dung..."></textarea></label>
+      <p class="review-error" *ngIf="reviewError" role="alert">{{ reviewError }}</p>
+      <footer><button type="button" class="button-secondary" [disabled]="reviewing" (click)="reviewTarget = null">Đóng</button><button type="submit" class="button-primary" [disabled]="reviewing || reviewNote.trim().length < 5 || (reviewTarget.deleted && reviewTarget.status !== 'pending')">{{ reviewing ? 'Đang lưu...' : 'Xác nhận quyết định' }}</button></footer>
+    </form>
+  </section>
 </div>

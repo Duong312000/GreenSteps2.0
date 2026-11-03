@@ -96,7 +96,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
     await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
     async function request(route, body, token, expectedStatus = 200) {
-      const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': require('node:crypto').randomUUID(), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
       const json = await response.json();
       assert.equal(response.status, expectedStatus, JSON.stringify(json));
       return json;
@@ -128,7 +128,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       await request('/wallet/pay-qr', { userId: 'test-user', itineraryId: 'custom-test', amount: 10000 }, login.token);
       assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       const invalidPayment = await fetch(base + '/wallet/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: 'test-user', itineraryId: 'custom-test', amount: -50000 }) });
-      assert.equal(invalidPayment.status, 400);
+      assert.equal(invalidPayment.status, 401);
       assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       await Wallet.update({ green_points: 1000 }, { where: { id: 'test-wallet' } });
       assert.equal((await request('/vouchers/redeem', {}, login.token)).remainingPoints, 0);

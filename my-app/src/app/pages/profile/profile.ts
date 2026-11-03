@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -57,7 +57,23 @@ type TravelPreferenceQuestion = {
   templateUrl: './profile.html',
   styleUrls: ['./profile-dashboard.css'],
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
+  private sharedRefreshTimer?: ReturnType<typeof setInterval>;
+  private sharedRefreshInFlight = false;
+  private profileDestroyed = false;
+
+  ngOnDestroy() {
+    this.profileDestroyed = true;
+    if (this.sharedRefreshTimer) clearInterval(this.sharedRefreshTimer);
+  }
+
+  @HostListener('document:visibilitychange')
+  async refreshSharedData() {
+    if (this.profileDestroyed || !this.currentUser || document.visibilityState !== 'visible' || this.sharedRefreshInFlight) return;
+    this.sharedRefreshInFlight = true;
+    try { await Promise.all([this.loadWalletAndTransactions(), this.loadProfileNotifications()]); }
+    finally { this.sharedRefreshInFlight = false; }
+  }
   public activeSection: ProfileSection = 'overview';
   public selectedSubSection: string = '';
   public currentUser: User | null = null;
@@ -354,6 +370,7 @@ export class ProfileComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.sharedRefreshTimer = setInterval(() => void this.refreshSharedData(), 15000);
     const existingUser = this.authService.getCurrentUser();
     if (existingUser) {
       this.applyProfileUser(existingUser);
@@ -390,6 +407,7 @@ export class ProfileComponent implements OnInit {
     const userId = this.currentUser.id || this.currentUser._id || '';
     try {
       const res = await this.apiService.getNotifications(userId);
+      if (this.profileDestroyed) return;
       this.notificationsList = res;
       this.cdr.detectChanges();
     } catch (e) {
@@ -453,6 +471,7 @@ export class ProfileComponent implements OnInit {
     const userId = this.currentUser.id || this.currentUser._id || '';
     try {
       const wallet = await this.apiService.getWalletInfo(userId);
+      if (this.profileDestroyed) return;
       this.walletRegistered = wallet.registered;
       this.walletBalance = wallet.balance;
       this.userGreenPoints = wallet.green_points || 0;
@@ -468,7 +487,7 @@ export class ProfileComponent implements OnInit {
     }
 
     await this.loadUpcomingTripData(userId);
-    this.cdr.detectChanges();
+    if (!this.profileDestroyed) this.cdr.detectChanges();
   }
 
   private async loadUpcomingTripData(userId: string) {

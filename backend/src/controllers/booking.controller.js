@@ -1,3 +1,4 @@
+const loyalty = require('../services/wallet.service');
 const { Op } = require('../db/mongo-store');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 const {
@@ -13,6 +14,7 @@ const {
   ScheduleCustom,
   ScheduleActivity,
   Vender,
+  Provider,
   Voucher,
   Notification
 } = require('../models/index');
@@ -73,6 +75,8 @@ exports.createBooking = async (req, res, next) => {
   let emailAlreadyExists = false;
 
   try {
+    if ((paymentMethod === 'wallet' || voucherCode) && !req.user) return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để dùng ví hoặc ưu đãi.' });
+    if (!Number.isSafeInteger(guests) || guests < 1) throw loyalty.error('Số khách không hợp lệ.');
     if (!userId && email) {
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
@@ -205,15 +209,17 @@ exports.createBooking = async (req, res, next) => {
         where: { code: voucherCode, user_id: userId, status: 'active' }
       });
       if (voucher) {
-        discount = totalValue * (voucher.discount_percent / 100);
+        discount = Math.min(totalValue, voucher.discount_amount || totalValue * (voucher.discount_percent / 100));
         totalValue -= discount;
       }
     }
 
+    if (voucherCode && !discount) throw loyalty.error('Ưu đãi không hợp lệ hoặc đã sử dụng.');
+
     // 3. Process Payment based on paymentMethod
     if (paymentMethod === 'wallet') {
       const wallet = await Wallet.findOne({ where: { user_id: userId } });
-      if (!wallet || wallet.balance < totalValue) {
+      if (!wallet || wallet.balance - (wallet.reserved_balance || 0) < totalValue) {
         return res.status(400).json({ success: false, message: 'Số dư ví không đủ để thanh toán cọc đơn đặt!' });
       }
 
@@ -224,6 +230,8 @@ exports.createBooking = async (req, res, next) => {
           transaction: t,
           lock: t.LOCK.UPDATE
         });
+
+        if (lockedWallet.balance - (lockedWallet.reserved_balance || 0) < totalValue) throw loyalty.error('Insufficient available balance.');
 
         // Deduct balance immediately as escrow hold
         lockedWallet.balance -= totalValue;
@@ -272,10 +280,11 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          await Voucher.update(
+          const [usedVouchers] = await Voucher.update(
             { status: 'used' },
-            { where: { code: voucherCode, user_id: userId }, transaction: t }
+            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
           );
+          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
         }
 
         // Save wallet transaction as pending escrow hold
@@ -355,10 +364,11 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          await Voucher.update(
+          const [usedVouchers] = await Voucher.update(
             { status: 'used' },
-            { where: { code: voucherCode, user_id: userId }, transaction: t }
+            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
           );
+          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
         }
 
         // Record successful transaction in wallet if it exists
@@ -420,10 +430,11 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          await Voucher.update(
+          const [usedVouchers] = await Voucher.update(
             { status: 'used' },
-            { where: { code: voucherCode, user_id: userId }, transaction: t }
+            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
           );
+          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
         }
 
         // Record pending transaction in wallet if it exists
@@ -452,6 +463,7 @@ exports.createBooking = async (req, res, next) => {
         }
       });
     } else {
+      await store.transaction(async (t) => {
       // Just save booking as pending/unpaid
       const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
       if (type === 'service') {
@@ -471,7 +483,7 @@ exports.createBooking = async (req, res, next) => {
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
           customer_email: email || null
-        });
+        }, { transaction: t });
       } else {
         await TourBooking.create({
           id: bookingId,
@@ -489,8 +501,13 @@ exports.createBooking = async (req, res, next) => {
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
           customer_email: email || null
-        });
+        }, { transaction: t });
       }
+      if (voucherCode) {
+        const [used] = await Voucher.update({ status: 'used' }, { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t });
+        if (used !== 1) throw loyalty.error('Voucher already used.', 409);
+      }
+      });
     }
 
     if (email) {
@@ -517,6 +534,7 @@ exports.createBooking = async (req, res, next) => {
 
     const responsePayload = {
       success: true,
+      payment: { amount: totalValue, status: 'pending', transfer_reference: bookingId },
       message: 'Đặt chỗ thành công!',
       bookingId,
       emailAlreadyExists: !!emailAlreadyExists
@@ -573,38 +591,26 @@ exports.checkInEVoucher = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'E-Voucher không tồn tại hoặc đã được check-in!' });
     }
 
-    // 2. Locate Provider vender_id or details
-    let vendorUserId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'; // fallback partner
-    let carbonSaved = 1.0;
+    if (!(await canManageBooking(req, booking))) { await t.rollback(); return bookingAccessDenied(res); }
 
+    let vendorUserId;
     if (isService) {
       const service = await GreenService.findByPk(booking.service_id, { transaction: t });
-      if (service) {
-        const vender = await Vender.findByPk(service.vender_id, { transaction: t });
-        if (vender) vendorUserId = vender.user_id;
-        carbonSaved = (service.carbon || 0.5) * booking.guests;
-      }
+      const vender = service && await Vender.findByPk(service.vender_id, { transaction: t });
+      vendorUserId = vender?.user_id;
     } else {
-      const tour = await Schedule.findByPk(booking.schedule_id, { transaction: t });
-      if (tour) carbonSaved = (tour.carbon || 5.0) * booking.guests;
+      const sample = await ScheduleSample.findByPk(booking.schedule_id, { transaction: t });
+      const provider = sample && await Provider.findByPk(sample.provider_id, { transaction: t });
+      vendorUserId = provider?.user_id;
     }
-
-    // 3. Update booking status
+    const admin = await User.findOne({ where: { role: 'admin' }, transaction: t });
+    if (!vendorUserId || !admin) throw loyalty.error('Missing settlement account configuration.', 409);
     booking.status = 'completed';
+    booking.operation_status = 'completed';
     booking.escrow_status = 'released';
     await booking.save({ transaction: t });
-
-    // 4. Distribute funds: 90% Provider, 10% Platform fee (EW26admin001)
-    const providerWallet = await Wallet.findOne({
-      where: { user_id: vendorUserId },
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const adminWallet = await Wallet.findOne({
-      where: { id: 'EW26admin001' },
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
+    const providerWallet = await loyalty.walletFor(vendorUserId, t);
+    const adminWallet = await loyalty.walletFor(admin.id, t);
 
     const netProfit = booking.value * 0.9;
     const platformFee = booking.value * 0.1;
@@ -615,15 +621,7 @@ exports.checkInEVoucher = async (req, res, next) => {
     adminWallet.balance += platformFee;
     await adminWallet.save({ transaction: t });
 
-    // 5. Add green points to traveler
-    const travelerWallet = await Wallet.findOne({
-      where: { user_id: booking.user_id },
-      transaction: t,
-      lock: t.LOCK.UPDATE
-    });
-    const earnedPoints = Math.round(carbonSaved * 10);
-    travelerWallet.green_points += earnedPoints;
-    await travelerWallet.save({ transaction: t });
+    await loyalty.earn(booking, t);
 
     // 6. Record transactions
     await WalletTransaction.bulkCreate([
@@ -814,8 +812,9 @@ exports.getBookings = async (req, res, next) => {
         order: [['createdAt', 'DESC']]
       });
 
-      // TourBookings do not have vender/owner fields, so providers only manage their own green services
-      tourBookings = [];
+      const provider = await Provider.findOne({ where: { user_id: providerId } });
+      const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id } }) : [];
+      tourBookings = await TourBooking.findAll({ where: { schedule_id: { [Op.in]: tours.map(tour => tour.id) } }, order: [['createdAt', 'DESC']] });
     } else if (customerId) {
       serviceBookings = await ServiceBooking.findAll({
         where: { user_id: customerId },
@@ -929,7 +928,13 @@ exports.getBookings = async (req, res, next) => {
 
 async function canManageBooking(req, booking) {
   if (req.user?.role === 'admin') return true;
-  if (req.user?.role !== 'provider' || !booking.service_id) return false;
+  if (req.user?.role !== 'provider') return false;
+  if (booking.schedule_id) {
+    const provider = await Provider.findOne({ where: { user_id: req.user.id } });
+    const tour = await ScheduleSample.findByPk(booking.schedule_id);
+    return Boolean(provider && tour && tour.provider_id === provider.id);
+  }
+  if (!booking.service_id) return false;
 
   const vender = await Vender.findOne({ where: { user_id: req.user.id } });
   if (!vender) return false;
@@ -1220,40 +1225,17 @@ exports.getBookingDetails = async (req, res, next) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
+    if (booking.user_id !== req.user?.id && !(await canManageBooking(req, booking))) return bookingAccessDenied(res);
 
-    let autoCreatedUser = null;
-    let emailAlreadyExists = false;
-    if (booking.User && (booking.status === 'deposit' || booking.status === 'confirmed' || booking.status === 'accepted')) {
-      const user = booking.User;
-      const userCreatedTime = new Date(user.createdAt).getTime();
-      const bookingCreatedTime = new Date(booking.createdAt).getTime();
-      if (Math.abs(userCreatedTime - bookingCreatedTime) < 15 * 60 * 1000) {
-        autoCreatedUser = {
-          username: user.username,
-          defaultPassword: user.username + '123',
-          token: localSignAuthToken(user),
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            fullname: user.fullname,
-            phone: user.phone
-          }
-        };
-      } else {
-        emailAlreadyExists = true;
-      }
-    }
-
+    if (booking.User) delete booking.User.password_hash;
     res.json({
       success: true,
       booking: {
         ...booking.toJSON(),
         type
       },
-      autoCreatedUser,
-      emailAlreadyExists
+      autoCreatedUser: null,
+      emailAlreadyExists: false
     });
   } catch (error) {
     next(error);
@@ -1262,22 +1244,30 @@ exports.getBookingDetails = async (req, res, next) => {
 
 exports.completeBooking = async (req, res, next) => {
   const { id } = req.params;
+  const t = await store.transaction();
   try {
-    let booking = await ServiceBooking.findByPk(id);
+    let booking = await ServiceBooking.findByPk(id, { transaction: t });
     if (!booking) {
-      booking = await TourBooking.findByPk(id);
+      booking = await TourBooking.findByPk(id, { transaction: t });
     }
     if (!booking) {
+      await t.rollback();
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
-    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
+    if (!(await canManageBooking(req, booking))) { await t.rollback(); return bookingAccessDenied(res); }
+    if (!['deposit', 'completed'].includes(booking.status)) { await t.rollback(); return res.status(409).json({ success: false, message: 'Booking chưa được xác minh thanh toán.' }); }
+    if (booking.booking_date > new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })) { await t.rollback(); return res.status(409).json({ success: false, message: 'Chuyến đi chưa bắt đầu.' }); }
     booking.booking_status = 'accepted';
     booking.payment_status = 'fully_paid';
     booking.operation_status = 'completed';
     booking.status = 'completed';
-    await booking.save();
+    const wasCompleted = booking.original.status === 'completed';
+    await booking.save({ transaction: t });
+    if (!wasCompleted) await loyalty.earn(booking, t);
+    await t.commit();
     res.json({ success: true, message: 'Đã hoàn thành booking thành công!', booking });
   } catch (error) {
+    await t.rollback();
     next(error);
   }
 };
@@ -1285,15 +1275,19 @@ exports.completeBooking = async (req, res, next) => {
 exports.updateBookingStatuses = async (req, res, next) => {
   const { id } = req.params;
   const { booking_status, payment_status, operation_status, confirm_deadline, payment_deadline } = req.body;
+  const t = await store.transaction();
   try {
-    let booking = await ServiceBooking.findByPk(id);
+    let booking = await ServiceBooking.findByPk(id, { transaction: t });
     if (!booking) {
-      booking = await TourBooking.findByPk(id);
+      booking = await TourBooking.findByPk(id, { transaction: t });
     }
     if (!booking) {
+      await t.rollback();
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
-    if (!(await canManageBooking(req, booking))) return bookingAccessDenied(res);
+    if (!(await canManageBooking(req, booking))) { await t.rollback(); return bookingAccessDenied(res); }
+    if (operation_status === 'completed' && !['deposit', 'completed'].includes(booking.status)) { await t.rollback(); return res.status(409).json({ success: false, message: 'Booking chưa được xác minh thanh toán.' }); }
+    if (operation_status === 'completed' && booking.booking_date > new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })) { await t.rollback(); return res.status(409).json({ success: false, message: 'Chuyến đi chưa bắt đầu.' }); }
     if (booking_status !== undefined) booking.booking_status = booking_status;
     if (payment_status !== undefined) booking.payment_status = payment_status;
     if (operation_status !== undefined) booking.operation_status = operation_status;
@@ -1325,9 +1319,13 @@ exports.updateBookingStatuses = async (req, res, next) => {
       booking.status = 'deposit';
     }
 
-    await booking.save();
+    const wasCompleted = booking.original.status === 'completed';
+    await booking.save({ transaction: t });
+    if (!wasCompleted) await loyalty.earn(booking, t);
+    await t.commit();
     res.json({ success: true, message: 'Cập nhật trạng thái thành công!', booking });
   } catch (error) {
+    await t.rollback();
     next(error);
   }
 };

@@ -69,23 +69,64 @@ const BadgeUser = store.define('BadgeUser', {}, { timestamps: true });
 const Wallet = store.define('Wallet', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // EWXXXXXXXX
   balance: { type: FieldTypes.DOUBLE, defaultValue: 0.0, validate: { min: 0 } },
+  reserved_balance: { type: FieldTypes.DOUBLE, defaultValue: 0, validate: { min: 0 } },
+  // Absent on ordinary/production wallets; initialized only by an authorized demo posting.
+  demo_balance: { type: FieldTypes.INTEGER, validate: { min: 0 } },
+  demo_held: { type: FieldTypes.INTEGER, validate: { min: 0 } },
   registered: { type: FieldTypes.BOOLEAN, defaultValue: false },
-  green_points: { type: FieldTypes.INTEGER, defaultValue: 0 }
+  green_points: { type: FieldTypes.INTEGER, defaultValue: 0, validate: { min: 0 } },
+  tier_points: { type: FieldTypes.INTEGER, defaultValue: 0, validate: { min: 0 } },
+  tier_history_synced: { type: FieldTypes.BOOLEAN, defaultValue: false },
+  payment_methods: { type: FieldTypes.JSONB, defaultValue: [] }
 }, { timestamps: true });
 
 // 5. WalletTransaction Model
 const WalletTransaction = store.define('WalletTransaction', {
   id: { type: FieldTypes.STRING, primaryKey: true }, // GDXXXXXXXX
   type: {
-    type: FieldTypes.ENUM('deposit', 'payment', 'refund', 'withdrawal', 'escrow_hold', 'escrow_release'),
+    type: FieldTypes.ENUM('deposit', 'payment', 'refund', 'withdrawal', 'escrow_hold', 'escrow_release', 'points_earned', 'points_redeemed', 'points_sent', 'points_received', 'points_tier_adjustment', 'transfer_out', 'transfer_in'),
     allowNull: false
   },
   description: { type: FieldTypes.STRING, allowNull: false },
   // Existing itinerary/withdrawal flows store debits as negative amounts.
   amount: { type: FieldTypes.DOUBLE, allowNull: false, validate: { minMagnitude: 0.01 } },
-  status: { type: FieldTypes.ENUM('success', 'pending', 'failed'), defaultValue: 'success' },
-  reference_id: { type: FieldTypes.STRING }
+  status: { type: FieldTypes.ENUM('success', 'pending', 'failed', 'PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'), defaultValue: 'success' },
+  mode: { type: FieldTypes.STRING },
+  operation_hash: { type: FieldTypes.STRING },
+  sender_id: { type: FieldTypes.STRING },
+  recipient_id: { type: FieldTypes.STRING },
+  recipient_name: { type: FieldTypes.STRING },
+  sender_name: { type: FieldTypes.STRING },
+  demo_method: { type: FieldTypes.STRING },
+  bank_account_id: { type: FieldTypes.STRING },
+  bank_label: { type: FieldTypes.STRING },
+  note: { type: FieldTypes.STRING },
+  completed_at: { type: FieldTypes.DATE },
+  reference_id: { type: FieldTypes.STRING },
+  verification_reference: { type: FieldTypes.STRING, unique: true, allowNull: true },
+  verified_by: { type: FieldTypes.STRING },
+  reserved_amount: { type: FieldTypes.DOUBLE, defaultValue: 0, validate: { min: 0 } }
 }, { timestamps: true });
+
+const WalletLedger = store.define('WalletLedger', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  wallet_id: { type: FieldTypes.STRING, allowNull: false },
+  transaction_id: { type: FieldTypes.STRING, allowNull: false },
+  mode: { type: FieldTypes.ENUM('demo'), allowNull: false },
+  phase: { type: FieldTypes.STRING, allowNull: false },
+  delta_balance: { type: FieldTypes.INTEGER, allowNull: false },
+  delta_held: { type: FieldTypes.INTEGER, allowNull: false },
+  balance_after: { type: FieldTypes.INTEGER, allowNull: false },
+  held_after: { type: FieldTypes.INTEGER, allowNull: false }
+}, { tableName: 'wallet_ledger', timestamps: true });
+
+const BankAccount = store.define('BankAccount', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  label: { type: FieldTypes.STRING, allowNull: false },
+  demo_reference: { type: FieldTypes.STRING, allowNull: false },
+  is_demo: { type: FieldTypes.BOOLEAN, defaultValue: true }
+}, { tableName: 'bank_accounts', timestamps: true });
 
 // 6. Vender Model
 const Vender = store.define('Vender', {
@@ -340,6 +381,7 @@ const PartnerCampaign = store.define('PartnerCampaign', {
 
 // 23. CommunityPost Model
 const CommunityPost = store.define('CommunityPost', {
+  moderation_status: { type: FieldTypes.STRING, defaultValue: 'visible' },
   id: { type: FieldTypes.STRING, primaryKey: true }, // CUPtraXXXXXXXX
   rating: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1, max: 5 } },
   post_type: { type: FieldTypes.ENUM('post', 'reel', 'question'), defaultValue: 'post', allowNull: false },
@@ -364,6 +406,7 @@ const CommunityPost = store.define('CommunityPost', {
 
 // 24. CommentPost Model
 const CommentPost = store.define('CommentPost', {
+  moderation_status: { type: FieldTypes.STRING, defaultValue: 'visible' },
   id: { type: FieldTypes.STRING, primaryKey: true }, // CEPtraXXXXXXXX
   rating: { type: FieldTypes.INTEGER }, // 1-5, nullable (replies don't have stars)
   text: { type: FieldTypes.TEXT, allowNull: false },
@@ -380,6 +423,21 @@ const CommentPost = store.define('CommentPost', {
   report_reason: { type: FieldTypes.TEXT },
   internal_notes: { type: FieldTypes.TEXT }
 }, { timestamps: true });
+
+const CommunityReport = store.define('CommunityReport', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  target_type: { type: FieldTypes.ENUM('post', 'comment'), allowNull: false },
+  target_id: { type: FieldTypes.STRING, allowNull: false },
+  reporter_id: { type: FieldTypes.STRING, allowNull: false },
+  reason: { type: FieldTypes.STRING, allowNull: false },
+  details: { type: FieldTypes.TEXT },
+  snapshot: { type: FieldTypes.TEXT },
+  status: { type: FieldTypes.ENUM('pending', 'hidden', 'dismissed', 'restored'), defaultValue: 'pending' },
+  reviewed_by: { type: FieldTypes.STRING },
+  reviewed_at: { type: FieldTypes.DATE },
+  review_note: { type: FieldTypes.TEXT },
+  history: { type: FieldTypes.JSONB, defaultValue: [] }
+}, { tableName: 'community_reports', timestamps: true });
 
 const SavedCommunityItem = store.define('SavedCommunityItem', {
   id: { type: FieldTypes.STRING, primaryKey: true },
@@ -419,6 +477,7 @@ const CPGS = store.define('CPGS', {}, { tableName: 'CPGs', timestamps: true });
 const Voucher = store.define('Voucher', {
   id: { type: FieldTypes.STRING, primaryKey: true },
   code: { type: FieldTypes.STRING, unique: true, allowNull: false },
+  discount_amount: { type: FieldTypes.INTEGER, defaultValue: 0 },
   discount_percent: { type: FieldTypes.INTEGER, defaultValue: 10 },
   status: { type: FieldTypes.ENUM('active', 'used', 'expired'), defaultValue: 'active', allowNull: false }
 }, { timestamps: true });
@@ -692,6 +751,8 @@ module.exports = {
   BadgeUser,
   Wallet,
   WalletTransaction,
+  WalletLedger,
+  BankAccount,
   Vender,
   VenderContract,
   Revenue,
@@ -711,6 +772,7 @@ module.exports = {
   AdCampaign,
   PartnerCampaign,
   CommunityPost,
+  CommunityReport,
   CommentPost,
   SavedCommunityItem,
   CommunityChallenge,

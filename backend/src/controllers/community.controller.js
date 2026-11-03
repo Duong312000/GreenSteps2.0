@@ -1,7 +1,8 @@
+const loyalty = require('../services/wallet.service');
 const { randomUUID } = require('node:crypto');
 const { Op } = require('../db/mongo-store');
 const {
-  User, CommunityPost, CommentPost, Notification, SavedCommunityItem,
+  store, User, CommunityPost, CommentPost, Notification, SavedCommunityItem,
   CommunityChallenge, CommunityChallengeEntry, Wallet, Badge, BadgeUser
 } = require('../models');
 
@@ -91,7 +92,7 @@ exports.getPosts = async (req, res, next) => {
     const limit = Math.min(20, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
     const type = ['post', 'reel', 'question'].includes(req.query.type) ? req.query.type : null;
     const search = String(req.query.q || '').trim().slice(0, 100);
-    const where = {};
+    const where = { moderation_status: { [Op.ne]: 'hidden' } };
     if (type) where.post_type = type;
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -156,27 +157,23 @@ exports.addPost = async (req, res, next) => {
 };
 
 async function awardChallenge(challenge, userId, postId) {
+  return store.transaction(async (transaction) => {
   const entryId = `${challenge.id}:${userId}`;
   if (await CommunityChallengeEntry.findByPk(entryId)) return false;
-  await CommunityChallengeEntry.create({ id: entryId, challenge_id: challenge.id, user_id: userId, post_id: postId, points: challenge.points });
-  let wallet = await Wallet.findOne({ where: { user_id: userId } });
-  if (wallet) {
-    wallet.green_points = (wallet.green_points || 0) + challenge.points;
-    await wallet.save();
-  } else {
-    await Wallet.create({ id: `EW${randomUUID()}`, user_id: userId, balance: 0, registered: false, green_points: challenge.points });
-  }
+  const entry = await CommunityChallengeEntry.create({ id: entryId, challenge_id: challenge.id, user_id: userId, post_id: postId, points: challenge.points });
+  await loyalty.earnChallenge(entry, transaction);
   const badge = await Badge.findByPk(challenge.badge_name);
   if (!badge) await Badge.create({ id: challenge.badge_name, badges_description: 'Đã hoàn thành thử thách xanh hằng tuần.', foruserortour: 0 });
   const badgeLink = await BadgeUser.findOne({ where: { user_id: userId, badge_name: challenge.badge_name } });
   if (!badgeLink) await BadgeUser.create({ user_id: userId, badge_name: challenge.badge_name });
   return true;
+  });
 }
 
 exports.updatePost = async (req, res, next) => {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     if (post.user_id !== validUser(req)) return res.status(403).json({ success: false, message: 'Bạn chỉ có thể sửa bài viết của mình.' });
     normalizeLegacyPost(post);
     if (typeof req.body.text === 'string') {
@@ -199,7 +196,7 @@ exports.updatePost = async (req, res, next) => {
 exports.deletePost = async (req, res, next) => {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     if (post.user_id !== validUser(req)) return res.status(403).json({ success: false, message: 'Bạn chỉ có thể xóa bài viết của mình.' });
     await post.destroy();
     res.json({ success: true });
@@ -211,7 +208,7 @@ exports.unlikePost = (req, res, next) => changeLikes(req, res, next, -1);
 async function changeLikes(req, res, next, delta) {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     normalizeLegacyPost(post);
     post.likes_count = Math.max(0, (post.likes_count || 0) + delta);
     await post.save();
@@ -222,7 +219,7 @@ async function changeLikes(req, res, next, delta) {
 exports.sharePost = async (req, res, next) => {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     normalizeLegacyPost(post);
     post.shares_count = (post.shares_count || 0) + 1;
     await post.save();
@@ -233,7 +230,7 @@ exports.sharePost = async (req, res, next) => {
 exports.savePost = async (req, res, next) => {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     normalizeLegacyPost(post);
     const id = `post:${req.user.id}:${post.id}`;
     const existing = await SavedCommunityItem.findByPk(id);
@@ -260,13 +257,13 @@ exports.getSavedItems = async (req, res, next) => {
 exports.addPostComment = async (req, res, next) => {
   try {
     const post = await CommunityPost.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy bài viết.' });
     const text = String(req.body.text || '').trim();
     if (!text || text.length > 2000) return res.status(400).json({ success: false, message: 'Bình luận cần từ 1 đến 2.000 ký tự.' });
     const parentId = req.body.parentCommentId || null;
     if (parentId) {
       const parent = await CommentPost.findByPk(parentId);
-      if (!parent || parent.post_id !== post.id) return res.status(400).json({ success: false, message: 'Bình luận trả lời không hợp lệ.' });
+      if (!parent || parent.moderation_status === 'hidden' || parent.post_id !== post.id) return res.status(400).json({ success: false, message: 'Bình luận trả lời không hợp lệ.' });
     }
     const userId = req.user.id;
     const comment = await CommentPost.create({ id: `comment_${randomUUID()}`, user_id: userId, post_id: post.id, text, parent_comment_id: parentId, rating: null, helpful_count: 0, helpful_by: [], is_helpful: false });
@@ -286,14 +283,16 @@ function formatComment(comment, user) {
 
 exports.getPostComments = async (req, res, next) => {
   try {
-    const comments = await CommentPost.findAll({ where: { post_id: req.params.id }, order: [['createdAt', 'ASC']] });
+    const post = await CommunityPost.findByPk(req.params.id);
+    if (!post || post.moderation_status === 'hidden') return res.status(404).json({ message: 'Nội dung không còn khả dụng.' });
+    const comments = await CommentPost.findAll({ where: { post_id: req.params.id, moderation_status: { [Op.ne]: 'hidden' } }, order: [['createdAt', 'ASC']] });
     const populated = await Promise.all(comments.map(async comment => formatComment(comment, await User.findByPk(comment.user_id))));
     const byId = new Map(populated.map(comment => [comment.id, comment]));
     const tree = [];
     for (const comment of populated) {
       const parentId = comment.parentCommentId;
       if (parentId && byId.has(parentId)) byId.get(parentId).replies.push(comment);
-      else tree.push(comment);
+      else if (!parentId) tree.push(comment);
     }
     tree.sort((a, b) => Number(b.isHelpful) - Number(a.isHelpful) || b.helpfulCount - a.helpfulCount);
     res.json(tree);
@@ -303,9 +302,9 @@ exports.getPostComments = async (req, res, next) => {
 exports.markHelpful = async (req, res, next) => {
   try {
     const comment = await CommentPost.findByPk(req.params.commentId);
-    if (!comment) return res.status(404).json({ success: false, message: 'Không tìm thấy câu trả lời.' });
+    if (!comment || comment.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Không tìm thấy câu trả lời.' });
     const post = await CommunityPost.findByPk(comment.post_id);
-    if (!post || post.post_type !== 'question') return res.status(400).json({ success: false, message: 'Chỉ câu trả lời trong mục Hỏi đáp mới được đánh dấu hữu ích.' });
+    if (!post || post.moderation_status === 'hidden' || post.post_type !== 'question') return res.status(400).json({ success: false, message: 'Chỉ câu trả lời trong mục Hỏi đáp mới được đánh dấu hữu ích.' });
     const userId = req.user.id;
     const helpfulBy = Array.isArray(comment.helpful_by) ? comment.helpful_by : [];
     const index = helpfulBy.indexOf(userId);
@@ -348,7 +347,7 @@ async function getLeaderboardRows(limit) {
 
 exports.getTrendingHashtags = async (req, res, next) => {
   try {
-    const posts = await CommunityPost.findAll({ order: [['createdAt', 'DESC']], limit: 200 });
+    const posts = await CommunityPost.findAll({ where: { moderation_status: { [Op.ne]: 'hidden' } }, order: [['createdAt', 'DESC']], limit: 200 });
     const counts = new Map();
     for (const post of posts) for (const tag of cleanHashtags([...(post.hashtags || []), ...cleanHashtags(post.text)])) counts.set(tag, (counts.get(tag) || 0) + 1);
     res.json([...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag)).slice(0, 12));

@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const communityController = require('../controllers/community.controller');
-const { authMiddleware, softAuth } = require('../middlewares/auth.middleware');
+const { authMiddleware, softAuth, checkRole } = require('../middlewares/auth.middleware');
+const moderation = require('../controllers/community-moderation.controller');
+
+router.get('/standards', moderation.getStandards);
+router.post('/reports', authMiddleware, moderation.report);
+router.get('/reports', authMiddleware, checkRole(['admin']), moderation.listReports);
+router.post('/reports/:id/review', authMiddleware, checkRole(['admin']), moderation.review);
 
 router.get('/posts', softAuth, communityController.getPosts);
 router.get('/posts/saved', authMiddleware, communityController.getSavedItems);

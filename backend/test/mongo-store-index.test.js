@@ -112,3 +112,37 @@ test('sync treats a not-yet-created review collection as having no indexes', asy
     await store.close();
   }
 });
+
+test('sync retains an existing full unique id index for both MongoDB conflict codes without dropping it', async () => {
+  const store = new MongoStore('mongodb://127.0.0.1:27018/test');
+  try {
+    store.authenticate = async () => {};
+    store.define('CommunityReport', { id: { type: FieldTypes.STRING, primaryKey: true } });
+    let checked = false;
+    let conflictCode = 85;
+    store.db = { collection: () => ({
+      createIndex: async () => { const error = new Error('index options conflict'); error.code = conflictCode; throw error; },
+      listIndexes: () => ({ toArray: async () => { checked = true; return [{ name: 'id_1', key: { id: 1 }, unique: true }]; } }),
+      dropIndex: async () => assert.fail('Must not drop the existing unique index')
+    }) };
+    await store.sync();
+    assert.equal(checked, true);
+    conflictCode = 86;
+    checked = false;
+    await store.sync();
+    assert.equal(checked, true);
+  } finally { await store.close(); }
+});
+
+test('sync still rejects an incompatible non-unique id index', async () => {
+  const store = new MongoStore('mongodb://127.0.0.1:27018/test');
+  try {
+    store.authenticate = async () => {};
+    store.define('CommunityReport', { id: { type: FieldTypes.STRING, primaryKey: true } });
+    store.db = { collection: () => ({
+      createIndex: async () => { const error = new Error('index options conflict'); error.code = 85; throw error; },
+      listIndexes: () => ({ toArray: async () => [{ name: 'id_1', key: { id: 1 }, unique: false }] })
+    }) };
+    await assert.rejects(store.sync(), /index options conflict/);
+  } finally { await store.close(); }
+});

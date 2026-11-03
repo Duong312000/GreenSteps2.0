@@ -1,9 +1,10 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, ChangeDetectorRef, isDevMode } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, isDevMode } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 
-type AdminTab = 'providers' | 'services' | 'bookings' | 'deposits' | 'refunds' | 'withdrawals' | 'wallets' | 'reports';
+type CatalogKey = 'services' | 'tours' | 'promotions' | 'allBookings';
+type AdminTab = 'providers' | CatalogKey | 'bookings' | 'deposits' | 'refunds' | 'withdrawals' | 'wallets' | 'reports';
 type QueueState = 'loading' | 'ready' | 'unavailable';
 type QueueKey = 'providers' | 'deposits' | 'withdrawals' | 'wallets' | 'bookings';
 
@@ -44,7 +45,76 @@ interface AdminTableRow {
   templateUrl: './admin.html',
   styleUrl: './admin.css'
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
+  public communityReports: any[] = [];
+  public reportsState: QueueState = 'loading';
+  public get pendingCommunityReportCount(): number { return this.communityReports.filter(report => report.status === 'pending').length; }
+  public reportStatusFilter = 'all';
+  public reportTypeFilter = 'all';
+  public reportReasonFilter = 'all';
+  public reportFiltersOpen = false;
+  public reportsPageSize = 10;
+  public selectedReportIds = new Set<string>();
+  public get reportMetrics() {
+    const ready = this.reportsState === 'ready';
+    return [
+      { label: 'Tổng báo cáo', value: ready ? this.communityReports.length : '—', icon: 'bi-file-earmark-text', tone: 'blue' },
+      { label: 'Chờ kiểm duyệt', value: ready ? this.pendingCommunityReportCount : '—', icon: 'bi-clock', tone: 'amber' },
+      { label: 'Đã xử lý', value: ready ? this.communityReports.filter(r => r.status !== 'pending').length : '—', icon: 'bi-check-circle', tone: 'green' },
+      { label: 'Vi phạm', value: ready ? this.communityReports.filter(r => r.hidden).length : '—', icon: 'bi-exclamation-triangle', tone: 'red' }
+    ];
+  }
+  public get reportReasons(): string[] { return [...new Set(this.communityReports.map(r => r.reasonLabel))].filter(Boolean); }
+  public get allPageReportsSelected(): boolean { return this.pageRows.length > 0 && this.pageRows.every(row => this.selectedReportIds.has(row.id)); }
+  public toggleReportSelection(id: string) { this.selectedReportIds.has(id) ? this.selectedReportIds.delete(id) : this.selectedReportIds.add(id); }
+  public togglePageReportSelection() {
+    const remove = this.allPageReportsSelected;
+    for (const row of this.pageRows) remove ? this.selectedReportIds.delete(row.id) : this.selectedReportIds.add(row.id);
+  }
+  public reportStatusLabel(status: string): string {
+    return ({ pending: 'Chờ kiểm duyệt', hidden: 'Đã ẩn', dismissed: 'Giữ nội dung', restored: 'Đã khôi phục' } as Record<string, string>)[status] || status;
+  }
+  public reviewTarget: any = null;
+  public reviewAction = 'hide';
+  public reviewNote = '';
+  public reviewError = '';
+  public reviewing = false;
+
+  public async loadReports() {
+    const result = await this.apiService.getCommunityReports();
+    if (this.destroyed) return;
+    this.communityReports = result.data;
+    this.reportsState = result.available ? 'ready' : 'unavailable';
+    this.cdr.detectChanges();
+  }
+  public openReportReview(report: any) {
+    if (this.isPreviewMode) return;
+    this.reviewTarget = report;
+    this.reviewAction = report.deleted ? 'dismiss' : report.hidden ? 'restore' : 'hide';
+    this.reviewNote = ''; this.reviewError = '';
+  }
+  public async submitReportReview(event: Event) {
+    event.preventDefault();
+    if (!this.reviewTarget || this.reviewing || this.reviewNote.trim().length < 5) return;
+    this.reviewing = true; this.reviewError = '';
+    try {
+      await this.apiService.reviewCommunityReport(this.reviewTarget.id, this.reviewAction, this.reviewNote.trim());
+      this.reviewTarget = null;
+      this.apiService.clearCache('community_posts_');
+      await this.loadReports();
+    } catch (error: any) { this.reviewError = error?.error?.message || 'Không lưu được quyết định. Vui lòng thử lại.'; }
+    finally { this.reviewing = false; this.cdr.detectChanges(); }
+  }
+  public moderationMediaUrl(url: string): string {
+    if (!url) return '';
+    return url.startsWith('/uploads/') ? (['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055' : 'https://greensteps-6swn.onrender.com') + url : url;
+  }
+  public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [] };
+  public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading' };
+  private refreshTimer?: ReturnType<typeof setInterval>;
+  private refreshing = false;
+  private destroyed = false;
+  public get isCatalogTab(): boolean { return ['services', 'tours', 'promotions', 'allBookings'].includes(this.activeTab); }
   @ViewChild('globalSearchInput') globalSearchInput?: ElementRef<HTMLInputElement>;
 
   public activeSection = 'overview';
@@ -58,7 +128,7 @@ export class AdminComponent implements OnInit {
   public globalSearch = '';
   public queueSearch = '';
   public currentPage = 1;
-  public readonly pageSize = 5;
+  public get pageSize(): number { return this.activeTab === 'reports' ? this.reportsPageSize : 5; }
   public isDateMenuOpen = false;
   public isNotificationMenuOpen = false;
   public isCreateMenuOpen = false;
@@ -79,10 +149,11 @@ export class AdminComponent implements OnInit {
     { id: 'users', label: 'Người dùng', icon: 'bi-people' },
     { id: 'providers', label: 'Nhà cung cấp', icon: 'bi-shop-window', tab: 'providers', badgeKey: 'providers' },
     { id: 'services', label: 'Dịch vụ & Tiêu chí xanh', icon: 'bi-tree', tab: 'services' },
+    { id: 'tours', label: 'Tour', icon: 'bi-map', tab: 'tours' },
     { id: 'bookings', label: 'Booking', icon: 'bi-calendar2-check', tab: 'bookings', badgeKey: 'bookings' },
     { id: 'transactions', label: 'Giao dịch & Hoàn tiền', icon: 'bi-currency-exchange', tab: 'deposits' },
     { id: 'withdrawals', label: 'Yêu cầu rút tiền', icon: 'bi-wallet2', tab: 'withdrawals', badgeKey: 'withdrawals' },
-    { id: 'promotions', label: 'Khuyến mãi & Quảng cáo', icon: 'bi-megaphone' },
+    { id: 'promotions', label: 'Khuyến mãi & Quảng cáo', icon: 'bi-megaphone', tab: 'promotions' },
     { id: 'community', label: 'Nội dung cộng đồng', icon: 'bi-chat-square-text', tab: 'reports' },
     { id: 'support', label: 'Khiếu nại & Hỗ trợ', icon: 'bi-headset' },
     { id: 'settings', label: 'Danh mục & Cấu hình', icon: 'bi-sliders' },
@@ -94,6 +165,9 @@ export class AdminComponent implements OnInit {
   public readonly managementTabs: { id: AdminTab; label: string; icon: string; badgeKey?: QueueKey }[] = [
     { id: 'providers', label: 'Nhà cung cấp', icon: 'bi-shop-window', badgeKey: 'providers' },
     { id: 'services', label: 'Dịch vụ', icon: 'bi-tree' },
+    { id: 'tours', label: 'Tour', icon: 'bi-map' },
+    { id: 'promotions', label: 'Khuyến mãi', icon: 'bi-megaphone' },
+    { id: 'allBookings', label: 'Tất cả booking', icon: 'bi-calendar2' },
     { id: 'bookings', label: 'Booking', icon: 'bi-calendar2-check', badgeKey: 'bookings' },
     { id: 'deposits', label: 'Nạp tiền', icon: 'bi-arrow-down-left-circle' },
     { id: 'refunds', label: 'Hoàn tiền', icon: 'bi-arrow-counterclockwise' },
@@ -125,6 +199,24 @@ export class AdminComponent implements OnInit {
 
     this.currentUser = user;
     await this.loadAllData();
+    if (!this.destroyed && !this.isPreviewMode) this.refreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') void this.loadAllData();
+    }, 15000);
+  }
+
+  ngOnDestroy() { this.destroyed = true; if (this.refreshTimer) clearInterval(this.refreshTimer); }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange() {
+    if (!this.destroyed && this.currentUser && !this.isPreviewMode && document.visibilityState === 'visible') void this.loadAllData();
+  }
+
+  public async loadCatalog(kind: CatalogKey) {
+    const result = await this.apiService.getAdminCatalog(kind);
+    if (this.destroyed) return;
+    this.catalog[kind] = result.data;
+    this.catalogState[kind] = result.available ? 'ready' : 'unavailable';
+    this.cdr.detectChanges();
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -204,17 +296,21 @@ export class AdminComponent implements OnInit {
   public confirmDialog() { this.customDialog?.onConfirm?.(); }
 
   private async loadAllData() {
+    if (this.refreshing || this.destroyed) return;
     if (this.isPreviewMode) {
       this.loadPreviewData();
       return;
     }
-    await Promise.all([
+    this.refreshing = true;
+    try { await Promise.all([
       this.loadProviders(),
       this.loadDeposits(),
       this.loadWithdrawals(),
       this.loadWallets(),
-      this.loadBookings()
-    ]);
+      this.loadBookings(),
+      this.loadReports(),
+      ...(['services', 'tours', 'promotions', 'allBookings'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
+    ]); } finally { this.refreshing = false; }
   }
 
   private loadPreviewData() {
@@ -290,8 +386,10 @@ export class AdminComponent implements OnInit {
   }
 
   public get currentQueueState(): QueueState | 'unsupported' {
-    if (this.activeTab === 'services' || this.activeTab === 'refunds' || this.activeTab === 'reports') return 'unsupported';
-    return this.queueState[this.activeTab];
+    if (this.activeTab === 'reports') return this.reportsState;
+    if (this.isCatalogTab) return this.catalogState[this.activeTab as CatalogKey];
+    if (this.activeTab === 'refunds') return 'unsupported';
+    return this.queueState[this.activeTab as QueueKey];
   }
 
   public get currentQueueCount(): number | null {
@@ -302,6 +400,9 @@ export class AdminComponent implements OnInit {
     return {
       providers: 'Yêu cầu phê duyệt nhà cung cấp',
       services: 'Dịch vụ và tiêu chí xanh',
+      tours: 'Danh sách tour',
+      promotions: 'Khuyến mãi và mã giảm giá',
+      allBookings: 'Tất cả booking',
       bookings: 'Booking cần xử lý',
       deposits: 'Yêu cầu nạp tiền',
       refunds: 'Yêu cầu hoàn tiền',
@@ -312,6 +413,12 @@ export class AdminComponent implements OnInit {
   }
 
   public get activeTableColumns(): AdminTableColumn[] {
+    if (this.activeTab === 'reports') return [{ key: 'name', label: 'Tác giả' }, { key: 'serviceType', label: 'Nội dung' }, { key: 'detail', label: 'Lý do và nội dung báo cáo' }, { key: 'date', label: 'Ngày báo cáo' }, { key: 'status', label: 'Trạng thái' }];
+    if (this.isCatalogTab) return [
+      { key: 'id', label: 'Mã' }, { key: 'name', label: 'Tên' }, { key: 'detail', label: 'Thông tin' },
+      { key: 'amount', label: this.activeTab === 'promotions' ? 'Mức giảm' : 'Giá trị' },
+      { key: 'date', label: 'Ngày tạo' }, { key: 'status', label: 'Trạng thái' }
+    ];
     if (this.activeTab === 'providers') return [
       { key: 'id', label: 'Mã hồ sơ' }, { key: 'name', label: 'Nhà cung cấp / Doanh nghiệp' },
       { key: 'account', label: 'Tài khoản' }, { key: 'date', label: 'Ngày gửi' },
@@ -329,7 +436,11 @@ export class AdminComponent implements OnInit {
 
   public get filteredRows(): AdminTableRow[] {
     const query = this.queueSearch.trim().toLocaleLowerCase('vi');
-    const rows = this.getQueueItems().map(item => this.toTableRow(item));
+    const rows = this.getQueueItems().filter(item => this.activeTab !== 'reports' || (
+      (this.reportStatusFilter === 'all' || item.status === this.reportStatusFilter)
+      && (this.reportTypeFilter === 'all' || item.targetType === this.reportTypeFilter)
+      && (this.reportReasonFilter === 'all' || item.reasonLabel === this.reportReasonFilter)
+    )).map(item => this.toTableRow(item));
     if (!query) return rows;
     return rows.filter(row => `${row.id} ${row.name} ${row.account} ${row.detail} ${row.status}`.toLocaleLowerCase('vi').includes(query));
   }
@@ -392,6 +503,8 @@ export class AdminComponent implements OnInit {
   }
 
   public async refreshActiveQueue() {
+    if (this.activeTab === 'reports') { await this.loadReports(); return; }
+    if (this.isCatalogTab) { await this.loadCatalog(this.activeTab as CatalogKey); return; }
     switch (this.activeTab) {
       case 'providers': await this.loadProviders(); break;
       case 'deposits': await this.loadDeposits(); break;
@@ -431,7 +544,9 @@ export class AdminComponent implements OnInit {
   public approveDeposit(id: string) {
     if (this.isPreviewMode) return;
     this.showConfirm('Xác nhận đã nhận tiền nạp và duyệt giao dịch này?', async () => {
-      const success = await this.apiService.approveDeposit(id);
+      const verificationReference = window.prompt('Nhập mã đối soát ngân hàng đã xác minh (tối thiểu 8 ký tự):');
+      if (!verificationReference || verificationReference.trim().length < 8) return;
+      const success = await this.apiService.approveDeposit(id, verificationReference.trim());
       if (success) { this.showAlert('Đã duyệt nạp tiền.', 'success'); await this.loadDeposits(); }
       else this.showAlert('Phê duyệt thất bại.', 'error');
     });
@@ -449,7 +564,9 @@ export class AdminComponent implements OnInit {
   public approveWithdrawal(id: string) {
     if (this.isPreviewMode) return;
     this.showConfirm('Xác nhận đối soát và duyệt yêu cầu rút tiền này?', async () => {
-      const success = await this.apiService.approveWithdrawal(id);
+      const verificationReference = window.prompt('Nhập mã đối soát ngân hàng đã xác minh (tối thiểu 8 ký tự):');
+      if (!verificationReference || verificationReference.trim().length < 8) return;
+      const success = await this.apiService.approveWithdrawal(id, verificationReference.trim());
       if (success) { this.showAlert('Đã duyệt yêu cầu rút tiền.', 'success'); await this.loadWithdrawals(); }
       else this.showAlert('Phê duyệt thất bại.', 'error');
     });
@@ -562,8 +679,10 @@ export class AdminComponent implements OnInit {
   }
 
   private getQueueItems(): any[] {
-    if (this.activeTab === 'services' || this.activeTab === 'refunds' || this.activeTab === 'reports') return [];
-    return this.queueFor(this.activeTab);
+    if (this.activeTab === 'reports') return this.communityReports;
+    if (this.isCatalogTab) return this.catalog[this.activeTab as CatalogKey];
+    if (this.activeTab === 'refunds') return [];
+    return this.queueFor(this.activeTab as QueueKey);
   }
 
   private toTableRow(item: any): AdminTableRow {
@@ -571,6 +690,11 @@ export class AdminComponent implements OnInit {
       id: String(item.id || '—'), actionId: String(item.id || ''), name: '—', account: '—', detail: '—', date: this.formatDate(item.createdAt || item.date),
       status: item.status || 'Chờ xử lý', serviceType: '—', documents: '—', revenue: '—', cancellationRate: '—', rating: '—', priority: '—', amount: this.formatMoney(item.amount ?? item.value), raw: item
     };
+    if (this.activeTab === 'reports') return { ...common, name: item.author, serviceType: item.targetType === 'post' ? 'Bài viết / video' : 'Bình luận', detail: `${item.reasonLabel}: ${item.details || ''} · ${item.text || ''}`, status: ({ pending: 'Chờ kiểm duyệt', hidden: 'Đã ẩn', dismissed: 'Giữ nội dung', restored: 'Đã khôi phục' } as Record<string, string>)[item.status] || item.status };
+    if (this.isCatalogTab) return { ...common, name: item.name || '—', detail: item.detail || '—',
+      status: item.status || '—', amount: this.activeTab === 'promotions'
+        ? (item.discount_type === 'percent' ? `${item.discount_value}%` : this.formatMoney(item.discount_value))
+        : this.formatMoney(item.value) };
     switch (this.activeTab) {
       case 'providers':
         return { ...common, actionId: String(item.User?.id || ''), name: item.User?.fullname || '—', account: item.User?.username ? `@${item.User.username}` : '—', detail: item.text || '—', status: 'Chờ duyệt', serviceType: '—', documents: 'Chưa có dữ liệu', revenue: '—', cancellationRate: '—', rating: '—', priority: '—' };

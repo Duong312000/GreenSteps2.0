@@ -1,4 +1,6 @@
 <main class="gs-community">
+  <div class="gs-safety-bar"><span><i class="bi bi-shield-check"></i> Chia sẻ có trách nhiệm, kết nối an toàn.</span><button type="button" (click)="openStandards()">Tiêu chuẩn cộng đồng <i class="bi bi-arrow-up-right"></i></button></div>
+  <div class="gs-moderation-notice" *ngIf="moderationMessage" role="status">{{ moderationMessage }}<button type="button" (click)="moderationMessage = ''" aria-label="Đóng thông báo">×</button></div>
   <div class="gs-community-grid">
     <section class="gs-feed" aria-label="Bảng tin cộng đồng">
       <div class="gs-composer-launch" role="button" tabindex="0" (click)="openComposer('post')" (keydown.enter)="openComposer('post')">
@@ -44,9 +46,9 @@
           </div>
           <span class="gs-post-kind" *ngIf="post.postType === 'question'"><i class="bi bi-patch-question-fill"></i> Hỏi đáp</span>
           <span class="gs-post-kind gs-reel-kind" *ngIf="post.postType === 'reel'"><i class="bi bi-play-fill"></i> Thước phim</span>
-          <details class="gs-post-menu" *ngIf="post.authorId === userId">
+          <details class="gs-post-menu">
             <summary aria-label="Tùy chọn bài viết"><i class="bi bi-three-dots"></i></summary>
-            <div class="gs-post-menu-pop"><button type="button" (click)="editPost(post)"><i class="bi bi-pencil"></i> Chỉnh sửa</button><button type="button" class="danger" (click)="deletePost(post)"><i class="bi bi-trash"></i> Xóa bài</button></div>
+            <div class="gs-post-menu-pop"><button *ngIf="post.authorId === userId" type="button" (click)="editPost(post)"><i class="bi bi-pencil"></i> Chỉnh sửa</button><button *ngIf="post.authorId === userId" type="button" class="danger" (click)="deletePost(post)"><i class="bi bi-trash"></i> Xóa bài</button><button *ngIf="post.authorId !== userId" type="button" class="danger" (click)="openReport('post', post.id)"><i class="bi bi-flag"></i> Báo cáo vi phạm</button><button type="button" (click)="openStandards()">Tiêu chuẩn cộng đồng</button></div>
           </details>
         </header>
 
@@ -90,9 +92,10 @@
                 <div class="gs-comment-controls">
                   <button type="button" *ngIf="post.postType === 'question'" [class.active]="comment.isHelpful" (click)="markHelpful(comment, post.id)"><i class="bi bi-check2-circle"></i> Hữu ích · {{ comment.helpfulCount || 0 }}</button>
                   <button type="button" (click)="toggleReply(comment.id)">Trả lời</button>
+                  <button type="button" *ngIf="comment.user?.id !== userId" (click)="openReport('comment', comment.id)"><i class="bi bi-flag"></i> Báo cáo</button>
                 </div>
                 <form class="gs-reply-form" *ngIf="replyTo[comment.id]" (submit)="submitComment(post, comment.id); $event.preventDefault()"><input [(ngModel)]="replyDrafts[comment.id]" name="reply-{{comment.id}}" placeholder="Viết câu trả lời..." maxlength="2000"><button type="submit" aria-label="Gửi trả lời"><i class="bi bi-send-fill"></i></button></form>
-                <div class="gs-reply" *ngFor="let reply of comment.replies"><strong>{{ reply.user?.fullname }}</strong><p>{{ reply.text }}</p></div>
+                <div class="gs-reply" *ngFor="let reply of comment.replies"><strong>{{ reply.user?.fullname }}</strong><p>{{ reply.text }}</p><button class="gs-report-reply" type="button" *ngIf="reply.user?.id !== userId" (click)="openReport('comment', reply.id)">Báo cáo</button></div>
               </div>
             </div>
             <form class="gs-comment-form" (submit)="submitComment(post); $event.preventDefault()"><div class="gs-avatar gs-avatar-small"><span>{{ firstLetter(currentUser?.fullname || 'G') }}</span></div><input [(ngModel)]="commentDrafts[post.id]" name="comment-{{post.id}}" [placeholder]="post.postType === 'question' ? 'Chia sẻ câu trả lời hữu ích...' : 'Viết bình luận...'" maxlength="2000"><button type="submit" aria-label="Gửi bình luận"><i class="bi bi-send-fill"></i></button></form>
@@ -154,6 +157,31 @@
       <video class="gs-draft-video" *ngIf="draftVideo" [src]="mediaUrl(draftVideo)" controls playsinline></video>
       <p class="gs-form-error" *ngIf="errorMessage">{{ errorMessage }}</p>
       <footer class="gs-modal-actions"><button type="button" class="gs-cancel-button" (click)="closeComposer()">Hủy</button><button type="submit" class="gs-primary-button" [disabled]="submitting || mediaUploading">{{ submitting ? 'Đang đăng...' : editTarget ? 'Lưu thay đổi' : 'Đăng bài' }} <i class="bi bi-send-fill"></i></button></footer>
+      <p class="gs-standards-hint">Khi đăng, bạn đồng ý tuân thủ <button type="button" (click)="openStandards()">tiêu chuẩn cộng đồng</button>.</p>
+    </form>
+  </section>
+</div>
+
+<div class="gs-modal-backdrop" *ngIf="standardsOpen" (click)="standardsOpen = false">
+  <section class="gs-composer-modal gs-safety-modal" role="dialog" aria-modal="true" aria-labelledby="gs-standards-title" (click)="$event.stopPropagation()">
+    <header class="gs-modal-head"><h2 id="gs-standards-title">Tiêu chuẩn cộng đồng</h2><button type="button" (click)="standardsOpen = false" aria-label="Đóng"><i class="bi bi-x-lg"></i></button></header>
+    <div class="gs-safety-body"><p>Cùng xây dựng cộng đồng du lịch xanh, trung thực và tôn trọng nhau. Áp dụng cho bài viết, hình ảnh, video, câu hỏi và bình luận.</p>
+      <p role="alert" *ngIf="standardsError">{{ standardsError }} <button type="button" (click)="openStandards()">Thử lại</button></p>
+      <article *ngFor="let rule of standards"><h3>{{ rule.title }}</h3><p>{{ rule.description }}</p></article>
+      <p>Bạn có thể báo cáo nội dung qua menu ba chấm hoặc nút Báo cáo ở bình luận. Quản trị viên sẽ xem xét, ghi lý do và có thể ẩn hoặc khôi phục nội dung. Danh tính người báo cáo không hiển thị công khai.</p>
+    </div>
+  </section>
+</div>
+<div class="gs-modal-backdrop" *ngIf="reportTarget" (click)="!reporting && (reportTarget = null)">
+  <section class="gs-composer-modal gs-safety-modal" role="dialog" aria-modal="true" aria-labelledby="gs-report-title" (click)="$event.stopPropagation()">
+    <header class="gs-modal-head"><h2 id="gs-report-title">Báo cáo nội dung vi phạm</h2><button type="button" [disabled]="reporting" (click)="reportTarget = null" aria-label="Đóng"><i class="bi bi-x-lg"></i></button></header>
+    <form class="gs-safety-body" (submit)="submitReport($event)">
+      <p>Chọn lý do phù hợp. Báo cáo được gửi riêng cho quản trị viên để xem xét.</p>
+      <p *ngIf="standardsError" role="alert">{{ standardsError }} <button type="button" (click)="openReport(reportTarget.type, reportTarget.id)">Thử lại</button></p>
+      <label class="gs-report-option" *ngFor="let rule of standards"><input type="radio" name="reportReason" [value]="rule.id" [(ngModel)]="reportReason" required><span>{{ rule.title }}</span></label>
+      <label class="gs-report-details">Mô tả thêm {{ reportReason === 'other' ? '(bắt buộc)' : '(không bắt buộc)' }}<textarea name="reportDetails" [(ngModel)]="reportDetails" maxlength="1000" [minlength]="reportReason === 'other' ? 10 : 0" [required]="reportReason === 'other'" rows="3" placeholder="Thông tin giúp quản trị viên xem xét nội dung..."></textarea></label>
+      <p class="gs-report-error" role="alert" *ngIf="reportError">{{ reportError }}</p>
+      <footer class="gs-modal-actions"><button type="button" class="gs-cancel-button" [disabled]="reporting" (click)="reportTarget = null">Hủy</button><button type="submit" class="gs-primary-button" [disabled]="reporting || !reportReason">{{ reporting ? 'Đang gửi...' : 'Gửi báo cáo' }}</button></footer>
     </form>
   </section>
 </div>

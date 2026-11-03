@@ -330,7 +330,19 @@ class MongoStore {
       }
     }
     for (const model of Object.values(this.models)) {
-      await model.collection.createIndex({ id: 1 }, { unique: true, sparse: true });
+      try {
+        await model.collection.createIndex({ id: 1 }, { unique: true, sparse: true });
+      } catch (error) {
+        if (![85, 86].includes(error.code) && !['IndexOptionsConflict', 'IndexKeySpecsConflict'].includes(error.codeName)) throw error;
+        // A full unique ID index enforces at least the same uniqueness as a sparse
+        // one. Keep it rather than dropping an existing index or touching records.
+        const indexes = await model.collection.listIndexes().toArray();
+        const compatible = indexes.some(index => index.name === 'id_1'
+          && index.key?.id === 1 && Object.keys(index.key).length === 1
+          && index.unique === true && !index.partialFilterExpression
+          && !index.collation && index.expireAfterSeconds === undefined);
+        if (!compatible) throw error;
+      }
       for (const [key, field] of Object.entries(model.fields)) {
         if (field.unique || model.uniqueKeys?.includes(key)) {
           const indexOptions = field.allowNull === true ? { unique: true, partialFilterExpression: { [key]: { $type: 'string' } } } : { unique: true, sparse: true };

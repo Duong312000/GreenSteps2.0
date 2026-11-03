@@ -7,6 +7,7 @@ import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { Tour, User } from '../../models/models';
+import { bookingDate } from '../../utils/booking-date';
 
 type BookingFor = 'self' | 'other';
 type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter';
@@ -56,6 +57,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   private paymentSuccessToastTimer: any = null;
   public walletRegistered = false;
   public walletBalance = 0;
+  public voucherCode = '';
   
   public isNewUserCreated = false;
   public newUsername = '';
@@ -99,8 +101,8 @@ export class BookingComponent implements OnInit, OnDestroy {
     hotelId: 'hotel_dahlia_dalat',
     roomId: 'premium_double_window',
     tourId: '',
-    checkIn: '2026-06-15',
-    checkOut: '2026-06-18',
+    checkIn: bookingDate(),
+    checkOut: bookingDate(3),
     guestCount: 2,
     roomCount: 1
   };
@@ -543,6 +545,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     const bookingType = isService ? 'service' : this.isItineraryBooking() ? 'itinerary' : 'tour';
 
     const bookingData: any = {
+      voucher_code: this.voucherCode.trim().toUpperCase() || undefined,
       user_id: userId,
       kind: bookingType,
       target_id: targetId,
@@ -721,7 +724,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   private openPendingPayment(res: any, method: 'bank' | 'card') {
     this.currentBookingId = res.bookingId;
     this.paymentStatus = 'pending';
-    this.qrAmount = this.depositAmount;
+    this.qrAmount = res.payment?.amount ?? this.depositAmount;
     this.qrDescription = res.payment?.transfer_reference || res.bookingCode || this.currentBookingId;
     this.qrExpiresAt = res.payment?.expires_at || new Date(Date.now() + 600000).toISOString();
     this.qrCountdown = Math.max(0, Math.ceil((new Date(this.qrExpiresAt).getTime() - Date.now()) / 1000));
@@ -1154,6 +1157,14 @@ export class BookingComponent implements OnInit, OnDestroy {
       guestCount: Number(query.get('guestCount') || (isItinerary ? 1 : this.bookingContext.guestCount)),
       roomCount: Number(query.get('roomCount') || this.bookingContext.roomCount)
     };
+    const today = bookingDate();
+    if (!this.bookingContext.checkIn || this.bookingContext.checkIn < today) {
+      const previousStart = new Date(`${this.bookingContext.checkIn}T12:00:00`);
+      const previousEnd = new Date(`${this.bookingContext.checkOut}T12:00:00`);
+      const days = Math.max(1, Math.round((previousEnd.getTime() - previousStart.getTime()) / 86400000) || 1);
+      this.bookingContext.checkIn = today;
+      this.bookingContext.checkOut = bookingDate(days);
+    }
   }
 
   private prefillUserInfo(user: User | null) {

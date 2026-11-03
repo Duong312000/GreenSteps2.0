@@ -17,9 +17,15 @@ export class ApiService {
     ? 'http://localhost:5055/api' 
     : 'https://greensteps-6swn.onrender.com/api';
 
+  walletRequest(method: string, path: string, body?: unknown, key?: string): Promise<any> {
+    return firstValueFrom(this.http.request(method, `${this.BACKEND_URL}/wallet${path}`, { body, withCredentials: true, headers: key ? { 'Idempotency-Key': key } : {} }));
+  }
+
   private cache = new Map<string, { data: any; expiry: number }>();
 
   private getCachedData(key: string): any | null {
+    // Shared records may be updated from another account or browser session.
+    if (/^(community_posts_|preset_tour|services_|service_detail_|recommended_|destinations_|itinerar|wallet_info_|transactions_)/.test(key)) return null;
     const cached = this.cache.get(key);
     if (!cached) return null;
     if (Date.now() > cached.expiry) {
@@ -396,7 +402,7 @@ export class ApiService {
     try {
       this.clearCache(`wallet_info_${userId}`);
       this.clearCache(`transactions_${userId}`);
-      const res = await firstValueFrom(this.http.post<{ success: boolean; balance: number; message?: string }>(`${this.BACKEND_URL}/wallet/deposit`, { userId, amount }));
+      const res = await firstValueFrom(this.http.post<{ success: boolean; balance: number; message?: string }>(`${this.BACKEND_URL}/wallet/deposit`, { userId, amount }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }));
       return res;
     } catch (e) {
       return { success: false, balance: 0 };
@@ -450,7 +456,8 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<WalletTransaction[]>(`${this.BACKEND_URL}/wallet/transactions/${userId}`));
+      const response = await firstValueFrom(this.http.get<WalletTransaction[] | { transactions: WalletTransaction[] }>(`${this.BACKEND_URL}/wallet/transactions/${userId}`));
+      const data = Array.isArray(response) ? response : response.transactions || [];
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
@@ -852,7 +859,7 @@ export class ApiService {
   public async requestWithdrawal(amount: number, bankName: string, bankAccount: string, accountHolder: string): Promise<{ success: boolean; message: string }> {
     try {
       return await firstValueFrom(
-        this.http.post<any>(`${this.BACKEND_URL}/wallet/withdraw`, { amount, bankName, bankAccount, accountHolder })
+        this.http.post<any>(`${this.BACKEND_URL}/wallet/withdraw`, { amount, bankName, bankAccount, accountHolder }, { headers: { 'Idempotency-Key': crypto.randomUUID() } })
       );
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi gửi yêu cầu rút tiền!' };
@@ -901,7 +908,7 @@ export class ApiService {
   public async redeemVoucher(): Promise<{ success: boolean; message: string; voucher?: any; remainingPoints?: number }> {
     try {
       return await firstValueFrom(
-        this.http.post<any>(`${this.BACKEND_URL}/vouchers/redeem`, {})
+        this.http.post<any>(`${this.BACKEND_URL}/vouchers/redeem`, {}, { headers: { 'Idempotency-Key': crypto.randomUUID() } })
       );
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi quy đổi điểm xanh!' };
@@ -986,6 +993,19 @@ export class ApiService {
   }
 
   // Admin APIs
+  public getCommunityStandards(): Promise<Array<{id: string; title: string; description: string}>> {
+    return firstValueFrom(this.http.get<Array<{id: string; title: string; description: string}>>(`${this.BACKEND_URL}/community/standards`));
+  }
+  public reportCommunityContent(targetType: string, targetId: string, reason: string, details: string): Promise<any> {
+    return firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/reports`, { targetType, targetId, reason, details }, { withCredentials: true }));
+  }
+  public getCommunityReports(): Promise<AdminQueueResult<any>> { return this.getAdminQueue('/community/reports'); }
+  public reviewCommunityReport(id: string, action: string, note: string): Promise<any> {
+    return firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/reports/${id}/review`, { action, note }, { withCredentials: true }));
+  }
+  public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings'): Promise<AdminQueueResult<any>> {
+    return this.getAdminQueue(`/admin/catalog/${kind}`);
+  }
   private async getAdminQueue<T>(path: string, wrapperKey?: string, pendingOnly = false): Promise<AdminQueueResult<T>> {
     try {
       const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}${path}`, { withCredentials: true }));
@@ -1046,9 +1066,9 @@ export class ApiService {
     }
   }
 
-  public async approveDeposit(id: string): Promise<boolean> {
+  public async approveDeposit(id: string, verificationReference: string): Promise<boolean> {
     try {
-      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/wallet/deposits/${id}/approve`, {}, { withCredentials: true }));
+      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/wallet/deposits/${id}/approve`, { verificationReference }, { withCredentials: true }));
       return true;
     } catch (e) {
       return false;
@@ -1069,9 +1089,9 @@ export class ApiService {
     return result.data;
   }
 
-  public async approveWithdrawal(id: string): Promise<boolean> {
+  public async approveWithdrawal(id: string, verificationReference: string): Promise<boolean> {
     try {
-      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/wallet/withdrawals/${id}/approve`, {}, { withCredentials: true }));
+      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/wallet/withdrawals/${id}/approve`, { verificationReference }, { withCredentials: true }));
       return true;
     } catch (e) {
       return false;

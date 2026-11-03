@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Tour, Itinerary } from '../../models/models';
+import { bookingDate } from '../../utils/booking-date';
 
 @Component({
   selector: 'app-tour-detail',
@@ -41,7 +42,11 @@ export class TourDetailComponent implements OnInit {
   public isServiceDetail: boolean = false;
 
   // Booking details
-  public bookingDate: string = '2026-06-15';
+  public bookingDate: string = bookingDate();
+  public get minBookingDate(): string { return bookingDate(); }
+  public validateBookingDate() {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.bookingDate) || this.bookingDate < this.minBookingDate) this.bookingDate = this.minBookingDate;
+  }
   public bookingGuests: number = 2;
   public bookingAdults: number = 2;
   public bookingChildren: number = 0;
@@ -370,10 +375,11 @@ export class TourDetailComponent implements OnInit {
     event.preventDefault();
     if (!this.activeTour) return;
 
+    this.validateBookingDate();
     const checkIn = this.bookingDate;
-    const checkOutDate = new Date(checkIn);
+    const checkOutDate = new Date(`${checkIn}T12:00:00`);
     checkOutDate.setDate(checkOutDate.getDate() + Math.max(this.activeTour.days - 1, 1));
-    const checkOut = checkOutDate.toISOString().slice(0, 10);
+    const checkOut = bookingDate(0, checkOutDate);
 
     const bookingContext = {
       hotelId: `hotel_${this.activeTour.destination || 'greensteps'}`.toLowerCase().replace(/\s+/g, '_'),

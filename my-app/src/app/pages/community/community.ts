@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
@@ -15,6 +15,48 @@ type ComposerType = 'post' | 'reel' | 'question';
   styleUrl: './community.css'
 })
 export class CommunityComponent implements OnInit {
+  public standards: Array<{id: string; title: string; description: string}> = [];
+  public standardsOpen = false;
+  public standardsError = '';
+  public reportTarget: { type: 'post' | 'comment'; id: string } | null = null;
+  public reportReason = '';
+  public reportDetails = '';
+  public reportError = '';
+  public reporting = false;
+  public moderationMessage = '';
+
+  @HostListener('document:keydown.escape')
+  closeSafetyDialog(): void {
+    if (this.standardsOpen) this.standardsOpen = false;
+    else if (!this.reporting) this.reportTarget = null;
+  }
+
+  async openStandards(): Promise<void> {
+    this.standardsOpen = true;
+    await this.loadStandards();
+  }
+  private async loadStandards(): Promise<void> {
+    this.standardsError = '';
+    try { this.standards = await this.api.getCommunityStandards(); }
+    catch { this.standardsError = 'Không tải được tiêu chuẩn cộng đồng. Vui lòng thử lại.'; }
+    this.cdr.markForCheck();
+  }
+  async openReport(type: 'post' | 'comment', id: string): Promise<void> {
+    if (!this.requireLogin()) return;
+    this.reportTarget = { type, id }; this.reportReason = ''; this.reportDetails = ''; this.reportError = '';
+    await this.loadStandards();
+  }
+  async submitReport(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.reportTarget || this.reporting || !this.reportReason) return;
+    this.reporting = true; this.reportError = '';
+    try {
+      const result = await this.api.reportCommunityContent(this.reportTarget.type, this.reportTarget.id, this.reportReason, this.reportDetails);
+      this.moderationMessage = result.message;
+      this.reportTarget = null;
+    } catch (error: any) { this.reportError = error?.error?.message || 'Không gửi được báo cáo. Vui lòng thử lại.'; }
+    finally { this.reporting = false; this.cdr.markForCheck(); }
+  }
   private readonly destroyRef = inject(DestroyRef);
   public currentUser: User | null = null;
   public posts: CommunityPost[] = [];

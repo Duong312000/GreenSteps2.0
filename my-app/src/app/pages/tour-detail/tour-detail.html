@@ -102,17 +102,17 @@
             </div>
 
             <div class="price-block">
-                <span>Từ</span>
+                <span>Tổng tiền · {{ totalGuests }} khách</span>
                 <div>
-                    <strong>{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong>
-                    <del>{{ displayOldCost | number:'1.0-0':'vi-VN' }}đ</del>
+                    <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
+                    <del>{{ displayOldCost * totalGuests | number:'1.0-0':'vi-VN' }}đ</del>
                 </div>
             </div>
 
             <form class="booking-form" (submit)="submitBooking($event)">
                 <label class="form-field" for="bookingDate">
                     <span>Ngày khởi hành</span>
-                    <input type="date" id="bookingDate" [(ngModel)]="bookingDate" name="bookingDate" required>
+                    <input type="date" id="bookingDate" [(ngModel)]="bookingDate" [min]="minBookingDate" (change)="validateBookingDate()" name="bookingDate" required>
                 </label>
 
                 <div class="guest-grid">
@@ -722,8 +722,8 @@
 
     <div class="mobile-booking-bar">
         <div>
-            <span>Từ</span>
-            <strong>{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong>
+            <span>Tổng tiền · {{ totalGuests }} khách</span>
+            <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
         </div>
         <button type="button" (click)="submitBooking($event)">{{ detailBookingLabel }}</button>
     </div>

@@ -1,0 +1,94 @@
+<div class="feedback error" role="alert" *ngIf="error">{{ error }} <button (click)="refresh()">Thử lại</button></div>
+<div class="feedback" role="status" *ngIf="notice">{{ notice }}</div>
+<p *ngIf="!data && !error" aria-live="polite">Đang tải ví GreenSteps…</p>
+<ng-container *ngIf="data">
+  <header class="gs-wallet-hero">
+    <img class="mountain" src="image/greensteps_wallet_mountain_bg.png" alt="">
+    <div class="hero-copy"><small>TÀI CHÍNH DU LỊCH</small><h1>Ví GreenSteps <i class="bi bi-shield-check"></i></h1><p>Quản lý số dư, điểm xanh và ưu đãi<br>trong một nơi duy nhất.</p>
+      <div class="balance"><span>Số dư khả dụng <button (click)="hidden = !hidden" aria-label="Ẩn hoặc hiện số dư"><i class="bi" [class.bi-eye]="hidden" [class.bi-eye-slash]="!hidden"></i></button></span><strong>{{ hidden ? '••••••' : (demoAvailable | number:'1.0-0':'vi-VN') + 'đ' }}</strong><small class="demo-badge">SANDBOX · Không phải tiền thật</small><small>Đang giữ: {{ data.demo?.held || 0 | number:'1.0-0':'vi-VN' }}đ</small></div>
+    </div><img class="art" src="image/greensteps_wallet_card_art.png" alt="Ví GreenSteps 3D">
+  </header>
+  <nav class="actions" aria-label="Thao tác ví">
+    <button (click)="open('deposit')"><i class="bi bi-plus-lg"></i>Nạp tiền</button><button (click)="open('moneyTransfer')"><i class="bi bi-arrow-left-right"></i>Chuyển tiền</button><button (click)="open('qr')"><i class="bi bi-qr-code-scan"></i>Quét QR</button><button (click)="open('withdraw')"><i class="bi bi-wallet2"></i>Rút tiền</button><button (click)="open('redeem')"><i class="bi bi-tag"></i>Ưu đãi</button>
+  </nav>
+  <div class="demo-toolbar"><span>Ví Sandbox · Số dư được quản lý riêng với ví thanh toán tour.</span><button *ngIf="data.demo?.can_settle" (click)="openQueue()">Quản lý giao dịch</button></div>
+  <div class="columns">
+    <article class="panel"><div class="heading"><h2>Thẻ & phương thức thanh toán</h2></div>
+      <div class="bank-card primary"><span>Ví GreenSteps <small>Mặc định</small></span><strong class="wallet-account" [title]="data.wallet.id" aria-label="Mã ví rút gọn">&bull;&bull;&bull;&bull; {{ data.wallet.id | slice:-4 }}</strong><span class="bank-card-footer"><i class="bi bi-shield-check"></i> Thanh toán bằng số dư ví</span></div><p class="booking-balance">Số dư booking hiện có: <b>{{ hidden ? '••••••' : (data.wallet.available_balance | number:'1.0-0':'vi-VN') + 'đ' }}</b><small>Số dư dùng riêng để thanh toán tour.</small></p>
+      <div class="bank-card" *ngFor="let method of data.wallet.payment_methods"><span>{{ method.bankName }} <button (click)="remove(method.id)" [disabled]="busy" aria-label="Xóa phương thức"><i class="bi bi-trash"></i></button></span><strong>•••• {{ method.last4 }}</strong><span>{{ method.accountHolder }}</span><small>{{ method.verified ? 'Đã xác minh' : 'Thông tin tham chiếu · chưa xác minh' }}</small></div>
+      <p class="muted" *ngIf="!data.wallet.payment_methods?.length">Bạn chưa lưu phương thức thanh toán.</p><button class="wallet-add-method" (click)="open('method')">+ Thêm tài khoản ngân hàng</button><p class="muted">Lưu tài khoản ngân hàng để thuận tiện khi yêu cầu rút tiền.</p>
+    </article>
+    <div class="stack"><article class="panel"><div class="heading"><h2>Điểm xanh</h2><button (click)="open('details')">Chi tiết <i class="bi bi-chevron-right"></i></button></div><div class="points"><i class="bi bi-leaf"></i><div><span>Điểm xanh khả dụng</span><strong>{{ data.wallet.green_points | number:'1.0-0':'vi-VN' }}</strong><small>Tích điểm từ booking và thử thách xanh</small></div></div><button class="reward" (click)="open('redeem')"><i class="bi bi-gift"></i><span><b>Đổi điểm khi thanh toán tour</b><small>1 điểm = {{ data.policy.pointValueVnd }}đ giảm giá</small></span><i class="bi bi-chevron-right"></i></button><button class="point-transfer-link" (click)="open('transfer')">Chuyển điểm xanh <i class="bi bi-arrow-right"></i></button></article>
+    <article class="panel"><h2>Hạng thành viên {{ data.membership.name }}</h2><div class="tier"><h3><i class="bi bi-award"></i> {{ data.membership.name }}</h3><p>{{ data.membership.points | number:'1.0-0':'vi-VN' }}<ng-container *ngIf="data.membership.next"> / {{ data.membership.next.threshold | number:'1.0-0':'vi-VN' }}</ng-container> điểm xét hạng</p><div class="track" role="progressbar" [attr.aria-valuenow]="progress" aria-valuemin="0" aria-valuemax="100" aria-label="Tiến độ xét hạng"><span [style.width.%]="progress"></span></div><small *ngIf="data.membership.next">Còn {{ data.membership.next.threshold - data.membership.points | number:'1.0-0':'vi-VN' }} điểm để lên hạng {{ data.membership.next.name }}</small><small *ngIf="!data.membership.next">Bạn đã đạt hạng cao nhất.</small></div><p class="muted">Đổi hoặc chuyển điểm không làm giảm điểm xét hạng.</p></article></div>
+    <article class="panel"><div class="heading"><h2>Giao dịch gần đây</h2><button (click)="all = !all">{{ all ? 'Thu gọn' : 'Xem tất cả' }}</button></div><div class="transaction" *ngFor="let tx of visibleTransactions" [class.demo-row]="tx.mode === 'demo'" [attr.role]="tx.mode === 'demo' ? 'button' : null" [attr.tabindex]="tx.mode === 'demo' ? 0 : null" (click)="showTransaction(tx)" (keydown.enter)="showTransaction(tx)"><i class="bi" [class.bi-leaf]="isPoints(tx)" [class.bi-wallet2]="!isPoints(tx)"></i><div><b>{{ transactionDescription(tx) }}</b><small *ngIf="!isPoints(tx) && tx.mode !== 'demo'">Ví booking hiện có</small><small class="demo-label" *ngIf="tx.mode === 'demo'">Sandbox</small><small>{{ tx.createdAt | date:'dd/MM/yyyy HH:mm' }}</small><small>{{ statusLabel(tx.status) }}</small></div><strong [class.positive]="tx.amount > 0 && (tx.status === 'SUCCESS' || tx.status === 'success')">{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | number:'1.0-0':'vi-VN' }}{{ isTierAdjustment(tx) ? ' điểm xét hạng' : isPoints(tx) ? ' điểm' : tx.mode === 'demo' ? 'đ' : 'đ' }}</strong></div><p class="muted" *ngIf="!data.transactions.length">Chưa có giao dịch. Lịch sử sẽ xuất hiện tại đây.</p><button class="point-transfer-link" *ngIf="data.demo?.account_enabled" (click)="openHistory()">Lịch sử giao dịch <i class="bi bi-arrow-right"></i></button></article>
+  </div>
+</ng-container>
+<div class="backdrop" *ngIf="modal" (click)="!busy && (modal = '')"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="wallet-dialog-title" (click)="$event.stopPropagation()"><button class="close" (click)="modal = ''" [disabled]="busy" aria-label="Đóng">×</button><h2 id="wallet-dialog-title">{{ modal === 'transfer' ? 'Chuyển điểm' : modal === 'method' ? 'Thêm tài khoản ngân hàng' : modal === 'qr' ? 'Quét QR chuyển điểm' : modal === 'details' ? 'Cách tích điểm & xét hạng' : 'Đổi điểm & ưu đãi' }}</h2>
+  <form (ngSubmit)="submit()" *ngIf="modal !== 'details'">
+    <ng-container *ngIf="modal === 'method'"><label>Ngân hàng<input name="bank" [(ngModel)]="bankName" required maxlength="120"></label><label>Số tài khoản<input name="account" [(ngModel)]="bankAccount" required pattern="[0-9]{6,30}"></label><label>Chủ tài khoản<input name="holder" [(ngModel)]="accountHolder" required maxlength="120"></label></ng-container>
+    <label *ngIf="modal === 'transfer'">Email người nhận<input type="email" name="email" [(ngModel)]="email" required></label><label *ngIf="modal === 'transfer' || modal === 'redeem'">Số điểm<input type="number" name="points" [(ngModel)]="points" required [min]="modal === 'redeem' ? 1000 : 1" step="1" [max]="data?.wallet.green_points"></label>
+    <ng-container *ngIf="modal === 'qr'"><label>QR<input type="file" accept="image/*" capture="environment" (change)="scanFile($event)" [disabled]="busy"></label><p>Dán nội dung từ trình quét QR của thiết bị. Định dạng: greensteps://points?email=nguoinhan@example.com</p><label>Nội dung QR<input name="qr" [(ngModel)]="qrText" required></label></ng-container>
+    <ng-container *ngIf="modal === 'redeem'"><p>Đổi tối thiểu {{ data?.policy.redeemMinimum | number:'1.0-0':'vi-VN' }} điểm. Nhập mã ưu đãi được tạo tại bước thanh toán booking.</p><div class="voucher" *ngFor="let v of data?.vouchers"><b>{{ v.code }}</b><small>Giảm {{ v.discount_amount || 0 | number:'1.0-0':'vi-VN' }}đ <ng-container *ngIf="!v.discount_amount">/ {{ v.discount_percent }}%</ng-container></small></div></ng-container>
+    <p role="alert" class="error" *ngIf="error">{{ error }}</p><button class="submit" type="submit" [disabled]="busy">{{ busy ? 'Đang xử lý…' : modal === 'qr' ? 'Đọc yêu cầu' : 'Xác nhận' }}</button>
+  </form><div *ngIf="modal === 'details'"><p>Mỗi {{ data?.policy.earnPerVnd | number:'1.0-0':'vi-VN' }}đ giá trị booking hoàn tất được cộng 1 điểm xanh. Mỗi booking chỉ cộng một lần.</p><p>Điểm khả dụng dùng để đổi ưu đãi hoặc chuyển cho bạn bè. Điểm xét hạng tăng từ booking hoàn tất và thử thách xanh; điểm nhận chuyển không tính xét hạng.</p><p>Explorer: 0 · Voyager: 5.000 · Guardian: 15.000 điểm xét hạng.</p></div>
+</section></div>
+<div class="backdrop" *ngIf="demoModal" (click)="!busy && (demoModal = '')" (keydown.escape)="!busy && (demoModal = '')">
+  <section class="dialog demo-dialog" role="dialog" aria-modal="true" aria-labelledby="demo-title" (click)="$event.stopPropagation()" [attr.aria-busy]="busy">
+    <button class="close" type="button" aria-label="Đóng" [disabled]="busy" (click)="demoModal = ''">×</button>
+    <span class="demo-pill">VÍ GREENSTEPS · SANDBOX</span>
+    <h2 id="demo-title">{{ demoTitle }}</h2>
+    <p class="demo-description">Kiểm tra thông tin trước khi xác nhận.</p>
+    <div class="demo-summary"><div><small>Khả dụng</small><b>{{ demoAvailable | number:'1.0-0':'vi-VN' }}đ</b></div><div><small>Đang giữ</small><b>{{ data?.demo?.held || 0 | number:'1.0-0':'vi-VN' }}đ</b></div></div>
+    <p class="feedback" *ngIf="!data?.demo?.account_enabled && ['deposit', 'withdraw', 'moneyTransfer'].includes(demoModal)">Tài khoản này chưa được bật ví thử nghiệm. Hãy sử dụng tài khoản thử nghiệm được quản trị viên cấp quyền.</p>
+    <p class="error demo-error" role="alert" *ngIf="error">{{ error }}</p>
+    <p class="muted" role="status" *ngIf="busy">Đang xử lý, vui lòng chờ…</p>
+
+    <ng-container *ngIf="data?.demo?.account_enabled && ['deposit', 'withdraw', 'moneyTransfer'].includes(demoModal)">
+      <form *ngIf="demoStep === 'edit'" (ngSubmit)="prepareDemo()">
+        <ng-container *ngIf="demoModal === 'deposit'">
+          <div class="amount-presets"><button type="button" *ngFor="let value of suggestedAmounts" [class.selected]="amount === value" (click)="amount = value">{{ value | number:'1.0-0':'vi-VN' }}đ</button></div>
+          <label>Hình thức nạp<select name="demoMethod" [(ngModel)]="demoMethod"><option value="demo_bank">Chuyển khoản</option><option value="demo_card">Thẻ ngân hàng</option></select></label>
+        </ng-container>
+        <ng-container *ngIf="demoModal === 'withdraw'">
+          <label>Tài khoản ngân hàng<select name="demoBankId" [(ngModel)]="demoBankId" required><option value="" disabled>Chọn tài khoản</option><option *ngFor="let bank of data.demo.banks" [value]="bank.id">{{ bank.label }} · {{ bank.demo_reference }}</option></select></label>
+          <details class="demo-bank-create" [open]="!data.demo.banks?.length"><summary>Thêm tài khoản</summary><label>Tên hiển thị<input name="demoBankLabel" [(ngModel)]="demoBankLabel" placeholder="Ví dụ: Tài khoản của tôi" maxlength="60"></label><p class="muted">Mã tài khoản Sandbox được hệ thống cấp.</p><button class="secondary" type="button" [disabled]="busy || !demoBankLabel.trim()" (click)="createDemoBank()">Thêm tài khoản</button></details>
+        </ng-container>
+        <ng-container *ngIf="demoModal === 'moneyTransfer'">
+          <label>Số điện thoại hoặc mã người dùng<input name="recipientQuery" [(ngModel)]="recipientQuery" (ngModelChange)="recipient = null" placeholder="Nhập chính xác thông tin người nhận" maxlength="100" required></label>
+          <button type="button" class="secondary" [disabled]="busy || !recipientQuery.trim()" (click)="findRecipient()">Tìm người nhận</button>
+          <div class="recipient-preview" *ngIf="recipient"><i class="bi bi-person-check"></i><div><b>{{ recipient.name }}</b><small>Mã người dùng: {{ recipient.id }}</small></div></div>
+          <label>Nội dung chuyển<input name="transferNote" [(ngModel)]="transferNote" maxlength="200" placeholder="Không bắt buộc"></label>
+        </ng-container>
+        <label>{{ demoModal === 'deposit' ? 'Số tiền nạp' : demoModal === 'withdraw' ? 'Số tiền rút' : 'Số tiền chuyển' }} (VND)<input type="number" name="demoAmount" [(ngModel)]="amount" min="10000" max="20000000" step="1" required></label>
+        <small class="muted">Từ 10.000đ đến 20.000.000đ.</small>
+        <button class="submit" type="submit" [disabled]="busy">Kiểm tra thông tin</button>
+      </form>
+      <div *ngIf="demoStep === 'review' && demoPayload">
+        <h3 class="review-heading">Kiểm tra trước khi xác nhận</h3>
+        <dl class="demo-facts"><dt>Số tiền</dt><dd>{{ demoPayload.amount | number:'1.0-0':'vi-VN' }}đ</dd>
+          <ng-container *ngIf="demoModal === 'deposit'"><dt>Hình thức</dt><dd>{{ demoPayload.method === 'demo_bank' ? 'Chuyển khoản' : 'Thẻ ngân hàng' }}</dd></ng-container>
+          <ng-container *ngIf="demoModal === 'withdraw'"><dt>Tài khoản</dt><dd><ng-container *ngFor="let bank of data.demo.banks"><span *ngIf="bank.id === demoPayload.bankId">{{ bank.label }} · {{ bank.demo_reference }}</span></ng-container></dd></ng-container>
+          <ng-container *ngIf="demoModal === 'moneyTransfer'"><dt>Người nhận</dt><dd>{{ recipient?.name }}<small>{{ demoPayload.recipientId }}</small></dd><dt>Nội dung</dt><dd>{{ demoPayload.note || 'Không có' }}</dd></ng-container>
+        </dl>
+        <p class="muted">{{ demoModal === 'deposit' ? 'Số dư được cập nhật sau khi bạn xác nhận đã chuyển khoản.' : demoModal === 'withdraw' ? 'Số tiền sẽ được giữ trong khi chờ xử lý. Nếu bị từ chối hoặc hủy, tiền giữ sẽ được giải phóng.' : 'Số dư sẽ được chuyển ngay sau khi bạn xác nhận.' }}</p>
+        <div class="demo-confirm-actions"><button type="button" class="secondary" [disabled]="busy" (click)="demoStep = 'edit'">Quay lại</button><button type="button" class="submit" [disabled]="busy" (click)="commitDemo()">{{ busy ? 'Đang gửi…' : 'Xác nhận' }}</button></div>
+      </div>
+    </ng-container>
+
+    <div *ngIf="demoModal === 'demoDetail' && selectedTransaction as tx">
+      <span class="tx-status" [class.success]="tx.status === 'SUCCESS'" [class.failed]="tx.status === 'FAILED' || tx.status === 'CANCELLED'">{{ statusLabel(tx.status) }}</span>
+      <h3 class="detail-amount">{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | number:'1.0-0':'vi-VN' }}đ</h3>
+      <dl class="demo-facts"><dt>Mã giao dịch</dt><dd>{{ tx.id }}</dd><dt>Loại</dt><dd>{{ transactionDescription(tx) }}</dd><dt>Tạo lúc</dt><dd>{{ tx.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd><ng-container *ngIf="tx.completed_at"><dt>Xử lý lúc</dt><dd>{{ tx.completed_at | date:'dd/MM/yyyy HH:mm:ss' }}</dd></ng-container><ng-container *ngIf="tx.recipient_name"><dt>Người nhận</dt><dd>{{ tx.recipient_name }}</dd><dt>Người gửi</dt><dd>{{ tx.sender_name }}</dd></ng-container><ng-container *ngIf="tx.bank_label"><dt>Tài khoản</dt><dd>{{ tx.bank_label }}</dd></ng-container><ng-container *ngIf="tx.note"><dt>Nội dung</dt><dd>{{ tx.note }}</dd></ng-container></dl>
+      <p class="muted" *ngIf="tx.status === 'PENDING' && !data?.demo?.can_simulate">Đang chờ xác nhận. Yêu cầu rút tiền được giữ số dư trong khi chờ xử lý.</p>
+      <button type="button" class="secondary" *ngIf="tx.status === 'PENDING'" [disabled]="busy" (click)="cancelDemo()">Hủy yêu cầu</button>
+      <div *ngIf="tx.status === 'PENDING' && data?.demo?.can_simulate">
+        <p class="muted">Xác nhận trạng thái để hoàn tất giao dịch.</p>
+        <div class="demo-admin-actions"><button type="button" [disabled]="busy" (click)="simulateDemo('SUCCESS')">{{ tx.type === 'deposit' ? 'Tôi đã chuyển khoản' : 'Xác nhận rút tiền' }}</button><button type="button" [disabled]="busy" (click)="simulateDemo('FAILED')">Giao dịch thất bại</button></div>
+      </div>
+      <div class="demo-admin-actions" *ngIf="tx.status === 'PENDING' && data?.demo?.can_settle"><button type="button" [disabled]="busy" (click)="processDemo(tx, 'SUCCESS')">Hoàn tất</button><button type="button" [disabled]="busy" (click)="processDemo(tx, 'FAILED')">Đánh dấu thất bại</button></div>
+      <details *ngIf="selectedLedger.length"><summary>Biến động số dư</summary><div class="ledger-line" *ngFor="let entry of selectedLedger"><span>{{ entry.createdAt | date:'dd/MM HH:mm:ss' }}</span><small>Số dư: {{ entry.delta_balance > 0 ? '+' : '' }}{{ entry.delta_balance | number:'1.0-0':'vi-VN' }}đ · Đang giữ: {{ entry.delta_held > 0 ? '+' : '' }}{{ entry.delta_held | number:'1.0-0':'vi-VN' }}đ</small></div></details>
+    </div>
+    <ng-container *ngIf="demoModal === 'demoAdmin'"><p class="muted">Kiểm tra và xử lý các yêu cầu đang chờ bên dưới.</p><article class="queue-item" *ngFor="let tx of demoQueue"><b>{{ transactionDescription(tx) }} · {{ tx.amount | number:'1.0-0':'vi-VN' }}đ</b><small>{{ tx.id }}</small><small>Người yêu cầu: {{ tx.sender_id }}</small><div class="demo-admin-actions"><button [disabled]="busy" (click)="processDemo(tx, 'SUCCESS')">Hoàn tất</button><button [disabled]="busy" (click)="processDemo(tx, 'FAILED')">Từ chối</button></div></article><p *ngIf="!busy && !demoQueue.length">Không có yêu cầu đang chờ.</p></ng-container>
+    <ng-container *ngIf="demoModal === 'demoHistory'"><button type="button" class="history-item" *ngFor="let tx of demoHistory" (click)="showTransaction(tx)"><span><b>{{ transactionDescription(tx) }}</b><small *ngIf="!isPoints(tx) && tx.mode !== 'demo'">Ví booking hiện có</small><small>{{ tx.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ statusLabel(tx.status) }}</small></span><strong>{{ tx.amount | number:'1.0-0':'vi-VN' }}đ</strong></button><p *ngIf="!busy && !demoHistory.length">Chưa có giao dịch.</p><div class="history-pages"><button class="secondary" [disabled]="busy || historyPage === 0" (click)="openHistory(historyPage - 1)">Trước</button><small>Trang {{ historyPage + 1 }} · {{ historyTotal }} giao dịch</small><button class="secondary" [disabled]="busy || (historyPage + 1) * 20 >= historyTotal" (click)="openHistory(historyPage + 1)">Sau</button></div></ng-container>
+  </section>
+</div>
