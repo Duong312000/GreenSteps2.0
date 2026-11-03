@@ -69,6 +69,7 @@
       <div class="sidebar-nav">
         <button type="button" class="sidebar-item" *ngFor="let item of navigationItems"
           [class.active]="activeSection === item.id" [attr.title]="item.label"
+          (mouseenter)="item.id === 'users' && prefetchUsers()" (focus)="item.id === 'users' && prefetchUsers()"
           (click)="setSection(item.id)">
           <i class="bi" [ngClass]="item.icon"></i>
           <span class="sidebar-label">{{ item.label }}</span>
@@ -83,9 +84,9 @@
     </aside>
 
     <main class="admin-main">
-      <div class="admin-content-grid">
+      <div class="admin-content-grid" [class.users-layout]="isUserManagement">
         <section class="admin-primary-column">
-          <div class="page-heading">
+          <div class="page-heading" *ngIf="!isUserManagement">
             <div class="breadcrumb"><span>Tổng quan</span><i class="bi bi-chevron-right"></i><strong>{{ isOverview ? 'Bảng điều khiển' : activeSectionLabel }}</strong></div>
             <div class="heading-line">
               <div>
@@ -97,6 +98,8 @@
             </div>
           </div>
 
+          <app-admin-users *ngIf="isUserManagement"></app-admin-users>
+          <ng-container *ngIf="!isUserManagement">
           <ng-container *ngIf="!unsupportedSection; else unsupportedSectionView">
             <section class="overview-content" *ngIf="isOverview">
               <div class="metrics-grid">
@@ -217,13 +220,14 @@
                 <table class="admin-data-table">
                   <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab">Thao tác</th></tr></thead>
                   <tbody>
-                    <tr *ngFor="let row of pageRows">
-                      <td class="checkbox-column"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
+                    <tr *ngFor="let row of pageRows" [class.provider-clickable-row]="activeTab === 'providers' && !isPreviewMode" [attr.tabindex]="activeTab === 'providers' && !isPreviewMode ? 0 : null" (click)="activeTab === 'providers' && openProviderDetail(row)" (keydown.enter)="$event.target === $event.currentTarget && activeTab === 'providers' && openProviderDetail(row)">
+                      <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
                       <td *ngFor="let column of activeTableColumns" [class.cell-strong]="column.key === 'id' || column.key === 'name'" [class.detail-cell]="column.key === 'detail'" [title]="cellValue(row, column.key)">
                         <span *ngIf="column.key === 'status'" class="status-badge" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
                         <span *ngIf="column.key !== 'status'">{{ cellValue(row, column.key) }}</span>
                       </td>
-                      <td class="row-actions" *ngIf="!isCatalogTab">
+                      <td class="row-actions" (click)="$event.stopPropagation()" *ngIf="!isCatalogTab">
+
                         <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">{{ activeTab === 'providers' ? 'Phê duyệt' : 'Duyệt' }}</button>
                         <button type="button" class="row-more-button" *ngIf="activeTab !== 'providers'" [disabled]="isPreviewMode" (click)="runRowAction(row, 'reject')" aria-label="Từ chối"><i class="bi bi-x-lg"></i></button>
                       </td>
@@ -253,9 +257,10 @@
               <button type="button" class="button-primary" (click)="setSection('overview')"><i class="bi bi-arrow-left"></i> Về tổng quan</button>
             </section>
           </ng-template>
+          </ng-container>
         </section>
 
-        <aside class="admin-insights-column">
+        <aside class="admin-insights-column" *ngIf="!isUserManagement">
           <section class="insight-card panel-card system-card">
             <div class="insight-card-heading"><div><h2>Tình trạng hệ thống</h2><small>Giám sát dịch vụ</small></div></div>
             <div class="system-overview"><span class="system-status-dot"></span><div><strong>Chưa có dữ liệu giám sát</strong><small>Trạng thái dịch vụ chưa được cung cấp trong dashboard.</small></div></div>
@@ -300,6 +305,9 @@
       </div>
     </main>
   </div>
+
+  <app-account-detail-modal *ngIf="providerDetail" [accountType]="'provider'" [account]="providerDetail" [tabs]="providerTabs" [activeTab]="providerModalTab" [fields]="providerFields" [sectionHeading]="providerSectionHeading" [emptyMessage]="providerEmptyMessage" [records]="providerRecords" [canLoadMore]="providerCanLoadMore" [loadMoreBusy]="providerLoadMoreBusy" [loading]="providerModalLoading || (providerTabLoading && !providerRecords.length)" [error]="providerModalError || providerTabError" [editing]="providerEditing" [busy]="providerBusy" [editValues]="providerEditValues" [editReason]="providerEditReason"
+    (tabChange)="setProviderTab($event)" (retry)="providerModalError ? retryProviderDetail() : retryProviderTab()" (loadMore)="loadMoreProviderTab()" (editStart)="startProviderEdit()" (editCancel)="providerEditing = false" (editSave)="saveProviderEdit($event)" (editReasonChange)="providerEditReason = $event" (lockToggle)="toggleProviderStatus($event)" (close)="closeProviderDetail()"></app-account-detail-modal>
 
   <div class="custom-dialog-backdrop" *ngIf="customDialog" role="presentation">
     <section class="custom-dialog" role="dialog" aria-modal="true" aria-live="polite">

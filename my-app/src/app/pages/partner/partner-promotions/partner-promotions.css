@@ -1,7 +1,9 @@
 ﻿:host {
   display: block;
   color: #172335;
-  font-family: 'Be Vietnam Pro', Inter, Arial, sans-serif;
+  font-family: var(--font-main, 'Be Vietnam Pro', Geist, Inter, Arial, sans-serif);
+  font-size: 14px;
+  line-height: 1.55;
 }
 .promotions-page {
   max-width: 1600px;
@@ -16,7 +18,7 @@
   margin-bottom: 32px;
 }
 .eyebrow {
-  font-size: 10px !important;
+  font-size: 13px !important;
   font-weight: 700;
   letter-spacing: 1.8px;
   color: #45866a !important;
@@ -81,20 +83,20 @@ button i {
   white-space: nowrap;
 }
 .primary {
-  background: #269166;
+  background: var(--ui-primary, #047857);
   color: #fff;
   box-shadow: 0 3px 7px #1a704015;
 }
 .primary:hover {
-  background: #18754f;
+  background: var(--ui-primary-hover, #065f46);
 }
 .secondary {
-  background: #fff;
-  border: 1px solid #dbe3e7;
-  color: #4b5b6b;
+  background: #fff8e5;
+  border: 1px solid #e7c76a;
+  color: #684d08;
 }
 .secondary:hover {
-  background: #f4f7f8;
+  background: #fff1c2;
 }
 .danger {
   background: #c53f45;

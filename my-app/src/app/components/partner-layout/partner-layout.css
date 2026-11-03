@@ -336,3 +336,23 @@ button:focus-visible {
 :host-context([data-theme='dark']) .sidebar-mobile-heading button {
   color: #ecf5ef;
 }
+
+:host {
+  font-family: var(--font-main, 'Be Vietnam Pro', Geist, Inter, system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.partner-identity strong,
+.partner-identity div span,
+nav a,
+.profile-link,
+.partner-note p,
+.sidebar-brand {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.partner-identity strong,
+nav a,
+.profile-link {
+  font-weight: 600;
+}

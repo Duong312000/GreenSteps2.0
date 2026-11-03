@@ -66,10 +66,38 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public async markNotificationRead(notif: any) {
-    if (notif.read) return;
-    const ok = await this.apiService.markNotificationRead(notif.id);
-    if (ok) {
+    if (String(notif.id || '').startsWith('counter-')) {
+      this.apiService.markLocalNotificationRead(notif.id);
       notif.read = true;
+    } else if (!notif.read) {
+      const ok = await this.apiService.markNotificationRead(notif.id);
+      if (ok) notif.read = true;
+    }
+    this.isNotificationDropdownActive = false;
+    const destination = this.getNotificationDestination(notif);
+    if (destination) void this.router.navigateByUrl(destination);
+  }
+
+  private getNotificationDestination(notif: any): string | null {
+    const rawLink = String(notif?.link || notif?.link_url || '').trim();
+    const bookingId = String(notif?.bookingId || notif?.booking_id || notif?.reference_id || '').trim();
+    const counterRequest = /quay|counter/i.test(this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`));
+    if (counterRequest && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+    if (!rawLink) return null;
+    try {
+      const url = new URL(rawLink, window.location.origin);
+      const code = url.searchParams.get('code');
+      const id = url.searchParams.get('bookingId');
+      if (url.pathname === '/booking-lookup' && code) {
+        return `/booking/confirm?bookingId=${encodeURIComponent(code)}`;
+      }
+      if (url.pathname === '/booking/confirm' && (id || code)) {
+        return `/booking/confirm?bookingId=${encodeURIComponent(id || code || '')}`;
+      }
+      if (url.origin !== window.location.origin) return null;
+      return `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return null;
     }
   }
 
@@ -81,19 +109,50 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   public async loadRealNotifications(userId: string) {
     try {
       const list = await this.apiService.getNotifications(userId);
-      this.notifications = list.map(n => ({
+      const serverNotifications = list.filter(n => !this.isStaleQrNotice(n)).map(n => ({
         id: n.id,
         title: n.title,
         message: n.message,
+        link: n.link || n.link_url || (n.type === 'booking' ? `/booking/confirm?bookingId=${encodeURIComponent(n.bookingId || n.booking_id || n.reference_id || '')}` : null),
+        bookingId: n.bookingId || n.booking_id || n.reference_id,
         type: n.type,
         read: n.read,
         time: this.formatTimeAgo(n.createdAt)
       }));
+      const serverBookingIds = new Set(serverNotifications.map(n => this.getNotificationBookingId(n)).filter(Boolean));
+      const localNotifications = this.apiService.getLocalCounterBookingNotifications(userId)
+        .filter(n => !serverBookingIds.has(this.getNotificationBookingId(n)))
+        .map(n => ({ ...n, time: this.formatTimeAgo(n.createdAt) }));
+      this.notifications = [...localNotifications, ...serverNotifications];
     } catch (e) {
       console.warn('Failed to load real notifications:', e);
     }
   }
 
+  @HostListener('window:greensteps-notifications-refresh')
+  public refreshNotificationsAfterBooking() {
+    const userId = this.currentUser?.id || this.currentUser?._id;
+    if (userId) void this.loadRealNotifications(userId);
+  }
+
+  private getNotificationBookingId(notif: any): string {
+    const directId = notif?.bookingId || notif?.booking_id || notif?.reference_id;
+    if (directId) return String(directId);
+    try {
+      const url = new URL(String(notif?.link || notif?.link_url || ''), window.location.origin);
+      return url.searchParams.get('bookingId') || url.searchParams.get('code') || '';
+    } catch { return ''; }
+  }
+
+  private isStaleQrNotice(notif: any): boolean {
+    const text = this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`);
+    return notif?.type === 'booking' && /cho duyet giao dich|cho quan tri vien phe duyet/.test(text)
+      && /qr|chuyen khoan/.test(text);
+  }
+
+  private normalizeNotificationText(value: string): string {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
   private formatTimeAgo(dateStr: string): string {
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));

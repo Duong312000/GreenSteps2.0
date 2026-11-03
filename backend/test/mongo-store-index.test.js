@@ -2,6 +2,25 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { MongoStore, FieldTypes } = require('../src/db/mongo-store');
 
+test('sync creates configured query indexes for the user list sort', async () => {
+  const store = new MongoStore('mongodb://127.0.0.1:27018/test');
+  const created = [];
+  try {
+    store.authenticate = async () => {};
+    store.define('User', { id: { type: FieldTypes.STRING } }, {
+      indexes: [{ key: { createdAt: 1 }, options: { name: 'createdAt_1' } }]
+    });
+    store.db = { collection: () => ({
+      createIndex: async (keys, options) => { created.push({ keys, options }); }
+    }) };
+
+    await store.sync();
+    assert.ok(created.some(index => index.keys.createdAt === 1 && index.options.name === 'createdAt_1'));
+  } finally {
+    await store.close();
+  }
+});
+
 test('sync reports duplicate review booking IDs before attempting a unique index', async () => {
   const store = new MongoStore('mongodb://127.0.0.1:27018/test');
   let indexAttempts = 0;

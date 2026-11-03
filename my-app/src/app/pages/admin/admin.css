@@ -324,7 +324,7 @@
 .module-placeholder h2 { margin: 3px 0 0; color: #24344c; font-size: 22px; }
 .module-placeholder > p:not(.eyebrow) { max-width: 440px; margin: 9px 0 20px; color: #738096; font-size: 12px; line-height: 1.6; }
 
-.custom-dialog-backdrop { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(16, 25, 40, .48); backdrop-filter: blur(3px); }
+.custom-dialog-backdrop { position: fixed; z-index: 1200; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(16, 25, 40, .48); backdrop-filter: blur(3px); }
 .custom-dialog { display: grid; justify-items: center; width: min(100%, 380px); padding: 25px; border: 1px solid #e7ebef; border-radius: 17px; background: #fff; box-shadow: 0 20px 60px rgba(14,28,45,.23); text-align: center; }
 .dialog-icon { display: grid; width: 45px; height: 45px; place-items: center; margin-bottom: 11px; border-radius: 50%; font-size: 20px; }
 .dialog-success { background: #e8f7ef; color: #168456; }
@@ -650,6 +650,7 @@
 .unavailable-pill { font-size: 11px; }
 .topbar-date > .bi:last-child { margin-left: auto; }
 .admin-sidebar, .admin-main, .admin-insights-column { min-width: 0; }
+.admin-content-grid.users-layout { grid-template-columns: minmax(0, 1fr); }
 .metric-card, .panel-card, .insight-card, .workspace-panel { min-width: 0; }
 
 @media (max-width: 780px) {
@@ -700,3 +701,5 @@
 @media(max-width:1250px){.community-report-metric{padding:15px 10px;gap:10px}.report-metric-symbol{width:38px;height:38px;flex-basis:38px;font-size:22px}.community-report-metric>div>span{font-size:12px}.community-report-metric strong{font-size:24px}}
 @media(max-width:900px){.community-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.community-report-toolbar{gap:9px}.community-report-search{flex-basis:100%}.community-report-toolbar>select{flex:1;min-width:130px}}
 @media(max-width:520px){.community-report-metric{border-width:4px;padding:13px 9px}.community-report-pagination{align-items:flex-start;flex-direction:column}.community-report-toolbar{padding:10px}.community-report-metric>div>span{white-space:normal}.community-report-filters label{width:100%}}
+.provider-clickable-row { cursor: pointer; }
+.provider-clickable-row:focus-visible { outline: 2px solid #078b61; outline-offset: -2px; }

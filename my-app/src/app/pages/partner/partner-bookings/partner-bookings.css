@@ -1,0 +1,25 @@
+:host {
+  display: block;
+  color: var(--ui-neutral-950, #17221c);
+  font-family: var(--font-main, 'Be Vietnam Pro', Geist, Inter, Arial, sans-serif);
+  font-size: 14px;
+  line-height: 1.55;
+}
+:host label,
+:host small {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Soften only the unpaid payment badge; retain every other status color. */
+:host main td > span[class*="bg-yellow-50"] {
+  background-color: color-mix(in srgb, var(--ui-warning, var(--warning)) 5%, var(--bg-secondary)) !important;
+  border-color: color-mix(in srgb, var(--ui-warning, var(--warning)) 18%, var(--border-color)) !important;
+  color: color-mix(in srgb, var(--ui-warning, var(--text-secondary)) 72%, var(--text-secondary)) !important;
+}
+
+/* Keep table headings and status chips on one line; the table wrapper scrolls horizontally. */
+:host main .overflow-x-auto table thead th,
+:host main .overflow-x-auto table td > span[class*="bg-"] {
+  white-space: nowrap;
+}

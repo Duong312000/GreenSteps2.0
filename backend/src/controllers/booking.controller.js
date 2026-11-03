@@ -19,6 +19,32 @@ const {
   Notification
 } = require('../models/index');
 
+async function expireBookingIfNeeded(booking) {
+  if (!booking || booking.status !== 'pending' || booking.payment_status !== 'pending' || !booking.payment_deadline || new Date(booking.payment_deadline) > new Date()) return booking;
+  booking.status = 'rejected';
+  booking.booking_status = 'rejected';
+  booking.payment_status = 'expired';
+  await booking.save();
+  await WalletTransaction.update({ status: 'failed' }, { where: { reference_id: booking.id, status: 'pending' } });
+  return booking;
+}
+
+exports.expireBookingIfNeeded = expireBookingIfNeeded;
+exports.expirePendingBookings = async () => {
+  const now = new Date();
+  const where = { status: 'pending', payment_status: 'pending', payment_deadline: { [Op.lte]: now } };
+  const [services, tours] = await Promise.all([
+    ServiceBooking.findAll({ where }),
+    TourBooking.findAll({ where })
+  ]);
+  let expired = 0;
+  for (const booking of [...services, ...tours]) {
+    await expireBookingIfNeeded(booking);
+    expired++;
+  }
+  return expired;
+};
+
 // Helper for terminal interactive transaction approval (preserving original codebase prompt)
 function promptTerminalApproval(message) {
   return new Promise((resolve) => {
@@ -64,6 +90,60 @@ async function syncCustomItineraryStatus(itineraryId, transaction = null) {
     console.error('Failed to sync custom itinerary status:', err);
   }
 }
+
+async function sendBookingConfirmationIfNeeded(booking) {
+  if (!booking || !['deposit_paid', 'fully_paid', 'paid'].includes(booking.payment_status)) return false;
+  let to = booking.customer_email;
+  if (!to && booking.user_id) {
+    const user = await User.findByPk(booking.user_id);
+    to = user?.email;
+  }
+  if (!to || !booking.id || !booking.model?.collection) return false;
+
+  const collection = booking.model.collection;
+  const id = String(booking.id);
+  const claim = await collection.updateOne(
+    { _id: id, confirmation_email_sent_at: { $exists: false }, confirmation_email_sending_at: { $exists: false } },
+    { $set: { confirmation_email_sending_at: new Date() } }
+  );
+  if (!claim.modifiedCount) return false;
+
+  try {
+    const clientUrl = String(process.env.CLIENT_URL || 'http://localhost:4200').replace(/\/$/, '');
+    const sent = await sendBookingConfirmationEmail({
+      to,
+      bookingId: id,
+      tourName: booking.tour_name || booking.name_service || 'Tour GreenSteps',
+      bookingDate: booking.booking_date,
+      guests: booking.guests,
+      depositAmount: booking.value,
+      paymentMethod: booking.payment_method,
+      lookupUrl: `${clientUrl}/booking/confirm?bookingId=${encodeURIComponent(id)}`
+    });
+    await collection.updateOne(
+      { _id: id },
+      sent
+        ? { $set: { confirmation_email_sent_at: new Date() }, $unset: { confirmation_email_sending_at: '' } }
+        : { $unset: { confirmation_email_sending_at: '' } }
+    );
+    return sent;
+  } catch (error) {
+    await collection.updateOne({ _id: id }, { $unset: { confirmation_email_sending_at: '' } });
+    console.error('Booking confirmation email sending error:', error.message);
+    return false;
+  }
+}
+
+exports.sendBookingConfirmationIfNeeded = sendBookingConfirmationIfNeeded;
+
+exports.quoteBooking = async (req, res, next) => {
+  try {
+    const { type, targetId, guests, addonIds, paymentMethod } = req.body;
+    const { calculatePricing } = require('../services/booking-pricing.service');
+    const pricing = await calculatePricing({ type, targetId, guestCount: guests, addonIds, paymentMethod });
+    res.json({ success: true, pricing });
+  } catch (error) { next(error); }
+};
 
 exports.createBooking = async (req, res, next) => {
   const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail } = req.body;
@@ -510,28 +590,6 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    if (email) {
-      const user = await User.findByPk(userId);
-      const token = user ? localSignAuthToken(user) : '';
-
-      const redirectPath = '/schedule';
-
-      const origin = req.headers.origin || 'http://localhost:4200';
-      const lookupUrl = `${origin}${redirectPath}${token ? `?token=${token}` : ''}`;
-
-      sendBookingConfirmationEmail({
-        to: email,
-        bookingId,
-        tourName: tourNameOrServiceName,
-        bookingDate,
-        guests,
-        depositAmount: totalValue,
-        paymentMethod: paymentMethod || 'counter',
-        lookupUrl,
-        credentials: autoCreatedCredentials
-      }).catch(err => console.error('Booking confirmation email sending error:', err));
-    }
-
     const responsePayload = {
       success: true,
       payment: { amount: totalValue, status: 'pending', transfer_reference: bookingId },
@@ -855,6 +913,10 @@ exports.getBookings = async (req, res, next) => {
         booking_status: row.status,
         evoucher: row.evoucher_code,
         evoucher_code: row.evoucher_code,
+        payment_method: row.payment_method,
+        pricing_snapshot: row.pricing_snapshot || null,
+        order_details_snapshot: row.order_details_snapshot || null,
+        check_out_date: row.check_out_date || null,
         type: 'service',
         kind: 'service',
         targetId: row.service_id,
@@ -900,6 +962,10 @@ exports.getBookings = async (req, res, next) => {
         booking_status: row.status,
         evoucher: row.evoucher_code,
         evoucher_code: row.evoucher_code,
+        payment_method: row.payment_method,
+        pricing_snapshot: row.pricing_snapshot || null,
+        order_details_snapshot: row.order_details_snapshot || null,
+        check_out_date: row.check_out_date || null,
         type: 'tour',
         kind: 'tour',
         targetId: row.schedule_id,
@@ -969,6 +1035,7 @@ exports.simulateBookingPayment = async (req, res, next) => {
     booking.payment_status = 'deposit_paid';
     booking.payment_deadline = null;
     await booking.save();
+    await sendBookingConfirmationIfNeeded(booking);
     await WalletTransaction.update(
       { status: 'success' },
       { where: { reference_id: id, status: 'pending' } }
@@ -1032,6 +1099,7 @@ exports.approveBooking = async (req, res, next) => {
     booking.payment_status = 'deposit_paid';
     booking.operation_status = 'preparing';
     await booking.save();
+    await sendBookingConfirmationIfNeeded(booking);
 
     if (booking.schedule_id) {
       await syncCustomItineraryStatus(booking.schedule_id);
@@ -1265,6 +1333,8 @@ exports.completeBooking = async (req, res, next) => {
     await booking.save({ transaction: t });
     if (!wasCompleted) await loyalty.earn(booking, t);
     await t.commit();
+    await sendBookingConfirmationIfNeeded(booking);
+
     res.json({ success: true, message: 'Đã hoàn thành booking thành công!', booking });
   } catch (error) {
     await t.rollback();
@@ -1323,6 +1393,8 @@ exports.updateBookingStatuses = async (req, res, next) => {
     await booking.save({ transaction: t });
     if (!wasCompleted) await loyalty.earn(booking, t);
     await t.commit();
+    await sendBookingConfirmationIfNeeded(booking);
+
     res.json({ success: true, message: 'Cập nhật trạng thái thành công!', booking });
   } catch (error) {
     await t.rollback();

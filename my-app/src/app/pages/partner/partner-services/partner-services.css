@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  color: var(--ui-neutral-950, #17221c);
+  font-family: var(--font-main, 'Be Vietnam Pro', Geist, Inter, Arial, sans-serif);
+  font-size: 14px;
+  line-height: 1.55;
+}
+:host label,
+:host small {
+  font-size: 13px;
+  line-height: 1.5;
+}

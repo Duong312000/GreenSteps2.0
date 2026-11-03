@@ -1,15 +1,27 @@
-// Read-only checks against the configured MongoDB database.
+// Isolated fixtures are required because authentication validates stored accounts.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
+require('../src/config/env');
+const configured = process.env.TEST_MONGODB_URI;
+if (configured) {
+  const uri = new URL(configured);
+  uri.pathname = `/CatalogTest_${randomUUID().replaceAll('-', '')}`;
+  process.env.MONGODB_URI = uri.toString();
+}
 const jwt = require('jsonwebtoken');
 const app = require('../src/app');
-const { store, GreenService, ScheduleSample, PartnerCampaign, ServiceBooking, TourBooking } = require('../src/models');
+const { store, User, GreenService, ScheduleSample, PartnerCampaign, ServiceBooking, TourBooking } = require('../src/models');
 const { JWT_SECRET } = require('../src/middlewares/auth.middleware');
 
-test('admin catalog reads shared MongoDB records and restricts access', { timeout: 30000 }, async () => {
+test('admin catalog reads shared MongoDB records and restricts access', { skip: !configured, timeout: 30000 }, async () => {
   let server;
   try {
-    await store.authenticate();
+    await store.sync();
+    for (const [id, role] of [['read-only-catalog-check', 'admin'], ['read-only-traveler-check', 'traveler']]) {
+      await User.create({ id, role, username: id, email: `${id}@example.invalid`, password_hash: 'unused' });
+    }
+    await GreenService.create({ id: 'catalog-service', name_service: 'Catalog service', type: 'stay', cost: 100000, destination: 'Da Lat' });
     server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api/admin/catalog`;
@@ -36,6 +48,7 @@ test('admin catalog reads shared MongoDB records and restricts access', { timeou
     assert.equal((await fetch(`${base}/unknown`, { headers })).status, 404);
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
+    if (store.db?.databaseName.startsWith('CatalogTest_')) await store.db.dropDatabase();
     await store.close();
   }
 });

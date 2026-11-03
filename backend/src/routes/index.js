@@ -17,6 +17,7 @@ const notificationRoutes = require('./notification.routes');
 const spotRoutes = require('./spot.routes');
 const changeRequestRoutes = require('./change-request.routes');
 const operationsRoutes = require('./operations.routes');
+const adminUsersRoutes = require('./admin-users.routes');
 
 router.use('/auth', authRoutes);
 router.use('/admin', require('./admin.routes'));
@@ -36,6 +37,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/spots', spotRoutes);
 router.use('/change-requests', changeRequestRoutes);
 router.use('/operations', operationsRoutes);
+router.use('/admin', adminUsersRoutes);
 router.use('/support', require('./support.routes'));
 
 module.exports = router;

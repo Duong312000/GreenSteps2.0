@@ -91,6 +91,10 @@ export class BookingComponent implements OnInit, OnDestroy {
   public qrAmount = 0;
   public qrDescription = '';
   public currentBookingId = '';
+  public confirmationBooking: any = null;
+  public confirmationLoading = false;
+  public confirmationFetchFailed = false;
+  private confirmationPollInterval: any = null;
   public qrExpiresAt = '';
   public qrCountdown = 600;
   public paymentStatus: 'pending' | 'paid' | 'failed' = 'paid';
@@ -169,6 +173,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.routeChangeSubscription = this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.syncStepFromUrl();
+        if (this.isCompleteStep) void this.loadConfirmationBooking();
         this.cdr.detectChanges();
       }
     });
@@ -189,6 +194,8 @@ export class BookingComponent implements OnInit, OnDestroy {
       const draft = localStorage.getItem('greensteps_booking_draft');
       if (draft) this.restoreDraft(JSON.parse(draft));
     }
+    const confirmationId = this.route.snapshot.queryParamMap.get('bookingId');
+    if (confirmationId) this.currentBookingId = confirmationId;
 
     this.authService.currentUser$.subscribe(async user => {
       this.currentUser = user;
@@ -210,7 +217,10 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
       await this.resumePendingPayment();
     }
-    if (this.isCompleteStep && this.paymentStatus === 'paid') this.showSuccessToast();
+    if (this.isCompleteStep) {
+      await this.loadConfirmationBooking();
+      if (this.confirmationIsPaid) this.showSuccessToast();
+    }
     this.isPageLoading = false;
     this.cdr.detectChanges();
   }
@@ -650,7 +660,7 @@ export class BookingComponent implements OnInit, OnDestroy {
             };
           }
           if (this.paymentStatus === 'paid') this.showSuccessToast();
-          this.router.navigate(['/booking/confirm'], { queryParams });
+          this.router.navigate(['/booking/confirm'], { queryParams: { ...queryParams, bookingId: this.currentBookingId } });
         } else {
           this.showAlert("Thanh toán thất bại", res.message || "Giao dịch trừ tiền ví bị từ chối hoặc có lỗi xảy ra.", "error");
         }
@@ -694,7 +704,7 @@ export class BookingComponent implements OnInit, OnDestroy {
             };
           }
           if (this.paymentStatus === 'paid') this.showSuccessToast();
-          this.router.navigate(['/booking/confirm'], { queryParams });
+          this.router.navigate(['/booking/confirm'], { queryParams: { ...queryParams, bookingId: this.currentBookingId } });
         } else {
           this.showAlert("Đặt chỗ thất bại", res.message || "Không thể gửi yêu cầu giữ chỗ tại quầy.", "error");
         }
@@ -769,7 +779,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
               this.saveDraft();
               this.showSuccessToast();
-              this.router.navigate(['/booking/confirm'], { queryParams });
+              this.router.navigate(['/booking/confirm'], { queryParams: { ...queryParams, bookingId: this.currentBookingId } });
             });
           } else if (target && (target.status === 'rejected' || target.status === 'cancelled' || target.payment?.status === 'failed')) {
             if (this.pollingInterval) {
@@ -964,6 +974,10 @@ export class BookingComponent implements OnInit, OnDestroy {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+    if (this.confirmationPollInterval) {
+      clearInterval(this.confirmationPollInterval);
+      this.confirmationPollInterval = null;
+    }
   }
 
   public get qrCountdownFormatted(): string {
@@ -1122,6 +1136,140 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get selectedPaymentLabel() {
     return this.paymentMethods.find(method => method.id === this.paymentMethod)?.label || 'Ví điện tử';
+  }
+
+  public get confirmationIsPaid(): boolean {
+    const booking = this.confirmationBooking;
+    const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
+    return ['deposit', 'completed', 'confirmed', 'accepted'].includes(String(booking?.status || '').toLowerCase())
+      || ['paid', 'deposit_paid', 'fully_paid', 'success'].includes(paymentStatus);
+  }
+
+  public get confirmationIsFailed(): boolean {
+    const booking = this.confirmationBooking;
+    const status = String(booking?.status || '').toLowerCase();
+    const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
+    return ['rejected', 'cancelled', 'expired', 'failed'].includes(status)
+      || ['rejected', 'cancelled', 'expired', 'failed'].includes(paymentStatus);
+  }
+
+  public get confirmationTitle(): string {
+    if (this.confirmationLoading) return 'Đang tải trạng thái đơn';
+    if (this.confirmationFetchFailed) return 'Chưa tải được thông tin đơn';
+    if (!this.confirmationBooking) return 'Không tìm thấy đơn đặt';
+    if (this.confirmationIsFailed) return 'Đơn chưa được xác nhận';
+    if (this.confirmationIsPaid) return 'Đặt chỗ thành công';
+    if (this.confirmationPaymentMethodCode === 'counter') return 'Đang chờ xác nhận thanh toán tại quầy';
+    return 'Đang chờ thanh toán';
+  }
+
+  public get confirmationMessage(): string {
+    if (this.confirmationFetchFailed) return 'Không lấy được trạng thái mới nhất từ máy chủ. Kiểm tra mạng rồi thử tải lại đơn.';
+    if (!this.confirmationBooking) return 'Đường dẫn này chưa có mã đơn. Hãy mở trang xác nhận từ đơn đặt chỗ của bạn.';
+    if (this.confirmationIsFailed) {
+      const reason = this.confirmationBooking?.rejection_reason;
+      return reason ? `Đơn đã bị từ chối: ${reason}` : 'Đơn đã hết hạn hoặc bị hủy. Bạn có thể quay lại tour để đặt lại.';
+    }
+    if (this.confirmationIsPaid) return 'Thanh toán đã được ghi nhận. Thông tin chuyến đi của bạn nằm bên dưới.';
+    if (this.confirmationPaymentMethodCode === 'counter') return 'Yêu cầu giữ chỗ đã được gửi. Nhân viên sẽ xác nhận sau khi bạn thanh toán tại quầy.';
+    return 'Đơn vẫn đang chờ hệ thống xác nhận thanh toán. Trạng thái sẽ được cập nhật khi có kết quả.';
+  }
+
+  public get confirmationPaymentMethod(): string {
+    const method = this.confirmationPaymentMethodCode;
+    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy' } as Record<string, string>)[method] || this.selectedPaymentLabel;
+  }
+
+  public get confirmationPaymentMethodCode(): string {
+    return String(this.confirmationBooking?.payment_method || this.confirmationBooking?.payment?.method || this.paymentMethod || '').toLowerCase();
+  }
+
+  public get confirmationStatusLabel(): string {
+    if (this.confirmationIsPaid) return 'Đặt chỗ thành công';
+    const status = String(this.confirmationBooking?.payment_status || this.confirmationBooking?.status || '').toLowerCase();
+    if (status === 'expired') return 'Đã hết hạn';
+    if (this.confirmationIsFailed) return 'Thanh toán thất bại';
+    return this.confirmationPaymentMethodCode === 'counter' ? 'Chờ duyệt thanh toán tại quầy' : 'Đang chờ thanh toán';
+  }
+
+  public get confirmationOrderCode(): string {
+    return this.confirmationBooking?.evoucher_code || this.confirmationBooking?.id || this.currentBookingId;
+  }
+
+  public get confirmationTotal(): number {
+    return Number(this.confirmationBooking?.pricing_snapshot?.total ?? this.confirmationBooking?.value ?? this.depositAmount ?? 0);
+  }
+
+  public get confirmationPaidNow(): number {
+    return Number(this.confirmationBooking?.value ?? this.confirmationBooking?.payment?.amount ?? 0);
+  }
+
+  public async loadConfirmationBooking() {
+    if (!this.isCompleteStep) return;
+    const id = this.route.snapshot.queryParamMap.get('bookingId') || this.currentBookingId;
+    if (!id) {
+      this.confirmationBooking = null;
+      this.confirmationFetchFailed = false;
+      return;
+    }
+    this.currentBookingId = id;
+    this.confirmationLoading = true;
+    this.confirmationFetchFailed = false;
+    try {
+      const response = await this.apiService.getBooking(id);
+      if (!response?.booking) {
+        this.confirmationFetchFailed = true;
+        return;
+      }
+      this.confirmationBooking = response.booking;
+      if (this.confirmationPaymentMethodCode === 'counter' && !this.confirmationIsFailed) {
+        const userId = this.currentUser?.id || this.currentUser?._id;
+        const bookingId = this.confirmationBooking?.id || this.confirmationBooking?._id || id;
+        if (userId && bookingId) this.apiService.ensureLocalCounterBookingNotification(userId, String(bookingId));
+      }
+      this.paymentStatus = this.confirmationIsPaid ? 'paid' : this.confirmationIsFailed ? 'failed' : 'pending';
+      this.saveDraft();
+    } catch {
+      this.confirmationFetchFailed = true;
+    } finally {
+      this.confirmationLoading = false;
+      this.cdr.detectChanges();
+      this.syncConfirmationPolling();
+    }
+  }
+
+  private syncConfirmationPolling() {
+    if (!this.isCompleteStep || !this.confirmationBooking || this.confirmationIsPaid || this.confirmationIsFailed) {
+      if (this.confirmationPollInterval) clearInterval(this.confirmationPollInterval);
+      this.confirmationPollInterval = null;
+      return;
+    }
+    if (this.confirmationPollInterval) return;
+    this.confirmationPollInterval = setInterval(() => void this.refreshConfirmationStatus(), 4000);
+  }
+
+  private async refreshConfirmationStatus() {
+    if (!this.currentBookingId) return;
+    try {
+      const response = await this.apiService.getBooking(this.currentBookingId);
+      if (response?.booking) {
+        this.confirmationBooking = response.booking;
+        this.paymentStatus = this.confirmationIsPaid ? 'paid' : this.confirmationIsFailed ? 'failed' : 'pending';
+        if (this.confirmationIsPaid) this.showSuccessToast();
+        this.saveDraft();
+        this.cdr.detectChanges();
+      }
+    } catch {
+      // Keep the last server-confirmed state visible during brief network drops.
+    }
+    if (this.confirmationIsPaid || this.confirmationIsFailed) {
+      clearInterval(this.confirmationPollInterval);
+      this.confirmationPollInterval = null;
+    }
+  }
+
+  public printConfirmation() {
+    window.print();
   }
 
   public get paymentReady() {

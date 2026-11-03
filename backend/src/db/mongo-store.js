@@ -92,7 +92,7 @@ class Record {
 
 class Repository {
   constructor(store, name, fields, settings) {
-    Object.assign(this, { store, name, fields: { ...fields }, associations: [], hooks: {}, defaultScope: {} });
+    Object.assign(this, { store, name, fields: { ...fields }, associations: [], hooks: {}, defaultScope: {}, indexes: settings.indexes || [] });
     this.tableName = settings.tableName || plural(name);
     this.collectionName = `${store.prefix}${this.tableName.toLowerCase()}`;
     this.timestamps = settings.underscored ? ['created_at', 'updated_at'] : ['createdAt', 'updatedAt'];
@@ -185,13 +185,24 @@ class Repository {
       const [row] = await this.collection.aggregate([{ $match: query }, { $group: group }], this.store.options(options)).toArray();
       return [{ dataValues: row || {} }];
     }
+    const includeSpecs = options.include || this.defaultScope.include || [];
+    const hasIncludes = includeSpecs.length > 0;
     const cursor = this.collection.find(query, this.store.options(options));
     if (options.order) cursor.sort(Object.fromEntries(options.order.map(([key, direction]) => [key, String(direction).toUpperCase() === 'DESC' ? -1 : 1])));
+    // Queries without associations can be paged and projected by MongoDB itself.
+    // Association queries keep their previous order because required joins must
+    // filter parents before pagination.
+    if (!hasIncludes) {
+      if (options.offset) cursor.skip(options.offset);
+      if (options.limit !== undefined) cursor.limit(options.limit);
+      if (options.attributes?.exclude?.length) cursor.project(Object.fromEntries(options.attributes.exclude.map(key => [key, 0])));
+      else if (Array.isArray(options.attributes) && options.attributes.length) cursor.project(Object.fromEntries(options.attributes.map(key => [key, 1])));
+    }
     let rows = (await cursor.toArray()).map(data => new Record(this, this.normalizeRead(data)));
     // Batch associations before pagination: required children must filter parents.
-    for (const spec of options.include || this.defaultScope.include || []) rows = await this.include(rows, spec, options);
-    if (options.offset) rows = rows.slice(options.offset);
-    if (options.limit !== undefined) rows = rows.slice(0, options.limit);
+    for (const spec of includeSpecs) rows = await this.include(rows, spec, options);
+    if (hasIncludes && options.offset) rows = rows.slice(options.offset);
+    if (hasIncludes && options.limit !== undefined) rows = rows.slice(0, options.limit);
     if (Array.isArray(options.attributes)) {
       for (const row of rows) for (const key of Object.keys(row)) if (!options.attributes.includes(key) && !['_id', '_rev'].includes(key) && !this.associations.some(a => a.as === key)) delete row[key];
     } else if (options.attributes?.exclude) {
@@ -351,6 +362,7 @@ class MongoStore {
         }
         else if (key.endsWith('_id')) await model.collection.createIndex({ [key]: 1 });
       }
+      for (const index of model.indexes) await model.collection.createIndex(index.key, index.options || {});
       if (model.junctionKeys) await model.collection.createIndex(Object.fromEntries(model.junctionKeys.map(k => [k, 1])), { unique: true });
     }
   }

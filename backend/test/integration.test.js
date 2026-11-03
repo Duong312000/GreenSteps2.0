@@ -9,13 +9,16 @@ test('MongoDB API, relationships, financial transactions and migrated response s
   const databaseName = `GreenStepsMigrationTest_${Date.now()}`;
   uri.pathname = `/${databaseName}`;
   process.env.MONGODB_URI = uri.toString();
-  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, TourBooking, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, CPSS, Provider, Vender, Badge, BadgeService } = require('../src/models');
+  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, TourBooking, BookingAddon, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, CPSS, Provider, Vender, Badge, BadgeService } = require('../src/models');
   const { Op } = require('../src/db/mongo-store');
   const app = require('../src/app');
+    const bookingController = require('../src/controllers/booking.controller');
+    const { ensureDefaultBookingAddons } = require('../src/services/booking-pricing.service');
   const bcrypt = require('bcrypt');
   let server;
   try {
     await store.sync();
+    await ensureDefaultBookingAddons();
     await t.test('review booking IDs have a unique partial index and no duplicates in the isolated database', async () => {
       const indexes = await CommentPost.collection.listIndexes().toArray();
       const bookingIndex = indexes.find(index => index.key?.booking_id === 1 && index.unique === true);
@@ -95,8 +98,9 @@ test('MongoDB API, relationships, financial transactions and migrated response s
     server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
-    async function request(route, body, token, expectedStatus = 200) {
-      const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': require('node:crypto').randomUUID(), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    async function request(route, body, token, expectedStatus = 200, extraHeaders = {}) {
+      const response = await fetch(base + route, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': require('node:crypto').randomUUID(), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extraHeaders }, ...(body ? { body: JSON.stringify(body) } : {}) });
+
       const json = await response.json();
       assert.equal(response.status, expectedStatus, JSON.stringify(json));
       return json;
@@ -119,19 +123,62 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       assert.ok(JSON.stringify(itinerary).includes('Đi bộ'));
       assert.equal(await ScheduleActivity.count({ where: { schedule_id: 'custom-test' } }), 1);
       await request('/bookings', { type: 'service', targetId: 'test-service', bookingDate: '2026-12-01', guests: 1, paymentMethod: 'wallet', customerPhone: '0900000000' }, login.token);
-      assert.equal((await Wallet.findByPk('test-wallet')).balance, 600000);
+      assert.equal((await Wallet.findByPk('test-wallet')).balance, 708800);
       assert.equal(await ServiceBooking.count({ where: { user_id: 'test-user' } }), 1);
       const payment = await WalletTransaction.findOne({ where: { type: 'escrow_hold' } });
       assert.equal((await request(`/wallet/transaction-status/${payment.id}`, undefined, login.token)).status, 'pending');
-      assert.equal((await request('/wallet/pay', { userId: 'test-user', itineraryId: 'custom-test', amount: 50000 }, login.token)).balance, 550000);
+      assert.equal((await request('/wallet/pay', { userId: 'test-user', itineraryId: 'custom-test', amount: 50000 }, login.token)).balance, 658800);
       assert.equal((await WalletTransaction.findOne({ where: { reference_id: 'custom-test', status: 'success' } })).amount, -50000);
       await request('/wallet/pay-qr', { userId: 'test-user', itineraryId: 'custom-test', amount: 10000 }, login.token);
-      assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
+      assert.equal((await Wallet.findByPk('test-wallet')).balance, 658800);
       const invalidPayment = await fetch(base + '/wallet/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: 'test-user', itineraryId: 'custom-test', amount: -50000 }) });
       assert.equal(invalidPayment.status, 401);
       assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       await Wallet.update({ green_points: 1000 }, { where: { id: 'test-wallet' } });
       assert.equal((await request('/vouchers/redeem', {}, login.token)).remainingPoints, 0);
+    });
+    await t.test('booking creation is idempotent and expired payment requests are decided by the backend', async () => {
+      const login = await request('/auth/login', { username: 'mongo_test', password });
+      const quote = await request('/bookings/quote', {
+        type: 'tour', targetId: 'test-tour', guests: 2, addonIds: ['airport']
+      }, login.token);
+      assert.deepEqual({
+        subtotal: quote.pricing.subtotal,
+        discount: quote.pricing.discount,
+        serviceFee: quote.pricing.serviceFee,
+        total: quote.pricing.total,
+        deposit: quote.pricing.deposit,
+        remaining: quote.pricing.remaining
+      }, { subtotal: 880000, discount: 48000, serviceFee: 120000, total: 952000, deposit: 285600, remaining: 666400 });
+      const idempotencyKey = 'integration-booking-retry';
+      const payload = {
+        type: 'service', targetId: 'test-service', bookingDate: '2999-12-02',
+        guests: 1, paymentMethod: 'counter', customerPhone: '0900000000', value: 1, amount: 1, total: 1
+      };
+      const first = await request('/bookings', payload, login.token, 200, { 'Idempotency-Key': idempotencyKey });
+      const retry = await request('/bookings', payload, login.token, 200, { 'Idempotency-Key': idempotencyKey });
+      assert.equal(retry.bookingId, first.bookingId);
+      assert.equal(retry.idempotentReplay, true);
+      assert.equal(await ServiceBooking.count({ where: { idempotency_key: idempotencyKey } }), 1);
+      const savedSnapshot = await ServiceBooking.findByPk(first.bookingId);
+      assert.equal(savedSnapshot.value, 91200);
+      assert.equal(savedSnapshot.pricing_snapshot.total, 304000);
+      assert.equal(savedSnapshot.pricing_snapshot.deposit, 91200);
+      await request('/bookings', { ...payload, guests: 2 }, login.token, 409, { 'Idempotency-Key': idempotencyKey });
+
+      const qrBooking = await request('/bookings', {
+        type: 'service', targetId: 'test-service', bookingDate: '2999-12-03',
+        guests: 1, paymentMethod: 'bank_transfer', customerPhone: '0900000000'
+      }, login.token, 200, { 'Idempotency-Key': 'integration-expiring-booking' });
+      const stored = await ServiceBooking.findByPk(qrBooking.bookingId);
+      assert.ok(stored.payment_deadline > new Date());
+      assert.equal(qrBooking.payment.expires_at != null, true);
+      stored.payment_deadline = new Date(Date.now() - 1000);
+      await stored.save();
+      assert.equal(await bookingController.expirePendingBookings(), 1);
+      const expired = await request(`/bookings/${qrBooking.bookingId}`, undefined, login.token);
+      assert.equal(expired.booking.status, 'rejected');
+      assert.equal(expired.booking.payment.status, 'expired');
     });
     await t.test('completed booking review writes are owner-bound, unique, and linked for tour and service', async () => {
       await ServiceBooking.create({

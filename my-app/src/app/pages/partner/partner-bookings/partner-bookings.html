@@ -5,14 +5,14 @@
         <div class="flex justify-between items-center">
             <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <i class="bi bi-calendar-check text-teal-600"></i>
-                Quản lý Vận hành & Booking
+                Quản lý vận hành & đơn đặt
             </h1>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="flex border-b border-gray-150 gap-6">
             <button (click)="setActiveTab('bookings')" [class]="activeTab === 'bookings' ? 'border-b-2 border-teal-600 text-teal-600 font-extrabold pb-3' : 'text-gray-500 font-semibold pb-3 hover:text-teal-600'" class="border-none bg-transparent cursor-pointer text-sm">
-                <i class="bi bi-journal-text mr-1"></i> Quản lý Bookings
+                <i class="bi bi-journal-text mr-1"></i> Quản lý đơn đặt
             </button>
             <button (click)="setActiveTab('change-requests')" [class]="activeTab === 'change-requests' ? 'border-b-2 border-teal-600 text-teal-600 font-extrabold pb-3' : 'text-gray-500 font-semibold pb-3 hover:text-teal-600'" class="border-none bg-transparent cursor-pointer text-sm">
                 <i class="bi bi-arrow-left-right mr-1"></i> Yêu cầu Thay đổi
@@ -134,7 +134,7 @@
                 
                 <div *ngIf="filteredBookings.length === 0" class="py-12 text-center text-gray-400">
                     <i class="bi bi-journal-x text-4xl block mb-2"></i>
-                    <p class="font-bold">Không tìm thấy bookings nào</p>
+                    <p class="font-bold">Không tìm thấy đơn đặt nào</p>
                 </div>
             </div>
         </div>
@@ -176,7 +176,7 @@
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500 uppercase">
                                 <th class="p-4">Mã yêu cầu</th>
-                                <th class="p-4">Booking liên quan</th>
+                                <th class="p-4">Đơn đặt liên quan</th>
                                 <th class="p-4">Khách hàng</th>
                                 <th class="p-4">Loại yêu cầu</th>
                                 <th class="p-4">Nội dung cũ</th>

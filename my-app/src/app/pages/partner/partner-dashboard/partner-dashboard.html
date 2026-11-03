@@ -21,14 +21,14 @@
     <article class="kpi-card">
       <span class="kpi-icon green"><app-partner-icon name="calendar" /></span>
       <div>
-        <h2>Tổng booking</h2>
+        <h2>Tổng lượt đặt</h2>
         <strong class="kpi-value">{{
           isLoading ? '—' : formatNumber(filteredBookings.length)
         }}</strong>
         <p>{{ periodText }}</p>
       </div>
     </article>
-    <article class="kpi-card">
+    <article class="kpi-card revenue-card">
       <span class="kpi-icon mint"><app-partner-icon name="revenue" /></span>
       <div>
         <h2>Doanh thu</h2>
@@ -36,7 +36,7 @@
           >{{ isLoading ? '—' : formatNumber(analytics.totalRevenue)
           }}<small *ngIf="!isLoading">đ</small></strong
         >
-        <p>Booking chờ, đã xác nhận và hoàn thành</p>
+        <p>Đơn chờ, đã xác nhận và hoàn thành</p>
       </div>
     </article>
     <article class="kpi-card">
@@ -75,7 +75,7 @@
         <span class="section-icon"><app-partner-icon name="chart" /></span>
         <div>
           <h2>Lượt xem & Đặt chỗ</h2>
-          <p>Diễn biến booking theo tháng trong dữ liệu đã chọn.</p>
+          <p>Diễn biến lượt đặt theo tháng trong dữ liệu đã chọn.</p>
         </div>
       </div>
       <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
@@ -83,7 +83,7 @@
           viewBox="0 0 600 220"
           class="analytics-chart"
           role="img"
-          aria-label="Biểu đồ số lượng booking theo tháng"
+          aria-label="Biểu đồ số lượng lượt đặt theo tháng"
         >
           <g *ngFor="let line of grid">
             <line
@@ -99,8 +99,8 @@
           </g>
           <path
             [attr.d]="analytics.bookingPath"
+            class="revenue-line"
             fill="none"
-            stroke="#087F5B"
             stroke-width="3"
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -110,13 +110,13 @@
               [attr.cx]="month.x"
               [attr.cy]="month.y"
               r="4"
-              fill="#087F5B"
+              class="booking-point"
               tabindex="0"
               [attr.aria-label]="
-                month.label + '/' + month.year + ': ' + month.bookings + ' booking'
+                month.label + '/' + month.year + ': ' + month.bookings + ' lượt đặt'
               "
             >
-              <title>{{ month.label }}/{{ month.year }}: {{ month.bookings }} booking</title>
+              <title>{{ month.label }}/{{ month.year }}: {{ month.bookings }} lượt đặt</title>
             </circle>
             <text [attr.x]="month.x" y="204" text-anchor="middle" class="axis-label">
               {{ month.label }}
@@ -125,7 +125,7 @@
         </svg>
       </div>
       <div class="chart-legend">
-        <span><i class="legend-mark green-mark"></i>Booking</span
+        <span><i class="legend-mark green-mark"></i>Lượt đặt</span
         ><span class="unavailable-series">Lượt xem và tư vấn: chưa có dữ liệu theo tháng</span>
       </div>
     </article>
@@ -134,7 +134,7 @@
         <span class="section-icon"><app-partner-icon name="revenue" /></span>
         <div>
           <h2>Doanh thu theo tháng</h2>
-          <p>Giá trị booking theo nhóm dịch vụ hiện có.</p>
+          <p>Giá trị đơn đặt theo nhóm dịch vụ hiện có.</p>
         </div>
       </div>
       <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
@@ -142,7 +142,7 @@
           viewBox="0 0 600 220"
           class="analytics-chart"
           role="img"
-          aria-label="Biểu đồ giá trị booking theo tháng"
+          aria-label="Biểu đồ giá trị đơn đặt theo tháng"
         >
           <g *ngFor="let line of grid">
             <line
@@ -162,8 +162,8 @@
               [attr.y]="176 - month.tourHeight"
               width="14"
               [attr.height]="month.tourHeight"
-              rx="3"
-              fill="#087F5B"
+              rx="4"
+              class="revenue-bar revenue-bar-tour"
               tabindex="0"
               [attr.aria-label]="month.label + ': nhóm tour ' + formatNumber(month.tour) + ' đồng'"
             >
@@ -176,8 +176,8 @@
               [attr.y]="176 - month.stayHeight"
               width="14"
               [attr.height]="month.stayHeight"
-              rx="3"
-              fill="#63CF98"
+              rx="4"
+              class="revenue-bar revenue-bar-stay"
               tabindex="0"
               [attr.aria-label]="month.label + ': lưu trú ' + formatNumber(month.stay) + ' đồng'"
             >
@@ -200,7 +200,7 @@
   <ng-template #emptyChart
     ><div class="empty-chart">
       <app-partner-icon name="chart" /><strong>Chưa có dữ liệu biểu đồ</strong>
-      <p>Biểu đồ sẽ xuất hiện khi có booking với ngày đặt hợp lệ.</p>
+      <p>Biểu đồ sẽ xuất hiện khi có đơn đặt với ngày hợp lệ.</p>
     </div></ng-template
   >
 
@@ -209,7 +209,7 @@
       <div class="card-heading with-action">
         <div class="heading-title">
           <app-partner-icon name="calendar" />
-          <h2>Booking gần đây</h2>
+          <h2>Đơn đặt gần đây</h2>
         </div>
         <a routerLink="/partner-bookings">Xem tất cả <app-partner-icon name="arrow" /></a>
       </div>
@@ -217,7 +217,7 @@
         <table>
           <thead>
             <tr>
-              <th>Mã booking</th>
+              <th>Mã đơn</th>
               <th>Dịch vụ</th>
               <th>Khách hàng</th>
               <th>Ngày đặt</th>
@@ -246,7 +246,7 @@
       <ng-template #emptyBookings
         ><div class="empty-state">
           <app-partner-icon name="calendar" />
-          <p>Chưa có dữ liệu booking trong khoảng thời gian này.</p>
+          <p>Chưa có dữ liệu đơn đặt trong khoảng thời gian này.</p>
         </div></ng-template
       >
     </article>
@@ -259,7 +259,7 @@
       <a *ngIf="analytics.pendingBookings" routerLink="/partner-bookings" class="task-row"
         ><span class="task-icon orange"><app-partner-icon name="calendar" /></span
         ><span
-          ><strong>{{ analytics.pendingBookings }} booking</strong> chờ xác nhận</span
+          ><strong>{{ analytics.pendingBookings }} đơn</strong> chờ xác nhận</span
         ><app-partner-icon name="chevron"
       /></a>
       <a *ngIf="analytics.pendingServices" routerLink="/partner-services" class="task-row"
@@ -271,7 +271,7 @@
       <div class="empty-state small" *ngIf="!taskCount">
         <span class="all-clear"><app-partner-icon name="check" /></span
         ><strong>Chưa có công việc cần xử lý</strong>
-        <p>Chưa có booking hoặc dịch vụ chờ xử lý trong dữ liệu hiện có.</p>
+        <p>Chưa có đơn hoặc dịch vụ chờ xử lý trong dữ liệu hiện có.</p>
       </div>
       <p class="card-footnote">Chưa có dữ liệu khuyến mãi sắp hết hạn.</p>
     </article>
@@ -285,7 +285,7 @@
     <div class="quick-grid">
       <a routerLink="/partner-services" [queryParams]="{ action: 'add' }"
         ><app-partner-icon name="plus" />Thêm dịch vụ mới</a
-      ><a routerLink="/partner-bookings"><app-partner-icon name="calendar" />Quản lý booking</a
+      ><a routerLink="/partner-bookings"><app-partner-icon name="calendar" />Quản lý đơn đặt</a
       ><a routerLink="/partner-ads"><app-partner-icon name="megaphone" />Tiếp thị & Chăm sóc</a
       ><a routerLink="/partner-promotions"><app-partner-icon name="tag" />Quảng bá & Khuyến mãi</a>
     </div>
@@ -295,9 +295,9 @@
     <article class="dashboard-card">
       <div class="card-heading">
         <app-partner-icon name="layers" />
-        <h2>Cấu trúc booking dịch vụ</h2>
+        <h2>Cơ cấu đơn dịch vụ</h2>
       </div>
-      <p class="card-description">Tỷ trọng số lượng booking theo nhóm sản phẩm.</p>
+      <p class="card-description">Tỷ trọng lượt đặt theo nhóm sản phẩm.</p>
       <div class="allocation-bar" *ngIf="totalAllocation">
         <span
           *ngFor="let row of allocationRows"
@@ -306,7 +306,7 @@
           [title]="row.label + ': ' + row.value"
         ></span>
       </div>
-      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có booking để phân tích.</p>
+      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có lượt đặt để phân tích.</p>
       <div class="allocation-values">
         <div *ngFor="let row of allocationRows">
           <span>{{ row.label }}</span
@@ -334,7 +334,7 @@
           </dd>
         </div>
         <div>
-          <dt>Booking / lượt xem</dt>
+        <dt>Lượt đặt / lượt xem</dt>
           <dd>
             {{
               analytics.conversionRate === null
@@ -357,12 +357,12 @@
         <span class="rank">{{ i + 1 }}</span>
         <div>
           <strong>{{ service.name }}</strong
-          ><small>{{ service.bookings }} booking</small>
+          ><small>{{ service.bookings }} lượt đặt</small>
         </div>
         <span>{{ formatNumber(service.revenue) }}đ</span>
       </div>
       <p class="no-data-inline" *ngIf="!analytics.bestServices.length">
-        Chưa có booking để xếp hạng dịch vụ.
+        Chưa có đơn đặt để xếp hạng dịch vụ.
       </p>
     </article>
     <article class="dashboard-card">
@@ -389,7 +389,7 @@
     </article>
   </section>
   <footer class="dashboard-footer">
-    <span>Số liệu từ booking và dịch vụ của tài khoản · {{ periodText }}</span
+    <span>Số liệu từ đơn đặt và dịch vụ của tài khoản · {{ periodText }}</span
     ><button type="button" (click)="exportCsv()" [disabled]="isLoading || !filteredBookings.length">
       <app-partner-icon name="download" />Tải báo cáo CSV
     </button>

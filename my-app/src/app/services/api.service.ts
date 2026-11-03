@@ -3,25 +3,39 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
 import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
+import { getApiUrl } from '../config/api-config';
 
 export interface AdminQueueResult<T> {
   data: T[];
   available: boolean;
 }
 
+export interface AdminUserQuery {
+  search?: string;
+  role?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private BACKEND_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? 'http://localhost:5055/api' 
-    : 'https://greensteps-6swn.onrender.com/api';
+  private BACKEND_URL = getApiUrl();
 
   walletRequest(method: string, path: string, body?: unknown, key?: string): Promise<any> {
     return firstValueFrom(this.http.request(method, `${this.BACKEND_URL}/wallet${path}`, { body, withCredentials: true, headers: key ? { 'Idempotency-Key': key } : {} }));
   }
 
   private cache = new Map<string, { data: any; expiry: number }>();
+  private adminUserRequests = new Map<string, Promise<any>>();
+  private adminUserCacheVersion = 0;
+  private adminUserCacheScope = 'anonymous';
 
   private getCachedData(key: string): any | null {
     // Shared records may be updated from another account or browser session.
@@ -39,13 +53,60 @@ export class ApiService {
     this.cache.set(key, { data, expiry: Date.now() + ttlMs });
   }
 
+  private getAdminUserCachedRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
+    const cached = this.getCachedData(key);
+    if (cached !== null) return Promise.resolve(cached as T);
+
+    const pending = this.adminUserRequests.get(key);
+    if (pending) return pending as Promise<T>;
+
+    const version = this.adminUserCacheVersion;
+    let pendingRequest: Promise<T>;
+    pendingRequest = request()
+      .then(response => {
+        if (version === this.adminUserCacheVersion && (response as any)?.success === true) this.setCachedData(key, response, 30_000);
+        return response;
+      })
+      .finally(() => {
+        if (this.adminUserRequests.get(key) === pendingRequest) this.adminUserRequests.delete(key);
+      });
+    this.adminUserRequests.set(key, pendingRequest);
+    return pendingRequest;
+  }
+
+  private invalidateAdminUserCache(): void {
+    this.refreshAdminUserData();
+    this.clearCache('admin_user_detail:');
+    this.clearCache('admin_user_events:');
+    this.clearCache('admin_user_activity:');
+    this.clearCache('admin_user_bookings:');
+  }
+
+  public setAdminUserCacheScope(scope: string | null | undefined): void {
+    const nextScope = String(scope || 'anonymous');
+    if (nextScope === this.adminUserCacheScope) return;
+    this.adminUserCacheScope = nextScope;
+    this.refreshAdminUserData();
+    this.clearCache('admin_user_detail:');
+    this.clearCache('admin_user_activity:');
+    this.clearCache('admin_user_bookings:');
+  }
+
   public clearCache(prefix?: string): void {
     if (!prefix) {
       this.cache.clear();
+      this.adminUserCacheVersion++;
+      this.adminUserRequests.clear();
     } else {
       for (const key of this.cache.keys()) {
         if (key.startsWith(prefix)) {
           this.cache.delete(key);
+        }
+      }
+      if (prefix.startsWith('admin_users:') || prefix.startsWith('admin_user_') || prefix === 'admin_user_stats') {
+        this.adminUserCacheVersion++;
+        for (const key of this.adminUserRequests.keys()) {
+          if (key.startsWith(prefix)) this.adminUserRequests.delete(key);
         }
       }
     }
@@ -343,6 +404,7 @@ export class ApiService {
   public async markAllNotificationsRead(userId: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.post(`${this.BACKEND_URL}/notifications/user/${userId}/read-all`, {}));
+      this.markLocalCounterNotificationsRead(userId);
       return true;
     } catch (e) {
       console.error('Error marking all notifications read:', e);
@@ -353,9 +415,19 @@ export class ApiService {
   public async clearNotifications(userId: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.delete(`${this.BACKEND_URL}/notifications/user/${userId}`));
+      this.clearLocalCounterNotifications(userId);
       return true;
     } catch (e) {
       console.error('Error clearing notifications:', e);
+      return false;
+    }
+  }
+
+  public async deleteNotification(id: string): Promise<boolean> {
+    try {
+      await firstValueFrom(this.http.delete(`${this.BACKEND_URL}/notifications/${id}`));
+      return true;
+    } catch (e) {
       return false;
     }
   }
@@ -656,13 +728,16 @@ export class ApiService {
     }
   }
 
-  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
+  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
     try {
       const payload = {
         type: bookingData.type ?? bookingData.kind,
         targetId: bookingData.targetId ?? bookingData.target_id,
         bookingDate: bookingData.bookingDate ?? bookingData.booking_date,
+        checkOutDate: bookingData.checkOutDate ?? bookingData.check_out_date,
         guests: bookingData.guests,
+        addonIds: bookingData.addonIds ?? bookingData.addon_ids ?? [],
+        idempotencyKey: bookingData.idempotencyKey ?? bookingData.idempotency_key,
         paymentMethod: bookingData.paymentMethod ?? bookingData.payment_method,
         voucherCode: bookingData.voucherCode ?? bookingData.voucher_code,
         customerId: bookingData.customerId ?? bookingData.userId ?? bookingData.user_id,
@@ -672,12 +747,18 @@ export class ApiService {
       };
       const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings`, payload));
       if (!res?.success) return { success: false, message: res?.message || 'Không thể tạo đơn đặt chỗ.' };
+      const createdBookingId = res.bookingId || res.booking?.id || res.booking?._id || res.booking?.booking_code || res.booking?.evoucher_code;
+      if (String(payload.paymentMethod || '').toLowerCase() === 'counter' && payload.customerId && createdBookingId) {
+        this.ensureLocalCounterBookingNotification(String(payload.customerId), String(createdBookingId));
+        window.dispatchEvent(new Event('greensteps-notifications-refresh'));
+      }
       return { 
         success: true,
-        bookingId: res.bookingId || res.booking?.id || res.booking?._id || res.booking?.booking_code || res.booking?.evoucher_code,
+        bookingId: createdBookingId,
         bookingCode: res.booking?.evoucher_code || res.booking?.booking_code,
         paymentStatus: res.payment?.status || res.booking?.payment?.status,
         payment: res.payment || res.booking?.payment,
+        pricing: res.pricing || res.booking?.pricing_snapshot,
         message: res.message,
         emailAlreadyExists: res.emailAlreadyExists,
         autoCreatedUser: res.autoCreatedUser
@@ -685,6 +766,54 @@ export class ApiService {
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Có lỗi xảy ra khi tạo đặt chỗ.' };
     }
+  }
+
+  public getLocalCounterBookingNotifications(userId: string): any[] {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      return Array.isArray(rows) ? rows.filter(row => row.user_id === userId) : [];
+    } catch { return []; }
+  }
+
+  public markLocalNotificationRead(id: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.map(row => row.id === id ? { ...row, read: true } : row)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  private markLocalCounterNotificationsRead(userId: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.map(row => row.user_id === userId ? { ...row, read: true } : row)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  private clearLocalCounterNotifications(userId: string): void {
+    try {
+      const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
+      if (Array.isArray(rows)) localStorage.setItem('greensteps-counter-notifications', JSON.stringify(rows.filter(row => row.user_id !== userId)));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }
+
+  public ensureLocalCounterBookingNotification(userId: string, bookingId: string): void {
+    try {
+      const key = 'greensteps-counter-notifications';
+      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const rows = Array.isArray(stored) ? stored : [];
+      const id = `counter-${bookingId}`;
+      if (rows.some(row => row.id === id)) return;
+      rows.unshift({
+        id, user_id: userId, title: 'Đặt chỗ tại quầy đang chờ duyệt',
+        message: `Yêu cầu đặt chỗ ${bookingId} đang chờ nhân viên xác nhận sau khi bạn thanh toán tại quầy.`,
+        type: 'booking', link: `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`,
+        read: false, createdAt: new Date().toISOString()
+      });
+      localStorage.setItem(key, JSON.stringify(rows.slice(0, 50)));
+    } catch { /* The server notification remains the durable source. */ }
+  }
+  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string }): Promise<any> {
+    return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings/quote`, quoteData));
   }
 
   public async approveBooking(id: string): Promise<boolean> {
@@ -1006,6 +1135,115 @@ export class ApiService {
   public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings'): Promise<AdminQueueResult<any>> {
     return this.getAdminQueue(`/admin/catalog/${kind}`);
   }
+  private adminUserQuery(query: AdminUserQuery): string {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    }
+    return params.toString();
+  }
+
+  public getAdminUsers(query: AdminUserQuery): Promise<any> {
+    const params = this.adminUserQuery(query);
+    const cacheParams = new URLSearchParams(params);
+    cacheParams.sort();
+    return this.getAdminUserCachedRequest(`admin_users:${this.adminUserCacheScope}:${cacheParams.toString()}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users${params ? `?${params}` : ''}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserStats(): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_stats:${this.adminUserCacheScope}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/stats`, { withCredentials: true }))
+    );
+  }
+
+  public refreshAdminUserData(): void {
+    this.clearCache('admin_users:');
+    this.clearCache('admin_user_stats:');
+  }
+
+  public getAdminUser(id: string): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_detail:${this.adminUserCacheScope}:${id}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserActivity(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_activity:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/activity?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserBookings(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_bookings:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/bookings?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminUserEvents(id: string, page = 1, limit = 10): Promise<any> {
+    return this.getAdminUserCachedRequest(`admin_user_events:${this.adminUserCacheScope}:${id}:${page}:${limit}`, () =>
+      firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/events?page=${page}&limit=${limit}`, { withCredentials: true }))
+    );
+  }
+
+  public getAdminProvider(id: string): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}`, { withCredentials: true }));
+  }
+
+  public getAdminProviderServices(id: string, page = 1, limit = 10): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}/services?page=${page}&limit=${limit}`, { withCredentials: true }));
+  }
+
+  public updateAdminProvider(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.clearCache('admin_user_activity:');
+      return response;
+    });
+  }
+
+  public updateAdminProviderStatus(id: string, action: 'suspend' | 'unsuspend', reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/providers/${encodeURIComponent(id)}/${action}`, { reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.clearCache('admin_user_activity:');
+      return response;
+    });
+  }
+
+  public createAdminUser(data: { fullname: string; email: string; phone?: string; role: string; reason: string }): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/users`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public updateAdminUser(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}`, data, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public changeAdminUserRole(id: string, role: string, reason: string): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/role`, { role, reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public updateAdminUserStatus(id: string, action: 'suspend' | 'unsuspend' | 'deactivate' | 'reactivate', reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/users/${encodeURIComponent(id)}/${action}`, { reason }, { withCredentials: true })).then(response => {
+      if (response?.success) this.invalidateAdminUserCache();
+      return response;
+    });
+  }
+
+  public async exportAdminUsers(query: AdminUserQuery, selectedIds: string[] = []): Promise<Blob> {
+    const params = new URLSearchParams(this.adminUserQuery(query));
+    selectedIds.forEach(id => params.append('id', id));
+    return firstValueFrom(this.http.get(`${this.BACKEND_URL}/admin/users/export?${params.toString()}`, { withCredentials: true, responseType: 'blob' }));
+  }
+
+
   private async getAdminQueue<T>(path: string, wrapperKey?: string, pendingOnly = false): Promise<AdminQueueResult<T>> {
     try {
       const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}${path}`, { withCredentials: true }));

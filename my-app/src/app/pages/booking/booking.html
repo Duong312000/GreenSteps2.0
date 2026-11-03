@@ -241,9 +241,9 @@
                    [id]="'payMethod_' + method.id" 
                    (click)="$event.stopPropagation()">
             <div class="payment-brand" [attr.aria-label]="method.label">
-              <span *ngIf="method.id === 'wallet'" class="brand-wordmark brand-greensteps">GreenSteps</span>
-              <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="/image/vietqr-wordmark.png" alt="VietQR">
-              <img *ngIf="method.id === 'card'" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+              <span *ngIf="method.id === 'wallet'" class="brand-greensteps-lockup"><img src="image/greensteps_logo_header.png" alt=""><span><b>GreenSteps</b><small>WALLET</small></span></span>
+              <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="image/vietqr-wordmark.png" alt="VietQR">
+              <img *ngIf="method.id === 'card'" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
               <span *ngIf="method.id === 'counter'" class="brand-wordmark brand-counter"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
             </div>
             <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -378,80 +378,102 @@
     </aside>
   </section>
 
-  <section class="confirm-shell" *ngIf="isCompleteStep">
-    <div class="confirm-card" [class.is-pending]="paymentStatus === 'pending'">
-      <div class="done-icon" [class.is-pending]="paymentStatus === 'pending'" aria-hidden="true">
-        <span class="confirmation-mark__receipt"><span></span><span></span><span></span></span>
-        <span class="confirmation-mark__check"><i class="bi bi-check-lg"></i></span>
-      </div>
-      <h1 class="pending-title" *ngIf="paymentStatus === 'pending'">Đã tiếp nhận yêu cầu</h1>
-      <p class="pending-copy" *ngIf="paymentStatus === 'pending'">Đơn đặt chỗ đã được lưu. GreenSteps sẽ cập nhật trạng thái sau khi xác nhận thanh toán hoặc giữ chỗ.</p>
-      <h1>{{ paymentMethod === 'counter' ? 'Đặt chỗ thành công' : 'Đặt cọc thành công' }}</h1>
-      <p>{{ paymentMethod === 'counter' ? 'GreenSteps đã ghi nhận yêu cầu giữ chỗ của bạn. Quý khách vui lòng hoàn tất thanh toán tại quầy dịch vụ hoặc văn phòng GreenSteps trước ngày khởi hành.' : 'GreenSteps đã ghi nhận thông tin đặt cọc của bạn. Chúng tôi sẽ gửi xác nhận qua email hoặc số điện thoại bạn đã cung cấp.' }}</p>
+  <section class="confirm-shell confirm-page" *ngIf="isCompleteStep">
+    <div class="confirm-loading" *ngIf="confirmationLoading" role="status">Đang lấy trạng thái đơn từ GreenSteps…</div>
+    <div class="confirm-layout" *ngIf="!confirmationLoading">
+      <header class="confirm-hero" [class.is-paid]="confirmationIsPaid" [class.is-failed]="confirmationIsFailed" [class.is-pending]="!confirmationIsPaid && !confirmationIsFailed">
+        <button type="button" class="confirm-close" aria-label="Về hồ sơ" (click)="router.navigate(['/profile'])"><i class="bi bi-x-lg"></i></button>
+        <div class="confirm-mark" aria-hidden="true">
+          <span class="confirm-mark__ring"></span>
+          <i class="bi" [class.bi-check-lg]="confirmationIsPaid" [class.bi-clock]="!confirmationIsPaid && !confirmationIsFailed" [class.bi-exclamation-lg]="confirmationIsFailed"></i>
+        </div>
+        <p class="confirm-eyebrow">GREENSTEPS · THÔNG TIN ĐẶT CHỖ</p>
+        <h1>{{ confirmationTitle }}</h1>
+        <p class="confirm-message">{{ confirmationMessage }}</p>
+        <div class="confirm-success-note" *ngIf="confirmationIsPaid">
+          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+          <span>GreenSteps đã ghi nhận thanh toán. Mã vé và lịch trình của bạn ở bên dưới.</span>
+        </div>
+        <div class="confirm-next-note" *ngIf="!confirmationIsPaid && !confirmationIsFailed && confirmationBooking">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span *ngIf="confirmationPaymentMethodCode === 'counter'">Mang mã đơn này đến quầy GreenSteps trước ngày khởi hành để hoàn tất thanh toán.</span>
+          <span *ngIf="confirmationPaymentMethodCode !== 'counter'">Bạn có thể mở lại trang này để xem trạng thái thanh toán mới nhất.</span>
+        </div>
+      </header>
 
-      <!-- Auto Created Account Alert -->
-      <div *ngIf="isNewUserCreated" style="background-color: #ebf8ff; border: 1.5px solid #bee3f8; border-radius: 16px; padding: 18px 22px; margin: 16px 0; text-align: left; animation: fadeIn 0.3s ease;">
-        <div style="display: flex; gap: 10px; align-items: flex-start; color: #2b6cb0;">
-          <i class="bi bi-person-check-fill" style="font-size: 1.3rem; margin-top: 2px;"></i>
-          <div>
-            <h4 style="margin: 0 0 6px; font-weight: 700; color: #2b6cb0;">Hệ thống đã cấp tài khoản tự động!</h4>
-            <p style="margin: 0 0 10px; font-size: 0.82rem; line-height: 1.4; color: #4a5568;">
-              Để tiện theo dõi và quản lý chuyến đi, hệ thống đã tạo sẵn một tài khoản và tự động đăng nhập cho bạn:
-            </p>
-            <div style="font-size: 0.8rem; line-height: 1.5; color: #2d3748; background: #fff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; font-family: monospace;">
-              <div><strong>Tên đăng nhập:</strong> {{ newUsername }}</div>
-              <div><strong>Mật khẩu mặc định:</strong> {{ newPassword }}</div>
+      <div class="confirm-columns" *ngIf="confirmationBooking as booking">
+        <main class="confirm-main">
+          <section class="confirm-section payment-details">
+            <h2><i class="bi bi-receipt" aria-hidden="true"></i> Thông tin thanh toán</h2>
+            <dl class="confirm-rows">
+              <div><dt>Mã đơn</dt><dd class="confirm-code">{{ confirmationOrderCode || '—' }}</dd></div>
+              <div><dt>Ngày tạo</dt><dd>{{ booking.createdAt | date:'HH:mm, dd/MM/yyyy' }}</dd></div>
+              <div><dt>Phương thức</dt><dd>{{ confirmationPaymentMethod }}</dd></div>
+              <div><dt>Trạng thái</dt><dd><span class="confirm-status-text" role="status" aria-live="polite" aria-atomic="true" [class.is-paid]="confirmationIsPaid" [class.is-failed]="confirmationIsFailed" [class.is-pending]="!confirmationIsPaid && !confirmationIsFailed"><i class="bi" [class.bi-check-circle-fill]="confirmationIsPaid" [class.bi-clock-fill]="!confirmationIsPaid && !confirmationIsFailed" [class.bi-x-circle-fill]="confirmationIsFailed" aria-hidden="true"></i>{{ confirmationStatusLabel }}</span></dd></div>
+              <div><dt>Đã thanh toán</dt><dd>{{ confirmationPaidNow | number:'1.0-0':'vi-VN' }}đ</dd></div>
+              <div *ngIf="booking.payment_deadline"><dt>Hạn xử lý</dt><dd>{{ booking.payment_deadline | date:'HH:mm, dd/MM/yyyy' }}</dd></div>
+            </dl>
+            <div class="confirm-barcode" aria-hidden="true"><span></span></div>
+            <p class="confirm-barcode-caption">MÃ VÉ · {{ confirmationOrderCode }}</p>
+          </section>
+
+          <section class="confirm-section itinerary-details">
+            <h2><i class="bi bi-map" aria-hidden="true"></i> Lịch trình của bạn</h2>
+            <div class="confirm-trip-heading">
+              <img *ngIf="booking.order_details_snapshot?.image || activeTour?.image" [src]="booking.order_details_snapshot?.image || activeTour?.image" [alt]="booking.order_details_snapshot?.name || hotelName">
+              <div>
+                <h3>{{ booking.order_details_snapshot?.name || booking.tour_name || booking.name_service || hotelName }}</h3>
+                <p>{{ booking.order_details_snapshot?.destination || activeTour?.destination || 'Việt Nam' }}</p>
+              </div>
             </div>
-            <p style="margin: 10px 0 0; font-size: 0.76rem; color: #718096;">
-              * Bạn có thể đổi lại mật khẩu trong trang cá nhân bất kỳ lúc nào.
-            </p>
-          </div>
-        </div>
+            <dl class="confirm-rows confirm-trip-meta">
+              <div><dt>Khởi hành</dt><dd>{{ booking.booking_date | date:'dd/MM/yyyy' }}</dd></div>
+              <div *ngIf="booking.check_out_date"><dt>Kết thúc</dt><dd>{{ booking.check_out_date | date:'dd/MM/yyyy' }}</dd></div>
+              <div><dt>Số khách</dt><dd>{{ booking.guests }}</dd></div>
+              <div><dt>Người đặt</dt><dd>{{ booking.fullname || (guestInfo.lastName + ' ' + guestInfo.firstName) }}</dd></div>
+            </dl>
+            <details class="confirm-itinerary-toggle"><summary>Xem hoạt động từng ngày</summary><div class="confirm-day" *ngFor="let day of booking.order_details_snapshot?.daysData; let dayIndex = index">
+              <h3>Ngày {{ dayIndex + 1 }}</h3>
+              <p *ngFor="let activity of day"><time *ngIf="activity.time">{{ activity.time }}</time><span>{{ activity.name }}</span></p>
+              <p *ngIf="!day?.length" class="confirm-empty-day">Lịch trình ngày này chưa có hoạt động chi tiết.</p>
+            </div></details>
+            <p *ngIf="!booking.order_details_snapshot?.daysData?.length" class="confirm-empty-day">Thông tin tour và ngày khởi hành đã được lưu trong đơn.</p>
+          </section>
+        </main>
+
+        <aside class="confirm-summary-panel">
+          <p class="confirm-eyebrow">TÓM TẮT ĐƠN</p>
+          <h2>Chi phí chuyến đi</h2>
+          <details class="confirm-price-breakdown">
+            <summary>Xem chi tiết các khoản</summary>
+            <div class="confirm-price-row"><span>Tạm tính</span><b>{{ booking.pricing_snapshot?.subtotal | number:'1.0-0':'vi-VN' }}đ</b></div>
+            <div class="confirm-price-row" *ngIf="booking.pricing_snapshot?.discount"><span>Ưu đãi</span><b>−{{ booking.pricing_snapshot.discount | number:'1.0-0':'vi-VN' }}đ</b></div>
+            <div class="confirm-price-row" *ngIf="booking.pricing_snapshot?.serviceFee"><span>Phí dịch vụ</span><b>{{ booking.pricing_snapshot.serviceFee | number:'1.0-0':'vi-VN' }}đ</b></div>
+            <div class="confirm-price-row" *ngFor="let addon of booking.pricing_snapshot?.addons"><span>{{ addon.name }}</span><b>{{ addon.total | number:'1.0-0':'vi-VN' }}đ</b></div>
+          </details>
+          <div class="confirm-total-row"><span>Tổng đơn</span><strong>{{ confirmationTotal | number:'1.0-0':'vi-VN' }}đ</strong></div>
+          <div class="confirm-price-row"><span>Đã thanh toán</span><b>{{ confirmationPaidNow | number:'1.0-0':'vi-VN' }}đ</b></div>
+          <div class="confirm-price-row" *ngIf="booking.pricing_snapshot?.remaining"><span>Còn lại</span><b>{{ booking.pricing_snapshot.remaining | number:'1.0-0':'vi-VN' }}đ</b></div>
+          <details class="confirm-account-note" *ngIf="isNewUserCreated">
+            <summary>Thông tin tài khoản GreenSteps</summary>
+            <span>Tên đăng nhập: {{ newUsername }}</span>
+            <span>Mật khẩu tạm: {{ newPassword }}</span>
+            <small>Bạn có thể đổi mật khẩu trong hồ sơ cá nhân.</small>
+          </details>
+          <p class="confirm-account-note" *ngIf="isEmailAlreadyExists">Email này đã có tài khoản GreenSteps. Đăng nhập để theo dõi đơn trong hồ sơ.</p>
+          <button type="button" class="confirm-print-button" (click)="printConfirmation()"><i class="bi bi-download" aria-hidden="true"></i> In hoặc lưu PDF</button>
+        </aside>
       </div>
 
-      <!-- Email Already Exists Alert -->
-      <div *ngIf="isEmailAlreadyExists" style="background-color: #fef3c7; border: 1.5px solid #fde68a; border-radius: 16px; padding: 18px 22px; margin: 16px 0; text-align: left; animation: fadeIn 0.3s ease;">
-        <div style="display: flex; gap: 10px; align-items: flex-start; color: #b45309;">
-          <i class="bi bi-info-circle-fill" style="font-size: 1.3rem; margin-top: 2px;"></i>
-          <div>
-            <h4 style="margin: 0 0 6px; font-weight: 700; color: #b45309;">Email của bạn đã được đăng ký trước đó!</h4>
-            <p style="margin: 0; font-size: 0.82rem; line-height: 1.4; color: #78350f;">
-              Hệ thống nhận thấy email của bạn đã liên kết với một tài khoản GreenSteps. Bạn có thể đăng nhập tài khoản này để xem thêm chi tiết chuyến đi cũng như quản lý lịch trình của mình.
-            </p>
-          </div>
-        </div>
+      <div class="confirm-error-actions" *ngIf="confirmationFetchFailed">
+        <button type="button" class="confirm-primary-action" (click)="loadConfirmationBooking()">Thử tải lại</button>
       </div>
-
-      <!-- Booking code banner (always show) -->
-      <div *ngIf="currentBookingId" style="background: linear-gradient(135deg,#e8f5e9,#dcfce7); border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 18px 22px; margin: 16px 0; text-align: center;">
-        <p style="font-size:0.8rem; color:#065f46; font-weight:600; margin:0 0 6px; text-transform:uppercase; letter-spacing:0.5px;">Mã đặt chỗ của bạn</p>
-        <p style="font-size:1.5rem; font-weight:900; color:#0E9F6E; letter-spacing:2px; margin:0; font-family:monospace;">{{ currentBookingId }}</p>
-        <p class="booking-email-note"><i class="bi bi-envelope-fill" aria-hidden="true"></i> Một email chứa thông tin đặt chỗ chi tiết và liên kết tra cứu đã được gửi đến bạn.</p>
-      </div>
-
-      <div class="payment-success-note" *ngIf="paymentStatus === 'paid'" role="status" aria-live="polite">
-        <span class="payment-success-note__icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
-        <span><strong>Thanh toán hoàn tất!</strong><small>Cảm ơn bạn đã đồng hành cùng GreenSteps. Chúc bạn có một chuyến đi thật nhiều trải nghiệm xanh.</small></span>
-      </div>
-
-      <div class="confirm-summary">
-        <p><span>Tour</span><b>{{ hotelName }}</b></p>
-        <p><span>Người đặt</span><b>{{ guestInfo.lastName }} {{ guestInfo.firstName }}</b></p>
-        <p><span>Tiền cọc</span><b>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
-        <p><span>Thanh toán</span><b>{{ selectedPaymentLabel }}</b></p>
-      </div>
-      <div class="confirm-actions">
-        <button type="button" class="booking-submit" *ngIf="currentUser" (click)="router.navigate(['/profile'])">Xem hồ sơ đặt chỗ</button>
-        <button type="button" class="secondary-button" (click)="router.navigate(['/tours'])">Tiếp tục khám phá</button>
-      </div>
-    </div>
-    <div class="payment-toast" *ngIf="showPaymentSuccessToast" role="status" aria-live="polite">
-      <span class="payment-toast__icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
-      <span class="payment-toast__copy"><strong>Thanh toán thành công</strong><small>Đặt cọc của bạn đã được xác nhận.</small></span>
-      <span class="payment-toast__progress" aria-hidden="true"></span>
+      <footer class="confirm-actions">
+        <button type="button" class="confirm-primary-action" *ngIf="currentUser" (click)="router.navigate(['/profile'], { queryParams: { section: 'tickets' } })">Về hồ sơ của tôi</button>
+        <button type="button" class="confirm-secondary-action" (click)="router.navigate(['/tours'])">Khám phá tour khác</button>
+      </footer>
     </div>
   </section>
-
   <ng-template #summaryCards>
     <article class="summary-card hotel-card">
       <img [src]="activeTour?.image || 'image/login-vietnam.png'" [alt]="hotelName">
@@ -526,8 +548,8 @@
     <div class="custom-alert-card payment-qr-card" (click)="$event.stopPropagation()">
       <div class="payment-qr-header">
         <h3 class="payment-modal-title">
-          <img *ngIf="isQrModalOpen" src="/image/vietqr-wordmark.png" alt="VietQR">
-          <img *ngIf="isCardModalOpen" class="brand-card-image" src="/image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+          <img *ngIf="isQrModalOpen" src="image/vietqr-wordmark.png" alt="VietQR">
+          <img *ngIf="isCardModalOpen" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
           {{ isQrModalOpen ? 'Thanh toán qua VietQR' : 'Thanh toán thẻ thử nghiệm' }}
         </h3>
         <button type="button" class="payment-close-button" aria-label="Đóng" (click)="closeQrModal()">×</button>
