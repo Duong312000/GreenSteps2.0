@@ -3,13 +3,13 @@
     .gs-footer button, .gs-footer input, .gs-footer a { font-family: inherit; }
 </style>
 
-<footer class="gs-footer bg-gradient-to-r from-[#05361f] via-[#064927] to-[#022817] text-white">
-    <div class="gs-footer-inner mx-auto max-w-[1240px] px-12 py-8 max-md:px-6 max-sm:px-4">
-        <div class="gs-footer-grid grid gap-8 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr_1fr_1.35fr]">
+<footer class="gs-footer bg-[#073D2B] text-white">
+    <div class="gs-footer-inner mx-auto max-w-[1280px] px-12 py-12 max-md:px-6 max-sm:px-4">
+        <div class="gs-footer-grid grid gap-9 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.25fr]">
             <div class="gs-footer-brand">
                 <div class="gs-footer-logo mb-4 flex items-center gap-3">
                     <img src="image/greensteps_logo.png" class="h-8 w-8 rounded-full bg-white object-cover" alt="GreenSteps">
-                    <span class="text-base font-extrabold">GREENSTEPS</span>
+                    <span class="flex flex-col text-base font-extrabold leading-tight">GREENSTEPS<span class="mt-1 text-[9px] font-bold uppercase tracking-[.2em] text-[#B9D9BD]">Travel with care</span></span>
                 </div>
                 <p class="max-w-xs text-xs leading-6 text-white/75">Du lịch có mục đích. Khám phá có trách nhiệm. Tạo tác động tích cực.</p>
                 <div class="gs-footer-socials mt-4 flex gap-3 text-white/85">
@@ -32,8 +32,8 @@
             <div class="gs-footer-col">
                 <h3 class="mb-4 text-xs font-extrabold">Hỗ trợ</h3>
                 <div class="flex flex-col gap-2 text-xs text-white/70">
-                    <a href="#" class="hover:text-white">Trung tâm hỗ trợ</a>
-                    <a href="#" class="hover:text-white">Liên hệ</a>
+                    <a routerLink="/help-center" class="hover:text-white">Trung tâm hỗ trợ</a>
+                    <a routerLink="/contact" class="hover:text-white">Liên hệ hỗ trợ</a>
                     <a href="#" class="hover:text-white">Điều khoản sử dụng</a>
                     <a href="#" class="hover:text-white">Chính sách bảo mật</a>
                 </div>

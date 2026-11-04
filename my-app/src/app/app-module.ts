@@ -31,6 +31,8 @@ import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partn
 import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
+import { HelpCenterComponent } from './pages/help-center/help-center';
+import { HelpCenterContactComponent } from './pages/help-center/contact';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
@@ -73,6 +75,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerAdsComponent,
     PartnerPromotionsComponent,
     PartnerRegisterComponent,
+    HelpCenterComponent,
+    HelpCenterContactComponent,
   ],
   imports: [
     GreenWalletComponent,

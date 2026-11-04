@@ -1,0 +1,123 @@
+<main class="hc-page">
+  <ng-container *ngIf="currentArticle as article; else indexPage">
+    <section class="hc-article-shell">
+      <a class="hc-back-link" routerLink="/help-center" [queryParams]="{ topic: selectedTopic, q: searchQuery || null }">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Trung tâm hỗ trợ
+      </a>
+      <article class="hc-article">
+        <div class="hc-article-heading">
+          <span class="hc-article-icon"><i class="bi" [ngClass]="article.icon" aria-hidden="true"></i></span>
+          <p class="hc-eyebrow">{{ topicName(article.topicId) }}</p>
+          <h1>{{ article.title }}</h1>
+          <p class="hc-article-intro">{{ article.summary }}</p>
+        </div>
+        <div class="hc-article-body">
+          <section class="hc-article-section" *ngFor="let section of article.sections">
+            <h2>{{ section.heading }}</h2>
+            <p>{{ section.body }}</p>
+            <ol *ngIf="section.steps?.length">
+              <li *ngFor="let step of section.steps">{{ step }}</li>
+            </ol>
+          </section>
+        </div>
+        <aside class="hc-article-help">
+          <div>
+            <p class="hc-eyebrow">GREENSTEPS LUÔN SẴN SÀNG</p>
+            <h2>Vẫn cần hỗ trợ?</h2>
+            <p>Trò chuyện với trợ lý AI GreenSteps để tìm hướng xử lý tiếp theo.</p>
+          </div>
+          <a routerLink="/contact" class="hc-button hc-button-primary">Trò chuyện ngay <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        </aside>
+      </article>
+    </section>
+  </ng-container>
+
+  <ng-template #indexPage>
+    <section *ngIf="unknownArticle; else helpIndex" class="hc-unknown" aria-live="polite">
+      <span class="hc-unknown-icon"><i class="bi bi-compass" aria-hidden="true"></i></span>
+      <p class="hc-eyebrow">KHÔNG TÌM THẤY HƯỚNG DẪN</p>
+      <h1>Liên kết này không còn khả dụng</h1>
+      <p>Hãy quay lại Trung tâm hỗ trợ để tìm một hướng dẫn khác.</p>
+      <a routerLink="/help-center" class="hc-button hc-button-primary">Về Trung tâm hỗ trợ</a>
+    </section>
+  </ng-template>
+
+  <ng-template #helpIndex>
+    <section class="hc-hero" aria-labelledby="hc-title">
+      <div class="hc-hero-inner">
+        <div class="hc-hero-content">
+          <h1 id="hc-title">Xin chào! GreenSteps có thể giúp gì cho bạn?</h1>
+          <p class="hc-hero-copy">Tìm nhanh câu trả lời để chuyến đi xanh của bạn luôn thật an tâm.</p>
+          <form class="hc-search" role="search" (ngSubmit)="submitSearch()">
+            <label class="hc-sr-only" for="help-search">Tìm kiếm hướng dẫn</label>
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="help-search" name="query" type="search" autocomplete="off"
+              [ngModel]="searchQuery" (ngModelChange)="updateSearch($event)" placeholder="Bạn muốn tìm hiểu điều gì?"
+              aria-controls="help-search-results" aria-describedby="help-search-hint">
+            <button type="submit" aria-label="Tìm kiếm hướng dẫn"><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+          </form>
+          <p id="help-search-hint" class="hc-search-hint">Thử tìm: đặt tour, thanh toán, điểm xanh</p>
+          <div *ngIf="searchQuery.trim()" id="help-search-results" class="hc-search-results" aria-live="polite">
+            <p class="hc-search-results-label">{{ visibleArticles.length ? 'Hướng dẫn phù hợp' : 'Chưa tìm thấy hướng dẫn phù hợp' }}</p>
+            <button type="button" *ngFor="let article of visibleArticles.slice(0, 5)" (click)="openArticle(article)">
+              <span><i class="bi" [ngClass]="article.icon" aria-hidden="true"></i> {{ article.title }}</span>
+              <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+            </button>
+            <a *ngIf="!visibleArticles.length" routerLink="/contact">Trò chuyện với trợ lý AI GreenSteps</a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div class="hc-content">
+      <section class="hc-topics" aria-labelledby="hc-topics-title">
+        <h2 id="hc-topics-title" class="hc-sr-only">Chọn chủ đề để tìm hướng dẫn hỗ trợ</h2>
+        <div class="hc-topic-grid">
+          <button type="button" class="hc-topic-card" *ngFor="let topic of topics"
+            [class.is-active]="selectedTopic === topic.id" [attr.aria-pressed]="selectedTopic === topic.id"
+            (click)="setTopic(selectedTopic === topic.id ? null : topic.id)">
+            <span class="hc-topic-icon"><i class="bi" [ngClass]="topic.icon" aria-hidden="true"></i></span>
+            <span class="hc-topic-copy"><strong>{{ topic.title }}</strong><small>{{ topic.description }}</small></span>
+            <span class="hc-topic-count">{{ topicArticleCount(topic.id) }} bài</span>
+            <i class="bi bi-arrow-up-right hc-topic-arrow" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <section id="guides" class="hc-guides" aria-labelledby="hc-guides-title">
+        <div class="hc-section-heading hc-guides-heading">
+          <div>
+            <p class="hc-eyebrow">THƯ VIỆN HƯỚNG DẪN</p>
+            <h2 id="hc-guides-title">{{ selectedTopic ? selectedTopicTitle : (searchQuery ? 'Kết quả tìm kiếm' : (showAllArticles ? 'Tất cả hướng dẫn' : 'Được quan tâm nhất')) }}</h2>
+          </div>
+          <button *ngIf="!selectedTopic && !searchQuery && !showAllArticles && articles.length > featuredArticles.length"
+            type="button" class="hc-text-link" (click)="showAllGuides()">Xem tất cả {{ articles.length }} bài viết <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+          <button *ngIf="!selectedTopic && !searchQuery && showAllArticles" type="button" class="hc-text-link" (click)="showFeaturedGuides()">Thu gọn <i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+          <button type="button" class="hc-text-link" *ngIf="selectedTopic || searchQuery" (click)="clearFilters()">Xóa bộ lọc <i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
+
+        <div *ngIf="displayedArticles.length" class="hc-guide-grid" aria-live="polite">
+          <button type="button" class="hc-guide-card" *ngFor="let article of displayedArticles" (click)="openArticle(article)">
+            <span class="hc-guide-illustration" [attr.data-topic]="article.topicId"><i class="bi" [ngClass]="article.icon" aria-hidden="true"></i></span>
+            <span class="hc-guide-copy"><span class="hc-guide-topic">{{ topicName(article.topicId) }}</span><strong>{{ article.title }}</strong><span class="hc-guide-summary">{{ article.summary }}</span>
+              <span class="hc-guide-link">Đọc hướng dẫn <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+            </span>
+          </button>
+        </div>
+        <div *ngIf="hasNoResults" class="hc-empty-state" aria-live="polite">
+          <i class="bi bi-search" aria-hidden="true"></i><h3>Chưa có hướng dẫn phù hợp</h3>
+          <p>Thử từ khóa khác hoặc trò chuyện với trợ lý AI GreenSteps.</p>
+          <a routerLink="/contact" class="hc-button hc-button-secondary">Trò chuyện ngay <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        </div>
+      </section>
+
+      <section class="hc-support-cta" aria-labelledby="hc-cta-title">
+        <div class="hc-cta-emblem" aria-hidden="true"><i class="bi bi-chat-heart"></i><span></span></div>
+        <div class="hc-cta-copy"><p class="hc-eyebrow">TRỢ LÝ AI GREENSTEPS</p><h2 id="hc-cta-title">Bạn vẫn cần hỗ trợ?</h2><p>Hỏi trợ lý AI để tìm câu trả lời và gợi ý bước tiếp theo cho chuyến đi của bạn.</p></div>
+        <a routerLink="/contact" class="hc-button hc-button-light">Trò chuyện với GreenSteps AI <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <div class="hc-cta-decoration" aria-hidden="true"><i class="bi bi-stars"></i></div>
+      </section>
+    </div>
+  </ng-template>
+</main>

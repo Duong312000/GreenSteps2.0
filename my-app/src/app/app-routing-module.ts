@@ -19,6 +19,8 @@ import { AdminComponent } from './pages/admin/admin';
 import { ServicesComponent } from './pages/services/services';
 import { roleGuard } from './guards/role.guard';
 import { PartnerLayoutComponent } from './components/partner-layout/partner-layout';
+import { HelpCenterComponent } from './pages/help-center/help-center';
+import { HelpCenterContactComponent } from './pages/help-center/contact';
 
 const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -32,6 +34,9 @@ const routes: Routes = [
   { path: 'services/:id', component: TourDetailComponent },
   { path: 'service-detail/:id', component: TourDetailComponent },
   { path: 'services', component: ServicesComponent },
+  { path: 'help-center', component: HelpCenterComponent },
+  { path: 'help-center/:slug', component: HelpCenterComponent },
+  { path: 'contact', component: HelpCenterContactComponent },
   { path: 'profile', component: ProfileComponent },
   { path: 'community', component: CommunityComponent },
   { path: 'schedule', component: ScheduleEditorComponent },

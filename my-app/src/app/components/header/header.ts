@@ -22,6 +22,10 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   public currentUser: User | null = null;
   public currentPath: string = '';
 
+  public get isHelpCenterRoute(): boolean {
+    return this.currentPath.startsWith('/help-center') || this.currentPath.startsWith('/contact');
+  }
+
   private modalMap: any = null;
   private modalMarkers: { [key: string]: any } = {};
   private destCoords: { [key: string]: [number, number] } = {

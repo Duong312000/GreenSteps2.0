@@ -1,5 +1,6 @@
 <header
-    [class.glass-panel]="!isHeaderTransparent"
+    [class.glass-panel]="!isHeaderTransparent && !(isHelpCenterRoute && !isScrolled)"
+    [class.help-center-header]="isHelpCenterRoute"
     [class.provider-header]="currentUser && currentUser.role === 'provider'"
     [class.partner-workspace-header]="currentPath.startsWith('/partner-') && !currentPath.startsWith('/partner-register')"
     class="fixed inset-x-0 top-0 z-[1050]">

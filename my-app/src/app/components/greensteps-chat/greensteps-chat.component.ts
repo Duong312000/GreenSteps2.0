@@ -12,6 +12,7 @@ import { LoginModalService } from '../../services/login-modal.service';
 import { marked } from 'marked';
 import { TourCardComponent } from './tour-card.component';
 import { ItineraryTimelineComponent } from './itinerary-timeline.component';
+import { SupportChatLauncherService } from '../../services/support-chat-launcher.service';
 
 function normalizePrompt(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
@@ -72,6 +73,7 @@ export class GreenStepsChatComponent {
   private readonly apiService = inject(ApiService);
   private readonly authService = inject(AuthService);
   private readonly loginModalService = inject(LoginModalService);
+  private readonly supportChatLauncher = inject(SupportChatLauncherService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly launcher = viewChild<ElementRef<HTMLButtonElement>>('launcher');
@@ -89,6 +91,7 @@ export class GreenStepsChatComponent {
   readonly visibleTourCounts = signal<Record<string, number>>({});
 
   constructor() {
+    this.supportChatLauncher.openRequested$.pipe(takeUntilDestroyed()).subscribe(() => { void this.toggleChat(); });
     effect(() => {
       this.chat.transcript();
       this.scrollTranscriptToBottom();
