@@ -1692,9 +1692,15 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Ensure activities have coordinates
     this.ensureItineraryCoordinates();
 
-    // Use Leaflet with Google Maps road tiles for 100% reliable rendering without billing blocks
-    this.isGoogleMaps = false;
-    this.initLeafletMap();
+    // Now that Google Cloud Billing is fully active, launch Google Maps JS API SDK
+    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+      console.log('🌟 Launching official Google Maps SDK with interactive POIs & Places!');
+      this.initGoogleMap();
+    } else {
+      console.log('⚡ Fallback to Leaflet map engine');
+      this.isGoogleMaps = false;
+      this.initLeafletMap();
+    }
   }
 
   public lookupActivityCoordinates(title: string): { lat: number; lng: number } | null {
@@ -1769,6 +1775,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       }
 
       this.isGoogleMaps = true;
+      (window as any)['gm_authFailure'] = () => {
+        console.warn('Google Maps authentication failure. Reverting to backup engine.');
+        this.isGoogleMaps = false;
+        this.initLeafletMap();
+      };
       const mapOptions = {
         center: center,
         zoom: 14,
@@ -2133,6 +2144,28 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
               strokeWeight: 2.5
             },
             title: act.title
+          });
+
+          gmarker.addListener('mouseover', (e: any) => {
+            this.showHoverPopover({
+              title: act.title,
+              type: act.type,
+              cost: act.cost,
+              carbon: act.carbon,
+              lat: act.lat,
+              lng: act.lng,
+              time: act.time,
+              isActivity: true,
+              index: idx
+            }, {
+              containerPoint: {
+                x: e.domEvent ? e.domEvent.clientX : window.innerWidth / 2,
+                y: e.domEvent ? e.domEvent.clientY : window.innerHeight / 2
+              }
+            });
+          });
+          gmarker.addListener('mouseout', () => {
+            this.hideHoverPopover();
           });
 
           gmarker.addListener('click', () => {
