@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -191,7 +191,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     private apiService: ApiService,
     private authService: AuthService,
     private loginModalService: LoginModalService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   public openLoginModal() {
@@ -1209,40 +1210,87 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!place || !place.lat || !place.lng || (!this.map && !this.gmap)) return;
     const activeDay = this.activeItinerary?.days[this.activeDayIdx];
     const activitiesWithCoords = (activeDay?.activities || []).filter((a: any) => typeof a.lat === 'number' && typeof a.lng === 'number');
-    
-    if (activitiesWithCoords.length > 0) {
-      const lastAct = activitiesWithCoords[activitiesWithCoords.length - 1];
-      const query = `${lastAct.lng},${lastAct.lat};${place.lng},${place.lat}`;
-      fetch(`https://router.project-osrm.org/route/v1/driving/${query}?overview=full&geometries=geojson`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.routes && data.routes[0]) {
-            if (this.previewRouteLayer) {
-              try { this.map.removeLayer(this.previewRouteLayer); } catch(e) {}
-            }
-            this.previewRouteLayer = L.geoJSON(data.routes[0].geometry, {
-              style: { color: '#2563EB', weight: 5, dashArray: '6, 8', opacity: 0.9 }
-            }).addTo(this.map);
-            const km = (data.routes[0].distance / 1000).toFixed(1);
-            const mins = Math.max(3, Math.round(data.routes[0].duration / 60));
-            this.showAlert(`Chỉ đường từ "${lastAct.name || lastAct.title}" đến "${place.title}": khoảng ${km} km (${mins} phút)`, 'info');
-          }
-        })
-        .catch(() => {});
-      
-      const bounds = L.latLngBounds([[lastAct.lat, lastAct.lng], [place.lat, place.lng]]);
-      this.map.fitBounds(bounds, { padding: [60, 60] });
-    } else {
-      if (this.isGoogleMaps && this.gmap) {
-        this.gmap.panTo({ lat: place.lat, lng: place.lng });
-        this.gmap.setZoom(16);
-      } else if (this.map) {
-        this.map.flyTo([place.lat, place.lng], 16);
+
+    if (this.isGoogleMaps && this.gmap && this.gDirectionsService) {
+      // 1. OFFICIAL GOOGLE MAPS DIRECTIONS SDK ALGORITHM
+      let origin: any = null;
+      let originName = '';
+      if (activitiesWithCoords.length > 0) {
+        const lastAct = activitiesWithCoords[activitiesWithCoords.length - 1];
+        if (Math.abs(lastAct.lat - place.lat) > 0.0001 || Math.abs(lastAct.lng - place.lng) > 0.0001) {
+          origin = { lat: lastAct.lat, lng: lastAct.lng };
+          originName = lastAct.title || lastAct.name || '';
+        }
       }
-      this.showAlert(`Vị trí: ${place.title}`, 'info');
+      if (!origin) {
+        const destName = this.activeItinerary?.dest || 'Đà Nẵng';
+        const center = this.cityCenters[destName] || [15.8801, 108.3380];
+        origin = { lat: center[0], lng: center[1] };
+        originName = 'Trung tâm ' + destName;
+      }
+
+      const destination = { lat: place.lat, lng: place.lng };
+
+      this.gDirectionsService.route({
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (response: any, status: any) => {
+        this.ngZone.run(() => {
+          if (status === google.maps.DirectionsStatus.OK && response) {
+            this.gDirectionsRenderer.setDirections(response);
+            const leg = response.routes[0].legs[0];
+            const dist = leg.distance.text;
+            const dur = leg.duration.text;
+            if (this.activeGooglePlacePanel) {
+              this.activeGooglePlacePanel.routeInfo = {
+                distance: dist,
+                duration: dur,
+                steps: leg.steps?.map((s: any) => s.instructions?.replace(/<[^>]+>/g, '')) || []
+              };
+            }
+            this.showAlert(`Chỉ đường Google Maps từ "${originName}" đến "${place.title}": khoảng ${dist} (${dur})`, 'success');
+            this.cdr.detectChanges();
+          } else {
+            console.warn('Google Directions route status:', status);
+            this.gmap.panTo(destination);
+            this.gmap.setZoom(16);
+          }
+        });
+      });
+      return;
+    }
+
+    // 2. Leaflet Fallback
+    if (this.map) {
+      if (activitiesWithCoords.length > 0) {
+        const lastAct = activitiesWithCoords[activitiesWithCoords.length - 1];
+        const query = `${lastAct.lng},${lastAct.lat};${place.lng},${place.lat}`;
+        fetch(`https://router.project-osrm.org/route/v1/driving/${query}?overview=full&geometries=geojson`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.routes && data.routes[0]) {
+              if (this.previewRouteLayer) {
+                try { this.map.removeLayer(this.previewRouteLayer); } catch(e) {}
+              }
+              this.previewRouteLayer = L.geoJSON(data.routes[0].geometry, {
+                style: { color: '#2563EB', weight: 5, dashArray: '6, 8', opacity: 0.9 }
+              }).addTo(this.map);
+              const km = (data.routes[0].distance / 1000).toFixed(1);
+              const mins = Math.max(3, Math.round(data.routes[0].duration / 60));
+              this.showAlert(`Chỉ đường từ "${lastAct.name || lastAct.title}" đến "${place.title}": khoảng ${km} km (${mins} phút)`, 'info');
+            }
+          })
+          .catch(() => {});
+
+        const bounds = L.latLngBounds([[lastAct.lat, lastAct.lng], [place.lat, place.lng]]);
+        this.map.fitBounds(bounds, { padding: [60, 60] });
+      } else {
+        this.map.flyTo([place.lat, place.lng], 16);
+        this.showAlert(`Vị trí: ${place.title}`, 'info');
+      }
     }
   }
-
 
   public async addCustomPlaceToActiveDay() {
     const val = this.customPlaceTitle.trim();
@@ -1837,34 +1885,20 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.gmap.addListener('click', (e: any) => {
         if (e.placeId) {
           e.stop(); // Stop default infoWindow
-          this.fetchGooglePlaceDetails(e.placeId, e.latLng);
+          this.ngZone.run(() => {
+            this.fetchGooglePlaceDetails(e.placeId, e.latLng);
+          });
         } else if (e.latLng) {
           const lat = e.latLng.lat();
           const lng = e.latLng.lng();
-          this.handleMapClick(lat, lng);
+          this.ngZone.run(() => {
+            this.handleMapClick(lat, lng);
+          });
         }
       });
 
-      // 2. Attach Google Places Autocomplete to the timeline search bar
-      setTimeout(() => {
-        const input = (document.getElementById('timelineCustomPlaceInput') || document.getElementById('mapSearchInput')) as HTMLInputElement;
-        if (input && google.maps.places && google.maps.places.Autocomplete) {
-          const autocomplete = new google.maps.places.Autocomplete(input, {
-            fields: ['name', 'geometry', 'formatted_address', 'place_id', 'types', 'rating', 'user_ratings_total', 'photos']
-          });
-          autocomplete.bindTo('bounds', this.gmap);
-          autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (place && place.place_id) {
-              this.fetchGooglePlaceDetails(place.place_id);
-            } else if (place && place.geometry && place.geometry.location) {
-              this.gmap.panTo(place.geometry.location);
-              this.gmap.setZoom(16);
-              this.populateRealGooglePlacePanel(place);
-            }
-          });
-        }
-      }, 500);
+      // 2. Attach Google Places Autocomplete with retry
+      this.setupGoogleAutocomplete();
 
       this.plotMapMarkers(true);
     } catch(err) {
@@ -1872,6 +1906,42 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.isGoogleMaps = false;
       this.initUniversalMap();
     }
+  }
+
+  public setupGoogleAutocomplete() {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const input = document.getElementById('timelineCustomPlaceInput') as HTMLInputElement;
+      if (input && typeof google !== 'undefined' && google.maps && google.maps.places && google.maps.places.Autocomplete) {
+        clearInterval(interval);
+        try {
+          const autocomplete = new google.maps.places.Autocomplete(input, {
+            fields: ['place_id', 'name', 'geometry', 'formatted_address', 'types', 'rating', 'user_ratings_total', 'photos']
+          });
+          if (this.gmap) {
+            autocomplete.bindTo('bounds', this.gmap);
+          }
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            this.ngZone.run(() => {
+              if (place && place.place_id) {
+                this.fetchGooglePlaceDetails(place.place_id);
+              } else if (place && place.geometry && place.geometry.location) {
+                this.gmap.panTo(place.geometry.location);
+                this.gmap.setZoom(16);
+                this.populateRealGooglePlacePanel(place);
+              }
+            });
+          });
+          console.log('✅ Google Places Autocomplete successfully attached to timeline input');
+        } catch(e) {
+          console.warn('Autocomplete init error:', e);
+        }
+      } else if (attempts > 30) {
+        clearInterval(interval);
+      }
+    }, 250);
   }
 
   public fetchGooglePlaceDetails(placeId: string, fallbackLatLng?: any) {
@@ -1888,14 +1958,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         'website', 'formatted_phone_number', 'reviews', 'url'
       ]
     }, (place: any, status: any) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-        this.populateRealGooglePlacePanel(place, fallbackLatLng);
-      } else {
-        console.warn('Google Places getDetails status:', status);
-        if (fallbackLatLng) {
-          this.handleMapClick(fallbackLatLng.lat(), fallbackLatLng.lng());
+      this.ngZone.run(() => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          this.populateRealGooglePlacePanel(place, fallbackLatLng);
+        } else {
+          console.warn('Google Places getDetails status:', status);
+          if (fallbackLatLng) {
+            this.handleMapClick(fallbackLatLng.lat(), fallbackLatLng.lng());
+          }
         }
-      }
+      });
     });
   }
 
@@ -2752,34 +2824,38 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         query: fullQuery,
         bounds: this.gmap?.getBounds()
       }, (results: any[], status: any) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-          this.clearSearchMarkers();
-          const bounds = new google.maps.LatLngBounds();
-          results.slice(0, 6).forEach((p: any) => {
-            if (p.geometry && p.geometry.location) {
-              bounds.extend(p.geometry.location);
-              const m = new google.maps.Marker({
-                position: p.geometry.location,
-                map: this.gmap,
-                title: p.name,
-                animation: google.maps.Animation.DROP
-              });
-              m.addListener('click', () => {
-                this.fetchGooglePlaceDetails(p.place_id);
-              });
-              this.searchMarkers.push(m);
+        this.ngZone.run(() => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            this.clearSearchMarkers();
+            const bounds = new google.maps.LatLngBounds();
+            results.slice(0, 6).forEach((p: any) => {
+              if (p.geometry && p.geometry.location) {
+                bounds.extend(p.geometry.location);
+                const m = new google.maps.Marker({
+                  position: p.geometry.location,
+                  map: this.gmap,
+                  title: p.name,
+                  animation: google.maps.Animation.DROP
+                });
+                m.addListener('click', () => {
+                  this.ngZone.run(() => {
+                    this.fetchGooglePlaceDetails(p.place_id);
+                  });
+                });
+                this.searchMarkers.push(m);
+              }
+            });
+            if (results.length > 1) {
+              this.gmap.fitBounds(bounds);
+            } else {
+              this.gmap.panTo(results[0].geometry.location);
+              this.gmap.setZoom(16);
             }
-          });
-          if (results.length > 1) {
-            this.gmap.fitBounds(bounds);
+            this.fetchGooglePlaceDetails(results[0].place_id);
           } else {
-            this.gmap.panTo(results[0].geometry.location);
-            this.gmap.setZoom(16);
+            this.showAlert(`Không tìm thấy địa điểm "${query}" trên Google Maps`, 'warning');
           }
-          this.fetchGooglePlaceDetails(results[0].place_id);
-        } else {
-          this.showAlert(`Không tìm thấy địa điểm "${query}" trên Google Maps`, 'warning');
-        }
+        });
       });
     }
   }
@@ -3924,25 +4000,29 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         query: q,
         fields: ['place_id']
       }, (results: any[], status: any) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-          this.placesService.getDetails({
-            placeId: results[0].place_id,
-            fields: [
-              'name', 'place_id', 'rating', 'user_ratings_total', 'formatted_address',
-              'photos', 'opening_hours', 'types', 'geometry', 'price_level',
-              'website', 'formatted_phone_number', 'reviews', 'url'
-            ]
-          }, (realPlace: any, dStatus: any) => {
-            if (dStatus === google.maps.places.PlacesServiceStatus.OK && realPlace) {
-              this.populateRealGooglePlacePanel(realPlace);
-              if (this.activeGooglePlacePanel) {
-                this.activeGooglePlacePanel.isActivity = true;
-                this.activeGooglePlacePanel.itemRef = item;
-                this.cdr.detectChanges();
-              }
-            }
-          });
-        }
+        this.ngZone.run(() => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            this.placesService.getDetails({
+              placeId: results[0].place_id,
+              fields: [
+                'name', 'place_id', 'rating', 'user_ratings_total', 'formatted_address',
+                'photos', 'opening_hours', 'types', 'geometry', 'price_level',
+                'website', 'formatted_phone_number', 'reviews', 'url'
+              ]
+            }, (realPlace: any, dStatus: any) => {
+              this.ngZone.run(() => {
+                if (dStatus === google.maps.places.PlacesServiceStatus.OK && realPlace) {
+                  this.populateRealGooglePlacePanel(realPlace);
+                  if (this.activeGooglePlacePanel) {
+                    this.activeGooglePlacePanel.isActivity = true;
+                    this.activeGooglePlacePanel.itemRef = item;
+                    this.cdr.detectChanges();
+                  }
+                }
+              });
+            });
+          }
+        });
       });
     }
   }

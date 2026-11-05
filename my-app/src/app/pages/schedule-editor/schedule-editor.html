@@ -206,30 +206,11 @@
             <h3 id="activeDayTitle">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
             
             <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
-                <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput" (input)="onCustomPlaceTyping()" placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
+                <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput" placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
                 <button (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
                 
-                <!-- Autocomplete suggestions dropdown (Google Maps Style) -->
-                <div class="autocomplete-dropdown" *ngIf="customSearchSuggestions.length > 0" 
-                     style="position: absolute; top: 42px; left: 0; width: 100%; min-width: 290px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 12px 28px -4px rgba(15,23,42,0.15); z-index: 1000; max-height: 280px; overflow-y: auto; pointer-events: auto;">
-                    <div *ngFor="let sug of customSearchSuggestions" 
-                         (click)="selectSearchSuggestion(sug)"
-                         class="gm-sug-item"
-                         style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; transition: background 0.15s ease;">
-                        <div style="width: 28px; height: 28px; border-radius: 50%; background: #f0fdf4; color: #15803d; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px;">
-                            <i class="bi" [ngClass]="sug.category === 'dining' ? 'bi-cup-hot-fill' : (sug.category === 'lodging' ? 'bi-house-door-fill' : (sug.category === 'cafe' ? 'bi-cup-straw' : 'bi-geo-alt-fill'))"></i>
-                        </div>
-                        <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
-                            <span style="font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ sug.title }}</span>
-                            <span style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ sug.address || (sug.category || 'Địa danh du lịch') }}</span>
-                        </div>
-                        <span style="font-size: 11px; color: #0E9F6E; font-weight: 600;"><i class="bi bi-arrow-up-right"></i></span>
-                    </div>
                 </div>
-
-            </div>
         </div>
-
 
         <!-- Timeline Activities List -->
         <div class="timeline-list-container" id="timelineList">
