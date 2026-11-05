@@ -689,3 +689,366 @@
     display: flex !important;
   }
 }
+
+/* ==========================================================================
+   MINIMALIST HIGH-END ACTIVITY CARD (Synced with Google Maps & Eco Metrics)
+   ========================================================================== */
+.activity-card-minimal {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-card-minimal:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  transform: translateY(-1.5px);
+}
+
+.activity-card-minimal.act-expanded {
+  border-color: #0E9F6E !important;
+  box-shadow: 0 12px 30px -4px rgba(14, 159, 110, 0.16), 0 4px 10px -2px rgba(14, 159, 110, 0.08) !important;
+}
+
+.activity-card-minimal.positioning-active {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Flex Body layout */
+.act-min-body {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  align-items: flex-start;
+}
+
+/* 1. Thumbnail Image on the left */
+.act-min-media {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #F1F5F9;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.act-min-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.activity-card-minimal:hover .act-min-img {
+  transform: scale(1.06);
+}
+
+.act-min-type-tag {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 700;
+  text-align: center;
+  padding: 1.5px 3px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. Main content on the right */
+.act-min-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Top Row: Title & Action Controls */
+.act-min-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.act-min-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.act-min-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.act-min-rating-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.act-star-score {
+  font-weight: 800;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+}
+
+.act-reviews-count {
+  color: #94A3B8;
+  font-size: 10.5px;
+}
+
+.act-divider {
+  color: #CBD5E1;
+}
+
+.act-address-text {
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Reorder / Delete Controls (Minimalist rounded buttons) */
+.act-min-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.activity-card-minimal:hover .act-min-actions {
+  opacity: 1;
+}
+
+.act-icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.act-icon-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+  border-color: #E2E8F0;
+}
+
+.act-icon-btn.has-gps {
+  color: #0E9F6E;
+  background: #F0FDF4;
+}
+
+.act-icon-btn.btn-danger:hover {
+  background: #FEF2F2;
+  color: #EF4444;
+  border-color: #FECACA;
+}
+
+/* Bottom Row: Pills & Synced Maps Action Buttons */
+.act-min-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dashed #F1F5F9;
+}
+
+.act-pills-cluster {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.act-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+}
+
+.act-pill.pill-cost {
+  background: #F8FAFC;
+  color: #1E293B;
+  border: 1px solid #E2E8F0;
+}
+
+.act-pill.pill-shared {
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.act-pill.pill-shared:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.act-pill.pill-shared.active {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.act-pill.pill-eco {
+  background: #F0FDF4;
+  color: #0E9F6E;
+  border: 1px solid #BBF7D0;
+}
+
+/* Direct Google Maps Action Buttons right in the card */
+.act-map-sync-btns {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.act-btn-map,
+.act-btn-route {
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #334155;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  transition: all 0.2s ease;
+}
+
+.act-btn-map:hover {
+  background: #0E9F6E;
+  color: #ffffff;
+  border-color: #0E9F6E;
+  box-shadow: 0 2px 6px rgba(14, 159, 110, 0.25);
+  transform: translateY(-1px);
+}
+
+.act-btn-map:hover i {
+  color: #ffffff !important;
+}
+
+.act-btn-route:hover {
+  background: #2563EB;
+  color: #ffffff;
+  border-color: #2563EB;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+.act-btn-route:hover i {
+  color: #ffffff !important;
+}
+
+.act-btn-expand {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.act-btn-expand:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.act-arrow-icon {
+  font-size: 11px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.act-arrow-icon.rotated {
+  transform: rotate(180deg);
+  color: #0E9F6E;
+}
+
+/* Accordion Drawer */
+.act-min-drawer {
+  animation: drawerSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+@keyframes drawerSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 300px;
+  }
+}
+
+.act-drawer-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
+  margin: 0;
+  background: #F8FAFC;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid #0E9F6E;
+}
