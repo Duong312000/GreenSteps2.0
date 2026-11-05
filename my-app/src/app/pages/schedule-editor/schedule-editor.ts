@@ -872,6 +872,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   private openEditorWithItinerary(itinerary: any) {
     this.activeItinerary = itinerary;
+    this.ensureItineraryCoordinates();
     this.activeDayIdx = 0;
 
     this.recalculateMetrics();
@@ -1688,14 +1689,69 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public initUniversalMap() {
     if (!this.activeItinerary) return;
 
-    // Check if Google Maps SDK is loaded in browser
-    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
-      console.log('🌟 Initializing official Google Maps JavaScript API with native POIs!');
-      this.initGoogleMap();
-    } else {
-      console.log('⚡ Initializing Leaflet map engine fallback');
-      this.initUniversalMap();
+    // Ensure activities have coordinates
+    this.ensureItineraryCoordinates();
+
+    // Use Leaflet with Google Maps road tiles for 100% reliable rendering without billing blocks
+    this.isGoogleMaps = false;
+    this.initLeafletMap();
+  }
+
+  public lookupActivityCoordinates(title: string): { lat: number; lng: number } | null {
+    if (!title) return null;
+    const t = title.toLowerCase();
+    if (t.includes('rừng dừa') || t.includes('coconut') || t.includes('bảy mẫu') || t.includes('thuyền thúng')) {
+      return { lat: 15.8778, lng: 108.3685 };
     }
+    if (t.includes('trà quế') || t.includes('tra que') || t.includes('làm vườn')) {
+      return { lat: 15.9056, lng: 108.3364 };
+    }
+    if (t.includes('phố cổ') || t.includes('đèn lồng') || t.includes('chùa cầu')) {
+      return { lat: 15.8775, lng: 108.3283 };
+    }
+    if (t.includes('homestay') || t.includes('khách sạn') || t.includes('nhận phòng')) {
+      return { lat: 15.8790, lng: 108.3240 };
+    }
+    if (t.includes('hồ xuân hương')) {
+      return { lat: 11.9404, lng: 108.4452 };
+    }
+    if (t.includes('lâm viên')) {
+      return { lat: 11.9360, lng: 108.4450 };
+    }
+    if (t.includes('datanla')) {
+      return { lat: 11.9026, lng: 108.4485 };
+    }
+    if (t.includes('cầu rồng')) {
+      return { lat: 16.0611, lng: 108.2274 };
+    }
+    if (t.includes('bà nà') || t.includes('cầu vàng')) {
+      return { lat: 15.9988, lng: 107.9965 };
+    }
+    if (t.includes('sơn trà') || t.includes('linh ứng')) {
+      return { lat: 16.1004, lng: 108.2778 };
+    }
+    if (t.includes('tân định')) {
+      return { lat: 10.7885, lng: 106.6908 };
+    }
+    if (t.includes('huỳnh hoa') || t.includes('bánh mì huynh hoa')) {
+      return { lat: 10.7716, lng: 106.6924 };
+    }
+    return null;
+  }
+
+  public ensureItineraryCoordinates() {
+    if (!this.activeItinerary || !this.activeItinerary.days) return;
+    this.activeItinerary.days.forEach((day: any) => {
+      (day.activities || []).forEach((act: any) => {
+        if (typeof act.lat !== 'number' || typeof act.lng !== 'number') {
+          const coords = this.lookupActivityCoordinates(act.title || act.name);
+          if (coords) {
+            act.lat = coords.lat;
+            act.lng = coords.lng;
+          }
+        }
+      });
+    });
   }
 
   private initGoogleMap() {
