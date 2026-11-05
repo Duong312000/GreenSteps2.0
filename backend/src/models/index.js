@@ -208,6 +208,7 @@ const Schedule = store.define('Schedule', {
   included: { type: FieldTypes.JSONB },
   excluded: { type: FieldTypes.JSONB },
   policy: { type: FieldTypes.JSONB },
+  guarantees: { type: FieldTypes.JSONB },
   style: { type: FieldTypes.STRING },
   group_size: { type: FieldTypes.STRING },
   fitness_level: { type: FieldTypes.STRING },

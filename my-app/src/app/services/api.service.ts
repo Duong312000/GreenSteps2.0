@@ -133,6 +133,8 @@ export class ApiService {
       included: tour.included || [],
       excluded: tour.excluded || [],
       policy: tour.policy || [],
+      guarantees: tour.guarantees || [],
+      vouchers: tour.vouchers || [],
       style: tour.style || 'Gia đình / Eco Travel',
       group_size: tour.group_size || 'Nhóm nhỏ thân mật',
       fitness_level: tour.fitness_level || 'Nhẹ nhàng',

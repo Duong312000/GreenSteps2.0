@@ -46,7 +46,7 @@ function formatActivitiesIntoDays(schedule, activities) {
 }
 
 // Helper: Format a ScheduleSample+Schedule row into a tour response object
-function formatTourResponse(sample, schedule, badges, activities) {
+function formatTourResponse(sample, schedule, badges, activities, vouchers) {
   return {
     id: sample.id,
     title: schedule.tour_name,
@@ -65,11 +65,13 @@ function formatTourResponse(sample, schedule, badges, activities) {
     included: schedule.included || [],
     excluded: schedule.excluded || [],
     policy: schedule.policy || [],
+    guarantees: schedule.guarantees || [],
     style: schedule.style || 'Gia đình / Eco Travel',
     group_size: schedule.group_size || 'Nhóm nhỏ thân mật',
     fitness_level: schedule.fitness_level || 'Nhẹ nhàng',
     maxCapacity: schedule.max_capacity || 10,
     max_capacity: schedule.max_capacity || 10,
+    vouchers: vouchers || schedule.vouchers || [],
     data: activities ? formatActivitiesIntoDays(schedule, activities) : undefined
   };
 }
@@ -150,11 +152,33 @@ exports.getPresetTourById = async (req, res, next) => {
     const badgeSchedules = await BadgeSchedule.findAll({ where: { schedule_id: id } });
     const badges = badgeSchedules.map(bs => bs.badge_name);
 
+    // Fetch active vouchers dynamically from MongoDB Atlas
+    let vouchers = [];
+    try {
+      await store.authenticate();
+      if (store.db) {
+        const rawVouchers = await store.db.collection('vouchers').find({ status: 'active' }).limit(4).toArray();
+        vouchers = rawVouchers.map(v => ({
+          code: v.code,
+          title: v.title || (v.discount_type === 'percent' ? `Giảm ${v.discount_value}%` : `Giảm ${v.discount_value / 1000}k`),
+          discount_type: v.discount_type,
+          discount_value: v.discount_value,
+          min_order_value: v.min_order_value || 0,
+          max_discount: v.max_discount || 0,
+          expires_at: v.expires_at,
+          description: v.description || `Mã ưu đãi ${v.code} áp dụng cho tour du lịch xanh.`
+        }));
+      }
+    } catch (ve) {
+      console.warn('Vouchers query error:', ve.message);
+    }
+
     const result = formatTourResponse(
       s,
       s.Schedule,
       badges,
-      s.Schedule.ScheduleActivities
+      s.Schedule.ScheduleActivities,
+      vouchers
     );
 
     res.json(result);

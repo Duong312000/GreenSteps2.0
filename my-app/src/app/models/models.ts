@@ -60,6 +60,8 @@ export interface Tour {
   style?: string;
   group_size?: string;
   fitness_level?: string;
+  guarantees?: Array<{ icon?: string; title: string; desc: string }>;
+  vouchers?: Array<any>;
 }
 
 export interface Itinerary {

@@ -124,6 +124,39 @@
           </span>
         </div>
 
+        <!-- DYNAMIC VOUCHERS (Loaded directly from MongoDB Atlas) -->
+        <div class="gs-luxury-vouchers-wrap" *ngIf="tourVouchers && tourVouchers.length > 0">
+          <span class="gs-voucher-prefix"><i class="bi bi-tag-fill"></i> Ưu đãi xanh:</span>
+          <div class="gs-voucher-pills-row">
+            <div class="gs-luxury-voucher-item" *ngFor="let v of tourVouchers">
+              <button type="button" class="gs-luxury-voucher-pill" (click)="copyVoucher(v.code, $event)">
+                <span class="gs-vp-code">{{ v.code }}</span>
+                <span class="gs-vp-title">{{ v.title }}</span>
+              </button>
+
+              <!-- Luxury Floating Details Card on Hover -->
+              <div class="gs-luxury-voucher-popover">
+                <div class="gs-lvp-arrow"></div>
+                <div class="gs-lvp-head">
+                  <span class="gs-lvp-badge">{{ v.code }}</span>
+                  <strong class="gs-lvp-title">{{ v.title }}</strong>
+                </div>
+                <p class="gs-lvp-desc">{{ v.description }}</p>
+                <div class="gs-lvp-meta" *ngIf="v.min_order_value">
+                  <span>Đơn tối thiểu: {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
+                  <span *ngIf="v.max_discount"> · Giảm tối đa: {{ v.max_discount | number:'1.0-0':'vi-VN' }}₫</span>
+                </div>
+                <div class="gs-lvp-footer">
+                  <span class="gs-lvp-expiry" *ngIf="v.expires_at">HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
+                  <button type="button" class="gs-lvp-copy" (click)="copyVoucher(v.code, $event)">
+                    {{ copiedVoucher === v.code ? 'Đã sao chép!' : 'Sao chép mã' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Short Description -->
         <p class="gs-lead-desc">
           {{ activeTour.description || (activeTour.isService ? 'Dịch vụ xanh được tuyển chọn kỹ lưỡng, hỗ trợ bạn khám phá bản địa trọn vẹn và bền vững.' : 'Hành trình trải nghiệm thiên nhiên được thiết kế nhẹ nhàng, thân thiện cho mọi gia đình và giảm tối đa phát thải carbon.') }}
@@ -148,6 +181,45 @@
           <div class="gs-spec-chip gs-spec-chip-eco">
             <i class="bi bi-shield-check"></i>
             <span>Bảo vệ môi trường</span>
+          </div>
+        </div>
+
+        <!-- GREENSTEPS ASSURANCE (Loaded directly from MongoDB Atlas) -->
+        <div class="gs-assurance-wrap" *ngIf="tourGuarantees && tourGuarantees.length > 0">
+          <div class="gs-assurance-bar" (click)="toggleAssurance()" role="button" tabindex="0">
+            <div class="gs-assurance-summary">
+              <i class="bi bi-shield-check gs-assurance-icon"></i>
+              <span class="gs-assurance-title">Cam kết GreenSteps</span>
+              <span class="gs-assurance-divider">·</span>
+              <span class="gs-assurance-items-preview">
+                <ng-container *ngFor="let g of tourGuarantees; let isLast = last">
+                  {{ g.title }}<span *ngIf="!isLast" class="gs-dot"> • </span>
+                </ng-container>
+              </span>
+            </div>
+            <i class="bi bi-chevron-down gs-assurance-chevron" [class.rotated]="activeAssuranceOpen"></i>
+          </div>
+
+          <!-- Luxury Popover Card (Opens on Hover or Click) -->
+          <div class="gs-assurance-popover" [class.open]="activeAssuranceOpen">
+            <div class="gs-assurance-pop-header">
+              <div class="gs-aph-icon"><i class="bi bi-shield-fill-check"></i></div>
+              <div>
+                <h4>Cam kết trải nghiệm GreenSteps</h4>
+                <p>Mọi quyền lợi và sự an tâm của bạn được bảo vệ minh bạch từ cơ sở dữ liệu hệ thống.</p>
+              </div>
+            </div>
+            <div class="gs-assurance-list">
+              <div class="gs-assurance-item" *ngFor="let g of tourGuarantees">
+                <div class="gs-ai-icon">
+                  <i [class]="'bi ' + (g.icon || 'bi-check-circle-fill')"></i>
+                </div>
+                <div class="gs-ai-body">
+                  <h5>{{ g.title }}</h5>
+                  <p>{{ g.desc }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

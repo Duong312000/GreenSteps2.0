@@ -136,6 +136,23 @@ export class TourDetailComponent implements OnInit {
     ];
   }
 
+  public get tourGuarantees(): Array<{ icon?: string; title: string; desc: string }> {
+    return (this.activeTour?.guarantees && Array.isArray(this.activeTour.guarantees) && this.activeTour.guarantees.length > 0)
+      ? this.activeTour.guarantees
+      : [];
+  }
+
+  public get tourVouchers(): any[] {
+    return (this.activeTour?.vouchers && Array.isArray(this.activeTour.vouchers) && this.activeTour.vouchers.length > 0)
+      ? this.activeTour.vouchers
+      : [];
+  }
+
+  public activeAssuranceOpen: boolean = false;
+  public toggleAssurance() {
+    this.activeAssuranceOpen = !this.activeAssuranceOpen;
+  }
+
   public get tourPolicies(): Array<{ step?: string; title: string; desc: string }> {
     if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
       return this.activeTour.policy;
