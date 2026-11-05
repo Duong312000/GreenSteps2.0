@@ -25,6 +25,7 @@ export interface Activity {
   type: 'lodging' | 'dining' | 'transport' | 'attraction';
   lat?: number;
   lng?: number;
+  description?: string;
 }
 
 export interface Tour {
@@ -52,6 +53,13 @@ export interface Tour {
   isRecommended?: boolean;
   isService?: boolean;
   maxCapacity?: number;
+  highlights?: string[];
+  included?: string[];
+  excluded?: string[];
+  policy?: Array<{ step?: string; title: string; desc: string }>;
+  style?: string;
+  group_size?: string;
+  fitness_level?: string;
 }
 
 export interface Itinerary {

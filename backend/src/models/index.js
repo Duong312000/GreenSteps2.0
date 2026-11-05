@@ -202,7 +202,16 @@ const Schedule = store.define('Schedule', {
   carbon: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   image_url: { type: FieldTypes.STRING },
   tour_description: { type: FieldTypes.TEXT },
-  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 }
+  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  gallery: { type: FieldTypes.JSONB },
+  highlights: { type: FieldTypes.JSONB },
+  included: { type: FieldTypes.JSONB },
+  excluded: { type: FieldTypes.JSONB },
+  policy: { type: FieldTypes.JSONB },
+  style: { type: FieldTypes.STRING },
+  group_size: { type: FieldTypes.STRING },
+  fitness_level: { type: FieldTypes.STRING },
+  max_capacity: { type: FieldTypes.INTEGER }
 }, { timestamps: true });
 
 // 12. BadgeSchedule Junction
@@ -214,7 +223,7 @@ const ScheduleSample = store.define('ScheduleSample', {
   cost: { type: FieldTypes.DOUBLE, allowNull: false },
   old_cost: { type: FieldTypes.DOUBLE },
   rating: { type: FieldTypes.DOUBLE, allowNull: true, defaultValue: null },
-  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 }
+  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
 }, { timestamps: true });
 
 // 14. ScheduleCustom Model

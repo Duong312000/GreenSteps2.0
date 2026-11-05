@@ -84,6 +84,84 @@ export class TourDetailComponent implements OnInit {
     return 'Trung bình';
   }
 
+  public get formattedCarbon(): string {
+    if (!this.activeTour || this.activeTour.carbon === undefined || this.activeTour.carbon === null) return '';
+    const num = Number(this.activeTour.carbon);
+    if (isNaN(num) || num === 0) return '0kg CO₂';
+    const absVal = Math.abs(num);
+    return `-${absVal}kg CO₂`;
+  }
+
+  public get tourHighlights(): string[] {
+    if (this.activeTour?.highlights && Array.isArray(this.activeTour.highlights) && this.activeTour.highlights.length > 0) {
+      return this.activeTour.highlights;
+    }
+    return [
+      'Lịch trình thong thả, có nhiều thời gian nghỉ ngơi thoải mái',
+      'Ưu tiên trải nghiệm văn hóa và ẩm thực bản địa sạch',
+      'Hướng dẫn viên thân thiện, chu đáo và am hiểu sinh thái',
+      'Có thể cá nhân hóa lại các hoạt động theo mong muốn của bạn'
+    ];
+  }
+
+  public get tourIncluded(): string[] {
+    if (this.activeTour?.included && Array.isArray(this.activeTour.included) && this.activeTour.included.length > 0) {
+      return this.activeTour.included;
+    }
+    return [
+      'Phương tiện di chuyển xanh theo lịch trình đã xác nhận',
+      'Vé vào cổng các điểm tham quan chính trong tour',
+      'Hướng dẫn viên đồng hành chuyên nghiệp, thân thiện',
+      'Bảo hiểm du lịch theo quy định'
+    ];
+  }
+
+  public get tourExcluded(): string[] {
+    if (this.activeTour?.excluded && Array.isArray(this.activeTour.excluded) && this.activeTour.excluded.length > 0) {
+      return this.activeTour.excluded;
+    }
+    return [
+      'Chi tiêu cá nhân ngoài chương trình (mua sắm quà lưu niệm...)',
+      'Các bữa ăn uống tự do ngoài các bữa chính trong hành trình',
+      'Phụ phí phòng đơn nếu có nhu cầu ở riêng'
+    ];
+  }
+
+  public get tourPolicies(): Array<{ step?: string; title: string; desc: string }> {
+    if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
+      return this.activeTour.policy;
+    }
+    return [
+      {
+        step: '01',
+        title: 'Giữ chỗ miễn phí 7 ngày',
+        desc: 'Bạn có thể đặt trước để giữ chỗ mà không mất phí trong 7 ngày đầu, dễ dàng lên kế hoạch cùng gia đình.'
+      },
+      {
+        step: '02',
+        title: 'Đổi ngày linh hoạt',
+        desc: 'Hỗ trợ đổi ngày khởi hành không giới hạn số lần trước 48 giờ so với lịch trình dự kiến.'
+      },
+      {
+        step: '03',
+        title: 'Chính sách hoàn cọc',
+        desc: 'Hoàn 90% nếu thông báo hủy trước 7 ngày. Mọi chi phí được minh bạch tuyệt đối.'
+      }
+    ];
+  }
+
+  public get tourStyle(): string {
+    return this.activeTour?.style || (this.activeTour?.isService ? this.detailKindLabel : 'Gia đình / Eco Travel');
+  }
+
+  public get tourGroupSize(): string {
+    return this.activeTour?.group_size || 'Nhóm nhỏ thân mật';
+  }
+
+  public get tourFitnessLevel(): string {
+    return this.activeTour?.fitness_level || 'Nhẹ nhàng';
+  }
+
   // Fallback slider images by destination
   private destinationImages: { [key: string]: string[] } = {
     "Đà Lạt": [
@@ -181,51 +259,21 @@ export class TourDetailComponent implements OnInit {
     const coverImage = this.activeTour.image || this.activeTour.image_url || this.localTourImage('cover.jpg');
     const galleryImages = (this.activeTour.gallery || []).filter(Boolean);
 
-    let rawImages = [coverImage, ...galleryImages];
-
-    if (this.activeTour.isService) {
-      if (galleryImages.length === 0) {
-        const dest = this.activeTour.destination || 'Đà Lạt';
-        const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
-        rawImages = [coverImage, ...destImgs.slice(0, 4)];
-      }
-      this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img));
-      if (this.slideImages.length === 0) {
-        this.slideImages = [coverImage];
-      }
-      this.activeSlideIndex = 0;
-      return;
+    let rawImages: string[] = [];
+    if (galleryImages.length > 0) {
+      // Use dynamic gallery from MongoDB Atlas directly
+      rawImages = Array.from(new Set([coverImage, ...galleryImages]));
+    } else {
+      const dest = this.activeTour.destination || 'Đà Lạt';
+      const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
+      rawImages = Array.from(new Set([coverImage, ...destImgs]));
     }
 
-    for (let index = 1; rawImages.length < 7 && index <= 6; index++) {
-      const localGalleryImage = this.localTourImage(`gallery-${String(index).padStart(2, '0')}.jpg`);
-      if (!rawImages.includes(localGalleryImage)) {
-        rawImages.push(localGalleryImage);
-      }
-    }
-
-    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img));
-    this.activeSlideIndex = 0;
-
-    const dest = this.activeTour.destination || 'Đà Lạt';
-    const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'];
-
-    destImgs.forEach(img => {
-      if (img !== this.activeTour?.image && this.slideImages.length < 7 && !this.slideImages.includes(img)) {
-        this.slideImages.push(img);
-      }
-    });
-
+    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img)).slice(0, 7);
     if (this.slideImages.length === 0) {
-      this.slideImages = destImgs.slice(0, 7);
+      this.slideImages = [coverImage];
     }
-
-    while (this.slideImages.length < 7) {
-      const fallbackImg = destImgs[this.slideImages.length % destImgs.length];
-      this.slideImages.push(fallbackImg);
-    }
-
-    this.slideImages = this.slideImages.slice(0, 7);
+    this.activeSlideIndex = 0;
   }
 
   private localTourImage(fileName: string): string {

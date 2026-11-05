@@ -36,6 +36,7 @@ function formatActivitiesIntoDays(schedule, activities) {
         icon: act.icon,
         type: act.type,
         is_shared: act.is_shared,
+        description: act.description || '',
         lat: act.coordinates ? parseFloat(act.coordinates.split(',')[0]) : null,
         lng: act.coordinates ? parseFloat(act.coordinates.split(',')[1]) : null
       });
@@ -59,6 +60,16 @@ function formatTourResponse(sample, schedule, badges, activities) {
     rating: sample.rating,
     votes_count: sample.votes_count,
     tags: badges,
+    gallery: schedule.gallery || (schedule.image_url ? [schedule.image_url] : []),
+    highlights: schedule.highlights || [],
+    included: schedule.included || [],
+    excluded: schedule.excluded || [],
+    policy: schedule.policy || [],
+    style: schedule.style || 'Gia đình / Eco Travel',
+    group_size: schedule.group_size || 'Nhóm nhỏ thân mật',
+    fitness_level: schedule.fitness_level || 'Nhẹ nhàng',
+    maxCapacity: schedule.max_capacity || 10,
+    max_capacity: schedule.max_capacity || 10,
     data: activities ? formatActivitiesIntoDays(schedule, activities) : undefined
   };
 }
