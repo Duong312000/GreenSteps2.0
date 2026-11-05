@@ -26,6 +26,95 @@
 
         </div>
 
+                <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD (Floating directly on top-right of map) -->
+        <div class="gm-place-card" *ngIf="selectedPlaceDetails">
+            <!-- Hero Photo Banner with Category & Close Button -->
+            <div class="gm-card-hero">
+                <img [src]="selectedPlaceDetails.img || getPlacePlaceholderImage(selectedPlaceDetails.title)" 
+                     [alt]="selectedPlaceDetails.title" 
+                     class="gm-hero-img"
+                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                <span class="gm-category-badge">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                <button type="button" class="gm-close-btn" (click)="closePlaceDetails()" title="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body Details -->
+            <div class="gm-card-body">
+                <h3 class="gm-place-title">{{ selectedPlaceDetails.title }}</h3>
+                
+                <div class="gm-rating-row">
+                    <span class="gm-score">{{ selectedPlaceDetails.rating || 4.8 }}</span>
+                    <div class="gm-stars">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </div>
+                    <span class="gm-reviews">({{ selectedPlaceDetails.reviews || 680 }})</span>
+                    <span class="gm-dot">·</span>
+                    <span class="gm-type-text">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                </div>
+
+                <!-- Google Maps Action Buttons -->
+                <div class="gm-action-bar">
+                    <button type="button" class="gm-btn-primary" *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)">
+                        <i class="bi bi-plus-circle-fill"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
+                    </button>
+                    <button type="button" class="gm-btn-delete" *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)">
+                        <i class="bi bi-trash-fill"></i> Xóa khỏi ngày
+                    </button>
+                    <button type="button" class="gm-btn-secondary" (click)="focusAndRouteToPlace(selectedPlaceDetails)" title="Chỉ đường từ điểm trước">
+                        <i class="bi bi-signpost-2-fill"></i> Chỉ đường
+                    </button>
+                </div>
+
+                <!-- Detailed Google Maps info rows -->
+                <div class="gm-info-rows">
+                    <div class="gm-info-row">
+                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Địa chỉ</strong>
+                            <span>{{ selectedPlaceDetails.address || (activeItinerary.destination + ', Việt Nam') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="gm-info-row">
+                        <i class="bi bi-clock-fill text-blue-600"></i>
+                        <div class="gm-ir-text">
+                            <strong style="color: #059669;">Đang mở cửa</strong>
+                            <span>{{ selectedPlaceDetails.hours || 'Đóng cửa vào 18:30' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-cash-stack text-amber-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Chi phí tham khảo</strong>
+                            <span>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + '₫ / người' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-leaf-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Dấu chân Carbon (Eco)</strong>
+                            <span>{{ selectedPlaceDetails.carbon }} kg CO₂ · Điểm đến thân thiện môi trường</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row" *ngIf="selectedPlaceDetails.description">
+                        <i class="bi bi-info-circle-fill text-slate-500"></i>
+                        <div class="gm-ir-text">
+                            <strong>Giới thiệu & Điểm nổi bật</strong>
+                            <p class="gm-desc-text">{{ selectedPlaceDetails.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="leafletMap" style="width:100%; height:100%;"></div>
     </div>
 
@@ -469,105 +558,8 @@
 
     <div class="layout-resizer" (mousedown)="startResizing($event, 'right')"></div>
 
-    <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT -->
+    <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT SPACER -->
     <aside class="right-map-panel" [style.width.%]="mapWidthPct" style="position: relative; display: flex; flex-direction: column;">
-        <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD -->
-        <div class="gm-place-card" *ngIf="selectedPlaceDetails">
-            <!-- Hero Photo Banner with Category & Close Button -->
-            <div class="gm-card-hero">
-                <img [src]="selectedPlaceDetails.img || getPlacePlaceholderImage(selectedPlaceDetails.title)" 
-                     [alt]="selectedPlaceDetails.title" 
-                     class="gm-hero-img"
-                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-                <span class="gm-category-badge">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
-                <button type="button" class="gm-close-btn" (click)="closePlaceDetails()" title="Đóng">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
-
-            <!-- Body Details -->
-            <div class="gm-card-body">
-                <h3 class="gm-place-title">{{ selectedPlaceDetails.title }}</h3>
-                
-                <div class="gm-rating-row">
-                    <span class="gm-score">{{ selectedPlaceDetails.rating || 4.8 }}</span>
-                    <div class="gm-stars">
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-half"></i>
-                    </div>
-                    <span class="gm-reviews">({{ selectedPlaceDetails.reviews || 680 }})</span>
-                    <span class="gm-dot">·</span>
-                    <span class="gm-type-text">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
-                </div>
-
-                <!-- Google Maps Action Buttons -->
-                <div class="gm-action-bar">
-                    <button type="button" class="gm-btn-primary" *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)">
-                        <i class="bi bi-plus-circle-fill"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
-                    </button>
-                    <button type="button" class="gm-btn-delete" *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)">
-                        <i class="bi bi-trash-fill"></i> Xóa khỏi ngày
-                    </button>
-                    <button type="button" class="gm-btn-secondary" (click)="focusAndRouteToPlace(selectedPlaceDetails)" title="Chỉ đường từ điểm trước">
-                        <i class="bi bi-signpost-2-fill"></i> Chỉ đường
-                    </button>
-                </div>
-
-                <!-- Custom Map Click input field if clicking a raw map point -->
-                <div *ngIf="selectedPlaceDetails.isCustomMapClick && !isItineraryLocked()" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 6px;">
-                    <label style="font-size: 11px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Tên địa điểm tùy chỉnh:</label>
-                    <input type="text" [(ngModel)]="mapClickPlaceName" (keyup.enter)="addMapClickPlace()" placeholder="Nhập tên địa điểm..."
-                           style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; outline: none; background: #ffffff;">
-                </div>
-
-                <!-- Detailed Google Maps info rows -->
-                <div class="gm-info-rows">
-                    <div class="gm-info-row">
-                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Địa chỉ</strong>
-                            <span>{{ selectedPlaceDetails.address || (activeItinerary.destination + ', Việt Nam') }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="gm-info-row">
-                        <i class="bi bi-clock-fill text-blue-600"></i>
-                        <div class="gm-ir-text">
-                            <strong style="color: #059669;">Đang mở cửa</strong>
-                            <span>{{ selectedPlaceDetails.hours || 'Đóng cửa vào 22:00' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row">
-                        <i class="bi bi-cash-stack text-amber-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Chi phí tham khảo</strong>
-                            <span>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + '₫ / người' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row">
-                        <i class="bi bi-leaf-fill text-emerald-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Dấu chân Carbon (Eco)</strong>
-                            <span>{{ selectedPlaceDetails.carbon }} kg CO₂ · Điểm đến thân thiện môi trường</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row" *ngIf="selectedPlaceDetails.description">
-                        <i class="bi bi-info-circle-fill text-slate-500"></i>
-                        <div class="gm-ir-text">
-                            <strong>Giới thiệu & Điểm nổi bật</strong>
-                            <p class="gm-desc-text">{{ selectedPlaceDetails.description }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </aside>
 </div>
 

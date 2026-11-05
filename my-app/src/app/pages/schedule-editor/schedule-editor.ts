@@ -1369,106 +1369,166 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public async handleMapClick(lat: number, lng: number) {
-    this.selectedPlaceDetails = {
-      title: "Đang tải thông tin địa điểm...",
-      type: "explore",
-      cost: 0,
-      carbon: 1,
-      lat: lat,
-      lng: lng,
-      isActivity: false,
-      isCustomMapClick: true
-    };
-    this.mapClickPlaceName = 'Đang tải...';
-    this.cdr.detectChanges();
+    // 1. SMART POI SNAPPING: Check if click is near known spots in our itinerary, local services, or famous POIs
+    let matchedSpot: any = null;
+    let minDistance = 999999;
 
-    try {
-      const data = await this.apiService.reverseGeocodeSerp(lat, lng);
-      
-      let placeName = 'Địa điểm chọn từ bản đồ';
-      let placeType = 'explore';
-      let snapLat = lat;
-      let snapLng = lng;
-      let addressText = '';
+    // A. Check activities in current itinerary (all days)
+    if (this.activeItinerary && this.activeItinerary.days) {
+      this.activeItinerary.days.forEach((day: any, dIdx: number) => {
+        (day.activities || []).forEach((act: any, aIdx: number) => {
+          if (typeof act.lat === 'number' && typeof act.lng === 'number') {
+            const d = Math.hypot(act.lat - lat, act.lng - lng);
+            if (d < 0.02 && d < minDistance) { // within ~2 km
+              minDistance = d;
+              matchedSpot = {
+                title: act.title || act.name,
+                type: act.type || 'explore',
+                category: this.getCategoryLabel(act.type || 'explore'),
+                cost: act.cost,
+                carbon: act.carbon,
+                lat: act.lat,
+                lng: act.lng,
+                isActivity: (dIdx === this.activeDayIdx),
+                index: aIdx
+              };
+            }
+          }
+        });
+      });
+    }
 
-      if (data) {
-        placeName = data.title || 'Địa điểm chọn từ bản đồ';
-        snapLat = data.lat || lat;
-        snapLng = data.lng || lng;
-        placeType = data.category || 'explore';
-        addressText = data.address || '';
-      }
-
-      this.selectedPlaceDetails = {
-        title: placeName,
-        type: placeType,
-        cost: placeType === "dining" ? 80000 : (placeType === "lodging" ? 500000 : 30000),
-        carbon: placeType === "dining" ? 2 : 4,
-        lat: snapLat,
-        lng: snapLng,
-        isActivity: false,
-        isCustomMapClick: true
-      };
-      this.mapClickPlaceName = placeName;
-
-      // Draw a snapped red marker with pulse animation
-      this.clearSearchMarkers();
-      const marker = L.marker([snapLat, snapLng], {
-        icon: L.divIcon({
-          html: `<div class="map-leaflet-rec-pin map-leaflet-pin-red-pulse" style="background-color: #EF4444; border: 2px solid #FFFFFF; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md);"><i class="bi bi-geo-alt-fill" style="font-size: 12px;"></i></div>`,
-          className: 'custom-div-icon-click-pin',
-          iconSize: [26, 26],
-          iconAnchor: [13, 13]
-        })
-      }).addTo(this.map);
-
-      // Bind popup
-      const popupContent = `
-        <div style="font-family: var(--font-main); width: 220px; font-size: 13px; line-height: 1.4;">
-          <h4 style="font-weight:700; margin:0 0 6px 0; color:var(--text-primary); font-size:14px;">${placeName}</h4>
-          <p style="margin:0 0 8px 0; color:#3D5A46; font-size:11px;">${addressText}</p>
-          <button id="add-click-pin" style="width:100%; height:32px; background:#047857; color:white; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:12px;">Thêm vào lịch trình</button>
-        </div>
-      `;
-      marker.bindPopup(popupContent).openPopup();
-
-      marker.on('popupopen', () => {
-        const btn = document.getElementById('add-click-pin');
-        if (btn) {
-          btn.onclick = (e) => {
-            e.preventDefault();
-            this.addSearpedPlaceToItinerary({
-              title: placeName,
-              category: placeType,
-              lat: snapLat,
-              lng: snapLng
-            });
-            marker.closePopup();
-          };
+    // B. Check recommendations in allCombinedRecs
+    if (!matchedSpot && this.allCombinedRecs && this.allCombinedRecs.length > 0) {
+      this.allCombinedRecs.forEach((rec: any) => {
+        if (typeof rec.lat === 'number' && typeof rec.lng === 'number') {
+          const d = Math.hypot(rec.lat - lat, rec.lng - lng);
+          if (d < 0.02 && d < minDistance) {
+            minDistance = d;
+            matchedSpot = {
+              title: rec.name,
+              type: rec.type || 'explore',
+              category: rec.category || this.getCategoryLabel(rec.type || 'explore'),
+              cost: rec.cost,
+              carbon: rec.carbon,
+              lat: rec.lat,
+              lng: rec.lng,
+              img: rec.img,
+              isActivity: false
+            };
+          }
         }
       });
-
-      this.searchMarkers.push(marker);
-      this.cdr.detectChanges();
-
-    } catch (e) {
-      console.warn('Reverse geocoding error:', e);
-      this.selectedPlaceDetails = {
-        title: "Địa điểm chọn từ bản đồ",
-        type: "explore",
-        cost: 0,
-        carbon: 1,
-        lat: lat,
-        lng: lng,
-        isActivity: false,
-        isCustomMapClick: true
-      };
-      this.mapClickPlaceName = 'Địa điểm chọn từ bản đồ';
-      this.cdr.detectChanges();
     }
+
+    // C. Check famous destination landmarks lookup table (Hội An, Đà Lạt, Đà Nẵng, Phú Yên)
+    if (!matchedSpot) {
+      const knownLandmarks = [
+        { name: "Rừng dừa Bảy Mẫu (Coconut Forest)", lat: 15.8778, lng: 108.3685, type: "explore", cost: 150000, carbon: 0.8, address: "Cẩm Thanh, TP. Hội An, Quảng Nam", desc: "Khu du lịch sinh thái rừng dừa nước Bảy Mẫu nổi tiếng với trải nghiệm ngồi thuyền thúng dạo quanh sông nước, câu cua và xem múa thúng điêu luyện." },
+        { name: "Làng rau Trà Quế (Tra Que Village)", lat: 15.9056, lng: 108.3364, type: "explore", cost: 120000, carbon: 0.5, address: "Cẩm Hà, TP. Hội An, Quảng Nam", desc: "Làng nghề trồng rau truyền thống hơn 300 năm tuổi, nổi tiếng với các phương pháp canh tác hữu cơ bền vững." },
+        { name: "Chùa Cầu Hội An", lat: 15.8771, lng: 108.3262, type: "explore", cost: 0, carbon: 0.2, address: "Đường Nguyễn Thị Minh Khai, P. Minh An, Hội An", desc: "Biểu tượng lịch sử văn hóa hơn 400 năm tuổi của đô thị cổ Hội An." },
+        { name: "Phố cổ Hội An (Đèn lồng)", lat: 15.8775, lng: 108.3283, type: "explore", cost: 0, carbon: 0.2, address: "Minh An, TP. Hội An, Quảng Nam", desc: "Di sản Văn hóa Thế giới UNESCO với những dãy nhà cổ vàng rực rỡ và lồng đèn lung linh về đêm." },
+        { name: "Hồ Xuân Hương Đà Lạt", lat: 11.9404, lng: 108.4452, type: "explore", cost: 0, carbon: 0.2, address: "Phường 1, TP. Đà Lạt, Lâm Đồng", desc: "Trái tim thơ mộng của thành phố ngàn hoa với không gian đi bộ và đạp xe sinh thái." },
+        { name: "Quảng trường Lâm Viên", lat: 11.9360, lng: 108.4450, type: "explore", cost: 0, carbon: 0.2, address: "Trần Quốc Toản, Phường 10, TP. Đà Lạt", desc: "Biểu tượng nụ hoa Atiso và đóa hoa Dã Quỳ khổng lồ bằng kính màu đặc trưng Đà Lạt." },
+        { name: "Chùa Linh Phước (Chùa Ve Chai)", lat: 11.9452, lng: 108.4988, type: "explore", cost: 0, carbon: 0.2, address: "Trại Mát, TP. Đà Lạt, Lâm Đồng", desc: "Ngôi chùa độc đáo bậc nhất với kiến trúc khảm sành sứ tinh xảo và tượng rồng dài 49 mét." },
+        { name: "Hồ Tuyền Lâm", lat: 11.8906, lng: 108.4239, type: "explore", cost: 0, carbon: 0.5, address: "Phường 4, TP. Đà Lạt, Lâm Đồng", desc: "Khu du lịch sinh thái hồ nước ngọt lớn nhất Đà Lạt được bao bọc bởi rừng thông nguyên sinh." },
+        { name: "Thác Datanla", lat: 11.9026, lng: 108.4485, type: "explore", cost: 180000, carbon: 0.8, address: "Đèo Prenn, Phường 3, TP. Đà Lạt", desc: "Ngọn thác hùng vĩ với máng trượt xuyên rừng thông dài nhất Đông Nam Á." },
+        { name: "Cầu Rồng Đà Nẵng", lat: 16.0611, lng: 108.2274, type: "explore", cost: 0, carbon: 0.2, address: "An Hải Tây, Sơn Trà, TP. Đà Nẵng", desc: "Cây cầu độc nhất vô nhị bắc qua sông Hàn có khả năng phun lửa và phun nước vào cuối tuần." },
+        { name: "Bà Nà Hills (Cầu Vàng)", lat: 15.9988, lng: 107.9965, type: "explore", cost: 900000, carbon: 2.0, address: "Hòa Phú, Hòa Vang, TP. Đà Nẵng", desc: "Kỳ quan Cầu Vàng nâng đỡ bởi bàn tay khổng lồ giữa mây trời và Làng Pháp cổ kính." }
+      ];
+
+      for (const lm of knownLandmarks) {
+        const d = Math.hypot(lm.lat - lat, lm.lng - lng);
+        if (d < 0.02) { // within ~2km of landmark
+          matchedSpot = {
+            title: lm.name,
+            type: lm.type,
+            category: 'Điểm tham quan sinh thái',
+            cost: lm.cost,
+            carbon: lm.carbon,
+            lat: lm.lat,
+            lng: lm.lng,
+            address: lm.address,
+            description: lm.desc,
+            isActivity: false
+          };
+          break;
+        }
+      }
+    }
+
+    let placeName = 'Địa điểm chọn từ bản đồ';
+    let placeType = 'explore';
+    let snapLat = lat;
+    let snapLng = lng;
+    let addressText = (this.activeItinerary ? this.activeItinerary.destination + ', Việt Nam' : 'Việt Nam');
+    let placeDesc = '';
+    let placeCost = 50000;
+    let placeCarbon = 1.0;
+    let isAct = false;
+    let actIndex: number | undefined = undefined;
+
+    if (matchedSpot) {
+      placeName = matchedSpot.title;
+      placeType = matchedSpot.type || 'explore';
+      snapLat = matchedSpot.lat || lat;
+      snapLng = matchedSpot.lng || lng;
+      addressText = matchedSpot.address || addressText;
+      placeDesc = matchedSpot.description || this.getPlaceWikiDescription(placeName);
+      placeCost = matchedSpot.cost || 50000;
+      placeCarbon = matchedSpot.carbon || 1.0;
+      isAct = !!matchedSpot.isActivity;
+      actIndex = matchedSpot.index;
+    } else {
+      try {
+        const data = await this.apiService.reverseGeocodeSerp(lat, lng);
+        if (data && data.title && !data.title.includes('Địa điểm chọn')) {
+          placeName = data.title;
+          addressText = data.address || addressText;
+          placeType = data.category || 'explore';
+        }
+      } catch (e) {}
+      placeDesc = this.getPlaceWikiDescription(placeName);
+    }
+
+    const placeImg = this.getPlacePlaceholderImage(placeName);
+
+    this.selectedPlaceDetails = {
+      title: placeName,
+      type: placeType,
+      category: this.getCategoryLabel(placeType),
+      rating: 4.8,
+      reviews: 1420,
+      cost: placeCost,
+      carbon: placeCarbon,
+      lat: snapLat,
+      lng: snapLng,
+      img: placeImg,
+      description: placeDesc,
+      address: addressText,
+      hours: 'Đang mở cửa · Đóng cửa vào 18:30',
+      isActivity: isAct,
+      index: actIndex,
+      isCustomMapClick: false
+    };
+
+    // Draw a prominent red pulse pin on the clicked coordinate
+    this.clearSearchMarkers();
+    const marker = L.marker([snapLat, snapLng], {
+      icon: L.divIcon({
+        html: `<div class="map-leaflet-rec-pin map-leaflet-pin-red-pulse" style="background-color: #EF4444; border: 2.5px solid #FFFFFF; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(239,68,68,0.5);"><i class="bi bi-geo-alt-fill" style="font-size: 13px;"></i></div>`,
+        className: 'custom-div-icon-click-pin',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      })
+    }).addTo(this.map);
+
+    this.searchMarkers.push(marker);
+    if (this.map) {
+      this.map.panTo([snapLat, snapLng]);
+    }
+    this.cdr.detectChanges();
   }
-
-
 
   public async addMapClickPlace() {
     const name = this.mapClickPlaceName.trim();
