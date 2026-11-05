@@ -3,7 +3,7 @@
     <div class="leaflet-map-wrapper">
         <!-- Floating Map Search Bar -->
         <div class="map-search-overlay" [style.left.px]="sidebarWidth + 30" style="position: absolute; top: 20px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; background-color: var(--bg-secondary); border: 1px solid var(--border-color); pointer-events: auto;">
-            <input type="text" [(ngModel)]="mapSearchQuery" (keyup.enter)="searchPlaceOnMap()" placeholder="Tìm địa điểm trên bản đồ..." style="flex-grow: 1; border: none; padding: 10px 14px; font-size: 13px; outline: none; background: transparent; color: var(--text-primary);">
+            <input type="text" [(ngModel)]="mapSearchQuery" (keyup.enter)="searchPlaceOnMap()" id="mapSearchInput" placeholder="Tìm địa điểm trên Google Maps..." style="flex-grow: 1; border: none; padding: 10px 14px; font-size: 13px; outline: none; background: transparent; color: var(--text-primary);">
             <button (click)="searchPlaceOnMap()" style="background-color: var(--primary-green); color: white; border: none; padding: 0 14px; cursor: pointer; transition: all 0.2s;"><i class="bi bi-search"></i></button>
         </div>
 
