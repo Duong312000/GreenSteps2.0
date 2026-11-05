@@ -3009,6 +3009,107 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.saveItineraryToDb();
   }
 
+  // =========================================================================
+  // ACCORDION EXPANSION & GOOGLE MAPS CARD SYNC (Option 3)
+  // =========================================================================
+  public expandedActivityIdx: number | null = null;
+
+  public toggleExpandActivity(idx: number, act: any, event?: Event) {
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (target.closest('.activity-card-controls') || target.closest('input') || target.closest('button')) {
+        return;
+      }
+    }
+    if (this.expandedActivityIdx === idx) {
+      this.expandedActivityIdx = null;
+    } else {
+      this.expandedActivityIdx = idx;
+      this.focusActivityOnMap(act);
+    }
+    this.cdr.detectChanges();
+  }
+
+  public focusActivityOnMap(act: any, event?: Event) {
+    if (event) event.stopPropagation();
+    if (!act) return;
+    const coords = (typeof act.lat === 'number' && typeof act.lng === 'number') 
+      ? { lat: act.lat, lng: act.lng } 
+      : this.lookupActivityCoordinates(act.title || act.name);
+    
+    if (coords) {
+      if (this.isGoogleMaps && this.gmap) {
+        this.gmap.panTo(coords);
+        this.gmap.setZoom(16);
+      } else if (this.map) {
+        this.map.flyTo([coords.lat, coords.lng], 16, { duration: 0.8 });
+      }
+
+      const imgUrl = this.getPlacePlaceholderImage(act.title || act.name);
+      this.selectedPlaceDetails = {
+        title: act.title || act.name,
+        type: act.type || 'explore',
+        category: this.getActivityTypeLabel(act.type),
+        rating: 4.8,
+        reviews: 1420,
+        cost: act.cost || 0,
+        carbon: act.carbon || 1.2,
+        img: imgUrl,
+        lat: coords.lat,
+        lng: coords.lng,
+        address: this.getPlaceAddress(act.title || act.name),
+        description: this.getActivityDetailedDesc(act),
+        isActivity: true,
+        index: this.expandedActivityIdx !== null ? this.expandedActivityIdx : 0
+      };
+      this.cdr.detectChanges();
+    }
+  }
+
+  public openDirectionsForActivity(act: any, event?: Event) {
+    if (event) event.stopPropagation();
+    const coords = (typeof act.lat === 'number' && typeof act.lng === 'number') 
+      ? { lat: act.lat, lng: act.lng } 
+      : this.lookupActivityCoordinates(act.title || act.name);
+    if (coords) {
+      this.focusAndRouteToPlace({
+        ...act,
+        lat: coords.lat,
+        lng: coords.lng
+      });
+    }
+  }
+
+  public getPlaceAddress(title: string): string {
+    if (!title) return 'Hội An, Quảng Nam';
+    const t = title.toLowerCase();
+    if (t.includes('rừng dừa') || t.includes('bảy mẫu') || t.includes('coconut') || t.includes('thuyền thúng')) {
+      return 'Thôn Vạn Lăng, Xã Cẩm Thanh, TP. Hội An';
+    }
+    if (t.includes('trà quế')) {
+      return 'Làng rau Trà Quế, Cẩm Hà, TP. Hội An';
+    }
+    if (t.includes('phố cổ') || t.includes('chùa cầu')) {
+      return 'Phường Minh An, TP. Hội An';
+    }
+    if (t.includes('homestay') || t.includes('khách sạn')) {
+      return 'Cẩm Phô, TP. Hội An';
+    }
+    if (t.includes('hồ xuân hương') || t.includes('lâm viên')) {
+      return 'Phường 10, TP. Đà Lạt, Lâm Đồng';
+    }
+    return (this.activeItinerary?.destLabel || this.activeItinerary?.destination || 'Hội An');
+  }
+
+  public getActivityDetailedDesc(act: any): string {
+    if (!act) return '';
+    const title = act.title || act.name || '';
+    const wiki = this.getPlaceWikiDescription(title);
+    if (wiki && wiki.length > 20) return wiki;
+    const dest = this.activeItinerary?.destLabel || this.activeItinerary?.destination || 'Hội An';
+    return 'Điểm đến trải nghiệm nổi bật tại ' + dest + ', đạt chứng nhận phát thải thấp và thân thiện với môi trường tự nhiên.';
+  }
+
   public scrollToSuggestions() {
     const el = document.querySelector('.suggestions-section');
     if (el) {

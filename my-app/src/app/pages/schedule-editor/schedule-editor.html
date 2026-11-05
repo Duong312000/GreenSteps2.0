@@ -431,11 +431,16 @@
                             <i class="bi" [ngClass]="act.type === 'lodging' ? 'bi-house-door-fill' : (act.type === 'dining' ? 'bi-cup-hot-fill' : (act.type === 'transport' ? 'bi-scooter' : 'bi-tree-fill'))"></i>
                         </div>
                     </div>
-                    <div class="activity-card" [class.positioning-active]="locatingActivityIdx === idx">
+                    <div class="activity-card" 
+                         [class.positioning-active]="locatingActivityIdx === idx"
+                         [class.act-expanded]="expandedActivityIdx === idx">
                         <div class="activity-card-body">
-                            <div class="activity-card-header">
-                                <h4 class="activity-card-title">{{ act.title }}</h4>
-                                <div class="activity-card-controls" *ngIf="!isItineraryLocked()">
+                            <div class="activity-card-header" (click)="toggleExpandActivity(idx, act, $event)">
+                                <div class="activity-card-title-group">
+                                    <i class="bi bi-chevron-right act-expand-arrow" [class.rotated]="expandedActivityIdx === idx"></i>
+                                    <h4 class="activity-card-title">{{ act.title }}</h4>
+                                </div>
+                                <div class="activity-card-controls" *ngIf="!isItineraryLocked()" (click)="$event.stopPropagation()">
                                     <button class="activity-control-btn" (click)="moveActivity(idx, -1)" title="Di chuyển lên"><i class="bi bi-arrow-up"></i></button>
                                     <button class="activity-control-btn" (click)="moveActivity(idx, 1)" title="Di chuyển xuống"><i class="bi bi-arrow-down"></i></button>
                                     <button class="activity-control-btn" 
@@ -449,10 +454,10 @@
                                     <button class="activity-control-btn btn-delete" (click)="deleteActivity(idx)" title="Xóa"><i class="bi bi-trash-fill"></i></button>
                                 </div>
                             </div>
-                            <div class="activity-card-meta" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                            <div class="activity-card-meta" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;" (click)="toggleExpandActivity(idx, act, $event)">
                                  <span class="activity-meta-badge">{{ getActivityTypeLabel(act.type) }}</span>
                                  <span><i class="bi bi-cash"></i> {{ act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + 'đ' }}</span>
-                                 <span *ngIf="act.cost > 0 && !isItineraryLocked()" style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; user-select: none;" (click)="toggleActivityShared(act)" [title]="(act.is_shared || act.type === 'lodging') ? 'Chia đều/Dùng chung cho cả đoàn' : 'Tính theo mỗi đầu người'">
+                                 <span *ngIf="act.cost > 0 && !isItineraryLocked()" style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; user-select: none;" (click)="$event.stopPropagation(); toggleActivityShared(act)" [title]="(act.is_shared || act.type === 'lodging') ? 'Chia đều/Dùng chung cho cả đoàn' : 'Tính theo mỗi đầu người'">
                                      <input type="checkbox" [checked]="act.is_shared || act.type === 'lodging'" style="pointer-events: none; width: 12px; height: 12px; margin: 0; cursor: pointer;">
                                      <span style="font-size: 10px; color: var(--text-secondary);">Dùng chung</span>
                                  </span>
@@ -461,6 +466,47 @@
                                      <span style="font-size: 10px; color: var(--text-muted);">{{ (act.is_shared || act.type === 'lodging') ? 'Dùng chung' : 'Tính/người' }}</span>
                                  </span>
                                  <span><i class="bi bi-leaf-fill" style="color:var(--mint-accent);"></i> {{ act.carbon }} kg CO₂</span>
+                             </div>
+
+                             <!-- EXPANDED ACCORDION DETAILS (Option 3) -->
+                             <div class="activity-card-accordion-content" *ngIf="expandedActivityIdx === idx">
+                                 <div class="act-acc-divider"></div>
+                                 <div class="act-acc-grid">
+                                     <div class="act-acc-thumb-wrap">
+                                         <img [src]="getPlacePlaceholderImage(act.title)" 
+                                              [alt]="act.title" 
+                                              class="act-acc-thumb"
+                                              (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                                         <span class="act-acc-badge">{{ getActivityTypeLabel(act.type) }}</span>
+                                     </div>
+                                     <div class="act-acc-info">
+                                         <div class="act-acc-rating-row">
+                                             <span class="act-acc-score">4.8</span>
+                                             <div class="act-acc-stars">
+                                                 <i class="bi bi-star-fill"></i>
+                                                 <i class="bi bi-star-fill"></i>
+                                                 <i class="bi bi-star-fill"></i>
+                                                 <i class="bi bi-star-fill"></i>
+                                                 <i class="bi bi-star-half"></i>
+                                             </div>
+                                             <span class="act-acc-reviews">(Google Maps · 1.250+ đánh giá)</span>
+                                         </div>
+                                         <p class="act-acc-desc">{{ getActivityDetailedDesc(act) }}</p>
+                                         <div class="act-acc-tags">
+                                             <span class="act-acc-tag"><i class="bi bi-geo-alt-fill text-emerald-600"></i> {{ getPlaceAddress(act.title) }}</span>
+                                             <span class="act-acc-tag"><i class="bi bi-clock-fill text-blue-500"></i> 1 - 2 giờ</span>
+                                             <span class="act-acc-tag"><i class="bi bi-leaf-fill text-teal-600"></i> -{{ act.carbon }} kg CO₂</span>
+                                         </div>
+                                         <div class="act-acc-btn-group">
+                                             <button type="button" class="act-acc-btn btn-view-map" (click)="focusActivityOnMap(act, $event)">
+                                                 <i class="bi bi-geo-alt-fill"></i> Xem vị trí Google Maps
+                                             </button>
+                                             <button type="button" class="act-acc-btn btn-get-directions" (click)="openDirectionsForActivity(act, $event)">
+                                                 <i class="bi bi-signpost-2-fill"></i> Chỉ đường đến đây
+                                             </button>
+                                         </div>
+                                     </div>
+                                 </div>
                              </div>
                         </div>
                     </div>

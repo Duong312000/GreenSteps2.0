@@ -454,3 +454,231 @@
 .gm-hover-add-btn:hover {
   background: #059669;
 }
+
+/* ==========================================================================
+   ACTIVITY CARD ACCORDION EXPANSION (OPTION 3)
+   ========================================================================== */
+.activity-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 12px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+  background-color: var(--bg-secondary);
+}
+
+.activity-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border-color: #cbd5e1;
+}
+
+.activity-card.act-expanded {
+  border-color: #0E9F6E !important;
+  box-shadow: 0 10px 25px -5px rgba(14, 159, 110, 0.15), 0 8px 10px -6px rgba(14, 159, 110, 0.1) !important;
+  background-color: #ffffff !important;
+}
+
+.activity-card-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.activity-card-header:hover {
+  background-color: #f8fafc;
+}
+
+.activity-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.act-expand-arrow {
+  font-size: 11px;
+  color: #94a3b8;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;
+  flex-shrink: 0;
+}
+
+.act-expand-arrow.rotated {
+  transform: rotate(90deg);
+  color: #0E9F6E;
+}
+
+/* Accordion expanded content */
+.activity-card-accordion-content {
+  animation: actSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+  padding: 0 16px 16px 16px;
+}
+
+@keyframes actSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 800px;
+  }
+}
+
+.act-acc-divider {
+  height: 1px;
+  background: linear-gradient(to right, #0E9F6E, #e2e8f0);
+  margin: 10px 0 14px 0;
+  opacity: 0.6;
+}
+
+.act-acc-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .act-acc-grid {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.act-acc-thumb-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 160px;
+  height: 110px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.act-acc-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.activity-card.act-expanded:hover .act-acc-thumb {
+  transform: scale(1.05);
+}
+
+.act-acc-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.act-acc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.act-acc-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act-acc-score {
+  font-weight: 800;
+  font-size: 13px;
+  color: #d97706;
+}
+
+.act-acc-stars {
+  display: flex;
+  gap: 2px;
+  color: #f59e0b;
+  font-size: 11px;
+}
+
+.act-acc-reviews {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.act-acc-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
+  margin: 0;
+}
+
+.act-acc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.act-acc-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.act-acc-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.act-acc-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.act-acc-btn.btn-view-map {
+  background-color: #0E9F6E;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(14, 159, 110, 0.25);
+}
+
+.act-acc-btn.btn-view-map:hover {
+  background-color: #057A55;
+  transform: translateY(-1px);
+}
+
+.act-acc-btn.btn-get-directions {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.act-acc-btn.btn-get-directions:hover {
+  background-color: #dcfce7;
+  transform: translateY(-1px);
+}
