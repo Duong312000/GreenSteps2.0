@@ -14,6 +14,7 @@ declare const google: any; // Google Maps SDK mapped globally
   selector: 'app-schedule-editor',
   standalone: false,
   templateUrl: './schedule-editor.html',
+  styleUrls: ['./schedule-editor.css']
 })
 export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   public currentUser: any = null;
@@ -130,6 +131,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   // Bottom Sheet Details properties
   public selectedPlaceDetails: any = null;
+  public activeCategoryFilter: string = 'all';
+  public routeLegs: { [key: number]: { distanceKm: number; durationMin: number } } = {};
+  private previewRouteLayer: any = null;
   public sheetHeight: number = 220;
   private isSheetResizing: boolean = false;
 
@@ -920,6 +924,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.plotMapMarkers();
   }
 
+  public setCategoryFilter(category: string) {
+    this.activeCategoryFilter = category;
+    this.filterOutCurrentActivities();
+    this.cdr.detectChanges();
+  }
+
   public filterOutCurrentActivities() {
     if (!this.activeItinerary) return;
     const currentActivityNames = new Set<string>();
@@ -940,6 +950,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         if (recName === currentName || recName.includes(currentName) || currentName.includes(recName)) {
           return false; // hide duplicate
         }
+      }
+      if (this.activeCategoryFilter !== 'all') {
+        const cat = this.activeCategoryFilter;
+        if (cat === 'attraction' && rec.type !== 'explore' && rec.type !== 'attraction') return false;
+        if (cat === 'dining' && rec.type !== 'dining' && rec.type !== 'food') return false;
+        if (cat === 'cafe' && rec.type !== 'cafe' && !(rec.name || '').toLowerCase().includes('cafe') && !(rec.name || '').toLowerCase().includes('cà phê')) return false;
+        if (cat === 'lodging' && rec.type !== 'lodging' && rec.type !== 'stay') return false;
       }
       return true; // keep
     });
@@ -1114,37 +1131,97 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public selectSearchSuggestion(sug: any) {
-    this.customPlaceTitle = sug.title || sug.name || sug.name_service;
+    const placeName = sug.title || sug.name || sug.name_service;
+    this.customPlaceTitle = placeName;
     this.customSearchSuggestions = [];
-    
-    // Add directly to active day
-    const time = this.getNextSuggestedTime();
-    const type = sug.category || 'explore';
-    let cost = type === "dining" ? 80000 : (type === "lodging" ? 500000 : 30000);
-    let carbon = type === "dining" ? 2 : 4;
-    
-    const activeDay = this.activeItinerary.days[this.activeDayIdx];
-    if (!activeDay.activities) activeDay.activities = [];
-    activeDay.activities.push({
-      id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2,7),
-      time: time,
-      name: this.customPlaceTitle,
-      cost: cost,
-      carbon: carbon,
-      icon: type === 'lodging' ? 'bi-house-door-fill' : (type === 'dining' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
-      type: type,
-      is_shared: this.checkIfSharedByDefault(this.customPlaceTitle, type),
+    const pType = sug.category || 'explore';
+
+    this.selectedPlaceDetails = {
+      title: placeName,
+      type: pType,
+      category: this.getCategoryLabel(pType),
+      rating: sug.rating || 4.8,
+      reviews: sug.reviews || Math.floor(Math.random() * 500 + 120),
+      address: sug.address || (this.activeItinerary ? this.activeItinerary.destination + ', Việt Nam' : 'Việt Nam'),
+      hours: 'Đang mở cửa · Đóng cửa vào 22:00',
+      cost: sug.cost || (pType === 'dining' ? 80000 : (pType === 'lodging' ? 500000 : 30000)),
+      carbon: sug.carbon || (pType === 'dining' ? 1.5 : (pType === 'lodging' ? 2.5 : 0.8)),
       lat: sug.lat,
-      lng: sug.lng
-    });
-    
-    this.customPlaceTitle = '';
-    this.plotMapMarkers();
-    this.saveItineraryToDb();
-    
+      lng: sug.lng,
+      img: sug.img || this.getPlacePlaceholderImage(placeName),
+      description: sug.description || this.getPlaceWikiDescription(placeName),
+      isActivity: false
+    };
+
     if (sug.lat && sug.lng && this.map) {
-      this.map.panTo([sug.lat, sug.lng]);
-      this.map.setZoom(15);
+      this.map.flyTo([sug.lat, sug.lng], 15, { duration: 0.8 });
+      this.clearSearchMarkers();
+      const marker = L.marker([sug.lat, sug.lng], {
+        icon: L.divIcon({
+          html: `<div class="map-leaflet-rec-pin map-leaflet-pin-red-pulse" style="background-color: #EF4444; border: 2.5px solid #FFFFFF; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(239,68,68,0.5);"><i class="bi bi-geo-alt-fill" style="font-size: 13px;"></i></div>`,
+          className: 'custom-div-icon-click-pin',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        })
+      }).addTo(this.map);
+      this.searchMarkers.push(marker);
+    }
+    this.cdr.detectChanges();
+  }
+
+  public selectRecommendationForDetails(rec: any) {
+    this.selectedPlaceDetails = {
+      title: rec.name,
+      type: rec.type,
+      category: rec.category || this.getCategoryLabel(rec.type),
+      rating: rec.rating || 4.8,
+      reviews: rec.reviews || 680,
+      address: rec.address || (this.activeItinerary ? this.activeItinerary.destination + ', Việt Nam' : 'Việt Nam'),
+      hours: 'Đang mở cửa · Đóng cửa vào 21:30',
+      cost: rec.cost,
+      carbon: rec.carbon,
+      lat: rec.lat,
+      lng: rec.lng,
+      img: rec.img || this.getPlacePlaceholderImage(rec.name),
+      description: this.getPlaceWikiDescription(rec.name),
+      isActivity: false
+    };
+    if (rec.lat && rec.lng && this.map) {
+      this.map.flyTo([rec.lat, rec.lng], 15, { duration: 0.8 });
+    }
+    this.cdr.detectChanges();
+  }
+
+  public focusAndRouteToPlace(place: any) {
+    if (!place || !place.lat || !place.lng || !this.map) return;
+    const activeDay = this.activeItinerary?.days[this.activeDayIdx];
+    const activitiesWithCoords = (activeDay?.activities || []).filter((a: any) => typeof a.lat === 'number' && typeof a.lng === 'number');
+    
+    if (activitiesWithCoords.length > 0) {
+      const lastAct = activitiesWithCoords[activitiesWithCoords.length - 1];
+      const query = `${lastAct.lng},${lastAct.lat};${place.lng},${place.lat}`;
+      fetch(`https://router.project-osrm.org/route/v1/driving/${query}?overview=full&geometries=geojson`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.routes && data.routes[0]) {
+            if (this.previewRouteLayer) {
+              try { this.map.removeLayer(this.previewRouteLayer); } catch(e) {}
+            }
+            this.previewRouteLayer = L.geoJSON(data.routes[0].geometry, {
+              style: { color: '#2563EB', weight: 5, dashArray: '6, 8', opacity: 0.9 }
+            }).addTo(this.map);
+            const km = (data.routes[0].distance / 1000).toFixed(1);
+            const mins = Math.max(3, Math.round(data.routes[0].duration / 60));
+            this.showAlert(`Chỉ đường từ "${lastAct.name || lastAct.title}" đến "${place.title}": khoảng ${km} km (${mins} phút)`, 'info');
+          }
+        })
+        .catch(() => {});
+      
+      const bounds = L.latLngBounds([[lastAct.lat, lastAct.lng], [place.lat, place.lng]]);
+      this.map.fitBounds(bounds, { padding: [60, 60] });
+    } else {
+      this.map.flyTo([place.lat, place.lng], 16);
+      this.showAlert(`Vị trí: ${place.title}`, 'info');
     }
   }
 
@@ -1704,10 +1781,22 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             this.polyline = L.geoJSON(routeGeo, {
               style: {
                 color: '#0E9F6E',
-                weight: 4,
-                opacity: 0.8
+                weight: 4.5,
+                opacity: 0.85
               }
             }).addTo(this.map);
+
+            // Populate turn-by-turn road route legs
+            if (data.routes[0].legs && Array.isArray(data.routes[0].legs)) {
+              this.routeLegs = {};
+              data.routes[0].legs.forEach((leg: any, legIdx: number) => {
+                this.routeLegs[legIdx] = {
+                  distanceKm: +(leg.distance / 1000).toFixed(1),
+                  durationMin: Math.max(3, Math.round(leg.duration / 60))
+                };
+              });
+              this.cdr.detectChanges();
+            }
           } else {
             this.drawStraightPolyline(coordinates);
           }
@@ -1760,7 +1849,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c; // Distance in km
 
-    // Estimate travel time: average speed 30 km/h for driving, min 5 minutes
+    // If real road route distance & duration from OSRM is ready, use it!
+    if (this.routeLegs && this.routeLegs[idx]) {
+      const leg = this.routeLegs[idx];
+      return `${leg.durationMin} phút di chuyển (khoảng ${leg.distanceKm} km)`;
+    }
+
+    // Fallback: Haversine distance
     const speedKmh = 30;
     let durationMins = Math.round((distance / speedKmh) * 60);
     if (durationMins < 5) durationMins = 5;
@@ -2748,11 +2843,33 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public getPlacePlaceholderImage(name: string): string {
-    if (!name) return "image/Viet Nam.png";
-    if (name.includes("Hồ Xuân Hương")) return "image/1dc8619487310884c9d631d689ece1e7.jpg";
-    if (name.includes("Phú Yên") || name.includes("Gành Đá Đĩa")) return "image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg";
-    if (name.includes("Lẩu bò") || name.includes("Datanla")) return "image/cb4fbf769d60d911e13c255f7fb39dcc.jpg";
-    return "image/Viet Nam.png";
+    if (!name) return "image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg";
+    const lower = name.toLowerCase();
+
+    // Hội An / Đà Nẵng
+    if (lower.includes('trà quế') || lower.includes('rau') || lower.includes('nông trại')) return 'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg';
+    if (lower.includes('bảy mẫu') || lower.includes('thuyền thúng') || lower.includes('rừng dừa')) return 'image/greensteps/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg';
+    if (lower.includes('phố cổ') || lower.includes('hội an') || lower.includes('đèn lồng')) return 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg';
+    if (lower.includes('chùa cầu')) return 'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg';
+    if (lower.includes('cà phê') || lower.includes('cafe')) return 'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg';
+    if (lower.includes('bà nà') || lower.includes('cầu vàng')) return 'image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg';
+    if (lower.includes('cầu rồng')) return 'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg';
+    if (lower.includes('mỹ khê') || lower.includes('biển')) return 'image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg';
+    if (lower.includes('sơn trà')) return 'image/greensteps/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg';
+
+    // Đà Lạt
+    if (lower.includes('xuân hương') || lower.includes('hồ xuân hương')) return 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
+    if (lower.includes('lâm viên') || lower.includes('quảng trường')) return 'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg';
+    if (lower.includes('tuyền lâm')) return 'image/greensteps/da-lat/da-lat-ho-tuyen-lam-01.jpg';
+    if (lower.includes('linh phước') || lower.includes('chùa')) return 'image/greensteps/da-lat/da-lat-chua-linh-phuoc-01.jpg';
+    if (lower.includes('rừng thông') || lower.includes('săn mây')) return 'image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg';
+    if (lower.includes('thác') || lower.includes('datanla')) return 'image/greensteps/da-lat/da-lat-thac-nuoc-01.jpg';
+    if (lower.includes('nghỉ dưỡng') || lower.includes('homestay') || lower.includes('khách sạn') || lower.includes('resort')) return 'image/greensteps/da-lat/da-lat-nghi-duong-ven-ho-01.jpg';
+    if (lower.includes('vườn hoa')) return 'image/greensteps/da-lat/da-lat-vuon-hoa-01.jpg';
+
+    // Phú Yên
+    if (lower.includes('phú yên') || lower.includes('gành đá đĩa')) return 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg';
+    return 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-02.jpg';
   }
 
   public closePlaceDetails() {

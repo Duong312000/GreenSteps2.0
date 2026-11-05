@@ -237,14 +237,21 @@
                 <input type="text" [(ngModel)]="customPlaceTitle" (input)="onCustomPlaceTyping()" placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
                 <button (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
                 
-                <!-- Autocomplete suggestions dropdown -->
+                <!-- Autocomplete suggestions dropdown (Google Maps Style) -->
                 <div class="autocomplete-dropdown" *ngIf="customSearchSuggestions.length > 0" 
-                     style="position: absolute; top: 40px; left: 0; width: 220px; background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; max-height: 200px; overflow-y: auto; pointer-events: auto;">
+                     style="position: absolute; top: 42px; left: 0; width: 100%; min-width: 290px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 12px 28px -4px rgba(15,23,42,0.15); z-index: 1000; max-height: 280px; overflow-y: auto; pointer-events: auto;">
                     <div *ngFor="let sug of customSearchSuggestions" 
                          (click)="selectSearchSuggestion(sug)"
-                         style="padding: 8px 12px; font-size: 12px; cursor: pointer; color: var(--text-primary); border-bottom: 1px solid var(--border-color); font-weight: 600; display: flex; flex-direction: column; gap: 2px;">
-                        <span>{{ sug.title }}</span>
-                        <span style="font-size: 10px; color: var(--text-muted); font-weight: 400; text-transform: capitalize;">{{ sug.category || 'Địa điểm' }} {{ sug.isLocal ? '• Hệ thống' : '' }}</span>
+                         class="gm-sug-item"
+                         style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; transition: background 0.15s ease;">
+                        <div style="width: 28px; height: 28px; border-radius: 50%; background: #f0fdf4; color: #15803d; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px;">
+                            <i class="bi" [ngClass]="sug.category === 'dining' ? 'bi-cup-hot-fill' : (sug.category === 'lodging' ? 'bi-house-door-fill' : (sug.category === 'cafe' ? 'bi-cup-straw' : 'bi-geo-alt-fill'))"></i>
+                        </div>
+                        <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+                            <span style="font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ sug.title }}</span>
+                            <span style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ sug.address || (sug.category || 'Địa danh du lịch') }}</span>
+                        </div>
+                        <span style="font-size: 11px; color: #0E9F6E; font-weight: 600;"><i class="bi bi-arrow-up-right"></i></span>
                     </div>
                 </div>
 
@@ -323,13 +330,35 @@
             </ng-container>
         </div>
 
-        <!-- Local Area Green Suggestions -->
+        <!-- Local Area Green Suggestions (Google Maps Style Explore) -->
         <section class="suggestions-section" *ngIf="!isItineraryLocked()">
-            <h3>Gợi ý Dịch vụ Xanh địa phương</h3>
-            <p class="subtitle">Được đề xuất dựa trên điểm đến và bộ lọc phát thải carbon cực thấp.</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <h3 style="margin: 0;">Khám phá & Đề xuất du lịch</h3>
+                <span style="font-size: 11px; color: var(--primary-green); font-weight: 700;"><i class="bi bi-compass"></i> Google Maps & Địa phương</span>
+            </div>
+            <p class="subtitle" style="margin-bottom: 10px;">Được đề xuất theo điểm đến {{ activeItinerary.destination }} và bộ lọc phát thải carbon cực thấp.</p>
             
+            <!-- Category Pills like Google Maps -->
+            <div class="gm-explore-categories">
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'all'" (click)="setCategoryFilter('all')">
+                    <i class="bi bi-grid-fill"></i> Tất cả
+                </button>
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'attraction'" (click)="setCategoryFilter('attraction')">
+                    <i class="bi bi-camera-fill"></i> Danh lam / Di sản
+                </button>
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'dining'" (click)="setCategoryFilter('dining')">
+                    <i class="bi bi-cup-hot-fill"></i> Quán ăn đặc sản
+                </button>
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'cafe'" (click)="setCategoryFilter('cafe')">
+                    <i class="bi bi-cup-straw"></i> Cafe chill
+                </button>
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'lodging'" (click)="setCategoryFilter('lodging')">
+                    <i class="bi bi-house-door-fill"></i> Khách sạn / Homestay
+                </button>
+            </div>
+
             <div class="local-suggestions-grid" id="suggestionsGrid">
-                <div class="suggestion-card" *ngFor="let rec of dynamicRecs">
+                <div class="suggestion-card" *ngFor="let rec of dynamicRecs" (click)="selectRecommendationForDetails(rec)" title="Bấm để xem chi tiết địa danh trên bản đồ">
                     <div class="sugg-img-container">
                         <img class="sugg-img" [src]="rec.img" [alt]="rec.name">
                         <span class="sugg-badge" style="background-color: var(--primary-green); font-size: 10px; font-weight: 700; border-radius: 4px;">{{ rec.category }}</span>
@@ -442,74 +471,102 @@
 
     <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT -->
     <aside class="right-map-panel" [style.width.%]="mapWidthPct" style="position: relative; display: flex; flex-direction: column;">
-        <!-- Map Place Details Sheet (Layer overlay sliding vertically) -->
-        <div class="map-details-sheet" *ngIf="selectedPlaceDetails" [style.height.px]="sheetHeight" style="position: absolute; bottom: 0; left: 0; right: 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); box-shadow: 0 -4px 16px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; transition: height 0.05s ease-out; pointer-events: auto;">
-                <!-- Resizer Handle -->
-                <div class="sheet-resizer" (mousedown)="startSheetResizing($event)" style="height: 14px; width: 100%; cursor: ns-resize; display: flex; align-items: center; justify-content: center; background-color: var(--bg-tertiary); flex-shrink: 0;">
-                    <div style="width: 36px; height: 4px; background-color: var(--text-muted); border-radius: 2px; opacity: 0.6;"></div>
-                </div>
-
-                <!-- Sheet Content Header -->
-                <div style="padding: 12px 18px 8px 18px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0;">
-                    <div>
-                        <span style="font-size: 9px; font-weight: 700; color: var(--primary-green); text-transform: uppercase; background-color: var(--light-mint); padding: 2px 6px; border-radius: 4px;">{{ getCategoryLabel(selectedPlaceDetails.type) }}</span>
-                        <h4 style="font-size: 14px; font-weight: 800; color: var(--text-primary); margin: 4px 0 0 0;">{{ selectedPlaceDetails.title }}</h4>
-                    </div>
-                    <button (click)="closePlaceDetails()" style="background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0 4px;">&times;</button>
-                </div>
-
-                <ng-container *ngIf="!selectedPlaceDetails.isCustomMapClick">
-                    <!-- Sheet Content Tabs -->
-                    <div style="display: flex; border-bottom: 1px solid var(--border-color); padding: 0 18px; gap: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">
-                        <span style="padding-bottom: 6px; border-bottom: 2px solid var(--primary-green); color: var(--primary-green); cursor: pointer;">Tổng quan</span>
-                        <span style="padding-bottom: 6px; color: var(--text-muted); cursor: pointer;">Đánh giá</span>
-                        <span style="padding-bottom: 6px; color: var(--text-muted); cursor: pointer;">Hình ảnh</span>
-                    </div>
-
-                    <!-- Sheet Scrollable Description Body -->
-                    <div style="padding: 14px 18px; overflow-y: auto; flex-grow: 1; display: flex; gap: 12px;">
-                        <div style="flex-grow: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-                            <p style="margin: 0;">{{ getPlaceWikiDescription(selectedPlaceDetails.title) }}</p>
-                            <div style="display: flex; gap: 12px; margin-top: 12px; font-size: 11px; color: var(--text-muted);">
-                                <span><i class="bi bi-cash"></i> Giá: <strong>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + 'đ' }}</strong></span>
-                                <span><i class="bi bi-leaf-fill" style="color:var(--mint-accent);"></i> Phát thải: <strong>{{ selectedPlaceDetails.carbon }} kg CO₂</strong></span>
-                            </div>
-                        </div>
-                        <img [src]="getPlacePlaceholderImage(selectedPlaceDetails.title)" style="width: 80px; height: 80px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-color);" alt="Thumb">
-                    </div>
-
-                    <!-- Sheet Footer Actions -->
-                    <div style="padding: 12px 18px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; background-color: var(--bg-primary);">
-                        <button *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)" 
-                                style="background-color: var(--primary-green); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;">
-                            <i class="bi bi-plus-lg"></i> Thêm vào lịch trình
-                        </button>
-                        <button *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)" 
-                                style="background-color: #EF4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;">
-                            <i class="bi bi-trash-fill"></i> Xóa khỏi lịch trình
-                        </button>
-                    </div>
-                </ng-container>
-
-                <ng-container *ngIf="selectedPlaceDetails.isCustomMapClick && !isItineraryLocked()">
-                    <div style="padding: 14px 18px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
-                        <span style="font-size: 11px; color: var(--text-secondary);">Tọa độ đã chọn: <strong>{{ selectedPlaceDetails.lat | number:'1.4-4' }}, {{ selectedPlaceDetails.lng | number:'1.4-4' }}</strong></span>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 11px; font-weight: 700; color: var(--text-primary);">Tên địa điểm tùy chỉnh:</label>
-                            <input type="text" [(ngModel)]="mapClickPlaceName" (keyup.enter)="addMapClickPlace()" placeholder="Ví dụ: Homestay trong rừng, Quán nướng ven hồ..."
-                                   style="height: 34px; padding: 0 10px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); font-size: 12px; outline: none; pointer-events: auto !important; user-select: text !important;">
-                        </div>
-                    </div>
-
-                    <div style="padding: 10px 18px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; background-color: var(--bg-primary);">
-                        <button (click)="closePlaceDetails()" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 11px; cursor: pointer;">Hủy</button>
-                        <button (click)="addMapClickPlace()" 
-                                style="background-color: var(--primary-green); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 11px; cursor: pointer; transition: all 0.2s;">
-                            <i class="bi bi-plus-lg"></i> Thêm vào Lịch trình
-                        </button>
-                    </div>
-                </ng-container>
+        <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD -->
+        <div class="gm-place-card" *ngIf="selectedPlaceDetails">
+            <!-- Hero Photo Banner with Category & Close Button -->
+            <div class="gm-card-hero">
+                <img [src]="selectedPlaceDetails.img || getPlacePlaceholderImage(selectedPlaceDetails.title)" 
+                     [alt]="selectedPlaceDetails.title" 
+                     class="gm-hero-img"
+                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                <span class="gm-category-badge">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                <button type="button" class="gm-close-btn" (click)="closePlaceDetails()" title="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
+
+            <!-- Body Details -->
+            <div class="gm-card-body">
+                <h3 class="gm-place-title">{{ selectedPlaceDetails.title }}</h3>
+                
+                <div class="gm-rating-row">
+                    <span class="gm-score">{{ selectedPlaceDetails.rating || 4.8 }}</span>
+                    <div class="gm-stars">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </div>
+                    <span class="gm-reviews">({{ selectedPlaceDetails.reviews || 680 }})</span>
+                    <span class="gm-dot">·</span>
+                    <span class="gm-type-text">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                </div>
+
+                <!-- Google Maps Action Buttons -->
+                <div class="gm-action-bar">
+                    <button type="button" class="gm-btn-primary" *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)">
+                        <i class="bi bi-plus-circle-fill"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
+                    </button>
+                    <button type="button" class="gm-btn-delete" *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)">
+                        <i class="bi bi-trash-fill"></i> Xóa khỏi ngày
+                    </button>
+                    <button type="button" class="gm-btn-secondary" (click)="focusAndRouteToPlace(selectedPlaceDetails)" title="Chỉ đường từ điểm trước">
+                        <i class="bi bi-signpost-2-fill"></i> Chỉ đường
+                    </button>
+                </div>
+
+                <!-- Custom Map Click input field if clicking a raw map point -->
+                <div *ngIf="selectedPlaceDetails.isCustomMapClick && !isItineraryLocked()" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 6px;">
+                    <label style="font-size: 11px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Tên địa điểm tùy chỉnh:</label>
+                    <input type="text" [(ngModel)]="mapClickPlaceName" (keyup.enter)="addMapClickPlace()" placeholder="Nhập tên địa điểm..."
+                           style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; outline: none; background: #ffffff;">
+                </div>
+
+                <!-- Detailed Google Maps info rows -->
+                <div class="gm-info-rows">
+                    <div class="gm-info-row">
+                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Địa chỉ</strong>
+                            <span>{{ selectedPlaceDetails.address || (activeItinerary.destination + ', Việt Nam') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="gm-info-row">
+                        <i class="bi bi-clock-fill text-blue-600"></i>
+                        <div class="gm-ir-text">
+                            <strong style="color: #059669;">Đang mở cửa</strong>
+                            <span>{{ selectedPlaceDetails.hours || 'Đóng cửa vào 22:00' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-cash-stack text-amber-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Chi phí tham khảo</strong>
+                            <span>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + '₫ / người' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-leaf-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Dấu chân Carbon (Eco)</strong>
+                            <span>{{ selectedPlaceDetails.carbon }} kg CO₂ · Điểm đến thân thiện môi trường</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row" *ngIf="selectedPlaceDetails.description">
+                        <i class="bi bi-info-circle-fill text-slate-500"></i>
+                        <div class="gm-ir-text">
+                            <strong>Giới thiệu & Điểm nổi bật</strong>
+                            <p class="gm-desc-text">{{ selectedPlaceDetails.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </aside>
 </div>
