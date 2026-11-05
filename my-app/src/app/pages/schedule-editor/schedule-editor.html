@@ -1,177 +1,5 @@
 <div class="schedule-editor-container" *ngIf="activeItinerary">
-    <!-- BACKGROUND FULL-SCREEN MAP LAYER -->
-    <div class="leaflet-map-wrapper">
-        <!-- Floating Map Search Bar -->
-        <div class="map-search-overlay" [style.left.px]="sidebarWidth + 30" style="position: absolute; top: 20px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; background-color: var(--bg-secondary); border: 1px solid var(--border-color); pointer-events: auto;">
-            <input type="text" [(ngModel)]="mapSearchQuery" (keyup.enter)="searchPlaceOnMap()" id="mapSearchInput" placeholder="Tìm địa điểm trên Google Maps..." style="flex-grow: 1; border: none; padding: 10px 14px; font-size: 13px; outline: none; background: transparent; color: var(--text-primary);">
-            <button (click)="searchPlaceOnMap()" style="background-color: var(--primary-green); color: white; border: none; padding: 0 14px; cursor: pointer; transition: all 0.2s;"><i class="bi bi-search"></i></button>
-        </div>
 
-        <!-- Floating Locate Mode Banner -->
-        <div *ngIf="locatingActivityIdx !== null"
-             [style.left.px]="sidebarWidth + 30"
-             style="position: absolute; top: 80px; z-index: 1000; display: flex; align-items: center; justify-content: space-between; background-color: #EF4444; color: white; padding: 10px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-size: 13px; font-weight: 700; gap: 12px; pointer-events: auto; width: 320px; box-sizing: border-box;">
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="bi bi-geo-alt-fill"></i> Nhấp lên bản đồ để chọn vị trí</span>
-            <button (click)="cancelLocatingActivity()" style="background: rgba(255,255,255,0.2); border: 1px solid white; border-radius: 4px; color: white; padding: 2px 8px; font-size: 11px; cursor: pointer; font-weight: 700;">Hủy</button>
-        </div>
-
-        <!-- Floating Clear Search Pins Button -->
-        <div *ngIf="searchMarkers.length > 0"
-             [style.left.px]="sidebarWidth + 30"
-             [style.top.px]="locatingActivityIdx !== null ? 130 : 80"
-             style="position: absolute; z-index: 1000; width: 320px; display: flex; pointer-events: auto;">
-             <button (click)="clearSearchMarkers()" style="width: 100%; height: 36px; background-color: #EF4444; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(239,68,68,0.25);">
-                 <i class="bi bi-x-circle-fill"></i> Xóa kết quả tìm kiếm ({{ searchMarkers.length }} Pin)
-             </button>
-
-        </div>
-
-                <!-- GOOGLE MAPS POI HOVER POPOVER (Exact Google Maps Desktop Style) -->
-        <div class="gm-hover-popover" 
-             *ngIf="hoveredPlace" 
-             [style.left.px]="hoverPopoverPos.x" 
-             [style.top.px]="hoverPopoverPos.y"
-             (mouseenter)="keepHoverPopover()"
-             (mouseleave)="hideHoverPopover(120)">
-            
-            <!-- Top Image Banner -->
-            <div class="gm-hover-thumb" *ngIf="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)">
-                <img [src]="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)" 
-                     [alt]="hoveredPlace.title" 
-                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-            </div>
-
-            <!-- Body Info -->
-            <div class="gm-hover-body">
-                <div class="gm-hover-title-row">
-                    <h4 class="gm-hover-title">{{ hoveredPlace.title }}</h4>
-                    <div class="gm-hover-quick-actions">
-                        <button type="button" class="gm-hover-circle-btn" (click)="focusAndRouteToPlace(hoveredPlace)" title="Chỉ đường">
-                            <i class="bi bi-signpost-2-fill"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="gm-hover-rating-row">
-                    <span class="gm-hover-score">{{ hoveredPlace.rating || 4.5 }}</span>
-                    <div class="gm-hover-stars">
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-half"></i>
-                    </div>
-                    <span class="gm-hover-reviews">({{ (hoveredPlace.reviews || 1240) | number }})</span>
-                </div>
-
-                <div class="gm-hover-category">{{ hoveredPlace.category || getCategoryLabel(hoveredPlace.type) }}</div>
-
-                <div class="gm-hover-status-row">
-                    <span class="gm-status-tag" [class.closed]="hoveredPlace.isClosed">
-                        {{ hoveredPlace.hours || 'Đang mở cửa · Đóng cửa lúc 18:30' }}
-                    </span>
-                </div>
-
-                <!-- Add to Day button -->
-                <button type="button" class="gm-hover-add-btn" 
-                        *ngIf="!hoveredPlace.isActivity && !isItineraryLocked()" 
-                        (click)="addPlaceFromMap(hoveredPlace); hideHoverPopover(0)">
-                    <i class="bi bi-plus-lg"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
-                </button>
-            </div>
-        </div>
-
-        <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD (Floating directly on top-right of map) -->
-        <div class="gm-place-card" *ngIf="selectedPlaceDetails">
-            <!-- Hero Photo Banner with Category & Close Button -->
-            <div class="gm-card-hero">
-                <img [src]="selectedPlaceDetails.img || getPlacePlaceholderImage(selectedPlaceDetails.title)" 
-                     [alt]="selectedPlaceDetails.title" 
-                     class="gm-hero-img"
-                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-                <span class="gm-category-badge">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
-                <button type="button" class="gm-close-btn" (click)="closePlaceDetails()" title="Đóng">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
-
-            <!-- Body Details -->
-            <div class="gm-card-body">
-                <h3 class="gm-place-title">{{ selectedPlaceDetails.title }}</h3>
-                
-                <div class="gm-rating-row">
-                    <span class="gm-score">{{ selectedPlaceDetails.rating || 4.8 }}</span>
-                    <div class="gm-stars">
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-half"></i>
-                    </div>
-                    <span class="gm-reviews">({{ selectedPlaceDetails.reviews || 680 }})</span>
-                    <span class="gm-dot">·</span>
-                    <span class="gm-type-text">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
-                </div>
-
-                <!-- Google Maps Action Buttons -->
-                <div class="gm-action-bar">
-                    <button type="button" class="gm-btn-primary" *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)">
-                        <i class="bi bi-plus-circle-fill"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
-                    </button>
-                    <button type="button" class="gm-btn-delete" *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)">
-                        <i class="bi bi-trash-fill"></i> Xóa khỏi ngày
-                    </button>
-                    <button type="button" class="gm-btn-secondary" (click)="focusAndRouteToPlace(selectedPlaceDetails)" title="Chỉ đường từ điểm trước">
-                        <i class="bi bi-signpost-2-fill"></i> Chỉ đường
-                    </button>
-                </div>
-
-                <!-- Detailed Google Maps info rows -->
-                <div class="gm-info-rows">
-                    <div class="gm-info-row">
-                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Địa chỉ</strong>
-                            <span>{{ selectedPlaceDetails.address || (activeItinerary.destination + ', Việt Nam') }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="gm-info-row">
-                        <i class="bi bi-clock-fill text-blue-600"></i>
-                        <div class="gm-ir-text">
-                            <strong style="color: #059669;">Đang mở cửa</strong>
-                            <span>{{ selectedPlaceDetails.hours || 'Đóng cửa vào 18:30' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row">
-                        <i class="bi bi-cash-stack text-amber-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Chi phí tham khảo</strong>
-                            <span>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + '₫ / người' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row">
-                        <i class="bi bi-leaf-fill text-emerald-600"></i>
-                        <div class="gm-ir-text">
-                            <strong>Dấu chân Carbon (Eco)</strong>
-                            <span>{{ selectedPlaceDetails.carbon }} kg CO₂ · Điểm đến thân thiện môi trường</span>
-                        </div>
-                    </div>
-
-                    <div class="gm-info-row" *ngIf="selectedPlaceDetails.description">
-                        <i class="bi bi-info-circle-fill text-slate-500"></i>
-                        <div class="gm-ir-text">
-                            <strong>Giới thiệu & Điểm nổi bật</strong>
-                            <p class="gm-desc-text">{{ selectedPlaceDetails.description }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="leafletMap" style="width:100%; height:100%;"></div>
-    </div>
 
 
     <!-- 1. LEFT SIDEBAR: Professional Days & Navigation Panel -->
@@ -681,7 +509,180 @@
     <div class="layout-resizer" (mousedown)="startResizing($event, 'right')"></div>
 
     <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT SPACER -->
-    <aside class="right-map-panel" [style.width.%]="mapWidthPct" style="position: relative; display: flex; flex-direction: column;">
+    <aside class="right-map-panel">
+    <!-- 3. RIGHT PANEL: OFFICIAL GOOGLE MAPS PLATFORM SDK -->
+    <div class="leaflet-map-wrapper">
+        <!-- Floating Map Search Bar -->
+        <div class="map-search-overlay" style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 14px rgba(0,0,0,0.18); border-radius: 10px; overflow: hidden; background-color: #ffffff; border: 1px solid #cbd5e1; pointer-events: auto;" style="position: absolute; top: 20px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; background-color: var(--bg-secondary); border: 1px solid var(--border-color); pointer-events: auto;">
+            <input type="text" [(ngModel)]="mapSearchQuery" (keyup.enter)="searchPlaceOnMap()" id="mapSearchInput" placeholder="Tìm địa điểm trên Google Maps..." style="flex-grow: 1; border: none; padding: 10px 14px; font-size: 13px; outline: none; background: transparent; color: var(--text-primary);">
+            <button (click)="searchPlaceOnMap()" style="background-color: var(--primary-green); color: white; border: none; padding: 0 14px; cursor: pointer; transition: all 0.2s;"><i class="bi bi-search"></i></button>
+        </div>
+
+        <!-- Floating Locate Mode Banner -->
+        <div *ngIf="locatingActivityIdx !== null"
+             style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 14px rgba(0,0,0,0.18); border-radius: 10px; overflow: hidden; background-color: #ffffff; border: 1px solid #cbd5e1; pointer-events: auto;"
+             style="position: absolute; top: 80px; z-index: 1000; display: flex; align-items: center; justify-content: space-between; background-color: #EF4444; color: white; padding: 10px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-size: 13px; font-weight: 700; gap: 12px; pointer-events: auto; width: 320px; box-sizing: border-box;">
+            <span style="display: flex; align-items: center; gap: 6px;"><i class="bi bi-geo-alt-fill"></i> Nhấp lên bản đồ để chọn vị trí</span>
+            <button (click)="cancelLocatingActivity()" style="background: rgba(255,255,255,0.2); border: 1px solid white; border-radius: 4px; color: white; padding: 2px 8px; font-size: 11px; cursor: pointer; font-weight: 700;">Hủy</button>
+        </div>
+
+        <!-- Floating Clear Search Pins Button -->
+        <div *ngIf="searchMarkers.length > 0"
+             style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 320px; display: flex; box-shadow: 0 4px 14px rgba(0,0,0,0.18); border-radius: 10px; overflow: hidden; background-color: #ffffff; border: 1px solid #cbd5e1; pointer-events: auto;"
+             [style.top.px]="locatingActivityIdx !== null ? 130 : 80"
+             style="position: absolute; z-index: 1000; width: 320px; display: flex; pointer-events: auto;">
+             <button (click)="clearSearchMarkers()" style="width: 100%; height: 36px; background-color: #EF4444; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(239,68,68,0.25);">
+                 <i class="bi bi-x-circle-fill"></i> Xóa kết quả tìm kiếm ({{ searchMarkers.length }} Pin)
+             </button>
+
+        </div>
+
+                <!-- GOOGLE MAPS POI HOVER POPOVER (Exact Google Maps Desktop Style) -->
+        <div class="gm-hover-popover" 
+             *ngIf="hoveredPlace" 
+             [style.left.px]="hoverPopoverPos.x" 
+             [style.top.px]="hoverPopoverPos.y"
+             (mouseenter)="keepHoverPopover()"
+             (mouseleave)="hideHoverPopover(120)">
+            
+            <!-- Top Image Banner -->
+            <div class="gm-hover-thumb" *ngIf="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)">
+                <img [src]="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)" 
+                     [alt]="hoveredPlace.title" 
+                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+            </div>
+
+            <!-- Body Info -->
+            <div class="gm-hover-body">
+                <div class="gm-hover-title-row">
+                    <h4 class="gm-hover-title">{{ hoveredPlace.title }}</h4>
+                    <div class="gm-hover-quick-actions">
+                        <button type="button" class="gm-hover-circle-btn" (click)="focusAndRouteToPlace(hoveredPlace)" title="Chỉ đường">
+                            <i class="bi bi-signpost-2-fill"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="gm-hover-rating-row">
+                    <span class="gm-hover-score">{{ hoveredPlace.rating || 4.5 }}</span>
+                    <div class="gm-hover-stars">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </div>
+                    <span class="gm-hover-reviews">({{ (hoveredPlace.reviews || 1240) | number }})</span>
+                </div>
+
+                <div class="gm-hover-category">{{ hoveredPlace.category || getCategoryLabel(hoveredPlace.type) }}</div>
+
+                <div class="gm-hover-status-row">
+                    <span class="gm-status-tag" [class.closed]="hoveredPlace.isClosed">
+                        {{ hoveredPlace.hours || 'Đang mở cửa · Đóng cửa lúc 18:30' }}
+                    </span>
+                </div>
+
+                <!-- Add to Day button -->
+                <button type="button" class="gm-hover-add-btn" 
+                        *ngIf="!hoveredPlace.isActivity && !isItineraryLocked()" 
+                        (click)="addPlaceFromMap(hoveredPlace); hideHoverPopover(0)">
+                    <i class="bi bi-plus-lg"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
+                </button>
+            </div>
+        </div>
+
+        <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD (Floating directly on top-right of map) -->
+        <div class="gm-place-card" *ngIf="selectedPlaceDetails">
+            <!-- Hero Photo Banner with Category & Close Button -->
+            <div class="gm-card-hero">
+                <img [src]="selectedPlaceDetails.img || getPlacePlaceholderImage(selectedPlaceDetails.title)" 
+                     [alt]="selectedPlaceDetails.title" 
+                     class="gm-hero-img"
+                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                <span class="gm-category-badge">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                <button type="button" class="gm-close-btn" (click)="closePlaceDetails()" title="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body Details -->
+            <div class="gm-card-body">
+                <h3 class="gm-place-title">{{ selectedPlaceDetails.title }}</h3>
+                
+                <div class="gm-rating-row">
+                    <span class="gm-score">{{ selectedPlaceDetails.rating || 4.8 }}</span>
+                    <div class="gm-stars">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </div>
+                    <span class="gm-reviews">({{ selectedPlaceDetails.reviews || 680 }})</span>
+                    <span class="gm-dot">·</span>
+                    <span class="gm-type-text">{{ getCategoryLabel(selectedPlaceDetails.type || selectedPlaceDetails.category) }}</span>
+                </div>
+
+                <!-- Google Maps Action Buttons -->
+                <div class="gm-action-bar">
+                    <button type="button" class="gm-btn-primary" *ngIf="!selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="addPlaceFromMap(selectedPlaceDetails)">
+                        <i class="bi bi-plus-circle-fill"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
+                    </button>
+                    <button type="button" class="gm-btn-delete" *ngIf="selectedPlaceDetails.isActivity && !isItineraryLocked()" (click)="deletePlaceFromMap(selectedPlaceDetails.index)">
+                        <i class="bi bi-trash-fill"></i> Xóa khỏi ngày
+                    </button>
+                    <button type="button" class="gm-btn-secondary" (click)="focusAndRouteToPlace(selectedPlaceDetails)" title="Chỉ đường từ điểm trước">
+                        <i class="bi bi-signpost-2-fill"></i> Chỉ đường
+                    </button>
+                </div>
+
+                <!-- Detailed Google Maps info rows -->
+                <div class="gm-info-rows">
+                    <div class="gm-info-row">
+                        <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Địa chỉ</strong>
+                            <span>{{ selectedPlaceDetails.address || (activeItinerary.destination + ', Việt Nam') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="gm-info-row">
+                        <i class="bi bi-clock-fill text-blue-600"></i>
+                        <div class="gm-ir-text">
+                            <strong style="color: #059669;">Đang mở cửa</strong>
+                            <span>{{ selectedPlaceDetails.hours || 'Đóng cửa vào 18:30' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-cash-stack text-amber-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Chi phí tham khảo</strong>
+                            <span>{{ selectedPlaceDetails.cost === 0 ? 'Miễn phí' : (selectedPlaceDetails.cost | number:'1.0-0':'vi-VN') + '₫ / người' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row">
+                        <i class="bi bi-leaf-fill text-emerald-600"></i>
+                        <div class="gm-ir-text">
+                            <strong>Dấu chân Carbon (Eco)</strong>
+                            <span>{{ selectedPlaceDetails.carbon }} kg CO₂ · Điểm đến thân thiện môi trường</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-info-row" *ngIf="selectedPlaceDetails.description">
+                        <i class="bi bi-info-circle-fill text-slate-500"></i>
+                        <div class="gm-ir-text">
+                            <strong>Giới thiệu & Điểm nổi bật</strong>
+                            <p class="gm-desc-text">{{ selectedPlaceDetails.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="leafletMap" style="width:100%; height:100%;"></div>
+    </div>
     </aside>
 </div>
 
