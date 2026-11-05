@@ -1466,3 +1466,223 @@
   color: #475569 !important;
   margin: 0 !important;
 }
+
+/* Additional styles for Real Google Maps Place Panel */
+.gm-photo-count-badge {
+  position: absolute !important;
+  bottom: 12px !important;
+  right: 14px !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  backdrop-filter: blur(4px) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.gm-round-action-btn.btn-del {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+  border-color: #fecaca !important;
+}
+
+.gm-round-action-btn.btn-del:hover {
+  background: #fee2e2 !important;
+}
+
+.gm-route-summary-box {
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 10px 0 14px !important;
+}
+
+.gm-route-icon {
+  font-size: 18px !important;
+}
+
+.gm-route-info-text {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.gm-route-time {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #1d4ed8 !important;
+}
+
+.gm-route-dist {
+  font-size: 11.5px !important;
+  color: #475569 !important;
+}
+
+.gm-weekday-hours {
+  margin-top: 6px !important;
+  padding: 6px 10px !important;
+  background: #f8fafc !important;
+  border-radius: 6px !important;
+  border: 1px solid #f1f5f9 !important;
+  font-size: 11.5px !important;
+  color: #475569 !important;
+  line-height: 1.6 !important;
+}
+
+.gm-panel-bottom-cta {
+  margin-top: 24px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+.gm-full-cta-add {
+  width: 100% !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  border: none !important;
+  padding: 11px 16px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.gm-full-cta-add:hover {
+  background: #047857 !important;
+  transform: translateY(-1px) !important;
+}
+
+.gm-full-cta-delete {
+  width: 100% !important;
+  background: #ffffff !important;
+  color: #dc2626 !important;
+  border: 1px solid #fca5a5 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.gm-full-cta-delete:hover {
+  background: #fef2f2 !important;
+}
+
+.gm-tab-content-reviews {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.gm-real-review-item {
+  padding: 12px 0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.gm-rrev-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 6px !important;
+}
+
+.gm-rrev-avatar-img {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+.gm-rrev-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.gm-rrev-meta {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.gm-rrev-author {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.gm-rrev-stars {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.gm-rrev-time {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+}
+
+.gm-rrev-text {
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  color: #334155 !important;
+  margin: 0 !important;
+}
+
+.gm-empty-reviews {
+  padding: 30px 16px !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.gm-tab-content-about {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.gm-badges-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.gm-badge-pill {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}

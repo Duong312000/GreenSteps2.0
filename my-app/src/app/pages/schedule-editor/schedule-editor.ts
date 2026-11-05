@@ -1845,9 +1845,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         }
       });
 
-      // 2. Attach Google Places Autocomplete to the search bar
+      // 2. Attach Google Places Autocomplete to the timeline search bar
       setTimeout(() => {
-        const input = document.getElementById('mapSearchInput') as HTMLInputElement;
+        const input = (document.getElementById('timelineCustomPlaceInput') || document.getElementById('mapSearchInput')) as HTMLInputElement;
         if (input && google.maps.places && google.maps.places.Autocomplete) {
           const autocomplete = new google.maps.places.Autocomplete(input, {
             fields: ['name', 'geometry', 'formatted_address', 'place_id', 'types', 'rating', 'user_ratings_total', 'photos']
@@ -1855,12 +1855,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           autocomplete.bindTo('bounds', this.gmap);
           autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace();
-            if (place && place.geometry && place.geometry.location) {
-              const lat = place.geometry.location.lat();
-              const lng = place.geometry.location.lng();
-              this.gmap.panTo({ lat, lng });
+            if (place && place.place_id) {
+              this.fetchGooglePlaceDetails(place.place_id);
+            } else if (place && place.geometry && place.geometry.location) {
+              this.gmap.panTo(place.geometry.location);
               this.gmap.setZoom(16);
-              this.selectGooglePlaceDetails(place);
+              this.populateRealGooglePlacePanel(place);
             }
           });
         }
@@ -1878,20 +1878,152 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.placesService && this.gmap) {
       this.placesService = new google.maps.places.PlacesService(this.gmap);
     }
-    if (!this.placesService) return;
+    if (!this.placesService || !placeId) return;
 
     this.placesService.getDetails({
       placeId: placeId,
-      fields: ['name', 'rating', 'user_ratings_total', 'formatted_address', 'photos', 'opening_hours', 'types', 'geometry', 'price_level', 'website', 'formatted_phone_number']
+      fields: [
+        'name', 'place_id', 'rating', 'user_ratings_total', 'formatted_address',
+        'photos', 'opening_hours', 'types', 'geometry', 'price_level',
+        'website', 'formatted_phone_number', 'reviews', 'url'
+      ]
     }, (place: any, status: any) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-        this.selectGooglePlaceDetails(place, fallbackLatLng);
+        this.populateRealGooglePlacePanel(place, fallbackLatLng);
       } else {
+        console.warn('Google Places getDetails status:', status);
         if (fallbackLatLng) {
           this.handleMapClick(fallbackLatLng.lat(), fallbackLatLng.lng());
         }
       }
     });
+  }
+
+  public populateRealGooglePlacePanel(place: any, fallbackLatLng?: any) {
+    if (!place) return;
+    const lat = place.geometry?.location ? place.geometry.location.lat() : (fallbackLatLng ? fallbackLatLng.lat() : 0);
+    const lng = place.geometry?.location ? place.geometry.location.lng() : (fallbackLatLng ? fallbackLatLng.lng() : 0);
+
+    // 1. REAL GOOGLE PHOTOS
+    const photoUrls: string[] = [];
+    if (place.photos && place.photos.length > 0) {
+      try {
+        place.photos.forEach((ph: any) => {
+          if (photoUrls.length < 8) {
+            photoUrls.push(ph.getUrl({ maxWidth: 800, maxHeight: 600 }));
+          }
+        });
+      } catch (e) {}
+    }
+    const mainImg = photoUrls.length > 0 ? photoUrls[0] : this.getPlacePlaceholderImage(place.name);
+
+    // 2. REAL GOOGLE OPENING HOURS
+    let openStatus = 'Đang mở cửa';
+    let isClosed = false;
+    let weekdayText: string[] = [];
+    if (place.opening_hours) {
+      try {
+        if (typeof place.opening_hours.isOpen === 'function') {
+          isClosed = !place.opening_hours.isOpen();
+          openStatus = isClosed ? 'Đã đóng cửa' : 'Đang mở cửa';
+        }
+        weekdayText = place.opening_hours.weekday_text || [];
+      } catch (e) {}
+    }
+
+    // 3. REAL CATEGORY LABEL
+    const cat = this.getCategoryLabelFromGoogleTypes(place.types);
+
+    // 4. REAL GOOGLE USER REVIEWS
+    const realReviews: any[] = [];
+    if (place.reviews && place.reviews.length > 0) {
+      place.reviews.forEach((r: any) => {
+        realReviews.push({
+          author: r.author_name || 'Khách Google Maps',
+          photo: r.profile_photo_url || '',
+          rating: r.rating || 5,
+          time: r.relative_time_description || 'Gần đây',
+          text: r.text || 'Trải nghiệm du lịch tuyệt vời.'
+        });
+      });
+    }
+
+    // 5. Check if place already in active day
+    const activeDay = this.activeItinerary?.days[this.activeDayIdx];
+    const existingIdx = (activeDay?.activities || []).findIndex((a: any) =>
+      (a.title && a.title.toLowerCase() === place.name.toLowerCase()) ||
+      (a.lat && Math.abs(a.lat - lat) < 0.001 && Math.abs(a.lng - lng) < 0.001)
+    );
+
+    const cost = place.price_level ? place.price_level * 50000 : (cat.includes('Ăn') ? 55000 : (cat.includes('Lưu') ? 650000 : 120000));
+    const carbon = cat.includes('Ăn') ? 0.4 : (cat.includes('Lưu') ? 2.5 : 0.8);
+
+    this.activeGooglePlacePanel = {
+      title: place.name,
+      place_id: place.place_id,
+      type: this.getTypeFromGoogleTypes(place.types),
+      category: cat,
+      rating: place.rating || 4.7,
+      reviews: place.user_ratings_total || (realReviews.length > 0 ? realReviews.length * 150 : 340),
+      googleReviews: realReviews,
+      cost: cost,
+      carbon: carbon,
+      lat: lat,
+      lng: lng,
+      img: mainImg,
+      photos: photoUrls,
+      address: place.formatted_address || (place.name + ', ' + (this.activeItinerary?.dest || 'Hội An')),
+      phone: place.formatted_phone_number || '',
+      website: place.website || '',
+      googleMapsUrl: place.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`,
+      hours: openStatus,
+      isClosed: isClosed,
+      weekdayText: weekdayText,
+      description: `Địa điểm chính thức từ Google Maps: ${place.formatted_address || place.name}.`,
+      isActivity: existingIdx !== -1,
+      activityIdx: existingIdx,
+      itemRef: existingIdx !== -1 ? activeDay.activities[existingIdx] : null
+    };
+
+    // Pin & Pan on Google Maps
+    if (this.isGoogleMaps && this.gmap && lat && lng) {
+      this.gmap.panTo({ lat, lng });
+      this.gmap.setZoom(16);
+      this.clearSearchMarkers();
+      const pin = new google.maps.Marker({
+        position: { lat, lng },
+        map: this.gmap,
+        animation: google.maps.Animation.DROP,
+        title: place.name
+      });
+      pin.addListener('click', () => {
+        this.fetchGooglePlaceDetails(place.place_id);
+      });
+      this.searchMarkers.push(pin);
+    }
+
+    this.activePlaceTab = 'overview';
+    this.selectedPlaceDetails = null; // Do not show old card
+    this.cdr.detectChanges();
+  }
+
+  public getCategoryLabelFromGoogleTypes(types: string[]): string {
+    if (!types || !types.length) return 'Điểm tham quan sinh thái';
+    if (types.includes('restaurant') || types.includes('food') || types.includes('meal_takeaway')) return 'Quán ăn / Ẩm thực địa phương';
+    if (types.includes('cafe') || types.includes('bakery')) return 'Quán cà phê / Trà sinh thái';
+    if (types.includes('lodging') || types.includes('hotel')) return 'Khách sạn / Eco Homestay';
+    if (types.includes('tourist_attraction') || types.includes('point_of_interest')) return 'Điểm tham quan / Di sản';
+    if (types.includes('place_of_worship') || types.includes('church') || types.includes('hindu_temple')) return 'Di tích tâm linh / Nhà thờ';
+    if (types.includes('park') || types.includes('natural_feature')) return 'Công viên / Khu sinh thái';
+    return 'Điểm tham quan sinh thái';
+  }
+
+  public getTypeFromGoogleTypes(types: string[]): string {
+    if (!types || !types.length) return 'explore';
+    if (types.includes('restaurant') || types.includes('food') || types.includes('cafe')) return 'dining';
+    if (types.includes('lodging') || types.includes('hotel')) return 'lodging';
+    if (types.includes('transit_station') || types.includes('bus_station')) return 'transport';
+    return 'explore';
   }
 
   public selectGooglePlaceDetails(place: any, fallbackLatLng?: any) {
@@ -2606,31 +2738,49 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  public async searchSidebarPlaceOnMap() {
-    const query = this.customPlaceTitle.trim();
-    if (!query || !this.activeItinerary) return;
+  public searchSidebarPlaceOnMap() {
+    const query = (this.customPlaceTitle || '').trim();
+    if (!query) return;
 
-    // Sync search queries
-    this.mapSearchQuery = query;
     this.customSearchSuggestions = [];
 
-    this.isAutoSaving = true;
-    this.cdr.detectChanges();
-
-    try {
-      const results = await this.apiService.searchSerpPlaces(query, this.activeItinerary.destination);
-      this.isAutoSaving = false;
-      this.cdr.detectChanges();
-
-      if (results && results.length > 0) {
-        this.renderSearchPins(results);
-      } else {
-        this.showAlert('Không tìm thấy địa điểm này ở ' + this.activeItinerary.destination, 'warning');
-      }
-    } catch (e) {
-      this.isAutoSaving = false;
-      this.cdr.detectChanges();
-      console.error('Sidebar search error:', e);
+    if (this.isGoogleMaps && this.placesService) {
+      const dest = this.activeItinerary?.destination || this.activeItinerary?.dest || 'Hội An';
+      const fullQuery = query.toLowerCase().includes(dest.toLowerCase()) ? query : `${query}, ${dest}`;
+      
+      this.placesService.textSearch({
+        query: fullQuery,
+        bounds: this.gmap?.getBounds()
+      }, (results: any[], status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          this.clearSearchMarkers();
+          const bounds = new google.maps.LatLngBounds();
+          results.slice(0, 6).forEach((p: any) => {
+            if (p.geometry && p.geometry.location) {
+              bounds.extend(p.geometry.location);
+              const m = new google.maps.Marker({
+                position: p.geometry.location,
+                map: this.gmap,
+                title: p.name,
+                animation: google.maps.Animation.DROP
+              });
+              m.addListener('click', () => {
+                this.fetchGooglePlaceDetails(p.place_id);
+              });
+              this.searchMarkers.push(m);
+            }
+          });
+          if (results.length > 1) {
+            this.gmap.fitBounds(bounds);
+          } else {
+            this.gmap.panTo(results[0].geometry.location);
+            this.gmap.setZoom(16);
+          }
+          this.fetchGooglePlaceDetails(results[0].place_id);
+        } else {
+          this.showAlert(`Không tìm thấy địa điểm "${query}" trên Google Maps`, 'warning');
+        }
+      });
     }
   }
 
@@ -3732,40 +3882,105 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     this.activeGooglePlacePanel = {
       title: title,
+      place_id: item.place_id || null,
       type: item.type || 'explore',
       category: category,
       rating: item.rating || 4.8,
       reviews: item.reviews || item.user_ratings_total || 1420,
+      googleReviews: item.googleReviews || [],
       cost: item.cost !== undefined ? item.cost : (item.price_level ? item.price_level * 50000 : 150000),
       carbon: item.carbon || 0.8,
       img: imgUrl,
+      photos: item.photos || (imgUrl ? [imgUrl] : []),
       lat: coords?.lat,
       lng: coords?.lng,
       address: address,
       description: desc,
-      hours: item.hours || (item.opening_hours ? 'Đang mở cửa · Đóng cửa vào 22:00' : 'Đang mở cửa · Đóng cửa lúc 18:30'),
-      phone: item.phone || item.formatted_phone_number || '+84 338 044 646',
-      website: item.website || 'greensteps.vn',
-      isActivity: !!item.isActivity,
+      hours: item.hours || 'Đang mở cửa · Đóng cửa vào 22:00',
+      weekdayText: item.weekdayText || [],
+      phone: item.phone || item.formatted_phone_number || '',
+      website: item.website || '',
+      googleMapsUrl: item.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(title)}`,
+      isActivity: item.isActivity !== undefined ? item.isActivity : true,
       itemRef: item
     };
 
-    if (coords) {
-      if (this.isGoogleMaps && this.gmap) {
-        try {
-          this.gmap.panTo(coords);
-          this.gmap.setZoom(16);
-        } catch(e) {}
-      } else if (this.map) {
-        try {
-          this.map.flyTo([coords.lat, coords.lng], 16, { duration: 0.8 });
-        } catch(e) {}
-      }
+    if (coords && this.isGoogleMaps && this.gmap) {
+      try {
+        this.gmap.panTo(coords);
+        this.gmap.setZoom(16);
+      } catch(e) {}
     }
 
     this.activePlaceTab = 'overview';
-    this.selectedPlaceDetails = this.activeGooglePlacePanel;
+    this.selectedPlaceDetails = null;
     this.cdr.detectChanges();
+
+    // Query Google Places API to fetch REAL Google data (photos, real ratings, real reviews)
+    if (this.isGoogleMaps && this.placesService && title) {
+      const dest = this.activeItinerary?.destination || this.activeItinerary?.dest || 'Hội An';
+      const q = `${title}, ${dest}`;
+      this.placesService.findPlaceFromQuery({
+        query: q,
+        fields: ['place_id']
+      }, (results: any[], status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          this.placesService.getDetails({
+            placeId: results[0].place_id,
+            fields: [
+              'name', 'place_id', 'rating', 'user_ratings_total', 'formatted_address',
+              'photos', 'opening_hours', 'types', 'geometry', 'price_level',
+              'website', 'formatted_phone_number', 'reviews', 'url'
+            ]
+          }, (realPlace: any, dStatus: any) => {
+            if (dStatus === google.maps.places.PlacesServiceStatus.OK && realPlace) {
+              this.populateRealGooglePlacePanel(realPlace);
+              if (this.activeGooglePlacePanel) {
+                this.activeGooglePlacePanel.isActivity = true;
+                this.activeGooglePlacePanel.itemRef = item;
+                this.cdr.detectChanges();
+              }
+            }
+          });
+        }
+      });
+    }
+  }
+
+  
+  public sharePlace(place: any) {
+    if (!place) return;
+    const shareUrl = place.googleMapsUrl || window.location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`${place.title} - ${place.address || ''} (${shareUrl})`);
+      this.showAlert(`Đã sao chép liên kết địa điểm "${place.title}" vào clipboard!`, 'success');
+    } else {
+      this.showAlert(`Địa điểm: ${place.title}`, 'info');
+    }
+  }
+
+  public deleteActivityFromPanel() {
+    if (!this.activeGooglePlacePanel) return;
+    const activeDay = this.activeItinerary?.days[this.activeDayIdx];
+    if (!activeDay || !activeDay.activities) return;
+
+    const target = this.activeGooglePlacePanel.itemRef;
+    let idx = -1;
+    if (target) {
+      idx = activeDay.activities.indexOf(target);
+    }
+    if (idx === -1) {
+      idx = activeDay.activities.findIndex((a: any) => a.title === this.activeGooglePlacePanel.title);
+    }
+    if (idx !== -1) {
+      const removed = activeDay.activities.splice(idx, 1);
+      this.recalculateMetrics();
+      this.plotMapMarkers();
+      this.saveItineraryToDb();
+      this.closeGooglePlacePanel();
+      this.showAlert(`Đã xóa "${removed[0]?.title || 'hoạt động'}" khỏi lịch trình`, 'info');
+      this.cdr.detectChanges();
+    }
   }
 
   public closeGooglePlacePanel() {
