@@ -50,6 +50,15 @@ export class TourDetailComponent implements OnInit {
   public bookingGuests: number = 2;
   public bookingAdults: number = 2;
   public bookingChildren: number = 0;
+  public copiedVoucher: string | null = null;
+  public copyVoucher(code: string, event: Event) {
+    event.stopPropagation();
+    navigator.clipboard?.writeText(code);
+    this.copiedVoucher = code;
+    setTimeout(() => {
+      if (this.copiedVoucher === code) this.copiedVoucher = null;
+    }, 2500);
+  }
 
   // Dynamic reviews rating statistics
   public getRatingCount(stars: number): number {

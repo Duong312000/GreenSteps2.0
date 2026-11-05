@@ -97,18 +97,48 @@
         <!-- Tour Title -->
         <h1 class="gs-title">{{ activeTour.title }}</h1>
 
-        <!-- Rating & Reviews link -->
-        <div class="gs-rating-row" (click)="scrollToReviews()" role="button" tabindex="0">
-          <div class="gs-stars">
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
+        <!-- Rating & Reviews link with Shopee-style Breakdown Popover on Hover -->
+        <div class="gs-rating-container">
+          <div class="gs-rating-row" (click)="scrollToReviews()" role="button" tabindex="0">
+            <div class="gs-stars">
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+            </div>
+            <span class="gs-rating-score">{{ activeTour.rating || 5.0 }}<span class="gs-rating-denom">/5</span></span>
+            <span class="gs-rating-dot">·</span>
+            <span class="gs-rating-count">{{ totalReviewsCount }} đánh giá</span>
+            <i class="bi bi-chevron-down gs-rating-chevron"></i>
           </div>
-          <span class="gs-rating-score">{{ activeTour.rating || 5.0 }}<span class="gs-rating-denom">/5</span></span>
-          <span class="gs-rating-dot">·</span>
-          <span class="gs-rating-count">{{ totalReviewsCount }} đánh giá</span>
+
+          <!-- Shopee-style Rating Breakdown Popover on Hover -->
+          <div class="gs-shopee-popover gs-rating-popover">
+            <div class="gs-popover-arrow"></div>
+            <div class="gs-rating-pop-head">
+              <span class="gs-rating-big">{{ activeTour.rating || 5.0 }}</span>
+              <div>
+                <div class="gs-stars-sm">
+                  <i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-fill"></i>
+                </div>
+                <div class="gs-rating-pop-sub">{{ ratingText }} · {{ totalReviewsCount }} lượt đánh giá</div>
+              </div>
+            </div>
+            <div class="gs-rating-bars-list">
+              <div class="gs-rating-bar-row" *ngFor="let star of [5, 4, 3, 2, 1]">
+                <span class="gs-bar-label">{{ star }} sao</span>
+                <div class="gs-bar-track">
+                  <div class="gs-bar-fill" [style.width.%]="getRatingPercentage(star)"></div>
+                </div>
+                <span class="gs-bar-percent">{{ getRatingPercentage(star) }}%</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Price Display -->
@@ -129,25 +159,146 @@
           {{ activeTour.description || (activeTour.isService ? 'Dịch vụ xanh được tuyển chọn kỹ lưỡng, hỗ trợ bạn khám phá bản địa trọn vẹn và bền vững.' : 'Hành trình trải nghiệm thiên nhiên được thiết kế nhẹ nhàng, thân thiện cho mọi gia đình và giảm tối đa phát thải carbon.') }}
         </p>
 
+        <!-- SHOPEE-STYLE VOUCHERS ROW -->
+        <div class="gs-shopee-row gs-voucher-row">
+          <span class="gs-shopee-label">Mã Giảm Giá</span>
+          <div class="gs-voucher-list">
+            <div class="gs-voucher-wrap">
+              <button type="button" class="gs-voucher-pill" (click)="copyVoucher('ECOSTEP7', $event)">
+                <i class="bi bi-tag-fill"></i> Giảm 7% Mùa Hè
+              </button>
+              <div class="gs-shopee-popover gs-voucher-popover">
+                <div class="gs-popover-arrow"></div>
+                <div class="gs-voucher-pop-content">
+                  <div class="gs-voucher-pop-head">
+                    <span class="gs-voucher-badge">ECOSTEP7</span>
+                    <strong>Giảm 7% toàn bộ chi phí tour</strong>
+                  </div>
+                  <p class="gs-voucher-pop-desc">Ưu đãi trải nghiệm mùa hè xanh khi đặt tour qua GreenSteps. Giảm tối đa 150.000₫.</p>
+                  <div class="gs-voucher-pop-footer">
+                    <span class="gs-voucher-expiry">HSD: 31/12/2026</span>
+                    <button type="button" class="gs-voucher-copy-btn" (click)="copyVoucher('ECOSTEP7', $event)">
+                      {{ copiedVoucher === 'ECOSTEP7' ? 'Đã sao chép!' : 'Sao chép mã' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="gs-voucher-wrap">
+              <button type="button" class="gs-voucher-pill" (click)="copyVoucher('GREENTRIP', $event)">
+                <i class="bi bi-lightning-charge-fill"></i> Giảm 50k XANH
+              </button>
+              <div class="gs-shopee-popover gs-voucher-popover">
+                <div class="gs-popover-arrow"></div>
+                <div class="gs-voucher-pop-content">
+                  <div class="gs-voucher-pop-head">
+                    <span class="gs-voucher-badge">GREENTRIP</span>
+                    <strong>Tặng ngay 50.000₫ tiền mặt</strong>
+                  </div>
+                  <p class="gs-voucher-pop-desc">Áp dụng trực tiếp khi thanh toán cọc cho nhóm từ 2 khách trở lên, hỗ trợ chuyển đổi phương tiện xanh.</p>
+                  <div class="gs-voucher-pop-footer">
+                    <span class="gs-voucher-expiry">HSD: 31/12/2026</span>
+                    <button type="button" class="gs-voucher-copy-btn" (click)="copyVoucher('GREENTRIP', $event)">
+                      {{ copiedVoucher === 'GREENTRIP' ? 'Đã sao chép!' : 'Sao chép mã' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHOPEE-STYLE SHOPPING GUARANTEE ROW -->
+        <div class="gs-shopee-row gs-guarantee-row">
+          <span class="gs-shopee-label">Đảm Bảo Tour</span>
+          
+          <div class="gs-guarantee-wrap">
+            <div class="gs-guarantee-trigger" role="button" tabindex="0">
+              <i class="bi bi-shield-fill-check gs-guarantee-shield"></i>
+              <span class="gs-guarantee-summary">
+                GreenSteps Đảm Bảo <span class="gs-guarantee-bullet">•</span> Giữ chỗ miễn phí 7 ngày <span class="gs-guarantee-bullet">•</span> Đổi ngày linh hoạt
+              </span>
+              <i class="bi bi-chevron-down gs-guarantee-chevron"></i>
+            </div>
+
+            <!-- SHOPEE-STYLE FLOATING POPOVER (Exact like user screenshot) -->
+            <div class="gs-shopee-popover gs-guarantee-popover">
+              <div class="gs-popover-arrow"></div>
+              
+              <div class="gs-guarantee-pop-header">
+                <h4>GreenSteps Guarantee · Đảm bảo trải nghiệm</h4>
+                <p>Cam kết chất lượng dịch vụ và bảo vệ tối đa quyền lợi của bạn trong suốt hành trình.</p>
+              </div>
+
+              <div class="gs-guarantee-pop-list">
+                <div class="gs-guarantee-pop-item">
+                  <div class="gs-pop-item-icon gs-icon-red">
+                    <i class="bi bi-calendar2-check-fill"></i>
+                  </div>
+                  <div class="gs-pop-item-body">
+                    <h5>Giữ chỗ miễn phí 7 ngày</h5>
+                    <p>Đặt trước giữ ngày khởi hành yêu thích không cần thanh toán ngay, cho bạn đủ thời gian chốt lịch với gia đình.</p>
+                  </div>
+                </div>
+
+                <div class="gs-guarantee-pop-item">
+                  <div class="gs-pop-item-icon gs-icon-orange">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </div>
+                  <div class="gs-pop-item-body">
+                    <h5>Đổi ngày linh hoạt không tính phí</h5>
+                    <p>Hỗ trợ đổi ngày không giới hạn số lần trước 48 giờ so với thời điểm khởi hành ban đầu.</p>
+                  </div>
+                </div>
+
+                <div class="gs-guarantee-pop-item">
+                  <div class="gs-pop-item-icon gs-icon-green">
+                    <i class="bi bi-tree-fill"></i>
+                  </div>
+                  <div class="gs-pop-item-body">
+                    <h5>100% Trải nghiệm sinh thái chính hiệu</h5>
+                    <p>Ưu tiên xe điện / xe đạp, hướng dẫn viên am hiểu tự nhiên và chỉ số bù trừ carbon được công khai rõ ràng.</p>
+                  </div>
+                </div>
+
+                <div class="gs-guarantee-pop-item">
+                  <div class="gs-pop-item-icon gs-icon-blue">
+                    <i class="bi bi-shield-lock-fill"></i>
+                  </div>
+                  <div class="gs-pop-item-body">
+                    <h5>Ký quỹ an toàn & Hoàn cọc 90%</h5>
+                    <p>Khoản tiền cọc được giữ an toàn trên hệ thống ký quỹ trung gian (Escrow), hoàn 90% nếu thông báo hủy trước 7 ngày.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="gs-divider"></div>
 
-        <!-- Meta specs chips (Duration, Location, Eco) -->
+        <!-- Meta specs chips (Duration, Location, Eco) with Shopee-like Interactive Tooltips -->
         <div class="gs-spec-chips">
-          <div class="gs-spec-chip" *ngIf="!activeTour.isService">
+          <div class="gs-spec-chip gs-tooltip-wrap" *ngIf="!activeTour.isService">
             <i class="bi bi-clock"></i>
             <span>{{ activeTour.days }} ngày {{ displayNights }} đêm</span>
+            <div class="gs-tooltip-box">Thời lượng trọn vẹn khám phá các địa điểm sinh thái trong ngày</div>
           </div>
-          <div class="gs-spec-chip" *ngIf="activeTour.isService">
+          <div class="gs-spec-chip gs-tooltip-wrap" *ngIf="activeTour.isService">
             <i class="bi bi-clock"></i>
             <span>Theo lịch dịch vụ</span>
+            <div class="gs-tooltip-box">Dịch vụ xanh đặt theo lịch yêu cầu của du khách</div>
           </div>
-          <div class="gs-spec-chip">
+          <div class="gs-spec-chip gs-tooltip-wrap">
             <i class="bi bi-geo-alt"></i>
             <span>{{ activeTour.destination }}, Việt Nam</span>
+            <div class="gs-tooltip-box">Điểm đón và kết thúc hành trình tại trung tâm {{ activeTour.destination }}</div>
           </div>
-          <div class="gs-spec-chip gs-spec-chip-eco">
+          <div class="gs-spec-chip gs-spec-chip-eco gs-tooltip-wrap">
             <i class="bi bi-shield-check"></i>
             <span>Bảo vệ môi trường</span>
+            <div class="gs-tooltip-box">Cam kết giảm phát thải carbon, sử dụng phương tiện và tiện ích xanh</div>
           </div>
         </div>
 
@@ -217,19 +368,22 @@
           </div>
         </form>
 
-        <!-- Trust Features Strip -->
+        <!-- Trust Features Strip with Interactive Tooltips -->
         <div class="gs-trust-strip">
-          <div class="gs-trust-item">
+          <div class="gs-trust-item gs-tooltip-wrap">
             <i class="bi bi-shield-check"></i>
             <span>Xác nhận tức thì</span>
+            <div class="gs-tooltip-box">Mã đặt chỗ và vé điện tử gửi về email ngay lập tức</div>
           </div>
-          <div class="gs-trust-item">
+          <div class="gs-trust-item gs-tooltip-wrap">
             <i class="bi bi-arrow-repeat"></i>
             <span>Đổi ngày linh hoạt</span>
+            <div class="gs-tooltip-box">Đổi lịch trình miễn phí trước 48 giờ khởi hành</div>
           </div>
-          <div class="gs-trust-item">
+          <div class="gs-trust-item gs-tooltip-wrap">
             <i class="bi bi-flower1"></i>
             <span>Trải nghiệm xanh</span>
+            <div class="gs-tooltip-box">100% đối tác sinh thái được kiểm định bởi GreenSteps</div>
           </div>
         </div>
 

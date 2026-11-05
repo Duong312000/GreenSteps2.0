@@ -1301,3 +1301,550 @@
   height: 100%;
   object-fit: cover;
 }
+
+
+/* ==========================================
+   SHOPEE-STYLE INTERACTIVE HOVER FEATURES
+   ========================================== */
+
+/* 1. Rating Popover */
+.gs-rating-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 18px;
+  width: fit-content;
+}
+
+.gs-rating-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 10px;
+  margin-left: -10px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.gs-rating-row:hover {
+  background: #f9fafb;
+}
+
+.gs-rating-row:hover .gs-rating-count {
+  color: #154c37;
+}
+
+.gs-rating-row:hover .gs-stars {
+  transform: scale(1.04);
+}
+
+.gs-rating-chevron {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 2px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.gs-rating-container:hover .gs-rating-chevron {
+  transform: rotate(180deg);
+  color: #154c37;
+}
+
+.gs-rating-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 320px;
+}
+
+.gs-rating-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.gs-rating-big {
+  font-size: 32px;
+  font-weight: 800;
+  color: #154c37;
+  line-height: 1;
+}
+
+.gs-stars-sm {
+  display: flex;
+  gap: 2px;
+  color: #f59e0b;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.gs-rating-pop-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.gs-rating-bars-list {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gs-rating-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.gs-bar-label {
+  width: 42px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.gs-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gs-bar-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.gs-bar-percent {
+  width: 36px;
+  text-align: right;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 2. Shopee Spec Rows: Vouchers & Guarantee */
+.gs-shopee-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.gs-shopee-label {
+  color: #6b7280;
+  font-weight: 500;
+  min-width: 105px;
+  padding-top: 5px;
+  letter-spacing: -0.01em;
+}
+
+/* Vouchers */
+.gs-voucher-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gs-voucher-wrap {
+  position: relative;
+}
+
+.gs-voucher-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px dashed #f87171;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.gs-voucher-pill i {
+  font-size: 12px;
+}
+
+.gs-voucher-pill:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.18);
+}
+
+.gs-voucher-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 330px;
+}
+
+.gs-voucher-pop-content {
+  padding: 16px;
+}
+
+.gs-voucher-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.gs-voucher-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+}
+
+.gs-voucher-pop-head strong {
+  font-size: 13.5px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.gs-voucher-pop-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #4b5563;
+  margin: 0 0 12px;
+}
+
+.gs-voucher-pop-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.gs-voucher-expiry {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.gs-voucher-copy-btn {
+  padding: 5px 12px;
+  border: 1px solid #dc2626;
+  background: #ffffff;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gs-voucher-copy-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* 3. Shopee Shopping Guarantee Container & Trigger */
+.gs-guarantee-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.gs-guarantee-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+
+.gs-guarantee-trigger:hover,
+.gs-guarantee-wrap:hover .gs-guarantee-trigger {
+  background: #f0fdf4;
+  border-color: #86efac;
+  box-shadow: 0 2px 8px rgba(21, 76, 55, 0.08);
+}
+
+.gs-guarantee-shield {
+  color: #154c37;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.gs-guarantee-wrap:hover .gs-guarantee-shield {
+  transform: scale(1.15);
+  color: #16a34a;
+}
+
+.gs-guarantee-summary {
+  flex: 1;
+  font-size: 12.5px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gs-guarantee-bullet {
+  color: #d1d5db;
+  margin: 0 2px;
+}
+
+.gs-guarantee-chevron {
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: transform 0.22s ease, color 0.22s ease;
+}
+
+.gs-guarantee-wrap:hover .gs-guarantee-chevron {
+  transform: rotate(180deg);
+  color: #154c37;
+}
+
+/* 4. Shared Floating Popover Styles */
+.gs-shopee-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.06);
+  z-index: 150;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+  pointer-events: none;
+}
+
+/* Keep visible when hover on trigger OR popover */
+.gs-rating-container:hover .gs-shopee-popover,
+.gs-voucher-wrap:hover .gs-shopee-popover,
+.gs-guarantee-wrap:hover .gs-shopee-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Invisible bridge so mouse hover doesn't break */
+.gs-shopee-popover::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+
+.gs-popover-arrow {
+  position: absolute;
+  top: -6px;
+  left: 28px;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+  z-index: 2;
+}
+
+/* Guarantee Popover Specifics (Exact Shopee style) */
+.gs-guarantee-popover {
+  width: 440px;
+  max-width: 90vw;
+}
+
+.gs-guarantee-pop-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.gs-guarantee-pop-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.gs-guarantee-pop-header p {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.gs-guarantee-pop-list {
+  padding: 14px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.gs-guarantee-pop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.gs-pop-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.gs-icon-red { background: #fee2e2; color: #dc2626; }
+.gs-icon-orange { background: #ffedd5; color: #ea580c; }
+.gs-icon-green { background: #dcfce7; color: #16a34a; }
+.gs-icon-blue { background: #dbeafe; color: #2563eb; }
+
+.gs-pop-item-body h5 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 3px;
+}
+
+.gs-pop-item-body p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* 5. Tooltips on Chips & Trust Strip */
+.gs-tooltip-wrap {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gs-tooltip-wrap:hover {
+  transform: translateY(-2px);
+  border-color: #154c37;
+  box-shadow: 0 4px 12px rgba(21, 76, 55, 0.08);
+}
+
+.gs-tooltip-box {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 260px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+.gs-tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #111827 transparent transparent transparent;
+}
+
+.gs-tooltip-wrap:hover .gs-tooltip-box {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 6. Enhanced Input and Button Interactions */
+.gs-input-box {
+  transition: all 0.2s ease;
+}
+
+.gs-input-box:hover {
+  border-color: #154c37;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.gs-btn-primary {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gs-btn-primary:hover {
+  background: #0f3728;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(21, 76, 55, 0.35);
+}
+
+.gs-btn-primary:active {
+  transform: translateY(0);
+}
+
+.gs-btn-secondary {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gs-btn-secondary:hover {
+  border-color: #154c37;
+  color: #0f3728;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(21, 76, 55, 0.1);
+}
+
+.gs-btn-secondary:active {
+  transform: translateY(0);
+}
+
+.gs-trust-item {
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.gs-trust-item:hover {
+  background: #f0fdf4;
+  color: #154c37;
+}
+
+.gs-trust-item:hover i {
+  transform: scale(1.15) rotate(5deg);
+}
