@@ -132,33 +132,57 @@
         <!-- SHOPEE-INSPIRED ULTRA-MINIMAL SPEC MATRIX (Every row is an interactive expand/link) -->
         <div class="gs-shopee-matrix">
           
-          <!-- 1. VOUCHERS ROW -->
-          <div class="gs-matrix-row" *ngIf="tourVouchers && tourVouchers.length > 0">
+          <!-- 1. VOUCHERS ROW (Shopee Style: only 1 voucher pill displayed; hover expands full voucher list) -->
+          <div class="gs-matrix-row gs-voucher-row" *ngIf="tourVouchers && tourVouchers.length > 0">
             <span class="gs-mr-label">Mã Giảm Giá</span>
             <div class="gs-mr-content gs-vouchers-group">
-              <div class="gs-voucher-tag-wrap" *ngFor="let v of tourVouchers">
-                <button type="button" class="gs-voucher-tag" (click)="copyVoucher(v.code, $event)">
-                  <span class="gs-vt-code">{{ v.code }}</span>
-                  <span class="gs-vt-title">{{ v.title }}</span>
+              <div class="gs-voucher-single-trigger-wrap">
+                <!-- Single prominent voucher tag -->
+                <button type="button" class="gs-voucher-tag gs-voucher-pill-interactive" (click)="copyVoucher(tourVouchers[0].code, $event)">
+                  <span class="gs-vt-code">{{ tourVouchers[0].code }}</span>
+                  <span class="gs-vt-title">{{ tourVouchers[0].title }}</span>
+                  <span class="gs-vt-count-badge" *ngIf="tourVouchers.length > 1">+{{ tourVouchers.length - 1 }} mã</span>
+                  <i class="bi bi-chevron-down gs-vt-chevron"></i>
                 </button>
-                
-                <!-- Hover Popover with Expand Details & Link -->
-                <div class="gs-matrix-popover gs-pop-voucher">
+
+                <!-- Hover Popover showing ALL vouchers from MongoDB Atlas -->
+                <div class="gs-matrix-popover gs-pop-all-vouchers" (click)="$event.stopPropagation()">
                   <div class="gs-pop-arrow"></div>
-                  <div class="gs-pop-badge-head">
-                    <span class="gs-code-badge">{{ v.code }}</span>
-                    <strong>{{ v.title }}</strong>
+                  <div class="gs-pop-vouchers-header">
+                    <div class="gs-pvh-title">
+                      <i class="bi bi-ticket-perforated-fill text-green"></i>
+                      <h4>Mã Giảm Giá GreenSteps ({{ tourVouchers.length }})</h4>
+                    </div>
+                    <p class="gs-pvh-sub">Ưu đãi chuyến đi độc quyền, bấm lưu hoặc sao chép để áp dụng.</p>
                   </div>
-                  <p class="gs-pop-desc">{{ v.description }}</p>
-                  <div class="gs-pop-meta" *ngIf="v.min_order_value">
-                    <span>Đơn tối thiểu: {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
-                    <span *ngIf="v.max_discount"> · Giảm tối đa: {{ v.max_discount | number:'1.0-0':'vi-VN' }}₫</span>
+
+                  <div class="gs-pop-vouchers-list">
+                    <div class="gs-pop-voucher-card" *ngFor="let v of tourVouchers">
+                      <div class="gs-pvc-left">
+                        <div class="gs-pvc-badge">
+                          <span>{{ v.code }}</span>
+                        </div>
+                        <div class="gs-pvc-info">
+                          <div class="gs-pvc-title">{{ v.title }}</div>
+                          <div class="gs-pvc-desc" *ngIf="v.description">{{ v.description }}</div>
+                          <div class="gs-pvc-meta">
+                            <span *ngIf="v.min_order_value">Đơn từ {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
+                            <span *ngIf="v.expires_at"> · HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button"
+                              class="gs-pvc-copy-btn"
+                              [class.copied]="copiedVoucher === v.code"
+                              (click)="copyVoucher(v.code, $event)">
+                        <i class="bi" [class.bi-check2]="copiedVoucher === v.code" [class.bi-copy]="copiedVoucher !== v.code"></i>
+                        {{ copiedVoucher === v.code ? 'Đã lưu' : 'Lưu mã' }}
+                      </button>
+                    </div>
                   </div>
-                  <div class="gs-pop-foot">
-                    <span class="gs-pop-exp" *ngIf="v.expires_at">HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
-                    <button type="button" class="gs-pop-action-btn" (click)="copyVoucher(v.code, $event)">
-                      {{ copiedVoucher === v.code ? 'Đã sao chép!' : 'Sao chép mã' }}
-                    </button>
+
+                  <div class="gs-pop-vouchers-foot">
+                    <span>Áp dụng khi thanh toán đặt tour hoặc dịch vụ</span>
                   </div>
                 </div>
               </div>
