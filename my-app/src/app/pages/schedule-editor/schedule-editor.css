@@ -682,3 +682,10 @@
   background-color: #dcfce7;
   transform: translateY(-1px);
 }
+
+/* Responsive Map display - keep map visible on desktop and split screens */
+@media (min-width: 768px) {
+  .right-map-panel {
+    display: flex !important;
+  }
+}

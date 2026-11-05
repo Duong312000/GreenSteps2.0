@@ -433,7 +433,8 @@
                     </div>
                     <div class="activity-card" 
                          [class.positioning-active]="locatingActivityIdx === idx"
-                         [class.act-expanded]="expandedActivityIdx === idx">
+                         [class.act-expanded]="expandedActivityIdx === idx"
+                         (click)="toggleExpandActivity(idx, act, $event)">
                         <div class="activity-card-body">
                             <div class="activity-card-header" (click)="toggleExpandActivity(idx, act, $event)">
                                 <div class="activity-card-title-group">

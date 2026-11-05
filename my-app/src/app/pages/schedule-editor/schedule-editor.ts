@@ -3015,54 +3015,66 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public expandedActivityIdx: number | null = null;
 
   public toggleExpandActivity(idx: number, act: any, event?: Event) {
-    if (event) {
-      const target = event.target as HTMLElement;
-      if (target.closest('.activity-card-controls') || target.closest('input') || target.closest('button')) {
-        return;
+    try {
+      if (event) {
+        const target = event.target as HTMLElement;
+        if (target.closest('.activity-card-controls') || target.closest('input') || target.closest('button') || target.closest('.act-exp-btn')) {
+          return;
+        }
       }
+      if (this.expandedActivityIdx === idx) {
+        this.expandedActivityIdx = null;
+      } else {
+        this.expandedActivityIdx = idx;
+        this.focusActivityOnMap(act);
+      }
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.warn('Error toggling expand activity:', err);
     }
-    if (this.expandedActivityIdx === idx) {
-      this.expandedActivityIdx = null;
-    } else {
-      this.expandedActivityIdx = idx;
-      this.focusActivityOnMap(act);
-    }
-    this.cdr.detectChanges();
   }
 
   public focusActivityOnMap(act: any, event?: Event) {
-    if (event) event.stopPropagation();
-    if (!act) return;
-    const coords = (typeof act.lat === 'number' && typeof act.lng === 'number') 
-      ? { lat: act.lat, lng: act.lng } 
-      : this.lookupActivityCoordinates(act.title || act.name);
-    
-    if (coords) {
-      if (this.isGoogleMaps && this.gmap) {
-        this.gmap.panTo(coords);
-        this.gmap.setZoom(16);
-      } else if (this.map) {
-        this.map.flyTo([coords.lat, coords.lng], 16, { duration: 0.8 });
-      }
+    try {
+      if (event) event.stopPropagation();
+      if (!act) return;
+      const coords = (typeof act.lat === 'number' && typeof act.lng === 'number') 
+        ? { lat: act.lat, lng: act.lng } 
+        : this.lookupActivityCoordinates(act.title || act.name);
+      
+      if (coords) {
+        if (this.isGoogleMaps && this.gmap) {
+          try {
+            this.gmap.panTo(coords);
+            this.gmap.setZoom(16);
+          } catch(e) {}
+        } else if (this.map) {
+          try {
+            this.map.flyTo([coords.lat, coords.lng], 16, { duration: 0.8 });
+          } catch(e) {}
+        }
 
-      const imgUrl = this.getPlacePlaceholderImage(act.title || act.name);
-      this.selectedPlaceDetails = {
-        title: act.title || act.name,
-        type: act.type || 'explore',
-        category: this.getActivityTypeLabel(act.type),
-        rating: 4.8,
-        reviews: 1420,
-        cost: act.cost || 0,
-        carbon: act.carbon || 1.2,
-        img: imgUrl,
-        lat: coords.lat,
-        lng: coords.lng,
-        address: this.getPlaceAddress(act.title || act.name),
-        description: this.getActivityDetailedDesc(act),
-        isActivity: true,
-        index: this.expandedActivityIdx !== null ? this.expandedActivityIdx : 0
-      };
-      this.cdr.detectChanges();
+        const imgUrl = this.getPlacePlaceholderImage(act.title || act.name);
+        this.selectedPlaceDetails = {
+          title: act.title || act.name,
+          type: act.type || 'explore',
+          category: this.getActivityTypeLabel(act.type),
+          rating: 4.8,
+          reviews: 1420,
+          cost: act.cost || 0,
+          carbon: act.carbon || 1.2,
+          img: imgUrl,
+          lat: coords.lat,
+          lng: coords.lng,
+          address: this.getPlaceAddress(act.title || act.name),
+          description: this.getActivityDetailedDesc(act),
+          isActivity: true,
+          index: this.expandedActivityIdx !== null ? this.expandedActivityIdx : 0
+        };
+        this.cdr.detectChanges();
+      }
+    } catch(err) {
+      console.warn('focusActivityOnMap error:', err);
     }
   }
 
