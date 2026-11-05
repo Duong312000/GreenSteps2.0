@@ -262,7 +262,7 @@
                     <div class="activity-card-minimal" 
                          [class.positioning-active]="locatingActivityIdx === idx"
                          [class.act-expanded]="expandedActivityIdx === idx"
-                         (click)="toggleExpandActivity(idx, act, $event)">
+                         (click)="openGooglePlacePanel(act, $event)">
                         
                         <div class="act-min-body">
                             <!-- Left: Thumbnail Image with Category Badge -->
@@ -338,7 +338,7 @@
 
                                     <!-- SYNCED GOOGLE MAPS ACTION BUTTONS -->
                                     <div class="act-map-sync-btns" (click)="$event.stopPropagation()">
-                                        <button type="button" class="act-btn-map" (click)="focusActivityOnMap(act, $event)" title="Xem vị trí trên Google Maps">
+                                        <button type="button" class="act-btn-map" (click)="openGooglePlacePanel(act, $event)" title="Mở chi tiết Google Maps">
                                             <i class="bi bi-pin-map-fill"></i> Bản đồ
                                         </button>
                                         <button type="button" class="act-btn-route" (click)="openDirectionsForActivity(act, $event)" title="Chỉ đường từ điểm trước đến đây">
@@ -509,7 +509,179 @@
     <div class="layout-resizer" (mousedown)="startResizing($event, 'right')"></div>
 
     <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT SPACER -->
-    <aside class="right-map-panel">
+    <aside class="right-map-panel" [class.has-active-panel]="!!activeGooglePlacePanel">
+        <!-- =========================================================================
+             OFFICIAL GOOGLE MAPS PLACE DETAILS SIDE PANEL (Matches Google Maps 100%)
+             Only appears when activated; completely hidden when closed!
+             ========================================================================= -->
+        <div class="gm-full-place-panel" *ngIf="activeGooglePlacePanel">
+            <!-- Top Search / Back Bar -->
+            <div class="gm-panel-search-header">
+                <div class="gm-psh-inner">
+                    <button type="button" class="gm-psh-back-btn" (click)="closeGooglePlacePanel()" title="Quay lại">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <span class="gm-psh-title">{{ activeGooglePlacePanel.title }}</span>
+                    <button type="button" class="gm-psh-close-btn" (click)="closeGooglePlacePanel()" title="Đóng">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Panel Body -->
+            <div class="gm-panel-scroll">
+                <!-- Hero Photo Banner -->
+                <div class="gm-panel-hero">
+                    <img [src]="activeGooglePlacePanel.img" 
+                         [alt]="activeGooglePlacePanel.title" 
+                         class="gm-panel-hero-img"
+                         (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                    <span class="gm-panel-badge">{{ activeGooglePlacePanel.category }}</span>
+                </div>
+
+                <!-- Place Primary Info -->
+                <div class="gm-panel-content">
+                    <h2 class="gm-place-name">{{ activeGooglePlacePanel.title }}</h2>
+                    
+                    <div class="gm-place-rating-line">
+                        <span class="gm-rating-score">{{ activeGooglePlacePanel.rating }}</span>
+                        <div class="gm-rating-stars">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-half"></i>
+                        </div>
+                        <span class="gm-rating-count">({{ activeGooglePlacePanel.reviews | number }})</span>
+                        <span class="gm-dot">·</span>
+                        <span class="gm-cost-sub">{{ activeGooglePlacePanel.cost === 0 ? 'Miễn phí' : (activeGooglePlacePanel.cost | number:'1.0-0':'vi-VN') + ' ₫' }}</span>
+                    </div>
+
+                    <div class="gm-place-cat-line">
+                        <span>{{ activeGooglePlacePanel.category }}</span>
+                        <span class="gm-dot">·</span>
+                        <span class="text-emerald-600 font-semibold"><i class="bi bi-tree-fill"></i> Du lịch Xanh</span>
+                    </div>
+
+                    <!-- Tabs: Tổng quan | Bài đánh giá | Giới thiệu -->
+                    <div class="gm-panel-tabs">
+                        <button type="button" class="gm-tab-btn" [class.active]="activePlaceTab === 'overview'" (click)="activePlaceTab = 'overview'">Tổng quan</button>
+                        <button type="button" class="gm-tab-btn" [class.active]="activePlaceTab === 'reviews'" (click)="activePlaceTab = 'reviews'">Bài đánh giá</button>
+                        <button type="button" class="gm-tab-btn" [class.active]="activePlaceTab === 'about'" (click)="activePlaceTab = 'about'">Giới thiệu</button>
+                    </div>
+
+                    <!-- Google Maps Round Action Buttons (Exact Match to Google Maps) -->
+                    <div class="gm-circle-actions-row">
+                        <!-- 1. Đường đi -->
+                        <div class="gm-action-item">
+                            <button type="button" class="gm-round-action-btn btn-route" (click)="openDirectionsForActivity(activeGooglePlacePanel.itemRef || activeGooglePlacePanel)" title="Chỉ đường">
+                                <i class="bi bi-signpost-2-fill"></i>
+                            </button>
+                            <span class="gm-action-label">Đường đi</span>
+                        </div>
+
+                        <!-- 2. Thêm vào ngày -->
+                        <div class="gm-action-item" *ngIf="!activeGooglePlacePanel.isActivity && !isItineraryLocked()">
+                            <button type="button" class="gm-round-action-btn btn-add" (click)="addPlaceFromMap(activeGooglePlacePanel)" title="Thêm vào ngày">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <span class="gm-action-label">+ Lịch trình</span>
+                        </div>
+
+                        <!-- 3. Lưu -->
+                        <div class="gm-action-item">
+                            <button type="button" class="gm-round-action-btn" title="Lưu địa điểm">
+                                <i class="bi bi-bookmark-fill"></i>
+                            </button>
+                            <span class="gm-action-label">Lưu</span>
+                        </div>
+
+                        <!-- 4. Gắn cờ vị trí -->
+                        <div class="gm-action-item">
+                            <button type="button" class="gm-round-action-btn" title="Vị trí trên bản đồ" (click)="focusActivityOnMap(activeGooglePlacePanel.itemRef || activeGooglePlacePanel)">
+                                <i class="bi bi-geo-alt-fill"></i>
+                            </button>
+                            <span class="gm-action-label">Gắn cờ</span>
+                        </div>
+
+                        <!-- 5. Chia sẻ -->
+                        <div class="gm-action-item">
+                            <button type="button" class="gm-round-action-btn" title="Chia sẻ">
+                                <i class="bi bi-share-fill"></i>
+                            </button>
+                            <span class="gm-action-label">Chia sẻ</span>
+                        </div>
+                    </div>
+
+                    <div class="gm-panel-divider"></div>
+
+                    <!-- Feature Checkmarks like Google Maps -->
+                    <div class="gm-features-line">
+                        <span class="gm-feature-tag"><i class="bi bi-check2 text-emerald-600"></i> Trải nghiệm sinh thái</span>
+                        <span class="gm-feature-tag"><i class="bi bi-check2 text-emerald-600"></i> Điểm đến xanh</span>
+                        <span class="gm-feature-tag"><i class="bi bi-check2 text-emerald-600"></i> Không khí trong lành</span>
+                    </div>
+
+                    <!-- Detailed Info Rows (Exact Match to Google Maps) -->
+                    <div class="gm-details-list">
+                        <!-- Address -->
+                        <div class="gm-detail-row">
+                            <i class="bi bi-geo-alt-fill text-emerald-700 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span>{{ activeGooglePlacePanel.address }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Hours -->
+                        <div class="gm-detail-row">
+                            <i class="bi bi-clock-fill text-blue-600 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span class="text-emerald-700 font-semibold">{{ activeGooglePlacePanel.hours }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="gm-detail-row">
+                            <i class="bi bi-cash-stack text-amber-600 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span>{{ activeGooglePlacePanel.cost === 0 ? 'Miễn phí vé vào cổng' : (activeGooglePlacePanel.cost | number:'1.0-0':'vi-VN') + ' ₫ / người' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Eco Footprint -->
+                        <div class="gm-detail-row">
+                            <i class="bi bi-leaf-fill text-teal-600 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span class="text-teal-800 font-semibold">Giảm -{{ activeGooglePlacePanel.carbon }} kg CO₂ so với du lịch thông thường</span>
+                            </div>
+                        </div>
+
+                        <!-- Website -->
+                        <div class="gm-detail-row" *ngIf="activeGooglePlacePanel.website">
+                            <i class="bi bi-globe text-cyan-600 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span class="text-blue-600 underline">{{ activeGooglePlacePanel.website }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="gm-detail-row" *ngIf="activeGooglePlacePanel.phone">
+                            <i class="bi bi-telephone-fill text-emerald-600 gm-row-icon"></i>
+                            <div class="gm-row-text">
+                                <span>{{ activeGooglePlacePanel.phone }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Description / Wiki -->
+                        <div class="gm-detail-row-desc" *ngIf="activeGooglePlacePanel.description">
+                            <h4 class="gm-desc-heading">Giới thiệu điểm đến</h4>
+                            <p class="gm-desc-body">{{ activeGooglePlacePanel.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <!-- 3. RIGHT PANEL: OFFICIAL GOOGLE MAPS PLATFORM SDK -->
     <div class="leaflet-map-wrapper">
         <!-- Floating Map Search Bar -->

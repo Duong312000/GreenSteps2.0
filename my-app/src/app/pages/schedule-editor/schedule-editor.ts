@@ -140,6 +140,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   // Bottom Sheet Details properties
   public selectedPlaceDetails: any = null;
+  public activeGooglePlacePanel: any = null;
+  public activePlaceTab: 'overview' | 'reviews' | 'about' = 'overview';
   public activeCategoryFilter: string = 'all';
   public routeLegs: { [key: number]: { distanceKm: number; durationMin: number } } = {};
   private previewRouteLayer: any = null;
@@ -1162,6 +1164,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       description: sug.description || this.getPlaceWikiDescription(placeName),
       isActivity: false
     };
+    this.openGooglePlacePanel(this.selectedPlaceDetails);
 
     if (sug.lat && sug.lng && this.map) {
       this.map.flyTo([sug.lat, sug.lng], 15, { duration: 0.8 });
@@ -3055,23 +3058,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         }
 
         const imgUrl = this.getPlacePlaceholderImage(act.title || act.name);
-        this.selectedPlaceDetails = {
-          title: act.title || act.name,
-          type: act.type || 'explore',
-          category: this.getActivityTypeLabel(act.type),
-          rating: 4.8,
-          reviews: 1420,
-          cost: act.cost || 0,
-          carbon: act.carbon || 1.2,
-          img: imgUrl,
-          lat: coords.lat,
-          lng: coords.lng,
-          address: this.getPlaceAddress(act.title || act.name),
-          description: this.getActivityDetailedDesc(act),
-          isActivity: true,
-          index: this.expandedActivityIdx !== null ? this.expandedActivityIdx : 0
-        };
-        this.cdr.detectChanges();
+        this.openGooglePlacePanel(act);
       }
     } catch(err) {
       console.warn('focusActivityOnMap error:', err);
@@ -3089,6 +3076,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         lat: coords.lat,
         lng: coords.lng
       });
+      this.openGooglePlacePanel(act);
     }
   }
 
@@ -3717,6 +3705,73 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Phú Yên
     if (lower.includes('phú yên') || lower.includes('gành đá đĩa')) return 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg';
     return 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-02.jpg';
+  }
+
+  
+  public openGooglePlacePanel(item: any, event?: Event) {
+    if (event) event.stopPropagation();
+    if (!item) return;
+    const title = item.title || item.name || '';
+    const coords = (typeof item.lat === 'number' && typeof item.lng === 'number') 
+      ? { lat: item.lat, lng: item.lng } 
+      : this.lookupActivityCoordinates(title);
+    
+    let imgUrl = item.img || '';
+    if (!imgUrl && item.photos && item.photos.length > 0) {
+      try {
+        imgUrl = item.photos[0].getUrl({ maxWidth: 600, maxHeight: 400 });
+      } catch(e) {}
+    }
+    if (!imgUrl) {
+      imgUrl = this.getPlacePlaceholderImage(title);
+    }
+
+    const category = item.category || this.getActivityTypeLabel(item.type) || this.getCategoryLabel(item.type) || 'Điểm tham quan sinh thái';
+    const address = item.address || item.formatted_address || this.getPlaceAddress(title);
+    const desc = item.description || this.getActivityDetailedDesc(item);
+
+    this.activeGooglePlacePanel = {
+      title: title,
+      type: item.type || 'explore',
+      category: category,
+      rating: item.rating || 4.8,
+      reviews: item.reviews || item.user_ratings_total || 1420,
+      cost: item.cost !== undefined ? item.cost : (item.price_level ? item.price_level * 50000 : 150000),
+      carbon: item.carbon || 0.8,
+      img: imgUrl,
+      lat: coords?.lat,
+      lng: coords?.lng,
+      address: address,
+      description: desc,
+      hours: item.hours || (item.opening_hours ? 'Đang mở cửa · Đóng cửa vào 22:00' : 'Đang mở cửa · Đóng cửa lúc 18:30'),
+      phone: item.phone || item.formatted_phone_number || '+84 338 044 646',
+      website: item.website || 'greensteps.vn',
+      isActivity: !!item.isActivity,
+      itemRef: item
+    };
+
+    if (coords) {
+      if (this.isGoogleMaps && this.gmap) {
+        try {
+          this.gmap.panTo(coords);
+          this.gmap.setZoom(16);
+        } catch(e) {}
+      } else if (this.map) {
+        try {
+          this.map.flyTo([coords.lat, coords.lng], 16, { duration: 0.8 });
+        } catch(e) {}
+      }
+    }
+
+    this.activePlaceTab = 'overview';
+    this.selectedPlaceDetails = this.activeGooglePlacePanel;
+    this.cdr.detectChanges();
+  }
+
+  public closeGooglePlacePanel() {
+    this.activeGooglePlacePanel = null;
+    this.selectedPlaceDetails = null;
+    this.cdr.detectChanges();
   }
 
   public closePlaceDetails() {
