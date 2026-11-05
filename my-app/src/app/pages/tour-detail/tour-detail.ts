@@ -263,22 +263,28 @@ export class TourDetailComponent implements OnInit {
   }
 
 
+  public onThumbError(event: Event) {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
+    }
+  }
+
   private setupSlides() {
     if (!this.activeTour) return;
-    const coverImage = this.activeTour.image || this.activeTour.image_url || this.localTourImage('cover.jpg');
-    const galleryImages = (this.activeTour.gallery || []).filter(Boolean);
+    const coverImage = (this.activeTour.image || this.activeTour.image_url || 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg').replace(/^\//, '');
+    const rawGallery = (this.activeTour.gallery || []).map((img: string) => (img || '').replace(/^\//, '')).filter(Boolean);
 
     let rawImages: string[] = [];
-    if (galleryImages.length > 0) {
-      // Use dynamic gallery from MongoDB Atlas directly
-      rawImages = Array.from(new Set([coverImage, ...galleryImages]));
+    if (rawGallery.length > 0) {
+      rawImages = Array.from(new Set([coverImage, ...rawGallery]));
     } else {
       const dest = this.activeTour.destination || 'Đà Lạt';
       const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
       rawImages = Array.from(new Set([coverImage, ...destImgs]));
     }
 
-    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img)).slice(0, 7);
+    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img)).slice(0, 5);
     if (this.slideImages.length === 0) {
       this.slideImages = [coverImage];
     }
