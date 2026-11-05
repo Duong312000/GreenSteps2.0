@@ -124,103 +124,143 @@
           </span>
         </div>
 
-        <!-- DYNAMIC VOUCHERS (Loaded directly from MongoDB Atlas) -->
-        <div class="gs-luxury-vouchers-wrap" *ngIf="tourVouchers && tourVouchers.length > 0">
-          <span class="gs-voucher-prefix"><i class="bi bi-tag-fill"></i> Ưu đãi xanh:</span>
-          <div class="gs-voucher-pills-row">
-            <div class="gs-luxury-voucher-item" *ngFor="let v of tourVouchers">
-              <button type="button" class="gs-luxury-voucher-pill" (click)="copyVoucher(v.code, $event)">
-                <span class="gs-vp-code">{{ v.code }}</span>
-                <span class="gs-vp-title">{{ v.title }}</span>
-              </button>
-
-              <!-- Luxury Floating Details Card on Hover -->
-              <div class="gs-luxury-voucher-popover">
-                <div class="gs-lvp-arrow"></div>
-                <div class="gs-lvp-head">
-                  <span class="gs-lvp-badge">{{ v.code }}</span>
-                  <strong class="gs-lvp-title">{{ v.title }}</strong>
-                </div>
-                <p class="gs-lvp-desc">{{ v.description }}</p>
-                <div class="gs-lvp-meta" *ngIf="v.min_order_value">
-                  <span>Đơn tối thiểu: {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
-                  <span *ngIf="v.max_discount"> · Giảm tối đa: {{ v.max_discount | number:'1.0-0':'vi-VN' }}₫</span>
-                </div>
-                <div class="gs-lvp-footer">
-                  <span class="gs-lvp-expiry" *ngIf="v.expires_at">HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
-                  <button type="button" class="gs-lvp-copy" (click)="copyVoucher(v.code, $event)">
-                    {{ copiedVoucher === v.code ? 'Đã sao chép!' : 'Sao chép mã' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Short Description -->
         <p class="gs-lead-desc">
           {{ activeTour.description || (activeTour.isService ? 'Dịch vụ xanh được tuyển chọn kỹ lưỡng, hỗ trợ bạn khám phá bản địa trọn vẹn và bền vững.' : 'Hành trình trải nghiệm thiên nhiên được thiết kế nhẹ nhàng, thân thiện cho mọi gia đình và giảm tối đa phát thải carbon.') }}
         </p>
 
-        <div class="gs-divider"></div>
-
-        <!-- Meta specs chips (Duration, Location, Eco) -->
-        <div class="gs-spec-chips">
-          <div class="gs-spec-chip" *ngIf="!activeTour.isService">
-            <i class="bi bi-clock"></i>
-            <span>{{ activeTour.days }} ngày {{ displayNights }} đêm</span>
-          </div>
-          <div class="gs-spec-chip" *ngIf="activeTour.isService">
-            <i class="bi bi-clock"></i>
-            <span>Theo lịch dịch vụ</span>
-          </div>
-          <div class="gs-spec-chip">
-            <i class="bi bi-geo-alt"></i>
-            <span>{{ activeTour.destination }}, Việt Nam</span>
-          </div>
-          <div class="gs-spec-chip gs-spec-chip-eco">
-            <i class="bi bi-shield-check"></i>
-            <span>Bảo vệ môi trường</span>
-          </div>
-        </div>
-
-        <!-- GREENSTEPS ASSURANCE (Loaded directly from MongoDB Atlas) -->
-        <div class="gs-assurance-wrap" *ngIf="tourGuarantees && tourGuarantees.length > 0">
-          <div class="gs-assurance-bar" (click)="toggleAssurance()" role="button" tabindex="0">
-            <div class="gs-assurance-summary">
-              <i class="bi bi-shield-check gs-assurance-icon"></i>
-              <span class="gs-assurance-title">Cam kết GreenSteps</span>
-              <span class="gs-assurance-divider">·</span>
-              <span class="gs-assurance-items-preview">
-                <ng-container *ngFor="let g of tourGuarantees; let isLast = last">
-                  {{ g.title }}<span *ngIf="!isLast" class="gs-dot"> • </span>
-                </ng-container>
-              </span>
-            </div>
-            <i class="bi bi-chevron-down gs-assurance-chevron" [class.rotated]="activeAssuranceOpen"></i>
-          </div>
-
-          <!-- Luxury Popover Card (Opens on Hover or Click) -->
-          <div class="gs-assurance-popover" [class.open]="activeAssuranceOpen">
-            <div class="gs-assurance-pop-header">
-              <div class="gs-aph-icon"><i class="bi bi-shield-fill-check"></i></div>
-              <div>
-                <h4>Cam kết trải nghiệm GreenSteps</h4>
-                <p>Mọi quyền lợi và sự an tâm của bạn được bảo vệ minh bạch từ cơ sở dữ liệu hệ thống.</p>
-              </div>
-            </div>
-            <div class="gs-assurance-list">
-              <div class="gs-assurance-item" *ngFor="let g of tourGuarantees">
-                <div class="gs-ai-icon">
-                  <i [class]="'bi ' + (g.icon || 'bi-check-circle-fill')"></i>
-                </div>
-                <div class="gs-ai-body">
-                  <h5>{{ g.title }}</h5>
-                  <p>{{ g.desc }}</p>
+        <!-- SHOPEE-INSPIRED ULTRA-MINIMAL SPEC MATRIX (Every row is an interactive expand/link) -->
+        <div class="gs-shopee-matrix">
+          
+          <!-- 1. VOUCHERS ROW -->
+          <div class="gs-matrix-row" *ngIf="tourVouchers && tourVouchers.length > 0">
+            <span class="gs-mr-label">Mã Giảm Giá</span>
+            <div class="gs-mr-content gs-vouchers-group">
+              <div class="gs-voucher-tag-wrap" *ngFor="let v of tourVouchers">
+                <button type="button" class="gs-voucher-tag" (click)="copyVoucher(v.code, $event)">
+                  <span class="gs-vt-code">{{ v.code }}</span>
+                  <span class="gs-vt-title">{{ v.title }}</span>
+                </button>
+                
+                <!-- Hover Popover with Expand Details & Link -->
+                <div class="gs-matrix-popover gs-pop-voucher">
+                  <div class="gs-pop-arrow"></div>
+                  <div class="gs-pop-badge-head">
+                    <span class="gs-code-badge">{{ v.code }}</span>
+                    <strong>{{ v.title }}</strong>
+                  </div>
+                  <p class="gs-pop-desc">{{ v.description }}</p>
+                  <div class="gs-pop-meta" *ngIf="v.min_order_value">
+                    <span>Đơn tối thiểu: {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
+                    <span *ngIf="v.max_discount"> · Giảm tối đa: {{ v.max_discount | number:'1.0-0':'vi-VN' }}₫</span>
+                  </div>
+                  <div class="gs-pop-foot">
+                    <span class="gs-pop-exp" *ngIf="v.expires_at">HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
+                    <button type="button" class="gs-pop-action-btn" (click)="copyVoucher(v.code, $event)">
+                      {{ copiedVoucher === v.code ? 'Đã sao chép!' : 'Sao chép mã' }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- 2. DEPARTURE / VẬN CHUYỂN ROW (Interactive Link to Itinerary) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('itinerary')" role="button" tabindex="0">
+            <span class="gs-mr-label">Khởi hành</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-geo-alt-fill text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>{{ activeTour.destination }}, Việt Nam</strong>
+                  <span class="gs-mr-sub">· {{ activeTour.days }} ngày {{ displayNights }} đêm</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Xem lịch trình <i class="bi bi-chevron-right"></i></span>
+
+              <!-- Hover Popover Preview -->
+              <div class="gs-matrix-popover gs-pop-schedule" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <h4>Chi tiết điểm đón & Khởi hành</h4>
+                <ul class="gs-pop-quick-list">
+                  <li><i class="bi bi-pin-map"></i> <strong>Điểm đón:</strong> Trung tâm TP. {{ activeTour.destination }}</li>
+                  <li><i class="bi bi-clock-history"></i> <strong>Thời gian:</strong> 07:30 sáng ngày khởi hành</li>
+                  <li><i class="bi bi-ev-front"></i> <strong>Phương tiện:</strong> Xe điện sinh thái & xe đạp</li>
+                </ul>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Lịch trình linh hoạt theo nhu cầu</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('itinerary')">Xem toàn bộ lịch trình →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. ASSURANCE / SHOPPING GUARANTEE ROW (Interactive Link to Policy) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('policy')" role="button" tabindex="0" *ngIf="tourGuarantees && tourGuarantees.length > 0">
+            <span class="gs-mr-label">Bảo đảm</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-shield-fill-check text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>GreenSteps Đảm Bảo</strong>
+                  <span class="gs-mr-sub">· Giữ chỗ 7 ngày · Đổi ngày miễn phí · Ký quỹ Escrow</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Chính sách <i class="bi bi-chevron-down"></i></span>
+
+              <!-- Hover Popover with full 4 Guarantees from MongoDB -->
+              <div class="gs-matrix-popover gs-pop-assurance" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <div class="gs-pop-assurance-head">
+                  <div class="gs-pah-shield"><i class="bi bi-shield-check"></i></div>
+                  <div>
+                    <h4>GreenSteps Guarantee · Đảm bảo trải nghiệm</h4>
+                    <p>Mọi quyền lợi và sự an tâm của bạn được cam kết từ dữ liệu hệ thống.</p>
+                  </div>
+                </div>
+                <div class="gs-pop-assurance-grid">
+                  <div class="gs-pag-item" *ngFor="let g of tourGuarantees">
+                    <i [class]="'bi ' + (g.icon || 'bi-check-circle-fill')"></i>
+                    <div>
+                      <strong>{{ g.title }}</strong>
+                      <p>{{ g.desc }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Áp dụng cho mọi booking qua GreenSteps</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('policy')">Xem điều khoản chi tiết →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. ECO CARBON ROW (Interactive Link to Overview) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('overview')" role="button" tabindex="0">
+            <span class="gs-mr-label">Môi trường</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-leaf-fill text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>{{ formattedCarbon || '-3.7kg CO₂' }}</strong>
+                  <span class="gs-mr-sub">· Giảm phát thải carbon so với tour thông thường</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Chỉ số xanh <i class="bi bi-chevron-right"></i></span>
+
+              <!-- Hover Popover Carbon Preview -->
+              <div class="gs-matrix-popover gs-pop-carbon" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <h4>Đóng góp giảm thiểu carbon</h4>
+                <p class="gs-pop-desc">Hành trình ưu tiên xe điện, cơ sở lưu trú đạt chuẩn sinh thái và nguyên liệu nông sản hữu cơ bản địa.</p>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Chứng nhận du lịch Net-Zero</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('overview')">Xem phân tích phát thải →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div class="gs-divider"></div>
@@ -289,19 +329,19 @@
           </div>
         </form>
 
-        <!-- Trust Features Strip (Clean Minimalist) -->
+        <!-- Trust Features Strip with Interactive Jump Links -->
         <div class="gs-trust-strip">
-          <div class="gs-trust-item">
+          <div class="gs-trust-item" (click)="scrollToTab('policy')" role="button" tabindex="0" title="Xem chính sách giữ chỗ và bảo lãnh">
             <i class="bi bi-shield-check"></i>
-            <span>Xác nhận tức thì</span>
+            <span>Xác nhận tức thì <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
           </div>
-          <div class="gs-trust-item">
+          <div class="gs-trust-item" (click)="scrollToTab('policy')" role="button" tabindex="0" title="Xem điều khoản đổi ngày linh hoạt">
             <i class="bi bi-arrow-repeat"></i>
-            <span>Đổi ngày linh hoạt</span>
+            <span>Đổi ngày linh hoạt <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
           </div>
-          <div class="gs-trust-item">
+          <div class="gs-trust-item" (click)="scrollToTab('overview')" role="button" tabindex="0" title="Xem thông số trải nghiệm du lịch xanh">
             <i class="bi bi-flower1"></i>
-            <span>Trải nghiệm xanh</span>
+            <span>Trải nghiệm xanh <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
           </div>
         </div>
 

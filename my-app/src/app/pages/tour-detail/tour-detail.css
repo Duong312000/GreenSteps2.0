@@ -1308,82 +1308,163 @@
 }
 
 /* ==========================================
-   DYNAMIC LUXURY VOUCHERS (Loaded from MongoDB Atlas)
+   SHOPEE-STYLE ULTRA-MINIMAL SPEC MATRIX
+   (Clean rows, quiet labels, interactive hover popover & links on every row)
    ========================================== */
-.gs-luxury-vouchers-wrap {
+.gs-shopee-matrix {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  margin: 18px 0 16px;
+  background: #ffffff;
+  border-radius: 12px;
 }
 
-.gs-voucher-prefix {
+.gs-matrix-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.gs-matrix-row.gs-row-interactive {
+  cursor: pointer;
+}
+
+.gs-matrix-row.gs-row-interactive:hover {
+  background: #f8fafc;
+}
+
+.gs-mr-label {
   font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  width: 96px;
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+
+.gs-mr-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+}
+
+.gs-mr-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-mr-val-wrap i {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.gs-mr-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-mr-text strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.gs-mr-sub {
+  color: #64748b;
+  font-size: 12.5px;
+}
+
+.gs-mr-action {
+  font-size: 12px;
   font-weight: 600;
   color: #154c37;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
-.gs-voucher-pills-row {
+.gs-matrix-row.gs-row-interactive:hover .gs-mr-action {
+  color: #0f3728;
+}
+
+.gs-matrix-row.gs-row-interactive:hover .gs-mr-action i {
+  transform: translateX(2px);
+}
+
+/* Vouchers Group in Matrix */
+.gs-vouchers-group {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.gs-luxury-voucher-item {
+.gs-voucher-tag-wrap {
   position: relative;
 }
 
-.gs-luxury-voucher-pill {
+.gs-voucher-tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  border-radius: 999px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   font-family: inherit;
 }
 
-.gs-luxury-voucher-pill:hover {
+.gs-voucher-tag:hover {
   background: #dcfce7;
   border-color: #86efac;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(21, 76, 55, 0.12);
+  box-shadow: 0 2px 8px rgba(21, 76, 55, 0.1);
 }
 
-.gs-vp-code {
-  font-size: 11px;
+.gs-vt-code {
+  font-size: 10.5px;
   font-weight: 800;
   color: #154c37;
   letter-spacing: 0.04em;
   background: #dcfce7;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 
-.gs-vp-title {
+.gs-vt-title {
   font-size: 12px;
   font-weight: 600;
   color: #166534;
 }
 
-/* Luxury Floating Card on Hover */
-.gs-luxury-voucher-popover {
+/* Floating Popover on Matrix Rows */
+.gs-matrix-popover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   left: 0;
-  width: 310px;
+  width: 360px;
+  max-width: 90vw;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(0, 0, 0, 0.05);
   z-index: 150;
   padding: 16px;
   opacity: 0;
@@ -1391,285 +1472,255 @@
   transform: translateY(-6px);
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+  cursor: default;
 }
 
-.gs-luxury-voucher-item:hover .gs-luxury-voucher-popover {
+/* Open on hover of row or tag */
+.gs-matrix-row:hover .gs-matrix-popover,
+.gs-voucher-tag-wrap:hover .gs-matrix-popover {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: auto;
 }
 
-.gs-luxury-voucher-popover::before {
+/* Invisible hover bridge */
+.gs-matrix-popover::before {
   content: '';
   position: absolute;
-  top: -10px;
+  top: -12px;
   left: 0;
   right: 0;
-  height: 10px;
+  height: 12px;
 }
 
-.gs-lvp-arrow {
+.gs-pop-arrow {
   position: absolute;
   top: -6px;
-  left: 20px;
+  left: 24px;
   width: 12px;
   height: 12px;
   background: #ffffff;
-  border-left: 1px solid #e5e7eb;
-  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
   transform: rotate(45deg);
 }
 
-.gs-lvp-head {
+.gs-pop-badge-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-.gs-lvp-badge {
+.gs-code-badge {
   font-size: 11px;
   font-weight: 800;
   color: #ffffff;
   background: #154c37;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 4px;
 }
 
-.gs-lvp-title {
-  font-size: 13.5px;
-  color: #111827;
+.gs-matrix-popover h4 {
+  font-size: 14px;
   font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
 }
 
-.gs-lvp-desc {
+.gs-pop-desc {
   font-size: 12.5px;
   line-height: 1.5;
-  color: #4b5563;
+  color: #475569;
   margin: 0 0 10px;
 }
 
-.gs-lvp-meta {
+.gs-pop-meta {
   font-size: 11.5px;
-  color: #6b7280;
+  color: #64748b;
   margin-bottom: 10px;
-  padding: 6px 8px;
-  background: #f9fafb;
+  padding: 6px 10px;
+  background: #f8fafc;
   border-radius: 6px;
 }
 
-.gs-lvp-footer {
+.gs-pop-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 8px;
-  border-top: 1px solid #f3f4f6;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
 }
 
-.gs-lvp-expiry {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.gs-lvp-copy {
-  padding: 4px 12px;
-  border: 1px solid #154c37;
-  background: #ffffff;
-  color: #154c37;
+.gs-pop-exp {
   font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.gs-pop-action-btn {
+  padding: 5px 12px;
+  background: #154c37;
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 600;
+  border: 0;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.gs-lvp-copy:hover {
-  background: #154c37;
-  color: #ffffff;
+.gs-pop-action-btn:hover {
+  background: #0f3728;
 }
 
-/* ==========================================
-   DYNAMIC GREENSTEPS ASSURANCE (Loaded from MongoDB Atlas)
-   ========================================== */
-.gs-assurance-wrap {
-  position: relative;
-  margin: 16px 0 20px;
-}
-
-.gs-assurance-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+.gs-pop-link-btn {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #154c37;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.gs-assurance-bar:hover {
-  background: #f0fdf4;
-  border-color: #86efac;
-  box-shadow: 0 2px 8px rgba(21, 76, 55, 0.06);
+.gs-pop-link-btn:hover {
+  color: #0d2b1f;
 }
 
-.gs-assurance-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  overflow: hidden;
-}
-
-.gs-assurance-icon {
-  font-size: 16px;
-  color: #154c37;
-  flex-shrink: 0;
-}
-
-.gs-assurance-title {
-  font-weight: 700;
-  color: #0f172a;
-  flex-shrink: 0;
-}
-
-.gs-assurance-divider {
-  color: #cbd5e1;
-}
-
-.gs-assurance-items-preview {
+.gs-pop-note {
+  font-size: 11.5px;
   color: #64748b;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.gs-assurance-chevron {
+/* Schedule quick list */
+.gs-pop-quick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-size: 12px;
-  color: #94a3b8;
-  transition: transform 0.22s ease, color 0.22s ease;
-  flex-shrink: 0;
+  color: #334155;
 }
 
-.gs-assurance-bar:hover .gs-assurance-chevron,
-.gs-assurance-chevron.rotated {
-  transform: rotate(180deg);
+.gs-pop-quick-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.gs-pop-quick-list i {
   color: #154c37;
+  font-size: 14px;
+  margin-top: 2px;
 }
 
-/* Luxury Assurance Popover */
-.gs-assurance-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.14), 0 6px 18px rgba(0, 0, 0, 0.05);
-  z-index: 150;
-  padding: 18px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-8px);
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
+/* Assurance Popover Specific */
+.gs-pop-assurance {
+  width: 420px;
 }
 
-.gs-assurance-wrap:hover .gs-assurance-popover,
-.gs-assurance-popover.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.gs-assurance-popover::before {
-  content: '';
-  position: absolute;
-  top: -10px;
-  left: 0;
-  right: 0;
-  height: 10px;
-}
-
-.gs-assurance-pop-header {
+.gs-pop-assurance-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.gs-aph-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.gs-pah-shield {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: #dcfce7;
   color: #154c37;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
-.gs-assurance-pop-header h4 {
-  font-size: 14.5px;
+.gs-pop-assurance-head h4 {
+  font-size: 14px;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 3px;
+  margin: 0;
 }
 
-.gs-assurance-pop-header p {
-  font-size: 12px;
+.gs-pop-assurance-head p {
+  font-size: 11.5px;
   color: #64748b;
   margin: 0;
-  line-height: 1.4;
 }
 
-.gs-assurance-list {
+.gs-pop-assurance-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 320px;
+  gap: 10px;
+  margin-bottom: 12px;
+  max-height: 260px;
   overflow-y: auto;
 }
 
-.gs-assurance-item {
+.gs-pag-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
-.gs-ai-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: #f0fdf4;
+.gs-pag-item i {
   color: #16a34a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
+  margin-top: 1px;
   flex-shrink: 0;
 }
 
-.gs-ai-body h5 {
-  font-size: 13px;
+.gs-pag-item strong {
+  display: block;
+  font-size: 12.5px;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 2px;
+  margin-bottom: 1px;
 }
 
-.gs-ai-body p {
-  font-size: 12px;
-  line-height: 1.45;
+.gs-pag-item p {
+  font-size: 11.5px;
+  line-height: 1.4;
   color: #64748b;
   margin: 0;
+}
+
+/* Trust Strip Interactive Jump Links */
+.gs-trust-item {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.gs-trust-item:hover {
+  background: #f0fdf4;
+  color: #154c37;
+  transform: translateY(-1px);
+}
+
+.gs-trust-arrow {
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  margin-left: 2px;
+}
+
+.gs-trust-item:hover .gs-trust-arrow {
+  opacity: 1;
+  transform: translateX(2px);
 }

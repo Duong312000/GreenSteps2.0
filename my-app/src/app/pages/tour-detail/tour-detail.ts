@@ -348,6 +348,16 @@ export class TourDetailComponent implements OnInit {
     this.activeDayIndex = index;
   }
 
+  public scrollToTab(tab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews') {
+    this.activeInfoTab = tab;
+    setTimeout(() => {
+      const el = document.querySelector('.gs-tabs-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  }
+
   public setInfoTab(tab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews') {
     this.activeInfoTab = tab;
   }
