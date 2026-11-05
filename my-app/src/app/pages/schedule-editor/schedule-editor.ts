@@ -1686,14 +1686,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // =========================================================================
   // UNIVERSAL MAP INITIALIZER (Prefers Google Maps JS API with POI & Places)
   // =========================================================================
-  public initUniversalMap() {
+  public async initUniversalMap() {
     if (!this.activeItinerary) return;
 
     // Ensure activities have coordinates
     this.ensureItineraryCoordinates();
 
-    // Now that Google Cloud Billing is fully active, launch Google Maps JS API SDK
-    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+    // Wait up to 4s for Google Maps JS API (1.4MB) to be ready in window
+    const isGoogleReady = await this.waitForGoogleMapsReady(4000);
+
+    if (isGoogleReady) {
       console.log('🌟 Launching official Google Maps SDK with interactive POIs & Places!');
       this.initGoogleMap();
     } else {
@@ -1701,6 +1703,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.isGoogleMaps = false;
       this.initLeafletMap();
     }
+  }
+
+  private waitForGoogleMapsReady(timeoutMs: number = 4000): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+        return resolve(true);
+      }
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+          clearInterval(interval);
+          resolve(true);
+        } else if (Date.now() - startTime > timeoutMs) {
+          clearInterval(interval);
+          resolve(false);
+        }
+      }, 100);
+    });
   }
 
   public lookupActivityCoordinates(title: string): { lat: number; lng: number } | null {
@@ -1773,6 +1793,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         try { this.map.remove(); } catch(e) {}
         this.map = null;
       }
+      // Remove any lingering Leaflet classes or styles
+      mapDiv.innerHTML = '';
+      mapDiv.className = '';
 
       this.isGoogleMaps = true;
       (window as any)['gm_authFailure'] = () => {
