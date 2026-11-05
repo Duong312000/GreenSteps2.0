@@ -26,7 +26,62 @@
 
         </div>
 
-                <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD (Floating directly on top-right of map) -->
+                <!-- GOOGLE MAPS POI HOVER POPOVER (Exact Google Maps Desktop Style) -->
+        <div class="gm-hover-popover" 
+             *ngIf="hoveredPlace" 
+             [style.left.px]="hoverPopoverPos.x" 
+             [style.top.px]="hoverPopoverPos.y"
+             (mouseenter)="keepHoverPopover()"
+             (mouseleave)="hideHoverPopover(120)">
+            
+            <!-- Top Image Banner -->
+            <div class="gm-hover-thumb" *ngIf="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)">
+                <img [src]="hoveredPlace.img || getPlacePlaceholderImage(hoveredPlace.title)" 
+                     [alt]="hoveredPlace.title" 
+                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+            </div>
+
+            <!-- Body Info -->
+            <div class="gm-hover-body">
+                <div class="gm-hover-title-row">
+                    <h4 class="gm-hover-title">{{ hoveredPlace.title }}</h4>
+                    <div class="gm-hover-quick-actions">
+                        <button type="button" class="gm-hover-circle-btn" (click)="focusAndRouteToPlace(hoveredPlace)" title="Chỉ đường">
+                            <i class="bi bi-signpost-2-fill"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="gm-hover-rating-row">
+                    <span class="gm-hover-score">{{ hoveredPlace.rating || 4.5 }}</span>
+                    <div class="gm-hover-stars">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </div>
+                    <span class="gm-hover-reviews">({{ (hoveredPlace.reviews || 1240) | number }})</span>
+                </div>
+
+                <div class="gm-hover-category">{{ hoveredPlace.category || getCategoryLabel(hoveredPlace.type) }}</div>
+
+                <div class="gm-hover-status-row">
+                    <span class="gm-status-tag" [class.closed]="hoveredPlace.isClosed">
+                        {{ hoveredPlace.hours || 'Đang mở cửa · Đóng cửa lúc 18:30' }}
+                    </span>
+                </div>
+
+                <!-- Add to Day button -->
+                <button type="button" class="gm-hover-add-btn" 
+                        *ngIf="!hoveredPlace.isActivity && !isItineraryLocked()" 
+                        (click)="addPlaceFromMap(hoveredPlace); hideHoverPopover(0)">
+                    <i class="bi bi-plus-lg"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
+                </button>
+            </div>
+        </div>
+
+        <!-- GOOGLE MAPS-STYLE PLACE DETAILS CARD (Floating directly on top-right of map) -->
         <div class="gm-place-card" *ngIf="selectedPlaceDetails">
             <!-- Hero Photo Banner with Category & Close Button -->
             <div class="gm-card-hero">

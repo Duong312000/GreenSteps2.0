@@ -77,6 +77,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public aiMessages: { text: string; isOutgoing: boolean; rec?: any }[] = [];
   public aiInputText: string = '';
   public isAiThinking: boolean = false;
+  public hoveredPlace: any = null;
+  public hoverPopoverPos: { x: number; y: number } = { x: 0, y: 0 };
+  private hoverTimeout: any = null;
   public mapClickPlaceName: string = '';
   public locatingActivityIdx: number | null = null;
   public customSearchSuggestions: any[] = [];
@@ -1718,6 +1721,100 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     } catch (err) {
       console.warn("Leaflet library not ready or loaded:", err);
     }
+  }
+
+
+  public showHoverPopover(place: any, event: any) {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+    let x = 0;
+    let y = 0;
+    if (event && event.containerPoint) {
+      x = event.containerPoint.x;
+      y = event.containerPoint.y;
+    } else if (event && event.originalEvent) {
+      const mapEl = document.getElementById('leafletMap');
+      const rect = mapEl ? mapEl.getBoundingClientRect() : { left: 0, top: 0 };
+      x = event.originalEvent.clientX - rect.left;
+      y = event.originalEvent.clientY - rect.top;
+    }
+
+    this.hoverPopoverPos = {
+      x: Math.max(16, Math.min((window.innerWidth - 300), x - 135)),
+      y: Math.max(16, y - 270)
+    };
+    
+    const imgUrl = place.img || this.getPlacePlaceholderImage(place.title || place.name);
+    this.hoveredPlace = {
+      title: place.title || place.name,
+      type: place.type || 'explore',
+      category: place.category || this.getCategoryLabel(place.type || 'explore'),
+      rating: place.rating || 4.8,
+      reviews: place.reviews || 1420,
+      hours: place.hours || 'Đang mở cửa · Đóng cửa lúc 18:30',
+      cost: place.cost || 0,
+      carbon: place.carbon || 0.8,
+      img: imgUrl,
+      lat: place.lat,
+      lng: place.lng,
+      isActivity: !!place.isActivity,
+      index: place.index,
+      isClosed: !!place.isClosed
+    };
+    this.cdr.detectChanges();
+  }
+
+  public hideHoverPopover(delay: number = 200) {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+    }
+    this.hoverTimeout = setTimeout(() => {
+      this.hoveredPlace = null;
+      this.cdr.detectChanges();
+    }, delay);
+  }
+
+  public keepHoverPopover() {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+  }
+
+  public getFamousDestinationLandmarks(): any[] {
+    const dest = (this.activeItinerary?.destination || '').toLowerCase();
+    const all = [
+      // Hội An & Đà Nẵng
+      { name: "Rừng dừa Bảy Mẫu (Coconut Forest)", lat: 15.8778, lng: 108.3685, type: "explore", category: "Điểm tham quan sinh thái", cost: 150000, carbon: 0.8, address: "Cẩm Thanh, TP. Hội An, Quảng Nam", desc: "Khu du lịch sinh thái rừng dừa nước Bảy Mẫu nổi tiếng với trải nghiệm ngồi thuyền thúng dạo quanh sông nước, câu cua và xem múa thúng điêu luyện.", rating: 4.8, reviews: 3420, icon: "bi-camera-fill", color: "#8B5CF6", city: "hoi an" },
+      { name: "Làng rau Trà Quế (Tra Que Village)", lat: 15.9056, lng: 108.3364, type: "explore", category: "Làng nghề truyền thống", cost: 120000, carbon: 0.5, address: "Cẩm Hà, TP. Hội An, Quảng Nam", desc: "Làng nghề trồng rau truyền thống hơn 300 năm tuổi, nổi tiếng với các phương pháp canh tác hữu cơ bền vững.", rating: 4.7, reviews: 1250, icon: "bi-tree-fill", color: "#10B981", city: "hoi an" },
+      { name: "Chùa Cầu Hội An", lat: 15.8771, lng: 108.3262, type: "explore", category: "Di sản lịch sử", cost: 0, carbon: 0.2, address: "Đường Nguyễn Thị Minh Khai, P. Minh An, Hội An", desc: "Biểu tượng lịch sử văn hóa hơn 400 năm tuổi của đô thị cổ Hội An.", rating: 4.6, reviews: 8900, icon: "bi-bank2", color: "#EF4444", city: "hoi an" },
+      { name: "Phố cổ Hội An (Đèn lồng)", lat: 15.8775, lng: 108.3283, type: "explore", category: "Di sản UNESCO", cost: 0, carbon: 0.2, address: "Minh An, TP. Hội An, Quảng Nam", desc: "Di sản Văn hóa Thế giới UNESCO với những dãy nhà cổ vàng rực rỡ và lồng đèn lung linh về đêm.", rating: 4.9, reviews: 15200, icon: "bi-stars", color: "#F59E0B", city: "hoi an" },
+      { name: "Bánh Mì Phượng Hội An", lat: 15.8792, lng: 108.3315, type: "dining", category: "Ẩm thực địa phương", cost: 35000, carbon: 0.4, address: "2B Phan Chu Trinh, Cẩm Châu, Hội An", desc: "Tiệm bánh mì trứ danh từng được đầu bếp Anthony Bourdain ca ngợi là bánh mì ngon nhất thế giới.", rating: 4.4, reviews: 9400, icon: "bi-cup-hot-fill", color: "#F97316", city: "hoi an" },
+      { name: "Faifo Coffee Hội An", lat: 15.8774, lng: 108.3298, type: "dining", category: "Quán cà phê view đẹp", cost: 45000, carbon: 0.3, address: "130 Trần Phú, Minh An, Hội An", desc: "Quán cafe trên tầng thượng với góc nhìn toàn cảnh ngắm mái ngói rêu phong phố cổ Hội An.", rating: 4.5, reviews: 4200, icon: "bi-cup-fill", color: "#B45309", city: "hoi an" },
+      { name: "Cầu Rồng Đà Nẵng", lat: 16.0611, lng: 108.2274, type: "explore", category: "Kỳ quan kiến trúc", cost: 0, carbon: 0.2, address: "An Hải Tây, Sơn Trà, TP. Đà Nẵng", desc: "Cây cầu độc nhất vô nhị bắc qua sông Hàn có khả năng phun lửa và phun nước vào cuối tuần.", rating: 4.8, reviews: 13900, icon: "bi-fire", color: "#F97316", city: "da nang" },
+      { name: "Bà Nà Hills (Cầu Vàng)", lat: 15.9988, lng: 107.9965, type: "explore", category: "Khu du lịch sinh thái", cost: 900000, carbon: 2.0, address: "Hòa Phú, Hòa Vang, TP. Đà Nẵng", desc: "Kỳ quan Cầu Vàng nâng đỡ bởi bàn tay khổng lồ giữa mây trời và Làng Pháp cổ kính.", rating: 4.8, reviews: 24500, icon: "bi-cloud-sun", color: "#F59E0B", city: "da nang" },
+      
+      // TP. Hồ Chí Minh
+      { name: "Nhà Thờ Giáo Xứ Tân Định", lat: 10.7885, lng: 106.6908, type: "explore", category: "Nhà thờ Công giáo", cost: 0, carbon: 0.2, address: "289 Hai Bà Trưng, Phường 8, Quận 3, TP. Hồ Chí Minh", desc: "Nhà thờ màu hồng độc đáo mang phong cách kiến trúc Gothic và Roman cổ kính.", rating: 4.4, reviews: 9169, icon: "bi-building", color: "#EC4899", hours: "Đã đóng cửa · Mở cửa lúc 7:30", isClosed: true, city: "ho chi minh" },
+      { name: "Bánh Mì Huynh Hoa", lat: 10.7716, lng: 106.6924, type: "dining", category: "Cửa hàng sandwich / Bánh mì", cost: 65000, carbon: 0.4, address: "26 Lê Thị Riêng, P. Bến Thành, Quận 1, TP. Hồ Chí Minh", desc: "Tiệm bánh mì nổi tiếng bậc nhất Sài Gòn với nhân pate và thịt nguội đầy đặn.", rating: 4.5, reviews: 7838, icon: "bi-cup-hot-fill", color: "#F97316", city: "ho chi minh" },
+      { name: "Chợ Bến Thành", lat: 10.7725, lng: 106.6980, type: "explore", category: "Chợ truyền thống", cost: 0, carbon: 0.3, address: "Đường Lê Lợi, P. Bến Thành, Quận 1, TP. Hồ Chí Minh", desc: "Biểu tượng giao thương lâu đời và sầm uất bậc nhất Sài Gòn.", rating: 4.2, reviews: 31200, icon: "bi-bag-fill", color: "#10B981", city: "ho chi minh" },
+
+      // Đà Lạt
+      { name: "Hồ Xuân Hương Đà Lạt", lat: 11.9404, lng: 108.4452, type: "explore", category: "Thắng cảnh thiên nhiên", cost: 0, carbon: 0.2, address: "Phường 1, TP. Đà Lạt, Lâm Đồng", desc: "Trái tim thơ mộng của thành phố ngàn hoa với không gian đi bộ và đạp xe sinh thái.", rating: 4.8, reviews: 11200, icon: "bi-water", color: "#0EA5E9", city: "da lat" },
+      { name: "Quảng trường Lâm Viên", lat: 11.9360, lng: 108.4450, type: "explore", category: "Quảng trường công cộng", cost: 0, carbon: 0.2, address: "Trần Quốc Toản, Phường 10, TP. Đà Lạt", desc: "Biểu tượng nụ hoa Atiso và đóa hoa Dã Quỳ khổng lồ bằng kính màu đặc trưng Đà Lạt.", rating: 4.6, reviews: 8400, icon: "bi-flower1", color: "#10B981", city: "da lat" },
+      { name: "Chùa Linh Phước (Chùa Ve Chai)", lat: 11.9452, lng: 108.4988, type: "explore", category: "Công trình tâm linh", cost: 0, carbon: 0.2, address: "Trại Mát, TP. Đà Lạt, Lâm Đồng", desc: "Ngôi chùa độc đáo bậc nhất với kiến trúc khảm sành sứ tinh xảo và tượng rồng dài 49 mét.", rating: 4.7, reviews: 9800, icon: "bi-bank2", color: "#8B5CF6", city: "da lat" }
+    ];
+
+    if (dest.includes('hội an') || dest.includes('đà nẵng')) {
+      return all.filter(item => item.city === 'hoi an' || item.city === 'da nang');
+    } else if (dest.includes('đà lạt')) {
+      return all.filter(item => item.city === 'da lat');
+    } else if (dest.includes('hồ chí minh') || dest.includes('sài gòn')) {
+      return all.filter(item => item.city === 'ho chi minh');
+    }
+    return all.slice(0, 10);
   }
 
   private plotMapMarkers(shouldFit: boolean = false) {
