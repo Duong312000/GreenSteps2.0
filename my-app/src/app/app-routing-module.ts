@@ -41,6 +41,8 @@ const routes: Routes = [
   { path: 'community', component: CommunityComponent },
   { path: 'schedule', component: ScheduleEditorComponent },
   { path: 'schedule/:id', component: ScheduleEditorComponent },
+  { path: 'schedule-editor', component: ScheduleEditorComponent },
+  { path: 'schedule-editor/:id', component: ScheduleEditorComponent },
   { path: 'booking', component: BookingComponent },
   { path: 'booking/payment', component: BookingComponent },
   { path: 'booking/confirm', component: BookingComponent },

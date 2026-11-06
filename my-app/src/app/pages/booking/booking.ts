@@ -228,31 +228,55 @@ export class BookingComponent implements OnInit, OnDestroy {
   private async loadActiveTour() {
     const query = this.route.snapshot.queryParamMap;
     const isItinerary = query.get('bookingType') === 'itinerary' || 
-                        (this.bookingContext.tourId && this.bookingContext.tourId.startsWith('iti_'));
+                        (this.bookingContext.tourId && (this.bookingContext.tourId.startsWith('iti_') || this.bookingContext.tourId.startsWith('SCH')));
 
     if (isItinerary && this.bookingContext.tourId) {
       try {
-        const itinerary = await this.apiService.getItinerary(this.bookingContext.tourId);
-        if (itinerary) {
+        let itinerary = null;
+        try {
+          itinerary = await this.apiService.getItinerary(this.bookingContext.tourId);
+        } catch (e) {}
+
+        if (!itinerary) {
+          const raw = localStorage.getItem('greensteps_active_itinerary_checkout')
+                   || localStorage.getItem(`greensteps_guest_draft_${this.bookingContext.tourId}`);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            itinerary = {
+              id: parsed.id || this.bookingContext.tourId,
+              name: parsed.title || parsed.name || 'Lịch trình du lịch xanh',
+              destination: parsed.destLabel || parsed.destination || 'Việt Nam',
+              days: parsed.days ? parsed.days.length : 1,
+              totalCarbon: parsed.totalCarbon || 0,
+              daysData: (parsed.days || []).map((d: any) => d.activities || [])
+            };
+          }
+        }
+
+        if (!itinerary && this.bookingContext.tourId.startsWith('SCH')) {
+          this.activeTour = await this.apiService.getPresetTour(this.bookingContext.tourId);
+        } else if (itinerary) {
           let totalCost = 0;
+          let totalCarbon = 0;
           const daysData = itinerary.daysData || itinerary.days_data || [];
           daysData.forEach((day: any) => {
-            if (day) {
+            if (day && Array.isArray(day)) {
               day.forEach((act: any) => {
-                if (act && act.cost) totalCost += act.cost;
+                if (act && act.cost) totalCost += Number(act.cost) || 0;
+                if (act && act.carbon) totalCarbon += Number(act.carbon) || 0;
               });
             }
           });
 
           this.activeTour = {
             id: itinerary.id,
-            title: itinerary.name || 'Lịch trình tùy chỉnh của bạn',
-            destination: itinerary.destination || 'Đà Lạt',
+            title: itinerary.name || 'Lịch trình du lịch xanh',
+            destination: itinerary.destination || 'Việt Nam',
             days: itinerary.days || 1,
             cost: totalCost,
-            carbon: itinerary.totalCarbon || itinerary.total_carbon || 0,
+            carbon: totalCarbon || itinerary.totalCarbon || 0,
             data: daysData
-          } as any;
+          };
         }
       } catch (err) {
         console.error('Failed to load itinerary for booking:', err);

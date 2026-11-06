@@ -1696,4 +1696,26 @@ export class ApiService {
       return { success: false, message: e?.error?.message || 'Xác thực mã OTP thất bại.' };
     }
   }
+
+  
+  // ==========================================
+  // OFFICIAL GOOGLE MAPS PLATFORM API METHODS
+  // ==========================================
+  searchGooglePlaces(query: string): Promise<any[]> {
+    return firstValueFrom(
+      this.http.get<any>(this.BACKEND_URL + '/maps/places/search?query=' + encodeURIComponent(query))
+    ).then((res: any) => res && res.success ? res.places : []).catch(() => []);
+  }
+
+  getGooglePlaceDetails(placeId: string): Promise<any | null> {
+    return firstValueFrom(
+      this.http.get<any>(this.BACKEND_URL + '/maps/places/details/' + encodeURIComponent(placeId))
+    ).then((res: any) => res && res.success ? res.place : null).catch(() => null);
+  }
+
+  computeGoogleRoute(origin: { lat: number; lng: number }, destination: { lat: number; lng: number }, waypoints?: { lat: number; lng: number }[], travelMode?: string): Promise<any | null> {
+    return firstValueFrom(
+      this.http.post<any>(this.BACKEND_URL + '/maps/routes', { origin, destination, waypoints, travelMode: travelMode || 'DRIVE' })
+    ).then((res: any) => res && res.success ? res : null).catch(() => null);
+  }
 }

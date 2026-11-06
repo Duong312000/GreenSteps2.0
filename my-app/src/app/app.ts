@@ -13,6 +13,7 @@ import { AuthService } from './services/auth.service';
 export class App implements OnInit {
   title = 'GreenSteps Travel';
   isAdminRoute = false;
+  isScheduleRoute = false;
 
   constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
 
@@ -30,6 +31,8 @@ export class App implements OnInit {
   }
 
   private updateAdminShell(url: string) {
-    this.isAdminRoute = url.split('?')[0].split('#')[0] === '/admin';
+    const cleanUrl = (url || '').split('?')[0].split('#')[0];
+    this.isAdminRoute = cleanUrl === '/admin';
+    this.isScheduleRoute = cleanUrl.startsWith('/schedule');
   }
 }

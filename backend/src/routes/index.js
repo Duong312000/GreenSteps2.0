@@ -39,5 +39,6 @@ router.use('/change-requests', changeRequestRoutes);
 router.use('/operations', operationsRoutes);
 router.use('/admin', adminUsersRoutes);
 router.use('/support', require('./support.routes'));
+router.use('/maps', require('./maps.routes'));
 
 module.exports = router;

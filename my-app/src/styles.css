@@ -9063,22 +9063,22 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10B981 0%, #047857 100%); /* Default premium green gradient */
+    background: #4A6B5D !important; /* Low-saturation calm forest sage */
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
     margin-top: 6px;
-    border: 3px solid #FFFFFF;
-    box-shadow: 0 3px 8px rgba(4, 120, 87, 0.15);
+    border: 2.5px solid #FFFFFF;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     z-index: 2;
 }
 
-/* Bullet icon backgrounds overrides by type */
-.timeline-item[data-type="lodging"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #4299E1 0%, #2B6CB0 100%) !important; }
-.timeline-item[data-type="dining"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #ED8936 0%, #C05621 100%) !important; }
-.timeline-item[data-type="transport"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #718096 0%, #4A5568 100%) !important; }
+/* Bullet icon backgrounds overrides by type (Desaturated & harmonious) */
+.timeline-item[data-type="lodging"] .timeline-time-node .node-icon-bullet { background: #5B788A !important; }
+.timeline-item[data-type="dining"] .timeline-time-node .node-icon-bullet { background: #9C684E !important; }
+.timeline-item[data-type="transport"] .timeline-time-node .node-icon-bullet { background: #64748B !important; }
 
 .timeline-item .timeline-time-node::after {
     content: "";
@@ -9088,7 +9088,7 @@
     top: 38px;
     bottom: -30px;
     width: 0;
-    border-left: 2px dashed rgba(16, 185, 129, 0.25);
+    border-left: 1.5px dashed #CBD5E1 !important;
     z-index: 1;
 }
 
@@ -10539,17 +10539,17 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
     margin-left: -12px !important;
     border: none !important;
     border-radius: 0 9999px 9999px 0 !important;
-    background: linear-gradient(90deg, #f43f5e 0%, #a855f7 50%, #6366f1 100%) !important;
-    color: white !important;
-    font-weight: 800 !important;
-    padding: 14px 24px !important;
-    font-size: 14px !important;
+    background: #1E3E2F !important;
+    color: #F8FAF8 !important;
+    font-weight: 700 !important;
+    padding: 13px 24px !important;
+    font-size: 13.5px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.35) !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 4px 14px rgba(30, 62, 47, 0.22) !important;
     position: relative !important;
     z-index: 10 !important;
 }
@@ -10562,7 +10562,8 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
 
 .btn-ai-assistant:hover {
     transform: translateX(4px) !important;
-    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5) !important;
+    background: #234E3C !important;
+    box-shadow: 0 6px 18px rgba(30, 62, 47, 0.3) !important;
     filter: brightness(1.05) !important;
 }
 
@@ -10875,7 +10876,9 @@ app-partner-register {
     }
 
     .schedule-editor-container .checkout-actions {
-        gap: 5px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
         margin-top: 8px !important;
     }
 
@@ -10948,13 +10951,18 @@ app-partner-register {
     }
 
     .schedule-editor-container .timeline-item .timeline-time-node {
-        width: 70px !important;
+        width: 82px !important;
     }
 
     .schedule-editor-container .timeline-time-node input[type="time"] {
-        width: 66px !important;
+        width: 80px !important;
         min-height: 24px !important;
-        font-size: 9px !important;
+        font-size: 11px !important;
+    }
+
+    .schedule-editor-container .timeline-time-node input[type="time"]::-webkit-calendar-picker-indicator {
+        display: none !important;
+        -webkit-appearance: none !important;
     }
 
     .schedule-editor-container .timeline-item .timeline-time-node .node-icon-bullet {
