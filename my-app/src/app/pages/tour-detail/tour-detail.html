@@ -63,7 +63,7 @@
             'layout-5-images': slideImages.length === 5
         }">
             <div class="gallery-main" (click)="openPhotoGallery(activeSlideIndex)" role="button" tabindex="0" aria-label="Xem ảnh lớn">
-                <img [src]="slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+                <img (error)="imageFallback($event)" [src]="slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
             </div>
 
             <div class="gallery-side-grid" *ngIf="slideImages.length > 1">
@@ -74,7 +74,7 @@
                         [class.show-all-tile]="idx === 5 || (slideImages.length > 2 && idx === slideImages.length - 2)"
                         (click)="openPhotoGallery(idx + 1)"
                         [attr.aria-label]="'Xem ảnh ' + (idx + 2)">
-                    <img [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 2)">
+                    <img (error)="imageFallback($event)" [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 2)">
                     <span *ngIf="idx === 5 || (slideImages.length > 2 && idx === slideImages.length - 2)"><i class="bi bi-grid-3x3-gap"></i> Xem tất cả ảnh</span>
                 </button>
             </div>
@@ -82,7 +82,7 @@
 
         <aside class="booking-card" aria-label="Thông tin đặt tour">
             <div class="booking-card-top" *ngIf="activeTour.isService">
-                <span class="duration-pill">Dịch vụ trong ngày</span>
+                <span class="duration-pill">{{ isLodging ? 'Lưu trú xanh' : 'Dịch vụ trong ngày' }}</span>
                 <span class="eco-pill"><i class="bi bi-leaf"></i> {{ detailKindLabel }}</span>
             </div>
             <div class="booking-card-top" *ngIf="!activeTour.isService">
@@ -101,20 +101,25 @@
                 <a href="#" (click)="$event.preventDefault(); $event.stopPropagation(); scrollToReviews()">{{ totalReviewsCount }} đánh giá</a>
             </div>
 
-            <div class="price-block">
-                <span>Tổng tiền · {{ totalGuests }} khách</span>
+            <div class="price-block" *ngIf="bookingAvailable; else publicListingPrice">
+                <span>{{ isLodging ? (selectedRoom ? stayNights + ' đêm · ' + (roomQuantities[selectedRoom.id] || 1) + ' phòng' : 'Chọn phòng để xem tổng tiền') : 'Tổng tiền · ' + totalGuests + ' khách' }}</span>
                 <div>
                     <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
-                    <del>{{ displayOldCost * totalGuests | number:'1.0-0':'vi-VN' }}đ</del>
+                    <del *ngIf="!isLodging">{{ displayOldCost * totalGuests | number:'1.0-0':'vi-VN' }}đ</del>
                 </div>
             </div>
 
-            <form class="booking-form" (submit)="submitBooking($event)">
+            <ng-template #publicListingPrice>
+                <div class="public-listing-price"><span>{{ activeTour.priceStatus === 'reference' ? 'Giá công khai · tham khảo' : 'Giá theo ngày và nhu cầu' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'; else priceOnRequest">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><ng-template #priceOnRequest><strong>Liên hệ báo giá</strong></ng-template><p>Liên hệ cơ sở để xác nhận giá và tình trạng chỗ trước khi đặt.</p><p *ngIf="activeTour.contactPhone"><i class="bi bi-telephone"></i> {{ activeTour.contactPhone }}</p><a *ngIf="activeTour.sourceUrls?.length" [href]="activeTour.sourceUrls![0]" target="_blank" rel="noopener noreferrer" class="official-contact-button">Website chính thức <i class="bi bi-arrow-up-right"></i></a></div>
+            </ng-template>
+            <form *ngIf="bookingAvailable" class="booking-form" (submit)="submitBooking($event)">
                 <label class="form-field" for="bookingDate">
-                    <span>Ngày khởi hành</span>
-                    <input type="date" id="bookingDate" [(ngModel)]="bookingDate" [min]="minBookingDate" (change)="validateBookingDate()" name="bookingDate" required>
+                    <span>{{ isLodging ? 'Ngày nhận phòng' : 'Ngày khởi hành' }}</span>
+                    <input type="date" id="bookingDate" [(ngModel)]="bookingDate" [min]="minBookingDate" (change)="validateStayDates()" name="bookingDate" required>
                 </label>
 
+                <label class="form-field" for="checkOutDate" *ngIf="isLodging"><span>Ngày trả phòng</span><input id="checkOutDate" type="date" name="checkOutDate" [(ngModel)]="checkOutDate" [min]="minCheckOutDate" (change)="validateStayDates()"></label>
+                <p *ngIf="isLodging && selectedRoom" class="selected-room-label"><i class="bi bi-house-door"></i> {{ selectedRoom.name }}</p>
                 <div class="guest-grid">
                     <label class="form-field" for="bookingAdults">
                         <span>Người lớn</span>
@@ -137,7 +142,7 @@
                 </div>
 
                 <button *ngIf="activeTour.isService" type="submit" class="primary-booking-button">
-                    Đặt Dịch Vụ Ngay
+                    {{ detailBookingLabel }}
                     <i class="bi bi-arrow-right"></i>
                 </button>
 
@@ -155,17 +160,112 @@
     </section>
 
     <section class="content-shell">
-        <nav class="detail-tabs" [attr.aria-label]="activeTour.isService ? 'Service detail tabs' : 'Tour detail tabs'">
-            <button type="button" [class.active]="activeInfoTab === 'overview'" (click)="setInfoTab('overview')">Tổng quan</button>
-            <button type="button" [class.active]="activeInfoTab === 'included'" (click)="setInfoTab('included')">Bao gồm những gì</button>
-            <button type="button" [class.active]="activeInfoTab === 'itinerary'" (click)="setInfoTab('itinerary')">{{ activeTour.isService ? 'Thông tin dịch vụ' : 'Lịch trình' }}</button>
-            <button type="button" [class.active]="activeInfoTab === 'policy'" (click)="setInfoTab('policy')">Chính sách</button>
-            <button type="button" [class.active]="activeInfoTab === 'reviews'" (click)="setInfoTab('reviews')">Đánh giá</button>
+        <nav class="detail-tabs" role="tablist" aria-label="Thông tin chi tiết">
+            <button id="tab-overview" role="tab" [attr.aria-selected]="activeInfoTab === 'overview'" aria-controls="detail-overview" (click)="setInfoTab('overview')" [class.active]="activeInfoTab === 'overview'">Tổng Quan</button>
+            <button *ngIf="isLodging" id="tab-rooms" role="tab" [attr.aria-selected]="activeInfoTab === 'rooms'" aria-controls="detail-rooms" (click)="setInfoTab('rooms')" [class.active]="activeInfoTab === 'rooms'">Phòng</button>
+            <button id="tab-reviews" role="tab" [attr.aria-selected]="activeInfoTab === 'reviews'" aria-controls="detail-reviews" (click)="setInfoTab('reviews')" [class.active]="activeInfoTab === 'reviews'">Đánh Giá Của Khách</button>
+            <button id="tab-included" role="tab" [attr.aria-selected]="activeInfoTab === 'included'" aria-controls="detail-included" (click)="setInfoTab('included')" [class.active]="activeInfoTab === 'included'">Tiện nghi &amp; Dịch vụ</button>
+            <button id="tab-policy" role="tab" [attr.aria-selected]="activeInfoTab === 'policy'" aria-controls="detail-policy" (click)="setInfoTab('policy')" [class.active]="activeInfoTab === 'policy'">Chính Sách</button>
+            <button id="tab-location" role="tab" [attr.aria-selected]="activeInfoTab === 'location'" aria-controls="detail-location" (click)="setInfoTab('location')" [class.active]="activeInfoTab === 'location'">Vị trí</button>
         </nav>
+        <p *ngIf="bookingError" class="detail-notice error" role="alert">{{ bookingError }}</p>
+
+        <p class="demo-data-note" *ngIf="activeTour.isDemo"><i class="bi bi-info-circle"></i> Dữ liệu minh họa: giá, tiện nghi, đặc điểm xanh và vị trí của dịch vụ Demo dùng để trải nghiệm giao diện.</p>
+        <section class="catalog-sources" *ngIf="activeTour.sourceUrls?.length"><h2><i class="bi bi-link-45deg"></i> Nguồn thông tin</h2><p>Đối chiếu ngày {{ activeTour.sourceCheckedAt | date:'dd/MM/yyyy' }}. Thông tin giới thiệu từ nguồn công khai; giá và tình trạng chỗ cần được cơ sở xác nhận.</p><div><a *ngFor="let url of activeTour.sourceUrls; let index = index" [href]="url" target="_blank" rel="noopener noreferrer">{{ index === 0 ? 'Website chính thức' : 'Thông tin liên quan ' + index }} <i class="bi bi-arrow-up-right"></i></a></div></section>
+        <ng-template #amenityList let-items>
+            <ul class="clear-amenity-list">
+                <li *ngFor="let item of items" [class.unavailable]="!amenityAvailable(item)">
+                    <i class="bi" [ngClass]="infoIcon(amenityName(item))" aria-hidden="true"></i>
+                    <div><span class="amenity-item-name">{{ amenityName(item) }}</span>
+                        <span class="amenity-fee free" *ngIf="amenityAvailable(item) && amenityFee(item) === 'free'">Miễn phí</span>
+                        <span class="amenity-fee paid" *ngIf="amenityAvailable(item) && amenityFee(item) === 'paid'">Phụ phí</span>
+                        <span class="amenity-unavailable" *ngIf="!amenityAvailable(item)">Không có</span>
+                        <small *ngIf="amenityNote(item)">{{ amenityNote(item) }}</small>
+                    </div>
+                </li>
+            </ul>
+        </ng-template>
+        <ng-template #greenDetails>
+            <section class="green-practices-block">
+                <div class="info-section-heading"><div><span class="section-kicker">GreenSteps · Dấu chân xanh</span><h2>Đặc điểm &amp; trải nghiệm xanh</h2></div><i class="bi bi-leaf" aria-hidden="true"></i></div>
+                <p class="info-muted">Các thực hành được cơ sở công bố, giúp bạn cân nhắc lựa chọn phù hợp.</p>
+                <div class="green-practices-grid" *ngIf="greenFeatures.length; else noGreenFeatures">
+                    <article *ngFor="let feature of greenFeatures"><i class="bi" [ngClass]="infoIcon(feature.title)" aria-hidden="true"></i><div><h3>{{ feature.title }}</h3><p *ngIf="feature.description">{{ feature.description }}</p></div></article>
+                </div>
+                <ng-template #noGreenFeatures><p class="info-muted">Đối tác chưa cung cấp thông tin về các thực hành xanh tại dịch vụ này.</p></ng-template>
+                <div class="green-travel-tip"><i class="bi bi-lightbulb" aria-hidden="true"></i><p><strong>Gợi ý cho chuyến đi xanh:</strong> mang bình nước cá nhân, tắt điện khi ra ngoài và ưu tiên đi bộ hoặc xe đạp khi phù hợp.</p></div>
+            </section>
+        </ng-template>
 
         <div class="tab-content-stack">
-            <section class="overview-panel" *ngIf="activeInfoTab === 'overview'">
-                <div class="overview-grid">
+            <section id="detail-rooms" class="rooms-panel" role="tabpanel" aria-labelledby="tab-rooms" *ngIf="isLodging && activeInfoTab === 'rooms'">
+                <div class="rooms-heading">
+                    <div class="rooms-title"><i class="bi bi-house-door"></i><div><h2>Chọn phòng</h2><p>Một không gian phù hợp cho chuyến đi của bạn</p></div></div>
+                    <div class="stay-controls">
+                        <label>Nhận phòng<input type="date" [(ngModel)]="bookingDate" [min]="minBookingDate" (change)="validateStayDates()"></label>
+                        <span class="stay-arrow"><i class="bi bi-arrow-right"></i></span>
+                        <label>Trả phòng<input type="date" [(ngModel)]="checkOutDate" [min]="minCheckOutDate" (change)="validateStayDates()"></label>
+                        <span class="night-badge">{{ stayNights }} đêm</span>
+                    </div>
+                </div>
+                <div class="room-filter-row" *ngIf="roomAmenities.length">
+                    <span><i class="bi bi-sliders"></i> Tiện nghi</span>
+                    <button type="button" [class.active]="!roomAmenityFilter" (click)="roomAmenityFilter = ''">Tất cả</button>
+                    <button type="button" *ngFor="let amenity of roomAmenities" [class.active]="roomAmenityFilter === amenity" (click)="roomAmenityFilter = roomAmenityFilter === amenity ? '' : amenity">{{ amenity }}</button>
+                </div>
+                <div class="room-list" *ngIf="rooms.length; else noRooms">
+                    <article class="room-card" *ngFor="let room of filteredRooms" [class.selected]="selectedRoomId === room.id">
+                        <div class="room-image">
+                            <img (error)="imageFallback($event)" *ngIf="room.images?.length; else noRoomPhoto" [src]="room.images![0]" [alt]="room.name" loading="lazy">
+                            <ng-template #noRoomPhoto><div class="room-image-placeholder"><i class="bi bi-image"></i><span>Ảnh đang cập nhật</span></div></ng-template>
+                        </div>
+                        <div class="room-info">
+                            <span class="section-kicker">Không gian của bạn</span><h3>{{ room.name }}</h3>
+                            <div class="room-facts">
+                                <span *ngIf="room.area"><i class="bi bi-aspect-ratio"></i> {{ room.area }} m²</span>
+                                <span *ngIf="room.capacity"><i class="bi bi-people"></i> Tối đa {{ room.capacity }} khách</span>
+                                <span *ngIf="room.beds"><i class="bi bi-house-door"></i> {{ room.beds }}</span>
+                            </div>
+                            <ul class="room-amenities"><li *ngFor="let item of room.amenities"><i class="bi bi-check2"></i> {{ item }}</li></ul>
+                        </div>
+                        <div class="room-policies">
+                            <h4><i class="bi bi-shield-check"></i> Chính sách phòng</h4>
+                            <ul *ngIf="room.policies?.length; else noRoomPolicy"><li *ngFor="let policy of room.policies"><i class="bi bi-check2"></i> {{ policy }}</li></ul>
+                            <ng-template #noRoomPolicy><p>Đối tác chưa cung cấp chính sách riêng cho phòng này.</p></ng-template>
+                        </div>
+                        <div class="room-price">
+                            <span>Giá mỗi phòng / đêm</span>
+                            <strong *ngIf="room.price_per_night != null; else noRoomPrice">{{ room.price_per_night | number:'1.0-0':'vi-VN' }}<small>đ</small></strong>
+                            <ng-template #noRoomPrice><b>Giá đang cập nhật</b></ng-template>
+                            <label *ngIf="roomOptions(room).length">Số lượng phòng<select [ngModel]="roomQuantities[room.id] || 1" (ngModelChange)="roomQuantities[room.id] = $event; selectRoom(room)"><option *ngFor="let count of roomOptions(room)" [ngValue]="count">{{ count }} phòng</option></select></label>
+                            <p *ngIf="room.available_rooms === 0">Hiện chưa còn phòng</p>
+                            <p *ngIf="room.available_rooms == null">Số lượng đang cập nhật</p>
+                            <p *ngIf="canBookRoom(room)" class="room-stay-total">{{ (room.price_per_night || 0) * (roomQuantities[room.id] || 1) * stayNights | number:'1.0-0':'vi-VN' }}đ / {{ stayNights }} đêm</p>
+                            <button type="button" class="room-book-button" [disabled]="!canBookRoom(room)" (click)="bookRoom(room, $event)"><i class="bi bi-house-door"></i> Đặt phòng</button>
+                        </div>
+                    </article>
+                    <div class="detail-empty" *ngIf="!filteredRooms.length"><i class="bi bi-search"></i><h3>Chưa có phòng phù hợp</h3><p>Hãy thử chọn tiện nghi khác.</p><button type="button" (click)="roomAmenityFilter = ''">Xóa bộ lọc</button></div>
+                </div>
+                <ng-template #noRooms><div class="detail-empty"><i class="bi bi-house-door"></i><h3>Thông tin phòng đang được cập nhật</h3><p>Đối tác chưa cung cấp danh sách phòng, giá và số lượng. Bạn có thể xem thông tin lưu trú và quay lại đặt khi phòng được cập nhật.</p></div></ng-template>
+                <p class="detail-notice" *ngIf="rooms.length"><i class="bi bi-info-circle"></i> Giá tạm tính theo phòng và số đêm. Tình trạng phòng được kiểm tra lại khi gửi yêu cầu đặt.</p>
+            </section>
+
+            <section id="detail-location" class="location-panel" role="tabpanel" aria-labelledby="tab-location" *ngIf="activeInfoTab === 'location'">
+                <span class="section-kicker">Khám phá khu vực</span><h2>Vị trí &amp; xung quanh</h2>
+                <div class="location-map-layout">
+                    <div class="location-copy"><h3><i class="bi bi-geo-alt"></i> {{ activeTour.title }}</h3><p>{{ activeTour.address || activeTour.destination }}</p><p *ngIf="activeTour.areaDescription">{{ activeTour.areaDescription }}</p><a *ngIf="locationQuery" [href]="mapLink" target="_blank" rel="noopener noreferrer" class="info-text-link">Xem trên bản đồ <i class="bi bi-arrow-up-right"></i></a></div>
+                    <iframe *ngIf="locationQuery; else noLocation" [src]="mapEmbedUrl" title="Bản đồ vị trí dịch vụ" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <ng-template #noLocation><div class="detail-empty"><i class="bi bi-map"></i><h3>Vị trí chi tiết đang cập nhật</h3><p>Đối tác chưa cung cấp địa chỉ hoặc tọa độ chính xác.</p></div></ng-template>
+                </div>
+                <div class="surroundings-groups" *ngIf="nearbyGroups.length; else noSurroundings">
+                    <section class="surroundings-group" *ngFor="let group of nearbyGroups"><h3><i class="bi" [ngClass]="infoIcon(group.name)" aria-hidden="true"></i> {{ group.name }}</h3><ul><li *ngFor="let place of group.items"><span>{{ place.name }}</span><span class="place-distance" *ngIf="place.distance">{{ place.distance }}</span></li></ul></section>
+                </div>
+                <ng-template #noSurroundings><p class="info-muted">Thông tin giao thông và các điểm đến xung quanh đang được cập nhật.</p></ng-template>
+                <p class="location-disclaimer" *ngIf="nearbyGroups.length">Khoảng cách chỉ hiển thị khi đối tác cung cấp; thời gian di chuyển phụ thuộc tuyến đường và phương tiện.</p>
+            </section>
+
+            <section class="overview-panel" id="detail-overview" role="tabpanel" aria-labelledby="tab-overview" *ngIf="activeInfoTab === 'overview'">
+                <div class="overview-grid" *ngIf="!activeTour.isService">
                     <article>
                         <i class="bi bi-compass"></i>
                         <div>
@@ -216,7 +316,7 @@
                     </article>
                 </div>
 
-                <section class="tour-highlights">
+                <section class="tour-highlights" *ngIf="!activeTour.isService">
                     <div class="section-kicker">Điểm nhấn</div>
                     <h2>{{ activeTour.isService ? 'Điểm nổi bật của dịch vụ' : 'Điểm nổi bật của tour' }}</h2>
                     <div class="highlight-grid">
@@ -227,12 +327,30 @@
                     </div>
                 </section>
 
+                <div class="eco-intro" *ngIf="activeTour.isService">
+                    <span class="section-kicker"><i class="bi bi-leaf"></i> {{ detailKindLabel }} · GreenSteps</span>
+                    <h2>Giới thiệu dịch vụ</h2>
+                    <div class="eco-facts">
+                        <span><i class="bi bi-geo-alt"></i> {{ activeTour.destination }}</span>
+                        <span *ngIf="activeTour.carbonKnown !== false"><i class="bi bi-cloud-haze2"></i> {{ activeTour.carbon }} kg CO₂</span>
+                        <span *ngIf="activeTour.maxCapacity"><i class="bi bi-people"></i> Sức chứa {{ activeTour.maxCapacity }} khách</span>
+                    </div>
+                    <div class="eco-tags" *ngIf="activeTour.badges?.length">
+                        <span *ngFor="let badge of activeTour.badges"><i class="bi bi-patch-check"></i> {{ badge }}</span>
+                    </div>
+                </div>
                 <p class="tour-description">
                     {{ activeTour.description || (activeTour.isService
                         ? 'Dịch vụ GreenSteps được thiết kế để bổ sung linh hoạt vào chuyến đi, ưu tiên trải nghiệm địa phương và tiêu chí du lịch xanh.'
                         : 'Khám phá Đà Lạt theo cách nhẹ nhàng và bền vững, phù hợp cho gia đình có trẻ nhỏ. Lịch trình kết hợp thiên nhiên, văn hóa địa phương và các điểm đến xanh được tối ưu để giảm phát thải carbon.') }}
                 </p>
 
+                <ng-container *ngIf="activeTour.isService">
+                    <section class="overview-info-section" *ngIf="nearbyPreview.length"><h2>Xem xung quanh đây</h2><ul class="nearby-preview"><li *ngFor="let place of nearbyPreview"><i class="bi" [ngClass]="infoIcon(place.category)" aria-hidden="true"></i><span><span class="nearby-category">{{ place.category }}:</span> {{ place.name }}<span class="place-distance" *ngIf="place.distance"> · {{ place.distance }}</span></span></li></ul><button type="button" class="info-text-link" (click)="setInfoTab('location')">Xem vị trí &amp; khu vực xung quanh <i class="bi bi-arrow-right"></i></button></section>
+                    <section class="overview-info-section" *ngIf="popularAmenities.length"><h2>Tiện nghi nổi bật</h2><ng-container *ngTemplateOutlet="amenityList; context: { $implicit: popularAmenities }"></ng-container><button type="button" class="info-text-link" (click)="setInfoTab('included')">Tất cả tiện nghi &amp; dịch vụ <i class="bi bi-arrow-right"></i></button></section>
+                    <ng-container *ngTemplateOutlet="greenDetails"></ng-container>
+                    <section class="overview-info-section" *ngIf="policyGroups.length"><h2>Thông tin cần biết trước khi đặt</h2><div class="overview-policy-preview"><article *ngFor="let group of policyGroups.slice(0, 3)"><h3><i class="bi" [ngClass]="infoIcon(group.title)" aria-hidden="true"></i> {{ group.title }}</h3><p>{{ group.lines[0] }}</p></article></div><button type="button" class="info-text-link" (click)="setInfoTab('policy')">Xem toàn bộ chính sách <i class="bi bi-arrow-right"></i></button></section>
+                </ng-container>
                 <div class="tab-final-cta overview-cta-box">
                     <div class="tab-final-cta-icon"><i class="bi bi-headset"></i></div>
                     <div>
@@ -246,7 +364,17 @@
                 </div>
             </section>
 
-            <section class="special-tab-panel included-panel" *ngIf="activeInfoTab === 'included'">
+            <section class="special-tab-panel included-panel" id="detail-included" role="tabpanel" aria-labelledby="tab-included" *ngIf="activeInfoTab === 'included'">
+                <div *ngIf="activeTour.isService" class="service-amenities">
+                    <section class="popular-amenities-block" *ngIf="popularAmenities.length"><h2>Tiện nghi phổ biến nhất</h2><ng-container *ngTemplateOutlet="amenityList; context: { $implicit: popularAmenities.slice(0, 6) }"></ng-container></section>
+                    <h2>Tiện nghi &amp; dịch vụ khác</h2>
+                    <div class="clear-amenity-groups" *ngIf="activeTour.amenityGroups?.length; else noAmenities">
+                        <section class="clear-amenity-group" *ngFor="let group of activeTour.amenityGroups"><h3><i class="bi" [ngClass]="infoIcon(group.name)" aria-hidden="true"></i> {{ group.name }}</h3><ng-container *ngTemplateOutlet="amenityList; context: { $implicit: group.items }"></ng-container></section>
+                    </div>
+                    <ng-template #noAmenities><div class="detail-empty"><i class="bi bi-basket"></i><h3>Tiện nghi đang được cập nhật</h3><p>Danh sách quyền lợi và tiện nghi cụ thể sẽ hiển thị khi đối tác cung cấp thông tin.</p></div></ng-template>
+                    <ng-container *ngTemplateOutlet="greenDetails"></ng-container>
+                </div>
+                <ng-container *ngIf="!activeTour.isService">
                 <div class="panel-hero included-hero">
                     <div>
                         <span class="section-kicker">GreenSteps Care</span>
@@ -337,9 +465,18 @@
                         <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
                     </div>
                 </div>
+                </ng-container>
             </section>
 
-            <section class="policy-panel" *ngIf="activeInfoTab === 'policy'">
+            <section class="policy-panel" id="detail-policy" role="tabpanel" aria-labelledby="tab-policy" *ngIf="activeInfoTab === 'policy'">
+                <div *ngIf="activeTour.isService" class="clear-service-policies">
+                    <div class="info-section-heading"><div><span class="section-kicker">Chuẩn bị cho trải nghiệm của bạn</span><h2>Chính sách &amp; thông tin cần biết</h2></div></div>
+                    <p class="info-muted">Điều kiện áp dụng theo thông tin cơ sở công bố. Vui lòng đọc thông tin của loại phòng hoặc dịch vụ trước khi đặt.</p>
+                    <div class="policy-detail-rows" *ngIf="policyGroups.length; else noServicePolicies"><section class="policy-detail-row" *ngFor="let group of policyGroups"><h3><i class="bi" [ngClass]="infoIcon(group.title)" aria-hidden="true"></i><span>{{ group.title }}</span></h3><div><p *ngFor="let line of group.lines">{{ line }}</p></div></section></div>
+                    <ng-template #noServicePolicies><div class="detail-empty"><i class="bi bi-journal-text"></i><h3>Chính sách đang được cập nhật</h3><p>Đối tác chưa cung cấp điều kiện cụ thể cho dịch vụ này.</p></div></ng-template>
+                    <div class="policy-confirm-note"><i class="bi bi-info-circle"></i><p><ng-container *ngIf="isLodging">Chính sách riêng của từng loại phòng được hiển thị tại tab Phòng. </ng-container>Giá và số lượng được kiểm tra lại khi bạn gửi yêu cầu đặt.</p></div>
+                </div>
+                <ng-container *ngIf="!activeTour.isService">
                 <div class="policy-hero-card">
                     <div class="policy-shield">
                         <i class="bi bi-shield-check"></i>
@@ -476,9 +613,10 @@
                         <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
                     </div>
                 </div>
+                </ng-container>
             </section>
 
-            <section id="reviews-section" class="reviews-panel" *ngIf="activeInfoTab === 'reviews' && activeTour">
+            <section id="detail-reviews" role="tabpanel" aria-labelledby="tab-reviews" class="reviews-panel" *ngIf="activeInfoTab === 'reviews' && activeTour">
                 <div class="review-summary-card">
                     <div class="review-score-block">
                         <span class="section-kicker">{{ activeTour.isService ? 'Đánh giá dịch vụ' : 'Đánh giá tour' }}</span>
@@ -538,10 +676,10 @@
                         </div>
                     </div>
 
-                    <p *ngIf="reviewLoadError" class="review-empty-state">Reviews could not be loaded. Please try again.</p>
-                    <p *ngIf="!reviewLoadError && !reviewsList.length" class="review-empty-state">No reviews yet.</p>
-                    <p *ngIf="reviewEligibilityError" class="review-empty-state">Booking eligibility could not be checked. Please try again.</p>
-                    <p *ngIf="!reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Only customers with a completed booking can submit a review.</p>
+                    <p *ngIf="reviewLoadError" class="review-empty-state">Không thể tải đánh giá. Vui lòng thử lại.</p>
+                    <p *ngIf="!reviewLoadError && !reviewsList.length" class="review-empty-state">Chưa có đánh giá nào.</p>
+                    <p *ngIf="reviewEligibilityError" class="review-empty-state">Không thể kiểm tra điều kiện viết đánh giá. Vui lòng thử lại.</p>
+                    <p *ngIf="!reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Chỉ khách hàng có đơn đặt chỗ đã hoàn thành mới có thể viết đánh giá.</p>
                     <div class="review-filter-bar">
                         <div>
                             <span class="section-kicker">Review</span>
@@ -569,7 +707,7 @@
                         <!-- Dynamic Loop -->
                         <article class="guest-review-card" *ngFor="let comment of filteredReviews" style="margin-bottom: 24px;">
                             <div class="review-avatar">
-                                <img *ngIf="isAvatarUrl(comment.user?.avatar)" [src]="comment.user.avatar" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(comment.user?.avatar)" [src]="comment.user.avatar" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                                 <span *ngIf="!isAvatarUrl(comment.user?.avatar)">{{ getFirstLetter(comment.user?.fullname) }}</span>
                             </div>
                             <div class="review-card-body">
@@ -607,7 +745,7 @@
                                 <div class="replies-list" *ngIf="comment.replies && comment.replies.length > 0" style="margin-left: 20px; border-left: 2px solid #edf2ee; padding-left: 16px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
                                     <div class="reply-item-row" *ngFor="let reply of comment.replies" style="display: flex; gap: 12px; align-items: flex-start;">
                                         <div class="reply-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: #eef7f1; color: var(--g); display: grid; place-items: center; font-size: 12px; font-weight: 800; overflow: hidden; flex-shrink: 0;">
-                                            <img *ngIf="isAvatarUrl(reply.user?.avatar)" [src]="reply.user.avatar" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
+                                            <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(reply.user?.avatar)" [src]="reply.user.avatar" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
                                             <span *ngIf="!isAvatarUrl(reply.user?.avatar)">{{ getFirstLetter(reply.user?.fullname) }}</span>
                                         </div>
                                         <div class="reply-block-wrapper" style="flex: 1;">
@@ -657,7 +795,7 @@
                 </div>
             </section>
 
-            <section class="itinerary-section" *ngIf="activeInfoTab === 'overview' || activeInfoTab === 'itinerary'">
+            <section class="itinerary-section" *ngIf="activeInfoTab === 'overview' && !isLodging">
                 <div class="section-title-row">
                     <div>
                         <span>{{ activeTour.isService ? 'Thông tin dịch vụ' : 'Lịch trình' }}</span>
@@ -686,7 +824,7 @@
                                 <i class="bi" [ngClass]="act.icon || 'bi-geo-alt'"></i>
                             </div>
 
-                            <img class="activity-image" [src]="slideImages[actIdx % slideImages.length]" [alt]="act.name">
+                            <img (error)="imageFallback($event)" class="activity-image" [src]="slideImages[actIdx % slideImages.length]" [alt]="act.name">
 
                             <div class="activity-copy">
                                 <h3>{{ act.name }}</h3>
@@ -698,8 +836,8 @@
                             </div>
 
                             <div class="activity-badges">
-                                <span><i class="bi bi-cash"></i> {{ act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + 'đ' }}</span>
-                                <span class="carbon"><i class="bi bi-leaf"></i> {{ act.carbon }}kg CO₂</span>
+                                <span><i class="bi bi-cash"></i> {{ !bookingAvailable ? 'Liên hệ báo giá' : (act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + 'đ') }}</span>
+                                <span class="carbon" *ngIf="activeTour.carbonKnown !== false"><i class="bi bi-leaf"></i> {{ act.carbon }}kg CO₂</span>
                             </div>
                         </article>
                     </div>
@@ -718,15 +856,22 @@
                 </div>
             </section>
         </div>
+        <div class="detail-summary-grid">
+            <button type="button" class="detail-summary-card" (click)="scrollToReviews()"><h3><i class="bi bi-star"></i> Đánh giá của khách</h3><strong class="summary-score">{{ activeTour.rating ?? '—' }}<small>/5</small></strong><p>{{ totalReviewsCount }} đánh giá · Xem trải nghiệm từ du khách</p></button>
+            <button type="button" class="detail-summary-card" (click)="setInfoTab('included')"><h3><i class="bi bi-grid"></i> Tiện nghi nổi bật</h3><p *ngFor="let group of (activeTour.amenityGroups || []).slice(0, 2)">{{ group.name }}</p><span>Xem tiện nghi &amp; dịch vụ <i class="bi bi-arrow-right"></i></span></button>
+            <button type="button" class="detail-summary-card" (click)="setInfoTab('policy')"><h3><i class="bi bi-shield-check"></i> Chính sách</h3><p>Tìm hiểu điều kiện đặt chỗ, thanh toán và hoàn hủy.</p><span>Xem chi tiết <i class="bi bi-arrow-right"></i></span></button>
+            <button type="button" class="detail-summary-card" (click)="setInfoTab('location')"><h3><i class="bi bi-geo-alt"></i> Vị trí</h3><p>{{ activeTour.address || activeTour.destination }}</p><span>Khám phá khu vực <i class="bi bi-arrow-right"></i></span></button>
+        </div>
     </section>
 
-    <div class="mobile-booking-bar">
+    <div class="mobile-booking-bar" *ngIf="bookingAvailable; else publicMobileBar">
         <div>
-            <span>Tổng tiền · {{ totalGuests }} khách</span>
+            <span>{{ isLodging ? (selectedRoom ? stayNights + ' đêm · ' + (roomQuantities[selectedRoom.id] || 1) + ' phòng' : 'Chọn phòng để xem tổng tiền') : 'Tổng tiền · ' + totalGuests + ' khách' }}</span>
             <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
         </div>
         <button type="button" (click)="submitBooking($event)">{{ detailBookingLabel }}</button>
     </div>
+    <ng-template #publicMobileBar><div class="mobile-booking-bar"><div><span>{{ activeTour.priceStatus === 'reference' ? 'Giá tham khảo' : 'Xác nhận trực tiếp với cơ sở' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><strong *ngIf="activeTour.priceStatus !== 'reference'">Liên hệ báo giá</strong></div><a class="official-contact-button" *ngIf="activeTour.sourceUrls?.length" [href]="activeTour.sourceUrls![0]" target="_blank" rel="noopener noreferrer">Liên hệ</a></div></ng-template>
     <div class="tour-photo-modal" *ngIf="isPhotoGalleryOpen" (click)="closePhotoGallery()">
         <div class="tour-photo-modal-card" (click)="$event.stopPropagation()">
             <div class="tour-photo-modal-header">
@@ -740,7 +885,7 @@
             </div>
 
             <div class="tour-photo-featured">
-                <img [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+                <img (error)="imageFallback($event)" [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
             </div>
 
             <div class="tour-photo-grid">
@@ -749,7 +894,7 @@
                         [class.active]="activeSlideIndex === idx"
                         (click)="selectGalleryPhoto(idx, $event)"
                         [attr.aria-label]="'Chọn ảnh ' + (idx + 1)">
-                    <img [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 1)">
+                    <img (error)="imageFallback($event)" [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 1)">
                 </button>
             </div>
         </div>

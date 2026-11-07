@@ -129,7 +129,7 @@
           </div>
           <div class="room-policy-grid">
             <span><i class="bi bi-calendar-check"></i> Lịch trình xanh đã chọn</span>
-            <span><i class="bi bi-arrow-counterclockwise"></i> Hủy miễn phí trước {{ cancellationDate }}</span>
+            <span *ngIf="!selectedLodgingRoom"><i class="bi bi-arrow-counterclockwise"></i> Hủy miễn phí trước {{ cancellationDate }}</span><span *ngIf="selectedLodgingRoom">{{ selectedLodgingRoom.policies?.[0] || 'Chính sách phòng đang được đối tác cập nhật.' }}</span>
             <span><i class="bi bi-people"></i> Phù hợp nhóm {{ bookingContext.guestCount }} khách</span>
             <span><i class="bi bi-leaf"></i> Ưu tiên trải nghiệm bền vững</span>
           </div>
@@ -175,7 +175,7 @@
                 </span>
                 <ng-template #standardPriceLabel>
                   <span style="font-size: 11px; color: #718096; font-weight: normal;">
-                    ({{ (isItineraryBooking() ? itineraryPerPersonCost : (activeTour?.cost || 0)) | number:'1.0-0':'vi-VN' }}đ x {{ bookingContext.guestCount }} khách)
+                    <ng-container *ngIf="selectedLodgingRoom; else guestPrice">({{ selectedLodgingRoom.price_per_night | number:'1.0-0':'vi-VN' }}đ × {{ bookingContext.roomCount }} phòng × {{ nights }} đêm)</ng-container><ng-template #guestPrice>({{ (isItineraryBooking() ? itineraryPerPersonCost : (activeTour?.cost || 0)) | number:'1.0-0':'vi-VN' }}đ x {{ bookingContext.guestCount }} khách)</ng-template>
                   </span>
                 </ng-template>
               </span>
@@ -203,9 +203,11 @@
         <span class="payment-eyebrow">HOÀN TẤT ĐẶT CHỖ</span>
         <h1>Thanh toán</h1>
         <p>Chọn cách thanh toán phù hợp để hoàn tất giữ chỗ chuyến đi.</p>
+        <p *ngIf="usesInternalTransportPayment" role="status">Thanh toán được xử lý trong GreenSteps, không trừ tiền thật hoặc gửi đặt chỗ đến nhà vận chuyển bên ngoài.</p>
+        <p *ngIf="isTransportBooking && transportBooking && !transportBooking.can_pay">{{ transportBooking.notice }}</p>
       </div>
 
-      <article class="payment-card">
+      <article class="payment-card" *ngIf="!isTransportBooking">
         <h2><span class="payment-section-number">01</span> Cách thanh toán</h2>
         <div class="pay-choice" [class.active]="payTiming === 'now'" (click)="selectPayTiming('now')">
           <input type="radio" name="payTiming" value="now" [(ngModel)]="payTiming" id="payTimingNow" (click)="$event.stopPropagation(); selectPayTiming('now')">
@@ -228,16 +230,16 @@
         <p class="payment-method-error" *ngIf="paymentError('paymentMethod')">{{ paymentError('paymentMethod') }}</p>
         <div class="payment-method-list">
           <div class="payment-method-card" 
-               *ngFor="let method of paymentMethods" 
+               *ngFor="let method of checkoutPaymentMethods"
                [class.active]="paymentMethod === method.id" 
-               [style.opacity]="method.id === 'wallet' && !walletRegistered ? '0.65' : '1'"
-               [style.cursor]="method.id === 'wallet' && !walletRegistered ? 'not-allowed' : 'pointer'"
-               (click)="method.id === 'wallet' && !walletRegistered ? null : paymentMethod = method.id">
+               [style.opacity]="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment ? '0.65' : '1'"
+               [style.cursor]="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment ? 'not-allowed' : 'pointer'"
+               (click)="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment ? null : paymentMethod = method.id">
             <input type="radio" 
                    name="paymentMethod" 
                    [value]="method.id" 
                    [(ngModel)]="paymentMethod" 
-                   [disabled]="method.id === 'wallet' && !walletRegistered"
+                   [disabled]="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment"
                    [id]="'payMethod_' + method.id" 
                    (click)="$event.stopPropagation()">
             <div class="payment-brand" [attr.aria-label]="method.label">
@@ -250,14 +252,14 @@
               <label [for]="'payMethod_' + method.id" (click)="$event.stopPropagation()" style="cursor:pointer; display:grid; gap:2px; text-align:left;">
                 <b style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text-primary);">
                   {{ method.label }}
-                  <span class="method-status-tag" *ngIf="method.id === 'card'">Sandbox</span>
-                  <span class="method-status-tag warning" *ngIf="method.id === 'wallet' && !walletRegistered">Chưa kích hoạt</span>
+                  <span class="method-status-tag" *ngIf="method.id === 'card' && !isTransportBooking">Sandbox</span>
+                  <span class="method-status-tag warning" *ngIf="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment">Chưa kích hoạt</span>
                 </b>
                 <small>{{ method.desc }}</small>
               </label>
 
               <div style="margin-top: 8px; padding: 10px; background-color: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;" 
-                   *ngIf="method.id === 'wallet' && !walletRegistered">
+                   *ngIf="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment">
                 <span style="font-size: 10px; font-weight: 700; color: #065F46; line-height: 1.3;">Kích hoạt ví nhận quà 200k chào mừng!</span>
                 <button type="button" 
                         (click)="activateWalletInline(); $event.stopPropagation()" 
@@ -270,7 +272,7 @@
           </div>
         </div>
 
-        <div class="card-form" *ngIf="paymentMethod === 'card'">
+        <div class="card-form" *ngIf="paymentMethod === 'card' && !isTransportBooking">
           <div class="card-sandbox-notice"><span class="sandbox-badge">THỬ NGHIỆM</span><div><strong>Không phát sinh giao dịch thật</strong><span>Dùng thẻ mẫu <b>4242 4242 4242 4242</b>, hạn dùng trong tương lai và CVC <b>123</b>.</span></div></div>
           <label class="payment-field" [class.invalid]="paymentError('cardName')">
             <span>Tên trên thẻ</span>
@@ -323,7 +325,7 @@
         </div>
       </article>
 
-      <article class="payment-card">
+      <article class="payment-card" *ngIf="!isTransportBooking">
         <h2><i class="bi bi-leaf"></i> Ưu đãi từ điểm xanh</h2>
         <label for="green-voucher">Mã ưu đãi đã đổi trong Ví GreenSteps</label>
         <input id="green-voucher" name="greenVoucher" [(ngModel)]="voucherCode" placeholder="GREEN-…" maxlength="80" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d2e5d8;border-radius:10px;margin-top:8px">
@@ -333,7 +335,7 @@
         <h2><span class="payment-section-number">03</span> Xác nhận</h2>
         <div class="terms-check" [class.invalid]="paymentError('acceptedTerms')" (click)="acceptedTerms = !acceptedTerms" style="cursor:pointer; display:flex; align-items:flex-start; gap:10px;">
           <input type="checkbox" name="acceptedTerms" [(ngModel)]="acceptedTerms" id="acceptedTermsCheck" (click)="$event.stopPropagation()">
-          <label for="acceptedTermsCheck" (click)="$event.stopPropagation()" style="font-weight: 800; color: #30443c; cursor: pointer; text-align:left;">Tôi đồng ý với điều kiện đặt cọc, chính sách hủy và điều khoản của GreenSteps.</label>
+          <label for="acceptedTermsCheck" (click)="$event.stopPropagation()" style="font-weight: 800; color: #30443c; cursor: pointer; text-align:left;">{{ isTransportBooking ? 'Tôi đồng ý với điều kiện thanh toán dịch vụ di chuyển và chính sách hủy.' : 'Tôi đồng ý với điều kiện đặt cọc, chính sách hủy và điều khoản của GreenSteps.' }}</label>
         </div>
         <small class="terms-error" *ngIf="paymentError('acceptedTerms')">{{ paymentError('acceptedTerms') }}</small>
         <button type="button" class="booking-submit payment-final-submit payment-continue-mobile" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
@@ -348,10 +350,13 @@
         <div class="payment-tour-name">{{ hotelName }}</div>
           <p class="muted">{{ hotelAddress }}</p>
         <div class="detail-list compact">
-          <p><span>Ngày đi</span><b>{{ bookingContext.checkIn | date:'dd/MM/yyyy' }}</b></p>
-          <p><span>Ngày về</span><b>{{ bookingContext.checkOut | date:'dd/MM/yyyy' }}</b></p>
-          <p><span>Số khách</span><b>{{ bookingContext.guestCount }} khách</b></p>
-          <p><span>Gói tour</span><b>{{ roomName }}</b></p>
+          <p *ngIf="isTransportBooking && transportBooking?.pickup_stop"><span>Điểm đón</span><b>{{ transportBooking.pickup_stop.name }}<small *ngIf="transportBooking.pickup_stop.address">{{ transportBooking.pickup_stop.address }}</small></b></p>
+          <p *ngIf="isTransportBooking && transportBooking?.dropoff_stop"><span>Điểm trả</span><b>{{ transportBooking.dropoff_stop.name }}<small *ngIf="transportBooking.dropoff_stop.address">{{ transportBooking.dropoff_stop.address }}</small></b></p>
+          <p><span>{{ isTransportBooking ? 'Khởi hành / nhận xe' : 'Ngày đi' }}</span><b>{{ bookingContext.checkIn | date:(isTransportBooking ? 'HH:mm dd/MM/yyyy' : 'dd/MM/yyyy'):'+0700' }}</b></p>
+          <p><span>{{ isTransportBooking ? 'Đến / trả xe' : 'Ngày về' }}</span><b>{{ bookingContext.checkOut | date:(isTransportBooking ? 'HH:mm dd/MM/yyyy' : 'dd/MM/yyyy'):'+0700' }}</b></p>
+          <p *ngIf="!isTransportBooking || transportBooking?.booking_type !== 'rental'"><span>Số khách</span><b>{{ bookingContext.guestCount }} khách</b></p>
+          <p><span>{{ isTransportBooking ? 'Đối tác' : selectedLodgingRoom ? 'Loại phòng' : 'Gói tour' }}</span><b>{{ roomName }}</b></p>
+          <p *ngIf="isTransportBooking"><span>Mã đặt chỗ</span><b>{{ transportBooking?.booking_code }}</b></p>
         </div>
         <div class="selected-addons" *ngIf="selectedAddOnLabels.length">
           <span>Dịch vụ thêm</span>
@@ -361,13 +366,14 @@
           <p><span>Tổng chi phí</span><b>{{ totalAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
           <p><span>Ưu đãi GreenSteps</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
           <div class="choice-total">
-            <span>Đặt cọc cần thanh toán</span>
+            <span>{{ isTransportBooking ? 'Tổng tiền thanh toán' : 'Đặt cọc cần thanh toán' }}</span>
             <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
           </div>
           <p><span>Còn lại thanh toán sau</span><b>{{ remainingAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
         </div>
         <div class="cancel-mini">
-          <span>Hủy miễn phí trước {{ cancellationDate }}. Sau thời gian này tiền cọc có thể không được hoàn lại.</span>
+          <span *ngIf="!isTransportBooking">{{ selectedLodgingRoom ? (selectedLodgingRoom.policies?.[0] || 'Chính sách phòng đang được đối tác cập nhật.') : 'Hủy miễn phí trước ' + cancellationDate + '. Sau thời gian này tiền cọc có thể không được hoàn lại.' }}</span>
+          <span *ngIf="isTransportBooking">Có thể hủy trước giờ khởi hành / nhận xe ít nhất {{ transportBooking?.cancellation_hours }} giờ.</span>
         </div>
         <button type="button" class="booking-submit payment-final-submit payment-continue-desktop" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
           <ng-container *ngIf="payTiming === 'now'">Thanh toán {{ depositAmount | number:'1.0-0':'vi-VN' }}đ</ng-container>
@@ -392,7 +398,7 @@
         <p class="confirm-message">{{ confirmationMessage }}</p>
         <div class="confirm-success-note" *ngIf="confirmationIsPaid">
           <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-          <span>GreenSteps đã ghi nhận thanh toán. Mã vé và lịch trình của bạn ở bên dưới.</span>
+          <span>{{ isTransportBooking ? transportBooking?.notice : 'GreenSteps đã ghi nhận thanh toán. Mã vé và lịch trình của bạn ở bên dưới.' }}</span>
         </div>
         <div class="confirm-next-note" *ngIf="!confirmationIsPaid && !confirmationIsFailed && confirmationBooking">
           <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -427,17 +433,20 @@
               </div>
             </div>
             <dl class="confirm-rows confirm-trip-meta">
-              <div><dt>Khởi hành</dt><dd>{{ booking.booking_date | date:'dd/MM/yyyy' }}</dd></div>
+              <div *ngIf="isTransportBooking && transportBooking?.pickup_stop"><dt>Điểm đón</dt><dd>{{ transportBooking.pickup_stop.name }} · {{ transportBooking.pickup_stop.estimated_time | date:'HH:mm dd/MM/yyyy':'+0700' }}<small>{{ transportBooking.pickup_stop.address }}</small></dd></div>
+              <div *ngIf="isTransportBooking && transportBooking?.dropoff_stop"><dt>Điểm trả</dt><dd>{{ transportBooking.dropoff_stop.name }} · {{ transportBooking.dropoff_stop.estimated_time | date:'HH:mm dd/MM/yyyy':'+0700' }}<small>{{ transportBooking.dropoff_stop.address }}</small></dd></div>
+              <div><dt>Khởi hành</dt><dd>{{ booking.booking_date | date:(isTransportBooking ? 'HH:mm dd/MM/yyyy' : 'dd/MM/yyyy'):'+0700' }}</dd></div>
               <div *ngIf="booking.check_out_date"><dt>Kết thúc</dt><dd>{{ booking.check_out_date | date:'dd/MM/yyyy' }}</dd></div>
               <div><dt>Số khách</dt><dd>{{ booking.guests }}</dd></div>
               <div><dt>Người đặt</dt><dd>{{ booking.fullname || (guestInfo.lastName + ' ' + guestInfo.firstName) }}</dd></div>
             </dl>
-            <details class="confirm-itinerary-toggle"><summary>Xem hoạt động từng ngày</summary><div class="confirm-day" *ngFor="let day of booking.order_details_snapshot?.daysData; let dayIndex = index">
+            <details class="confirm-itinerary-toggle" *ngIf="!isTransportBooking"><summary>Xem hoạt động từng ngày</summary><div class="confirm-day" *ngFor="let day of booking.order_details_snapshot?.daysData; let dayIndex = index">
               <h3>Ngày {{ dayIndex + 1 }}</h3>
               <p *ngFor="let activity of day"><time *ngIf="activity.time">{{ activity.time }}</time><span>{{ activity.name }}</span></p>
               <p *ngIf="!day?.length" class="confirm-empty-day">Lịch trình ngày này chưa có hoạt động chi tiết.</p>
             </div></details>
-            <p *ngIf="!booking.order_details_snapshot?.daysData?.length" class="confirm-empty-day">Thông tin tour và ngày khởi hành đã được lưu trong đơn.</p>
+            <p *ngIf="!isTransportBooking && !booking.order_details_snapshot?.daysData?.length" class="confirm-empty-day">Thông tin tour và ngày khởi hành đã được lưu trong đơn.</p>
+            <p *ngIf="isTransportBooking" class="confirm-empty-day">{{ transportBooking?.partner?.name }} · {{ transportBooking?.payment_reference }}</p>
           </section>
         </main>
 
@@ -470,7 +479,8 @@
       </div>
       <footer class="confirm-actions">
         <button type="button" class="confirm-primary-action" *ngIf="currentUser" (click)="router.navigate(['/profile'], { queryParams: { section: 'tickets' } })">Về hồ sơ của tôi</button>
-        <button type="button" class="confirm-secondary-action" (click)="router.navigate(['/tours'])">Khám phá tour khác</button>
+        <button type="button" class="confirm-secondary-action" (click)="router.navigate([isTransportBooking ? '/transport' : '/tours'])">{{ isTransportBooking ? 'Tìm dịch vụ di chuyển' : 'Khám phá tour khác' }}</button>
+        <a *ngIf="isTransportBooking && transportBooking?.can_pay" class="confirm-primary-action" routerLink="/booking/payment" [queryParams]="{transportBookingId:currentBookingId}">Tiếp tục thanh toán</a>
       </footer>
     </div>
   </section>
@@ -493,7 +503,7 @@
     </article>
 
     <article class="summary-card">
-      <h2>Chi tiết tour</h2>
+      <h2>{{ selectedLodgingRoom ? 'Chi tiết lưu trú' : 'Chi tiết tour' }}</h2>
       <div class="summary-grid">
         <div><span>Ngày khởi hành</span><b>{{ bookingContext.checkIn | date:'dd/MM/yyyy' }}</b><small>Dự kiến</small></div>
         <div><span>Ngày kết thúc</span><b>{{ bookingContext.checkOut | date:'dd/MM/yyyy' }}</b><small>Dự kiến</small></div>
@@ -501,8 +511,8 @@
       <div class="detail-list">
         <p><span>Số đêm</span><b>{{ nights }} đêm</b></p>
         <p><span>Số khách</span><b>{{ bookingContext.guestCount }} khách</b></p>
-        <p><span>Số gói</span><b>{{ bookingContext.roomCount }} gói</b></p>
-        <p><span>Gói tour</span><b>{{ roomName }}</b></p>
+        <p><span>{{ selectedLodgingRoom ? 'Số phòng' : 'Số gói' }}</span><b>{{ bookingContext.roomCount }} {{ selectedLodgingRoom ? 'phòng' : 'gói' }}</b></p>
+        <p><span>{{ selectedLodgingRoom ? 'Loại phòng' : 'Gói tour' }}</span><b>{{ roomName }}</b></p>
       </div>
       <button type="button" class="text-link" (click)="changeSelection()">Đổi lựa chọn của bạn</button>
     </article>
@@ -516,7 +526,7 @@
           </span>
           <ng-template #standardPriceLabel2>
             <span style="font-size: 11px; color: #718096; font-weight: normal;">
-              ({{ (isItineraryBooking() ? itineraryPerPersonCost : (activeTour?.cost || 0)) | number:'1.0-0':'vi-VN' }}đ x {{ bookingContext.guestCount }} khách)
+              <ng-container *ngIf="selectedLodgingRoom; else guestPrice">({{ selectedLodgingRoom.price_per_night | number:'1.0-0':'vi-VN' }}đ × {{ bookingContext.roomCount }} phòng × {{ nights }} đêm)</ng-container><ng-template #guestPrice>({{ (isItineraryBooking() ? itineraryPerPersonCost : (activeTour?.cost || 0)) | number:'1.0-0':'vi-VN' }}đ x {{ bookingContext.guestCount }} khách)</ng-template>
             </span>
           </ng-template>
         </span>
@@ -534,8 +544,8 @@
 
     <article class="summary-card policy-card">
       <h2><i class="bi bi-check-circle-fill"></i> Chính sách hủy</h2>
-      <p>Hủy miễn phí trước ngày {{ cancellationDate }}.</p>
-      <p>Sau thời gian này, tiền cọc có thể không được hoàn lại.</p>
+      <p *ngIf="!selectedLodgingRoom">Hủy miễn phí trước ngày {{ cancellationDate }}.</p><ng-container *ngIf="selectedLodgingRoom"><p *ngFor="let policy of selectedLodgingRoom.policies">{{ policy }}</p><p *ngIf="!selectedLodgingRoom.policies?.length">Chính sách phòng đang được đối tác cập nhật.</p></ng-container>
+      <p *ngIf="!selectedLodgingRoom">Sau thời gian này, tiền cọc có thể không được hoàn lại.</p>
     </article>
   </ng-template>
 

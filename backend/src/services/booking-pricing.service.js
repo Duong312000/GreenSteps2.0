@@ -27,7 +27,7 @@ async function ensureDefaultBookingAddons() {
   }
 }
 
-async function calculatePricing({ type, targetId, guestCount, addonIds = [], paymentMethod = 'bank_transfer' }) {
+async function calculatePricing({ type, targetId, guestCount, addonIds = [], paymentMethod = 'bank_transfer', roomId, roomCount, bookingDate, checkOutDate }) {
   const guests = Number(guestCount);
   if (!Number.isSafeInteger(guests) || guests < 1 || guests > 100) {
     throw invalidPricing('Số khách phải là số nguyên từ 1 đến 100.');
@@ -42,7 +42,13 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   if (type === 'service') {
     const service = await GreenService.findByPk(targetId);
     if (!service) throw Object.assign(new Error('Dịch vụ không tồn tại.'), { statusCode: 404 });
+    require('./catalog-presentation.service').assertCatalogBookable(service);
     unitTourPrice = integerVnd(service.cost, 'Giá dịch vụ');
+    if (roomId) {
+      const { lodgingPrice } = require('./lodging-pricing.service');
+      tourSubtotal = (await lodgingPrice(service, { roomId, roomCount, bookingDate, checkOutDate, guests })).total;
+      unitTourPrice = null;
+    }
   } else if (type === 'tour' || type === 'itinerary') {
     const schedule = await Schedule.findByPk(targetId);
     if (!schedule) throw Object.assign(new Error('Tour hoặc lịch trình không tồn tại.'), { statusCode: 404 });

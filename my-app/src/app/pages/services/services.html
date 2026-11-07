@@ -165,7 +165,7 @@
               
               <!-- Floating Top Badges -->
               <div class="card-floating-badges">
-                <span class="eco-carbon-badge">
+                <span class="eco-carbon-badge" *ngIf="s.carbonKnown !== false">
                   <i class="bi bi-leaf-fill"></i> -{{ s.carbon || 0 }}kg CO₂
                 </span>
                 <span class="rating-badge">
@@ -209,7 +209,8 @@
 
               <!-- Price Row (Shop.co signature layout) -->
               <div class="card-price-row">
-                <span class="current-price">{{ (s.cost || 0) | number:'1.0-0' }}đ</span>
+                <span class="current-price" *ngIf="s.priceStatus !== 'on_request'; else requestPrice">{{ (s.cost || 0) | number:'1.0-0' }}đ<span *ngIf="s.priceStatus === 'reference'"> · tham khảo</span></span>
+                <ng-template #requestPrice><span class="current-price">Liên hệ báo giá</span></ng-template>
                 <span *ngIf="s.oldCost && s.oldCost > s.cost" class="old-price">
                   {{ s.oldCost | number:'1.0-0' }}đ
                 </span>

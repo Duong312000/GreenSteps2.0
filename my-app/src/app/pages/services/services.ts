@@ -84,6 +84,7 @@ export class ServicesComponent implements OnInit {
     this.route.queryParams.subscribe(async params => {
       this.isPageLoading = true;
       this.serviceType = params['type'] || 'stay';
+      if(this.serviceType === 'transport') { this.router.navigate(['/transport']); return; }
       
       try {
         const allServices = await this.apiService.getServices();
@@ -110,6 +111,7 @@ export class ServicesComponent implements OnInit {
 
       // Enrich data with oldCost and discountPercent if missing
       this.servicesData.forEach(s => {
+        if (s.priceStatus) return;
         if (!s.oldCost) {
           s.oldCost = Math.round(s.cost * 1.2 / 10000) * 10000;
         }
@@ -156,6 +158,7 @@ export class ServicesComponent implements OnInit {
       }
 
       // 4. Price range
+      if (this.filterPrice !== 'all' && s.priceStatus === 'on_request') return false;
       if (this.filterPrice === 'under200k' && s.cost >= 200000) return false;
       if (this.filterPrice === '200k-500k' && (s.cost < 200000 || s.cost > 500000)) return false;
       if (this.filterPrice === '500k-1M' && (s.cost < 500000 || s.cost > 1000000)) return false;
@@ -163,10 +166,12 @@ export class ServicesComponent implements OnInit {
 
       // 5. Rating filter
       const rating = s.rating;
-      if (rating == null) return false;
-      if (this.filterRating === '5.0' && rating < 5.0) return false;
-      if (this.filterRating === '4.8' && rating < 4.8) return false;
-      if (this.filterRating === '4.5' && rating < 4.5) return false;
+      if (this.filterRating !== 'all') {
+        if (rating == null) return false;
+        if (this.filterRating === '5.0' && rating < 5.0) return false;
+        if (this.filterRating === '4.8' && rating < 4.8) return false;
+        if (this.filterRating === '4.5' && rating < 4.5) return false;
+      }
 
       // 6. Eco badge pill filter
       if (this.selectedEcoBadge !== 'all') {

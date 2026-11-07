@@ -21,6 +21,7 @@ async function start() {
     // completes, rather than leaving the service with no listener at all.
     await store.authenticate();
     await store.sync();
+    await require('./src/transport/models').init();
     await ensureDefaultBookingAddons();
     expirySweep = setInterval(() => {
       bookingController.expirePendingBookings().catch(error => {

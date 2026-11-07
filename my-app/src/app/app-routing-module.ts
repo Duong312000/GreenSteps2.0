@@ -23,6 +23,11 @@ import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 
 const routes: Routes = [
+  { path:'transport', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
+  { path:'transport/:kind/:id', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
+  { path:'transport-bookings', loadComponent:()=>import('./pages/transport/transport-bookings').then(m=>m.TransportBookingPageComponent) },
+  { path:'transport-bookings/:id', loadComponent:()=>import('./pages/transport/transport-bookings').then(m=>m.TransportBookingPageComponent) },
+  { path:'admin/transport', loadComponent:()=>import('./pages/transport/transport-admin').then(m=>m.TransportAdminComponent) },
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'tours', component: ToursComponent },

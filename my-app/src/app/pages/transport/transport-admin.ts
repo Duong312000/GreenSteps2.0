@@ -1,0 +1,29 @@
+﻿import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { TransportService } from '../../services/transport.service';
+import { AuthService } from '../../services/auth.service';
+@Component({selector:'app-transport-admin',standalone:true,imports:[CommonModule,FormsModule,RouterModule],templateUrl:'./transport-admin.html',styleUrl:'./transport-admin.css'})
+export class TransportAdminComponent implements OnInit {
+ api=inject(TransportService);auth=inject(AuthService);cdr=inject(ChangeDetectorRef);
+ resources=[{id:'partners',name:'Đối tác'},{id:'vehicles',name:'Phương tiện'},{id:'routes',name:'Tuyến đường'},{id:'trips',name:'Chuyến xe'},{id:'rentals',name:'Xe thuê'},{id:'bookings',name:'Đặt chỗ'},{id:'emission_factors',name:'Hệ số phát thải'}];
+ resource='partners';data:any[]=[];fields:any={};required:any={};refs:Record<string,any[]>={};editing:any=null;editId='';search='';status='';page=1;total=0;loading=false;saving=false;error='';message='';deleting='';booking:any=null;nextStatus='';version=0;
+ labels:Record<string,string>={name:'Tên',logo:'Ảnh đại diện',description:'Mô tả',phone:'Liên hệ nội bộ',email:'Email',status:'Trạng thái',booking_mode:'Chế độ đặt',external_booking_url:'Đường dẫn bên ngoài',is_seed_data:'Dữ liệu nội bộ',partner_id:'Đối tác',vehicle_id:'Phương tiện',route_id:'Tuyến đường',vehicle_type:'Loại xe',transport_type:'Loại dịch vụ',capacity:'Sức chứa',fuel_type:'Năng lượng',amenities:'Tiện ích (mỗi dòng một mục)',images:'Hình ảnh (mỗi dòng một URL)',origin:'Điểm đi',destination:'Điểm đến',distance_km:'Quãng đường (km)',estimated_duration:'Thời gian (phút)',departure_time:'Giờ khởi hành',arrival_time:'Giờ đến',total_seats:'Tổng ghế',available_seats:'Ghế còn lại',price_per_person:'Giá / người',currency:'Tiền tệ',allocated_passengers:'Số khách phân bổ CO₂e',pickup_point:'Điểm đón',dropoff_point:'Điểm trả',baggage_policy:'Chính sách hành lý',cancellation_hours:'Thời hạn hủy trước (giờ)',pickup_location:'Địa điểm nhận xe',price_per_hour:'Giá / giờ',price_per_day:'Giá / ngày',deposit:'Tiền cọc',rental_conditions:'Điều kiện thuê',vehicle_kg_per_km:'kg CO₂e / xe / km',baseline_kg_per_km:'Ô tô riêng kg CO₂e / km',scope:'Phạm vi tính',source:'Nguồn hệ số'};
+ get keys(){return Object.keys(this.fields[this.resource]||{});}
+ get title(){return this.resources.find(x=>x.id===this.resource)?.name;}
+ get isAdmin(){return this.auth.getCurrentUser()?.role==='admin';}
+ type(k:string){return this.fields[this.resource]?.[k];}
+ options(k:string){return Array.isArray(this.type(k))?this.type(k):null;}
+ reference(k:string){return ({partner_id:'partners',vehicle_id:'vehicles',route_id:'routes'} as Record<string,string>)[k];}
+ summary(row:any){return row.name||row.booking_code||(row.origin?`${row.origin} → ${row.destination}`:row.pickup_location)||row.fuel_type||(row.departure_time?new Date(row.departure_time).toLocaleString('vi-VN'):row._id);}
+ async ngOnInit(){if(!this.isAdmin)return;try{const r=await this.api.request('GET','/admin/schema');this.fields=r.data.fields;this.required=r.data.required;await this.load();}catch(e){this.error=this.api.message(e);}this.cdr.markForCheck();}
+ async load(){const v=++this.version;this.loading=true;this.error='';try{const r=await this.api.request('GET',`/admin/${this.resource}`,undefined,{search:this.search,status:this.status,page:this.page,limit:15});if(v===this.version){this.data=r.data;this.total=r.total;}}catch(e){this.error=this.api.message(e);}finally{this.loading=false;this.cdr.markForCheck();}}
+ choose(id:string){this.resource=id;this.page=1;this.search='';this.status='';this.editing=null;this.booking=null;this.message='';this.load();}
+ async referenceList(resource:string){const records=[];for(let page=1;;page++){const r=await this.api.request('GET',`/admin/${resource}`,undefined,{page,limit:100});records.push(...r.data);if(records.length>=r.total)break;}this.refs[resource]=records;}
+ async edit(row?:any){this.editId=row?._id||'';this.editing={};this.error='';for(const k of this.keys){const t=this.type(k);let v=row?.[k];if(t==='date'&&v)v=new Date(new Date(v).getTime()+7*3600000).toISOString().slice(0,16);if(t==='array')v=(v||[]).join('\n');this.editing[k]=v??(Array.isArray(t)?t[0]:t==='bool'?true:t==='number'?0:'');}try{for(const res of new Set(this.keys.map(k=>this.reference(k)).filter(Boolean)))await this.referenceList(res);}catch(e){this.error=this.api.message(e);}this.cdr.markForCheck();}
+ async save(){this.saving=true;this.error='';try{const body:any={};for(const k of this.keys){let v=this.editing[k];const t=this.type(k);if(t==='array')v=v.split('\n').map((x:string)=>x.trim()).filter(Boolean);if(t==='date'&&v)v=`${v}:00+07:00`;if(v!==''||this.required[this.resource]?.includes(k)||k==='external_booking_url')body[k]=v;}await this.api.request(this.editId?'PATCH':'POST',`/admin/${this.resource}${this.editId?'/'+this.editId:''}`,body);this.editing=null;this.message='Đã lưu vào MongoDB.';await this.load();}catch(e){this.error=this.api.message(e);}finally{this.saving=false;this.cdr.markForCheck();}}
+ async remove(row:any){this.saving=true;try{await this.api.request('DELETE',`/admin/${this.resource}/${row._id}`);this.deleting='';await this.load();}catch(e){this.error=this.api.message(e);}finally{this.saving=false;this.cdr.markForCheck();}}
+ async viewBooking(row:any){try{this.booking=(await this.api.request('GET',`/admin/bookings/${row._id}`)).data;this.nextStatus='';}catch(e){this.error=this.api.message(e);}this.cdr.markForCheck();}
+ async updateBooking(){this.saving=true;try{await this.api.request('PATCH',`/admin/bookings/${this.booking._id}`,{booking_status:this.nextStatus});await this.viewBooking(this.booking);await this.load();}catch(e){this.error=this.api.message(e);}finally{this.saving=false;this.cdr.markForCheck();}}
+}

@@ -11,6 +11,7 @@ import { User, Service } from '../../../models/models';
   selector: 'app-partner-services',
   standalone: false,
   templateUrl: './partner-services.html',
+  styleUrls: ['./partner-services.css'],
 })
 export class PartnerServicesComponent implements OnInit {
   public currentUser: User | null = null;
@@ -32,9 +33,9 @@ export class PartnerServicesComponent implements OnInit {
   public maxCapacity: number | null = null;
   public imageUrl: string = 'image/Viet Nam.png';
   public galleryImages: string[] = [];
-  public openingSchedule: string = 'Tất cả các ngày trong tuần';
-  public cancellationPolicy: string = 'Hoàn trả 100% nếu hủy trước 24 giờ khởi hành.';
-  public itineraryText: string = 'Tự do tham quan theo hướng dẫn của đối tác.';
+  public openingSchedule: string = '';
+  public cancellationPolicy: string = '';
+  public itineraryText: string = '';
   public selectedBadges: string[] = ['green'];
 
   // Form Fields (screenshot upgrades)
@@ -96,7 +97,7 @@ export class PartnerServicesComponent implements OnInit {
 
   public openShareModal(srv: Service) {
     this.sharingService = srv;
-    this.shareMessage = `Khám phá ngay dịch vụ xanh "${srv.name}" cực kỳ thân thiện với môi trường tại ${srv.destination}! Lượng CO2 giảm đến ${srv.carbon}kg.`;
+    this.shareMessage = `Khám phá dịch vụ "${srv.name}" tại ${srv.destination}.`;
     this.isShareModalOpen = true;
     this.cdr.detectChanges();
   }
@@ -258,6 +259,20 @@ export class PartnerServicesComponent implements OnInit {
     return 'image/Gemini_Generated_Image_szp1ouszp1ouszp1.png';
   }
 
+  public servicePrice(service: any): string {
+    const status = service.current_data?.priceStatus || service.priceStatus;
+    if (status === 'on_request') return 'Liên hệ báo giá';
+    return Number(service.cost || 0).toLocaleString('vi-VN') + 'đ' + (status === 'reference' ? ' · tham khảo' : '');
+  }
+  public carbonConfirmed(service: any): boolean {
+    return service.carbonKnown !== false && service.current_data?.carbonStatus !== 'unconfirmed';
+  }
+  public servicePolicyText(data: any): string {
+    if (data?.policyGroups?.length) return data.policyGroups.flatMap((group: any) => group.lines).join('\n');
+    return data?.policies?.join('\n') || data?.policy || '';
+  }
+  public amenityLabel(item: any): string { return typeof item === 'string' ? item : item.name; }
+
   public openAddModal() {
     this.editingServiceId = null;
     this.isAddModalOpen = true;
@@ -270,9 +285,9 @@ export class PartnerServicesComponent implements OnInit {
     this.maxCapacity = null;
     this.imageUrl = 'image/Viet Nam.png';
     this.galleryImages = [];
-    this.openingSchedule = 'Tất cả các ngày trong tuần';
-    this.cancellationPolicy = 'Hoàn trả 100% nếu hủy trước 24 giờ khởi hành.';
-    this.itineraryText = 'Tự do tham quan theo hướng dẫn của đối tác.';
+    this.openingSchedule = '';
+    this.cancellationPolicy = '';
+    this.itineraryText = '';
 
     this.childPrice = null;
     this.serviceDuration = '';
@@ -298,9 +313,9 @@ export class PartnerServicesComponent implements OnInit {
       this.maxCapacity = details.max_capacity || null;
       this.imageUrl = details.image_url || details.current_data?.img || 'image/Viet Nam.png';
       this.galleryImages = details.current_data?.images || details.current_data?.gallery || [];
-      this.openingSchedule = details.current_data?.schedule || 'Tất cả các ngày trong tuần';
-      this.cancellationPolicy = details.current_data?.policy || 'Hoàn trả 100% nếu hủy trước 24 giờ khởi hành.';
-      this.itineraryText = details.current_data?.itinerary || 'Tự do tham quan theo hướng dẫn của đối tác.';
+      this.openingSchedule = details.current_data?.schedule || '';
+      this.cancellationPolicy = this.servicePolicyText(details.current_data);
+      this.itineraryText = details.current_data?.itinerary || details.current_data?.description || '';
       
       this.childPrice = details.current_data?.childPrice || null;
       this.serviceDuration = details.current_data?.duration || '';

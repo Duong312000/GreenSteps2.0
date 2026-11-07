@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { Tour, User } from '../../models/models';
 import { bookingDate } from '../../utils/booking-date';
+import { TransportService } from '../../services/transport.service';
 
 type BookingFor = 'self' | 'other';
 type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter';
@@ -45,6 +46,20 @@ interface BookingContext {
   templateUrl: './booking.html'
 })
 export class BookingComponent implements OnInit, OnDestroy {
+  public transportBooking: any = null;
+  private transportLoadVersion = 0;
+  private transportMethodsCache: { id: PaymentMethod; label: string; desc: string; icon: string }[] | null = null;
+  public get isTransportBooking() { return !!this.route.snapshot.queryParamMap.get('transportBookingId'); }
+  public get usesInternalTransportPayment() { return this.isTransportBooking && this.transportBooking?.is_seed_data === true; }
+  public get checkoutPaymentMethods() {
+    if (!this.isTransportBooking) return this.paymentMethods;
+    // Keep object identities stable: recreating NgModel radio controls on every
+    // change detection pass schedules another model update and can loop.
+    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => method.id !== 'counter').map(method => ({
+      ...method, desc: 'Xử lý trong GreenSteps; không trừ tiền thật hoặc yêu cầu thông tin ngân hàng.'
+    }));
+    return this.transportMethodsCache;
+  }
   private routeChangeSubscription?: Subscription;
   public currentUser: User | null = null;
   public activeTour: Tour | null = null;
@@ -165,10 +180,12 @@ export class BookingComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private loginModalService: LoginModalService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private transportApi?: TransportService
   ) {}
 
   async ngOnInit() {
+    if (this.isTransportBooking) { this.initializeTransportCheckout(); return; }
     this.syncStepFromUrl();
     this.routeChangeSubscription = this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -214,6 +231,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     });
 
     await this.loadActiveTour();
+    if (this.selectedLodgingRoom && !this.isCompleteStep) await this.loadRoomPricing();
     if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
       await this.resumePendingPayment();
     }
@@ -223,6 +241,87 @@ export class BookingComponent implements OnInit, OnDestroy {
     }
     this.isPageLoading = false;
     this.cdr.detectChanges();
+  }
+
+  private initializeTransportCheckout() {
+    this.syncStepFromUrl();
+    this.routeChangeSubscription = new Subscription();
+    this.routeChangeSubscription.add(this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.syncStepFromUrl();
+        this.cdr.markForCheck();
+      }
+    }));
+    this.routeChangeSubscription.add(this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      this.prefillUserInfo(user);
+      if (!user) { this.transportBooking = null; this.confirmationBooking = null; }
+      this.cdr.markForCheck();
+    }));
+    this.routeChangeSubscription.add(this.route.queryParamMap.subscribe(() => {
+      this.syncStepFromUrl();
+      void this.loadTransportCheckout();
+    }));
+  }
+
+  private async loadTransportCheckout() {
+    const version = ++this.transportLoadVersion;
+    this.isPageLoading = true;
+    this.confirmationLoading = true;
+    this.confirmationFetchFailed = false;
+    this.currentBookingId = this.route.snapshot.queryParamMap.get('transportBookingId') || '';
+    try {
+      const result = await this.transportApi!.request('GET', `/bookings/${this.currentBookingId}`);
+      if (version !== this.transportLoadVersion) return;
+      const b = result.data;
+      this.transportBooking = b;
+      this.bookingContext = { hotelId:'',roomId:'',checkIn:b.service_start,checkOut:b.rental_end || b.service_end || b.service_start,guestCount:b.passenger_count || 1,roomCount:1 };
+      this.paymentStatus = b.payment_status === 'SIMULATED_PAID' ? 'paid' : ['CANCELLED','FAILED'].includes(b.booking_status) ? 'failed' : 'pending';
+      this.confirmationBooking = {
+        ...b,id:b._id,status:b.booking_status.toLowerCase(),evoucher_code:b.booking_code,
+        value:b.payment_status === 'SIMULATED_PAID' ? b.payment_amount : 0,
+        payment_method:b.payment_method === 'bank' ? 'bank_transfer' : b.payment_method,
+        booking_date:b.service_start,check_out_date:b.rental_end || b.service_end,
+        guests:b.passenger_count || 1,fullname:this.currentUser?.fullname || this.currentUser?.username,
+        order_details_snapshot:{ name:b.vehicle?.name,image:b.vehicle?.images?.[0],destination:this.hotelAddress },
+        pricing_snapshot:{ subtotal:b.total_price,total:b.total_price,remaining:b.payment_status === 'SIMULATED_PAID' ? 0:b.total_price }
+      };
+      if (this.isPaymentStep && b.payment_status === 'SIMULATED_PAID') {
+        await this.router.navigate(['/booking/confirm'], {queryParams:{transportBookingId:b._id},replaceUrl:true});
+      }
+    } catch (error: any) {
+      if (version !== this.transportLoadVersion) return;
+      this.transportBooking = null;
+      this.confirmationBooking = null;
+      this.confirmationFetchFailed = true;
+      this.showAlert('Không thể tải đơn di chuyển', this.transportApi!.message(error), 'error');
+    } finally {
+      if (version === this.transportLoadVersion) {
+        this.isPageLoading = false;
+        this.confirmationLoading = false;
+        this.cdr.markForCheck();
+      }
+    }
+  }
+
+  private async completeTransportPayment() {
+    if (this.isBookingLoading) return;
+    if (!this.authService.getCurrentUser()) { this.openAuth(); return; }
+    this.paymentSubmitted = true;
+    this.paymentErrors = this.validatePayment(false);
+    if (Object.keys(this.paymentErrors).length) return;
+    this.isBookingLoading = true;
+    try {
+      await this.transportApi!.request('POST', `/bookings/${this.currentBookingId}/payment`, {
+        payment_method:this.paymentMethod,accepted_terms:this.acceptedTerms
+      });
+      await this.router.navigate(['/booking/confirm'], {queryParams:{transportBookingId:this.currentBookingId}});
+    } catch (error: any) {
+      this.showAlert('Chưa hoàn tất thanh toán', this.transportApi!.message(error), 'error');
+    } finally {
+      this.isBookingLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   private async loadActiveTour() {
@@ -537,6 +636,8 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public async completeDeposit() {
+    if (this.isTransportBooking) { await this.completeTransportPayment(); return; }
+    if (this.selectedLodgingRoom && !await this.loadRoomPricing()) return;
     const user = this.authService.getCurrentUser();
     if (this.paymentMethod === 'wallet' && !user) {
       this.showAlert("Yêu cầu đăng nhập", "Vui lòng đăng nhập để thanh toán bằng ví điện tử!", "warning");
@@ -561,6 +662,8 @@ export class BookingComponent implements OnInit, OnDestroy {
       target_id: targetId,
       booking_date: this.bookingContext.checkIn,
       check_out_date: this.bookingContext.checkOut,
+      roomId: this.selectedLodgingRoom?.id,
+      roomCount: this.selectedLodgingRoom ? this.bookingContext.roomCount : undefined,
       guests: this.bookingContext.guestCount,
       value: this.depositAmount,
       customer: {
@@ -1029,15 +1132,41 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get hotelName() {
+    if (this.isTransportBooking) return this.transportBooking?.vehicle?.name || 'Dịch vụ di chuyển';
     return this.activeTour?.title || 'Tour GreenSteps Travel';
   }
 
   public get hotelAddress() {
+    if (this.isTransportBooking) return this.transportBooking?.trip ? `${this.transportBooking.pickup_stop?.name || this.transportBooking.trip.pickup_point || ''} → ${this.transportBooking.dropoff_stop?.name || this.transportBooking.trip.dropoff_point || ''}` : this.transportBooking?.rental?.pickup_location || '';
     return this.activeTour?.destination ? `Điểm đến: ${this.activeTour.destination}` : 'Hành trình du lịch xanh';
   }
 
   public get roomName() {
-    return 'Gói tour tiêu chuẩn GreenSteps';
+    if (this.isTransportBooking) return this.transportBooking?.partner?.name || 'GreenSteps';
+    return this.selectedLodgingRoom?.name || 'Gói tour tiêu chuẩn GreenSteps';
+  }
+
+  public get selectedLodgingRoom() {
+    return this.activeTour?.isService ? this.activeTour.rooms?.find(room => room.id === this.bookingContext.roomId) : undefined;
+  }
+
+  public lodgingPricing: any = null;
+  private async loadRoomPricing(): Promise<boolean> {
+    try {
+      const quote = await this.apiService.getBookingQuote({
+        type: 'service', targetId: this.bookingContext.serviceId!, guests: this.bookingContext.guestCount,
+        addonIds: [], paymentMethod: 'bank_transfer', roomId: this.bookingContext.roomId,
+        roomCount: this.bookingContext.roomCount, bookingDate: this.bookingContext.checkIn,
+        checkOutDate: this.bookingContext.checkOut
+      });
+      if (!quote?.success || !quote.pricing) throw new Error('Chưa nhận được báo giá phòng.');
+      this.lodgingPricing = quote.pricing;
+      return true;
+    } catch (error: any) {
+      this.lodgingPricing = null;
+      this.showAlert('Chưa thể xác nhận phòng', error?.error?.message || error?.message || 'Vui lòng quay lại chọn phòng.', 'error');
+      return false;
+    }
   }
 
   public isItineraryBooking(): boolean {
@@ -1081,6 +1210,10 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get basePrice() {
+    if (this.isTransportBooking) return Number(this.transportBooking?.total_price || 0);
+    if (this.selectedLodgingRoom) {
+      return Number(this.selectedLodgingRoom.price_per_night || 0) * this.bookingContext.roomCount * this.nights;
+    }
     if (this.isItineraryBooking() && this.activeTour?.data) {
       return (this.itineraryPerPersonCost * Math.max(this.bookingContext.guestCount, 1)) + this.itineraryFlatCost;
     }
@@ -1088,11 +1221,15 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get discountAmount() {
+    if (this.isTransportBooking) return 0;
+    if (this.selectedLodgingRoom) return Math.floor(this.basePrice * Number(this.lodgingPricing?.discountPercent || 0) / 100);
     if (this.isItineraryBooking()) return 0;
     return Math.round(this.basePrice * 0.08);
   }
 
   public get serviceFee() {
+    if (this.isTransportBooking) return 0;
+    if (this.selectedLodgingRoom) return Number(this.lodgingPricing?.serviceFee || 0);
     if (this.isItineraryBooking()) return 0;
     return 120000;
   }
@@ -1102,6 +1239,8 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get depositAmount() {
+    if (this.isTransportBooking) return this.basePrice;
+    if (this.selectedLodgingRoom) return Math.ceil(this.totalAmount * Number(this.lodgingPricing?.depositPercent || 0) / 100);
     return Math.round(this.totalAmount * 0.3);
   }
 
@@ -1110,6 +1249,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get addOnsTotal() {
+    if (this.isTransportBooking) return 0;
     return this.addOnOptions
       .filter(option => this.addOns.includes(option.id))
       .reduce((sum, option) => sum + option.price, 0);
@@ -1139,6 +1279,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationIsPaid(): boolean {
+    if (this.isTransportBooking) return this.transportBooking?.payment_status === 'SIMULATED_PAID';
     const booking = this.confirmationBooking;
     const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
     return ['deposit', 'completed', 'confirmed', 'accepted'].includes(String(booking?.status || '').toLowerCase())
@@ -1146,6 +1287,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationIsFailed(): boolean {
+    if (this.isTransportBooking) return ['CANCELLED','FAILED'].includes(this.transportBooking?.booking_status);
     const booking = this.confirmationBooking;
     const status = String(booking?.status || '').toLowerCase();
     const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
@@ -1154,6 +1296,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationTitle(): string {
+    if (this.isTransportBooking && this.confirmationIsPaid) return 'Đã hoàn tất thanh toán nội bộ';
     if (this.confirmationLoading) return 'Đang tải trạng thái đơn';
     if (this.confirmationFetchFailed) return 'Chưa tải được thông tin đơn';
     if (!this.confirmationBooking) return 'Không tìm thấy đơn đặt';
@@ -1164,6 +1307,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationMessage(): string {
+    if (this.isTransportBooking && this.transportBooking) return this.transportBooking.notice;
     if (this.confirmationFetchFailed) return 'Không lấy được trạng thái mới nhất từ máy chủ. Kiểm tra mạng rồi thử tải lại đơn.';
     if (!this.confirmationBooking) return 'Đường dẫn này chưa có mã đơn. Hãy mở trang xác nhận từ đơn đặt chỗ của bạn.';
     if (this.confirmationIsFailed) {
@@ -1185,6 +1329,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationStatusLabel(): string {
+    if (this.isTransportBooking) return this.confirmationIsPaid ? 'Đã hoàn tất thanh toán nội bộ' : this.confirmationIsFailed ? 'Đơn đã hủy hoặc kết thúc' : 'Chờ thanh toán';
     if (this.confirmationIsPaid) return 'Đặt chỗ thành công';
     const status = String(this.confirmationBooking?.payment_status || this.confirmationBooking?.status || '').toLowerCase();
     if (status === 'expired') return 'Đã hết hạn';
@@ -1205,6 +1350,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public async loadConfirmationBooking() {
+    if (this.isTransportBooking) { await this.loadTransportCheckout(); return; }
     if (!this.isCompleteStep) return;
     const id = this.route.snapshot.queryParamMap.get('bookingId') || this.currentBookingId;
     if (!id) {
@@ -1273,6 +1419,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get paymentReady() {
+    if (this.isTransportBooking) return !!this.transportBooking?.can_pay && this.acceptedTerms && ['wallet','card','bank'].includes(this.paymentMethod) && !this.isBookingLoading;
     return Object.keys(this.validatePayment(true)).length === 0;
   }
 
@@ -1300,6 +1447,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       ...this.bookingContext,
       tourId: serviceId ? undefined : tourId,
       serviceId,
+      roomId: query.get('roomId') || (!queryHasTarget ? this.bookingContext.roomId : ''),
       checkIn: query.get('checkIn') || this.bookingContext.checkIn,
       checkOut: query.get('checkOut') || this.bookingContext.checkOut,
       guestCount: Number(query.get('guestCount') || (isItinerary ? 1 : this.bookingContext.guestCount)),

@@ -628,6 +628,17 @@ export class ApiService {
   }
 
   // 5. Services & Bookings APIs
+  private normalizeCatalogService(raw: any): Service {
+    const data = raw.current_data || {};
+    return {
+      ...raw, name: raw.name ?? raw.name_service, destination: raw.destination ?? raw.dest,
+      description: data.description || data.shortDesc || raw.description,
+      priceStatus: data.priceStatus ?? raw.priceStatus, bookingEnabled: data.bookingEnabled ?? raw.bookingEnabled,
+      carbonKnown: raw.carbonKnown !== false && data.carbonStatus !== 'unconfirmed', capacityKnown: raw.capacityKnown !== false && data.capacityStatus !== 'unconfirmed',
+      sourceUrls: data.sourceUrls || raw.sourceUrls || [], sourceCheckedAt: data.sourceCheckedAt || raw.sourceCheckedAt
+    };
+  }
+
   public async getServices(): Promise<Service[]> {
     const cacheKey = 'services_all';
     const cached = this.getCachedData(cacheKey);
@@ -636,8 +647,9 @@ export class ApiService {
     try {
       const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services`));
       if (Array.isArray(data)) {
-        this.setCachedData(cacheKey, data);
-        return data;
+        const services = data.filter((row: any) => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
+        this.setCachedData(cacheKey, services);
+        return services;
       }
     } catch (e) {
       console.warn('Backend services unavailable.');
@@ -652,8 +664,9 @@ export class ApiService {
 
     try {
       const data = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/services?destination=${encodeURIComponent(destination)}`));
-      this.setCachedData(cacheKey, data);
-      return data;
+      const services = data.filter(row => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
+      this.setCachedData(cacheKey, services);
+      return services;
     } catch (e) {
       return [];
     }
@@ -661,7 +674,8 @@ export class ApiService {
 
   public async getMyServices(providerId: string): Promise<Service[]> {
     try {
-      return await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services/provider/${providerId}`, { withCredentials: true }));
+      const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services/provider/${providerId}`, { withCredentials: true }));
+      return data.map(row => this.normalizeCatalogService(row));
     } catch (e) {
       return [];
     }
@@ -735,6 +749,8 @@ export class ApiService {
         targetId: bookingData.targetId ?? bookingData.target_id,
         bookingDate: bookingData.bookingDate ?? bookingData.booking_date,
         checkOutDate: bookingData.checkOutDate ?? bookingData.check_out_date,
+        roomId: bookingData.roomId,
+        roomCount: bookingData.roomCount,
         guests: bookingData.guests,
         addonIds: bookingData.addonIds ?? bookingData.addon_ids ?? [],
         idempotencyKey: bookingData.idempotencyKey ?? bookingData.idempotency_key,
@@ -812,7 +828,7 @@ export class ApiService {
       localStorage.setItem(key, JSON.stringify(rows.slice(0, 50)));
     } catch { /* The server notification remains the durable source. */ }
   }
-  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string }): Promise<any> {
+  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string; roomId?: string; roomCount?: number; bookingDate?: string; checkOutDate?: string }): Promise<any> {
     return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings/quote`, quoteData));
   }
 
@@ -951,8 +967,9 @@ export class ApiService {
 
     try {
       const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/recommendations/services/${userId}`));
-      this.setCachedData(cacheKey, data);
-      return data;
+      const services = data.filter((row: any) => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
+      this.setCachedData(cacheKey, services);
+      return services;
     } catch (e) {
       return this.getServices(); // fallback
     }
@@ -1455,7 +1472,7 @@ export class ApiService {
           [
             {
               id: 'act_' + s.id,
-              time: s.current_data?.startTime || '08:00',
+              time: s.current_data?.startTime || '',
               name: title,
               cost: Number(s.cost || 0),
               carbon: Number(s.carbon || 0),
@@ -1471,8 +1488,28 @@ export class ApiService {
           ]
         ],
         isService: true,
+        rooms: Array.isArray(s.current_data?.rooms) ? s.current_data.rooms : [],
+        amenityGroups: Array.isArray(s.current_data?.amenityGroups) ? s.current_data.amenityGroups : [],
+        popularAmenities: Array.isArray(s.current_data?.popularAmenities) ? s.current_data.popularAmenities : [],
+        policyGroups: Array.isArray(s.current_data?.policyGroups) ? s.current_data.policyGroups : [],
+        nearbyGroups: Array.isArray(s.current_data?.nearbyGroups) ? s.current_data.nearbyGroups : [],
+        greenFeatures: Array.isArray(s.current_data?.greenFeatures) ? s.current_data.greenFeatures : [],
+        isDemo: s.current_data?.isDemo === true,
+        priceStatus: s.current_data?.priceStatus,
+        bookingEnabled: s.current_data?.bookingEnabled,
+        sourceUrls: s.current_data?.sourceUrls || [],
+        sourceCheckedAt: s.current_data?.sourceCheckedAt,
+        carbonKnown: s.current_data?.carbonStatus !== 'unconfirmed',
+        capacityKnown: s.current_data?.capacityStatus !== 'unconfirmed',
+        contactPhone: s.current_data?.contactPhone,
+        address: s.current_data?.address || s.address,
+        latitude: s.current_data?.lat ?? undefined,
+        longitude: s.current_data?.lng ?? undefined,
+        areaDescription: s.current_data?.areaDescription,
+        nearby: Array.isArray(s.current_data?.nearby) ? s.current_data.nearby : [],
+        policies: Array.isArray(s.current_data?.policies) ? s.current_data.policies : [],
         gallery: s.current_data?.images || s.current_data?.gallery || [],
-        maxCapacity: s.max_capacity || s.maxCapacity || 10
+        maxCapacity: s.current_data?.capacityStatus === 'unconfirmed' ? undefined : (s.max_capacity ?? s.maxCapacity)
       };
 
       this.setCachedData(cacheKey, tour);

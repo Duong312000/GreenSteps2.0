@@ -4,7 +4,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
-import { Tour, Itinerary } from '../../models/models';
+import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup } from '../../models/models';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { bookingDate } from '../../utils/booking-date';
 
 @Component({
@@ -38,8 +39,111 @@ export class TourDetailComponent implements OnInit {
 
   public galleryPhotoUrl: string = '';
   public activeDayIndex: number = 0;
-  public activeInfoTab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews' = 'overview';
+  public activeInfoTab: 'overview' | 'rooms' | 'included' | 'policy' | 'reviews' | 'location' = 'overview';
   public isServiceDetail: boolean = false;
+  public checkOutDate = bookingDate(1);
+  public selectedRoomId = '';
+  public roomQuantities: Record<string, number> = {};
+  public bookingError = '';
+  public roomAmenityFilter = '';
+  private mapQuery = '';
+  private trustedMapUrl?: SafeResourceUrl;
+
+  public amenityName(item: ServiceAmenity): string { return typeof item === 'string' ? item : item.name; }
+  public amenityFee(item: ServiceAmenity): string { return typeof item === 'string' ? '' : item.fee || ''; }
+  public amenityAvailable(item: ServiceAmenity): boolean { return typeof item === 'string' || item.available !== false; }
+  public amenityNote(item: ServiceAmenity): string { return typeof item === 'string' ? '' : item.note || ''; }
+  public get popularAmenities(): ServiceAmenity[] {
+    return this.activeTour?.popularAmenities?.length ? this.activeTour.popularAmenities
+      : (this.activeTour?.amenityGroups || []).flatMap(group => group.items).filter(item => this.amenityAvailable(item)).slice(0, 8);
+  }
+  public get policyGroups(): ServicePolicyGroup[] {
+    if (this.activeTour?.policyGroups?.length) return this.activeTour.policyGroups;
+    return (this.activeTour?.policies || []).map((line, index) => ({ title: index === 0 ? 'Thông tin chung' : `Điều khoản ${index}`, lines: [line] }));
+  }
+  public get nearbyGroups(): ServiceNearbyGroup[] {
+    if (this.activeTour?.nearbyGroups?.length) return this.activeTour.nearbyGroups;
+    return this.activeTour?.nearby?.length ? [{ name: 'Điểm nổi bật', items: this.activeTour.nearby.map(name => ({ name })) }] : [];
+  }
+  public get nearbyPreview() { return this.nearbyGroups.flatMap(group => group.items.map(item => ({ ...item, category: group.name }))).slice(0, 6); }
+  public get greenFeatures() { return this.activeTour?.greenFeatures || []; }
+  public infoIcon(label: string): string {
+    const value = label.toLocaleLowerCase('vi');
+    const groups: [RegExp, string][] = [
+      [/internet|wi-?fi|kết nối/, 'bi-wifi'], [/ngôn ngữ/, 'bi-globe2'],
+      [/an toàn|an ninh/, 'bi-shield-check'], [/đỗ xe|giao thông|di chuyển/, 'bi-car-front'],
+      [/lễ tân|hành lý|hỗ trợ/, 'bi-person-workspace'], [/dọn|vệ sinh|giặt/, 'bi-basket'],
+      [/nhà hàng|ăn|bữa sáng|thực phẩm/, 'bi-cup-hot'], [/nhận.*trả|giờ|thời gian/, 'bi-clock'],
+      [/trẻ em|gia đình/, 'bi-people'], [/giường|cũi|phòng nghỉ/, 'bi-house-door'],
+      [/cọc|thanh toán|hoàn|hủy/, 'bi-credit-card'], [/thú cưng|động vật/, 'bi-heart'],
+      [/tuổi|giấy tờ/, 'bi-person-vcard'], [/mua sắm/, 'bi-bag'],
+      [/điểm|tham quan|xung quanh/, 'bi-geo-alt'], [/năng lượng|điện/, 'bi-lightning-charge'],
+      [/nước/, 'bi-droplet'], [/rác|tái|nhựa/, 'bi-recycle'], [/địa phương|cộng đồng/, 'bi-people'],
+      [/xanh|môi trường|thiên nhiên|sinh thái/, 'bi-leaf']
+    ];
+    return groups.find(([pattern]) => pattern.test(value))?.[1] || 'bi-grid';
+  }
+
+  public get isLodging(): boolean {
+    return !!this.activeTour?.isService && ['lưu trú', 'stay', 'lodging'].includes((this.activeTour.type || '').toLowerCase());
+  }
+
+  public get rooms(): ServiceRoom[] { return this.activeTour?.rooms || []; }
+  public get bookingAvailable(): boolean { return this.activeTour?.bookingEnabled !== false; }
+  public imageFallback(event: Event) {
+    const img = event.target as HTMLImageElement;
+    if (!img.src.endsWith('/image/service-photo-pending.svg')) img.src = 'image/service-photo-pending.svg';
+  }
+  public get filteredRooms(): ServiceRoom[] {
+    return this.rooms.filter(room => !this.roomAmenityFilter || room.amenities?.includes(this.roomAmenityFilter));
+  }
+  public get roomAmenities(): string[] {
+    return [...new Set(this.rooms.flatMap(room => room.amenities || []))];
+  }
+  public get selectedRoom(): ServiceRoom | undefined { return this.rooms.find(room => room.id === this.selectedRoomId); }
+  public get stayNights(): number {
+    return Math.max(1, Math.round((Date.parse(this.checkOutDate) - Date.parse(this.bookingDate)) / 86400000) || 1);
+  }
+  public get minCheckOutDate(): string { return bookingDate(1, new Date(`${this.bookingDate}T12:00:00`)); }
+  public validateStayDates() {
+    this.validateBookingDate();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.checkOutDate) || this.checkOutDate < this.minCheckOutDate) this.checkOutDate = this.minCheckOutDate;
+    this.bookingError = '';
+  }
+  public roomOptions(room: ServiceRoom): number[] {
+    return Number.isSafeInteger(room.available_rooms) && Number(room.available_rooms) > 0
+      ? Array.from({ length: Number(room.available_rooms) }, (_, i) => i + 1) : [];
+  }
+  public canBookRoom(room: ServiceRoom): boolean {
+    return !!room.id && Number.isSafeInteger(room.price_per_night) && Number(room.price_per_night) >= 0
+      && this.roomOptions(room).length > 0 && Number(room.capacity) > 0;
+  }
+  public selectRoom(room: ServiceRoom) {
+    this.selectedRoomId = room.id;
+    this.roomQuantities[room.id] ||= 1;
+    this.bookingError = '';
+  }
+  public async bookRoom(room: ServiceRoom, event: Event) {
+    this.selectRoom(room);
+    await this.submitBooking(event);
+  }
+  public get locationQuery(): string {
+    const tour = this.activeTour;
+    if (tour?.latitude != null && tour.longitude != null) return `${tour.latitude},${tour.longitude}`;
+    if (!tour?.isService) {
+      const activity = tour?.data?.flat().find(item => item.lat != null && item.lng != null);
+      if (activity) return `${activity.lat},${activity.lng}`;
+    }
+    return tour?.address || '';
+  }
+  public get mapLink(): string { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.locationQuery)}`; }
+  public get mapEmbedUrl() {
+    if (this.mapQuery !== this.locationQuery || !this.trustedMapUrl) {
+      this.mapQuery = this.locationQuery;
+      this.trustedMapUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`https://maps.google.com/maps?q=${encodeURIComponent(this.locationQuery)}&output=embed`);
+    }
+    return this.trustedMapUrl;
+  }
 
   // Booking details
   public bookingDate: string = bookingDate();
@@ -77,7 +181,7 @@ export class TourDetailComponent implements OnInit {
 
   public get ratingText(): string {
     const score = this.averageScore;
-    if (!this.totalReviewsCount) return 'ChÆ°a cÃ³ Ä‘Ã¡nh giÃ¡';
+    if (!this.totalReviewsCount) return 'Chưa có đánh giá';
     if (score >= 4.7) return 'Tuyệt vời';
     if (score >= 4.3) return 'Rất tốt';
     if (score >= 3.8) return 'Tốt';
@@ -127,7 +231,8 @@ export class TourDetailComponent implements OnInit {
     private router: Router,
     private apiService: ApiService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer
   ) {}
 
   async ngOnInit() {
@@ -143,6 +248,10 @@ export class TourDetailComponent implements OnInit {
       const id = params.get('id');
       if (id) {
         this.isPageLoading = true;
+        this.activeInfoTab = 'overview';
+        this.selectedRoomId = '';
+        this.roomQuantities = {};
+        this.bookingError = '';
         const isService = this.route.snapshot.routeConfig?.path?.startsWith('services') ||
                           this.route.snapshot.routeConfig?.path?.startsWith('service-detail') ||
                           id.toLowerCase().startsWith('srv_') ||
@@ -184,7 +293,7 @@ export class TourDetailComponent implements OnInit {
     let rawImages = [coverImage, ...galleryImages];
 
     if (this.activeTour.isService) {
-      if (galleryImages.length === 0) {
+      if (galleryImages.length === 0 && !this.activeTour.sourceUrls?.length) {
         const dest = this.activeTour.destination || 'Đà Lạt';
         const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
         rawImages = [coverImage, ...destImgs.slice(0, 4)];
@@ -238,8 +347,7 @@ export class TourDetailComponent implements OnInit {
   }
 
   private isLowQualityGalleryImage(img: string): boolean {
-    return img.startsWith('http') ||
-      img.includes('e8b896896439701c1ff79d65290703b0') ||
+    return img.includes('e8b896896439701c1ff79d65290703b0') ||
       img.includes('68e15971da05ec82c116fe191abb8c7f') ||
       img.includes('7c9e14a82698a594dd914369bfb8eaa5') ||
       img.includes('4302842f8d693c25238f2141964a64b2');
@@ -268,7 +376,7 @@ export class TourDetailComponent implements OnInit {
     this.activeDayIndex = index;
   }
 
-  public setInfoTab(tab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews') {
+  public setInfoTab(tab: 'overview' | 'rooms' | 'included' | 'policy' | 'reviews' | 'location') {
     this.activeInfoTab = tab;
   }
 
@@ -286,6 +394,8 @@ export class TourDetailComponent implements OnInit {
 
   public get totalPrice(): number {
     if (!this.activeTour) return 0;
+    if (this.isLodging) return this.selectedRoom
+      ? Number(this.selectedRoom.price_per_night || 0) * (this.roomQuantities[this.selectedRoom.id] || 1) * this.stayNights : 0;
     return this.activeTour.cost * this.totalGuests;
   }
 
@@ -323,10 +433,13 @@ export class TourDetailComponent implements OnInit {
   }
 
   public get detailBookingLabel(): string {
+    if (!this.bookingAvailable) return 'Liên hệ cơ sở';
+    if (this.isLodging) return this.selectedRoom ? 'Đặt phòng' : 'Chọn phòng';
     return this.activeTour?.isService ? 'Đặt Dịch Vụ Ngay' : 'Đặt Cọc Tour Ngay';
   }
 
   public get detailBookingLabelLower(): string {
+    if (!this.bookingAvailable) return 'liên hệ cơ sở';
     return this.activeTour?.isService ? 'đặt dịch vụ ngay' : 'đặt cọc tour ngay';
   }
 
@@ -375,21 +488,46 @@ export class TourDetailComponent implements OnInit {
     event.preventDefault();
     if (!this.activeTour) return;
 
+    this.bookingError = '';
+    if (!this.bookingAvailable) {
+      this.activeInfoTab = 'overview';
+      this.bookingError = 'Vui lòng liên hệ cơ sở qua website chính thức để xác nhận giá và tình trạng chỗ.';
+      return;
+    }
+    if (this.isLodging) {
+      this.validateStayDates();
+      const room = this.selectedRoom;
+      if (!room || !this.canBookRoom(room)) {
+        this.activeInfoTab = 'rooms';
+        this.bookingError = 'Vui lòng chọn phòng có thông tin giá và số lượng được xác nhận.';
+        return;
+      }
+      const quantity = this.roomQuantities[room.id] || 1;
+      if (!this.roomOptions(room).includes(quantity) || this.totalGuests > Number(room.capacity) * quantity) {
+        this.activeInfoTab = 'rooms';
+        this.bookingError = 'Số phòng hoặc sức chứa chưa phù hợp với số khách. Vui lòng điều chỉnh lựa chọn.';
+        return;
+      }
+    } else if (this.activeTour.maxCapacity && this.totalGuests > this.activeTour.maxCapacity) {
+      this.bookingError = 'Tổng số khách vượt quá sức chứa của dịch vụ.';
+      return;
+    }
+
     this.validateBookingDate();
     const checkIn = this.bookingDate;
     const checkOutDate = new Date(`${checkIn}T12:00:00`);
     checkOutDate.setDate(checkOutDate.getDate() + Math.max(this.activeTour.days - 1, 1));
-    const checkOut = bookingDate(0, checkOutDate);
+    const checkOut = this.isLodging ? this.checkOutDate : bookingDate(0, checkOutDate);
 
     const bookingContext = {
       hotelId: `hotel_${this.activeTour.destination || 'greensteps'}`.toLowerCase().replace(/\s+/g, '_'),
-      roomId: 'premium_double_window',
+      roomId: this.isLodging ? this.selectedRoomId : 'premium_double_window',
       tourId: this.activeTour.isService ? undefined : this.activeTour.id,
       serviceId: this.activeTour.isService ? this.activeTour.id : undefined,
       checkIn,
       checkOut,
       guestCount: this.totalGuests,
-      roomCount: 1
+      roomCount: this.isLodging ? (this.roomQuantities[this.selectedRoomId] || 1) : 1
     };
 
     localStorage.setItem('greensteps_booking_context', JSON.stringify(bookingContext));
@@ -572,7 +710,7 @@ export class TourDetailComponent implements OnInit {
         });
       }
     } catch (error: any) {
-      alert(error?.error?.message || 'Could not submit the review. Please try again.');
+      alert(error?.error?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
       this.isSubmittingReview = false;
       return;
     }

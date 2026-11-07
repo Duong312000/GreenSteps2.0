@@ -1,3 +1,4 @@
+import { TransportBookingsComponent } from './pages/transport/transport-bookings';
 import { GreenWalletComponent } from './pages/profile/green-wallet';
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
@@ -79,6 +80,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     HelpCenterContactComponent,
   ],
   imports: [
+    TransportBookingsComponent,
     GreenWalletComponent,
     BrowserModule,
     CommonModule,

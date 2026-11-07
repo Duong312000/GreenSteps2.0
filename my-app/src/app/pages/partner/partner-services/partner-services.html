@@ -210,14 +210,14 @@
                             </div>
 
                             <div class="flex justify-between items-center mb-4 text-xs text-gray-500 bg-teal-50/40 p-2.5 rounded-xl border border-teal-500/10">
-                                <span>CO₂ Giảm: <strong class="text-teal-700">{{ srv.carbon }} kg</strong></span>
-                                <span>Chỗ tối đa: <strong class="text-teal-700">{{ srv.max_capacity || 10 }}</strong></span>
+                                <span *ngIf="carbonConfirmed(srv)">CO₂ Giảm: <strong class="text-teal-700">{{ srv.carbon }} kg</strong></span>
+                                <span>Chỗ tối đa: <strong class="text-teal-700">{{ srv.capacityKnown === false ? 'Liên hệ xác nhận' : (srv.max_capacity || 'Chưa cung cấp') }}</strong></span>
                             </div>
 
                             <div class="flex justify-between items-end mt-auto pt-3 border-t border-gray-50">
                                 <div>
                                     <p class="text-[10px] text-gray-400 mb-0.5 font-bold uppercase">Giá niêm yết</p>
-                                    <p class="font-black text-teal-600 text-[16px]">{{ srv.cost | number:'1.0-0':'vi-VN' }}đ</p>
+                                    <p class="font-black text-teal-600 text-[16px]">{{ servicePrice(srv) }}</p>
                                 </div>
                                 
                                 <!-- Action Buttons -->
@@ -493,32 +493,38 @@
                 <div class="grid grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                     <div>
                         <span class="block text-xs text-gray-400 font-bold uppercase">Giá niêm yết</span>
-                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.cost | number }}đ</strong>
+                        <strong class="text-teal-600 font-black text-sm">{{ servicePrice(detailedService) }}</strong>
                     </div>
                     <div>
                         <span class="block text-xs text-gray-400 font-bold uppercase">CO₂ Tiết kiệm</span>
-                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.carbon }} kg</strong>
+                        <strong class="text-teal-600 font-black text-sm">{{ carbonConfirmed(detailedService) ? detailedService.carbon + ' kg' : 'Chưa có số liệu xác nhận' }}</strong>
                     </div>
                     <div>
                         <span class="block text-xs text-gray-400 font-bold uppercase">Chỗ tối đa</span>
-                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.max_capacity || 10 }} khách</strong>
+                        <strong class="text-teal-600 font-black text-sm">{{ detailedService.current_data?.capacityStatus === 'unconfirmed' ? 'Liên hệ cơ sở' : (detailedService.max_capacity ? detailedService.max_capacity + ' khách' : 'Chưa cung cấp') }}</strong>
                     </div>
                 </div>
 
+                <div class="provider-catalog-information">
+                    <section *ngIf="detailedService.current_data?.sourceUrls?.length"><h4>Nguồn thông tin công khai</h4><p>Đối chiếu: {{ detailedService.current_data.sourceCheckedAt | date:'dd/MM/yyyy' }}. Giá tham khảo và tình trạng chỗ cần được cơ sở xác nhận.</p><a *ngFor="let url of detailedService.current_data.sourceUrls" [href]="url" target="_blank" rel="noopener noreferrer">{{ url }}</a></section>
+                    <section *ngIf="detailedService.current_data?.rooms?.length"><h4>Loại phòng</h4><article class="provider-room-row" *ngFor="let room of detailedService.current_data.rooms"><strong>{{ room.name }}</strong><span *ngIf="room.area">{{ room.area }} m²</span><span *ngIf="room.capacity">Sức chứa tối đa {{ room.capacity }} khách — xem điều kiện loại phòng</span><span>{{ room.price_per_night != null ? (room.price_per_night | number:'1.0-0':'vi-VN') + 'đ/đêm' : 'Giá: liên hệ xác nhận' }}</span><span>{{ room.available_rooms != null ? room.available_rooms + ' phòng' : 'Chưa có số phòng trống được xác nhận' }}</span><p *ngFor="let line of room.policies">{{ line }}</p></article></section>
+                    <section *ngIf="detailedService.current_data?.amenityGroups?.length"><h4>Tiện nghi &amp; dịch vụ</h4><div class="provider-amenity-groups"><article *ngFor="let group of detailedService.current_data.amenityGroups"><strong>{{ group.name }}</strong><ul><li *ngFor="let item of group.items">{{ amenityLabel(item) }}</li></ul></article></div></section>
+                    <section *ngIf="detailedService.current_data?.greenFeatures?.length"><h4>Đặc điểm xanh đã công bố</h4><article *ngFor="let feature of detailedService.current_data.greenFeatures"><strong>{{ feature.title }}</strong><p>{{ feature.description }}</p></article></section>
+                </div>
                 <div class="space-y-3.5">
                     <div>
                         <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch mở bán / hoạt động</span>
-                        <p class="text-gray-800 font-medium">{{ detailedService.current_data?.schedule || 'Tất cả các ngày trong tuần' }}</p>
+                        <p class="text-gray-800 font-medium">{{ detailedService.current_data?.schedule || 'Chưa có thông tin xác nhận' }}</p>
                     </div>
                     
                     <div>
                         <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Lịch trình & Hoạt động chi tiết</span>
-                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-teal-50/20 p-3 rounded-xl border border-teal-500/5">{{ detailedService.current_data?.itinerary || 'Tự do tham quan' }}</p>
+                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-teal-50/20 p-3 rounded-xl border border-teal-500/5">{{ detailedService.current_data?.itinerary || detailedService.current_data?.description || 'Chưa có thông tin xác nhận' }}</p>
                     </div>
 
                     <div>
                         <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Chính sách hủy đơn & hoàn tiền</span>
-                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-red-50/20 p-3 rounded-xl border border-red-500/5">{{ detailedService.current_data?.policy || 'Theo quy định chung' }}</p>
+                        <p class="text-gray-800 whitespace-pre-line leading-relaxed font-medium bg-red-50/20 p-3 rounded-xl border border-red-500/5">{{ servicePolicyText(detailedService.current_data) || 'Chưa có chính sách được xác nhận' }}</p>
                     </div>
 
                     <div *ngIf="detailedService.status === 'rejected' && detailedService.rejection_reason" class="p-4 bg-red-50 text-red-800 rounded-xl border border-red-150">
@@ -594,7 +600,7 @@
                     <div class="flex-1 min-w-0">
                         <p class="font-bold text-gray-900 truncate">{{ sharingService.name }}</p>
                         <p class="text-gray-400 mt-0.5"><i class="bi bi-geo-alt-fill text-teal-600"></i> {{ sharingService.destination }}</p>
-                        <p class="text-teal-600 font-bold mt-1">{{ sharingService.cost | number }}đ</p>
+                        <p class="text-teal-600 font-bold mt-1">{{ servicePrice(sharingService) }}</p>
                     </div>
                 </div>
 

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "srv_demo_detail_dalat_garden",
+    "name_service": "Ana Mandara Villas Dalat Resort & Spa",
+    "type": "stay", "destination": "Đà Lạt", "cost": 0,
+    "current_data": {
+      "description": "Khu nghỉ dưỡng trong các biệt thự kiến trúc Pháp giữa đồi thông Đà Lạt. Các hạng Villa Room, Villa Studio và Villa Suite có diện tích và bố trí khác nhau.",
+      "address": "Đường Lê Lai, Đà Lạt, Lâm Đồng, Việt Nam",
+      "contactPhone": "0263 3555 888", "contactEmail": "reservation@anamandara-resort.com",
+      "schedule": "Nhận phòng từ 14:00; trả phòng trước 12:00.",
+      "policyGroups": [
+        { "title": "Thời gian nhận và trả phòng", "lines": ["Nhận phòng từ 14:00; trả phòng trước 12:00. Nhận sớm hoặc trả muộn có thể phát sinh phí."] },
+        { "title": "Giấy tờ nhận phòng", "lines": ["Xuất trình giấy tờ tùy thân hoặc hộ chiếu hợp lệ khi làm thủ tục."] },
+        { "title": "Quy định tại khu nghỉ dưỡng", "lines": ["Không mang thú cưng. Không nấu ăn hoặc giặt đồ trong phòng. Khách thăm cần đăng ký với lễ tân và không lưu lại sau 22:00."] }
+      ],
+      "amenityGroups": [
+        { "name": "Tiện nghi phòng", "items": ["Quạt trần", "Minibar", "Tủ lạnh nhỏ", "Két an toàn", "Máy sưởi"] },
+        { "name": "Phòng tắm", "items": ["Vòi sen hoặc bồn tắm", "Áo choàng tắm", "Máy sấy tóc", "Khăn tắm"] },
+        { "name": "Đồ uống trong phòng", "items": ["Nước uống, trà và cà phê miễn phí"] }
+      ],
+      "greenFeatures": [{ "title": "Sản phẩm vệ sinh hữu cơ", "description": "Danh mục tiện nghi phòng trên website cơ sở có sản phẩm vệ sinh hữu cơ." }],
+      "rooms": [
+        { "id": "ana_villa_room", "name": "Villa Room", "area": 28, "capacity": 3, "beds": "Queen; bố trí double hoặc twin", "amenities": ["Minibar", "Két an toàn", "Máy sưởi"], "policies": ["Tối đa 2 người lớn và 1 trẻ dưới 6 tuổi.", "Phòng không hút thuốc."], "sourceUrl": "https://anamandara-resort.com/rooms-suites/villa-room/", "imageSource": "https://www.anamandara-resort.com/wp-content/uploads/sites/233/2025/07/VILLA-ROOM-1304--1920x1200.jpg" },
+        { "id": "ana_villa_studio", "name": "Villa Studio", "area": 40, "capacity": 3, "beds": "King; bố trí double hoặc twin", "amenities": ["Khu tiếp khách", "Minibar", "Két an toàn"], "policies": ["Tối đa 2 người lớn và 1 trẻ dưới 6 tuổi.", "Phòng không hút thuốc."], "sourceUrl": "https://anamandara-resort.com/rooms-suites/villa-studio/", "imageSource": "https://www.anamandara-resort.com/wp-content/uploads/sites/233/2025/07/VILLA-STUDIO-1602-7-1920x1200.jpg" },
+        { "id": "ana_villa_suite", "name": "Villa Suite", "area": 52, "capacity": 3, "beds": "King; bố trí double hoặc twin", "amenities": ["Minibar", "Máy sưởi", "Két an toàn"], "policies": ["Tối đa 2 người lớn và 1 trẻ dưới 6 tuổi.", "Phòng không hút thuốc."], "sourceUrl": "https://anamandara-resort.com/rooms-suites/villa-suite/", "imageSource": "https://www.anamandara-resort.com/wp-content/uploads/sites/233/2025/07/VILLA-SUITE-705-1920x1200.jpg" }
+      ],
+      "sourceUrls": ["https://anamandara-resort.com/", "https://anamandara-resort.com/rooms-suites/villa-room/", "https://anamandara-resort.com/rooms-suites/villa-studio/", "https://anamandara-resort.com/rooms-suites/villa-suite/", "https://anamandara-resort.com/resort-policy/"],
+      "imageSource": "https://www.anamandara-resort.com/wp-content/uploads/sites/233/2025/07/VILLA-ROOM-1304--1920x1200.jpg"
+    }
+  },
+  {
+    "id": "srv_demo_detail_hoian_riverside", "name_service": "Anantara Hoi An Resort", "type": "stay", "destination": "Hội An", "cost": 0,
+    "current_data": {
+      "description": "Khu nghỉ dưỡng bên sông Thu Bồn với phòng và suite hướng vườn hoặc sông, cách khu phố cổ dưới một kilômét. Có hồ bơi, nhà hàng và spa.",
+      "address": "1 Phạm Hồng Thái, phường Hội An, thành phố Đà Nẵng, Việt Nam", "lat": 15.8800584, "lng": 108.3380469,
+      "contactPhone": "+84 235 391 4555", "schedule": "Nhận phòng từ 14:00; trả phòng trước 12:00.",
+      "amenityGroups": [
+        { "name": "Internet", "items": [{ "name": "WiFi tốc độ cao", "fee": "free" }] },
+        { "name": "Nghỉ dưỡng", "items": ["Hồ bơi điều chỉnh nhiệt độ", "Spa", "Nhà hàng", "Phòng tập"] }
+      ],
+      "nearby": ["Phố cổ Hội An", "Làng mộc Kim Bồng", "Làng gốm Thanh Hà", "Làng rau Trà Quế", "Biển An Bàng"],
+      "policyGroups": [{ "title": "Thời gian nhận và trả phòng", "lines": ["Nhận phòng từ 14:00; trả phòng trước 12:00."] }],
+      "greenFeatures": [
+        { "title": "Giảm nhựa dùng một lần", "description": "Dùng bình nạp lại cho sản phẩm chăm sóc cá nhân; bỏ ống hút nhựa ở nhà hàng và quầy bar." },
+        { "title": "Năng lượng mặt trời", "description": "Hệ thống năng lượng mặt trời cung cấp một phần nước nóng." },
+        { "title": "Phân loại rác", "description": "Rác phát sinh tại cơ sở được phân loại trước khi thải bỏ." },
+        { "title": "Chai nước thủy tinh", "description": "Nước được xử lý tại chỗ, dùng chai thủy tinh tái sử dụng sau khi khử khuẩn." }
+      ],
+      "rooms": [
+        { "id": "anantara_deluxe_balcony", "name": "Deluxe Balcony Room", "area": 36, "capacity": 3, "amenities": ["WiFi miễn phí", "Ban công hoặc sân hiên", "Khu tiếp khách", "Vòi sen"], "policies": ["Tối đa 3 người lớn hoặc 2 người lớn và 1 trẻ em."], "imageSource": "https://assets.anantara.com/image/upload/q_auto,f_auto,c_limit,w_1045/media/minor/anantara/images/anantara-hoi-an-resort/accommodation/details-page/deluxe-balcony-room/anantara_hoi_an_resort_guest_room_deluxe_balcony_02.jpg" },
+        { "id": "anantara_deluxe_garden", "name": "Deluxe Garden Suite", "area": 42, "capacity": 3, "amenities": ["WiFi miễn phí", "Ban công hoặc sân hiên", "Khu tiếp khách", "Hướng vườn"], "policies": ["Tối đa 3 người lớn hoặc 2 người lớn và 1 trẻ em."], "imageSource": "https://assets.anantara.com/image/upload/q_auto,f_auto,c_limit,w_1045/media/minor/anantara/images/anantara-hoi-an-resort/accommodation/details-page/deluxe-garden-view-suites/anantara_hoi_an_resort_guest_room_deluxe_garden_view_suite_726x392_05.jpg" }
+      ],
+      "sourceUrls": ["https://www.anantara.com/en/hoi-an", "https://www.anantara.com/en/hoi-an/contact", "https://www.anantara.com/en/hoi-an/rooms", "https://www.anantara.com/en/hoi-an/sustainability"],
+      "imageSource": "https://assets.anantara.com/image/upload/q_auto,f_auto,c_limit,w_1045/media/minor/anantara/images/anantara-hoi-an-resort/accommodation/details-page/deluxe-balcony-room/anantara_hoi_an_resort_guest_room_deluxe_balcony_02.jpg"
+    }
+  },
+  {
+    "id": "srv_demo_detail_phuyen_seaside", "name_service": "Zannier Bãi San Hô", "type": "stay", "destination": "Phú Yên", "cost": 0,
+    "current_data": {
+      "description": "Khu nghỉ dưỡng có biệt thự giữa đồng lúa, trên đồi và bên bãi biển. Các hạng biệt thự có không gian riêng; tiện ích gồm spa, hoạt động thể thao và nhà hàng.",
+      "address": "Thôn Hòa Thạnh, xã Xuân Cảnh, khu vực Sông Cầu, tỉnh Đắk Lắk, Việt Nam (theo website cơ sở)", "contactPhone": "+84 257 383 0000", "contactEmail": "reservations.baisanho@zannier.com",
+      "amenityGroups": [{ "name": "Tiện nghi biệt thự", "items": ["WiFi", "TV", "Minibar", "Điều hòa"] }, { "name": "Thư giãn & vận động", "items": ["Spa Hoa Sen", "Phòng tập", "Yoga", "Thể thao dưới nước"] }],
+      "greenFeatures": [{ "title": "Green Globe", "description": "Website cơ sở công bố chứng nhận Green Globe cùng định hướng bảo tồn môi trường ven biển và văn hóa địa phương." }],
+      "rooms": [{ "id": "zannier_greenfield", "name": "Greenfield Terrace Villa", "area": 49, "capacity": 3, "beds": "Giường king", "amenities": ["WiFi", "TV", "Minibar", "Điều hòa", "Bồn tắm", "Vòi sen riêng"], "policies": ["Sức chứa được công bố: 2 người lớn và 1 trẻ em.", "Bố trí từng biệt thự có thể khác ảnh giới thiệu."], "imageSource": "https://www.zannierhotels.com/wp-content/uploads/2025/06/Zannier-Bai-San-Ho-Paddy-Field-Villa-Exterior-1-%C2%A9-Frederik-Wissink-for-Zannier-Hotels-1-scaled.webp" }],
+      "sourceUrls": ["https://www.zannierhotels.com/hotels/bai-san-ho/", "https://www.zannierhotels.com/hotels/bai-san-ho/accommodation/greenfield-terrace-villa/"],
+      "imageSource": "https://www.zannierhotels.com/wp-content/uploads/2025/06/Zannier-Bai-San-Ho-Paddy-Field-Villa-Exterior-1-%C2%A9-Frederik-Wissink-for-Zannier-Hotels-1-scaled.webp"
+    }
+  },
+  {
+    "id": "srv_demo_detail_dalat_farm_table", "name_service": "Afternoon Tea — Ana Mandara Villas Dalat", "type": "food", "destination": "Đà Lạt", "cost": 299000,
+    "current_data": {
+      "description": "Trà chiều tại Ana Mandara Villas Dalat với trà hoặc cà phê, bánh ngọt và sandwich. Website công bố giá 299.000 đồng/người; cần xác nhận lại giá và giờ phục vụ với cơ sở.",
+      "address": "Ana Mandara Villas Dalat, đường Lê Lai, Đà Lạt, Lâm Đồng", "contactPhone": "0263 3555 888", "contactEmail": "reservation@anamandara-resort.com",
+      "schedule": "Liên hệ xác nhận giờ phục vụ: trang giới thiệu và thực đơn PDF hiện công bố khung giờ khác nhau.",
+      "amenityGroups": [{ "name": "Thành phần phục vụ", "items": ["Lựa chọn trà hoặc cà phê", "Bánh ngọt", "Sandwich"] }],
+      "policyGroups": [{ "title": "Thực phẩm & dị ứng", "lines": ["Thực đơn lưu ý món ăn có thể chứa sữa, trứng, hải sản, các loại hạt, đậu nành hoặc gluten."] }, { "title": "Giá công khai", "lines": ["Giá trong thực đơn: 299.000 đồng/người, đã gồm VAT và phí dịch vụ. Xác nhận lại trước khi sử dụng."] }],
+      "sourceUrls": ["https://anamandara-resort.com/fb-offers/afternoon-tea/", "https://www.anamandara-resort.com/wp-content/uploads/sites/233/2024/07/AFTERNOON-TEA-MENU-2024-.pdf"]
+    }
+  },
+  {
+    "id": "srv_demo_detail_hoian_cycle", "name_service": "Thuê xe đạp — Hoi An Bike Tours", "type": "transport", "destination": "Hội An", "cost": 50000,
+    "current_data": {
+      "description": "Dịch vụ cho thuê xe đạp của Hoi An Bike Tours để tự khám phá Hội An và vùng lân cận. Website công bố 50.000 đồng cho một ngày thuê, có khóa xe đi kèm.",
+      "schedule": "Khoảng 06:00–18:00; nhu cầu thuê lâu hơn cần trao đổi trước.",
+      "amenityGroups": [{ "name": "Thiết bị & hỗ trợ", "items": ["Xe đạp unisex", "Khóa xe", "Tư vấn phương tiện theo hành trình"] }],
+      "policyGroups": [{ "title": "Thời gian thuê", "lines": ["Thời gian một ngày thuê khoảng 06:00–18:00. Trao đổi trước nếu cần thời gian khác."] }, { "title": "Giá công khai", "lines": ["Giá trên website: 50.000 đồng/ngày. Xác nhận lại giá và xe sẵn có với đơn vị cho thuê."] }],
+      "sourceUrls": ["https://hoianbiketours.com/bike-hire"],
+      "imageSource": "https://hoianbiketours.com/wp-content/uploads/images/Hoian-Bike-Tours-Header-3-1000x250.jpg"
+    }
+  },
+  {
+    "id": "srv_demo_detail_hoian_herbal", "name_service": "Spice Spoons — Anantara Hoi An Resort", "type": "attraction", "destination": "Hội An", "cost": 0,
+    "current_data": {
+      "description": "Lớp nấu ăn tại Anantara Hội An, được hướng dẫn từng bước bởi bếp trưởng. Khách lựa chọn món để thực hành và thưởng thức vào bữa trưa.",
+      "address": "Anantara Hoi An Resort, 1 Phạm Hồng Thái, phường Hội An, Đà Nẵng", "lat": 15.8800584, "lng": 108.3380469, "contactPhone": "+84 235 391 4555",
+      "amenityGroups": [{ "name": "Nội dung trải nghiệm", "items": ["Hướng dẫn của bếp trưởng", "Thực hành món ăn Việt Nam", "Thưởng thức món đã chuẩn bị vào bữa trưa"] }],
+      "sourceUrls": ["https://www.anantara.com/en/hoi-an/experiences/spice-spoons", "https://www.anantara.com/en/hoi-an/contact"],
+      "imageSource": "https://assets.anantara.com/image/upload/q_auto,f_auto,c_limit,w_1045/media/minor/anantara/images/anantara-hoi-an-resort/experiences/details-page/spice-spoons/anantara_hoi_an_spicespoons_intro_944x510.jpg"
+    }
+  }
+]

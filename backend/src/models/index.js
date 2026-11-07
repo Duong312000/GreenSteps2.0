@@ -274,6 +274,8 @@ const ServiceBooking = store.define('ServiceBooking', {
   pricing_snapshot: { type: FieldTypes.JSONB },
   order_details_snapshot: { type: FieldTypes.JSONB },
   check_out_date: { type: FieldTypes.DATEONLY },
+  room_id: { type: FieldTypes.STRING },
+  room_count: { type: FieldTypes.INTEGER },
   operation_status: { type: FieldTypes.STRING, defaultValue: 'preparing', allowNull: false },
   confirm_deadline: { type: FieldTypes.DATE },
   payment_deadline: { type: FieldTypes.DATE },

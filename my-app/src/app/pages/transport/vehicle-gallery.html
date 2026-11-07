@@ -1,0 +1,15 @@
+ <section class="bus-gallery" [class.single-image]="images.length === 1" [class.two-images]="images.length === 2" aria-label="Ảnh phương tiện">
+  <button *ngFor="let src of images.slice(0,3); let i = index" type="button" [class.main-image]="i === 0" (click)="openImage(i)" [attr.aria-label]="'Xem lớn ảnh xe ' + (i+1)">
+   <img [src]="src" [alt]="vehicle.name + ' — ảnh ' + (i+1)" [attr.loading]="i === 0 ? 'eager' : 'lazy'">
+   <span *ngIf="i === 2 && images.length > 3" class="more-images"><i class="bi bi-images" aria-hidden="true"></i> +{{images.length-3}} ảnh</span>
+   <span *ngIf="i === 0 && vehicle.image_sources?.length" class="illustrative-label">Ảnh minh họa</span><span *ngIf="i === 0" class="expand-image"><i class="bi bi-arrows-angle-expand" aria-hidden="true"></i></span>
+  </button>
+  <div *ngIf="!images.length" class="no-photo"><i class="bi bi-bus-front" aria-hidden="true"></i><p>Nhà xe đang cập nhật hình ảnh</p></div>
+ </section>
+
+<dialog #galleryDialog class="gallery-dialog" (click)="$event.target === galleryDialog && galleryDialog.close()" (keydown.arrowright)="nextImage(1)" (keydown.arrowleft)="nextImage(-1)" aria-label="Bộ ảnh phương tiện">
+ <div class="gallery-toolbar"><span>{{vehicle.name}} · {{activeImage+1}} / {{images.length}}</span><button type="button" (click)="galleryDialog.close()" aria-label="Đóng bộ ảnh" autofocus><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+ <img *ngIf="images.length" [src]="images[activeImage]" [alt]="vehicle.name + ' — ảnh ' + (activeImage+1)">
+ <div class="gallery-controls" *ngIf="images.length > 1"><button type="button" (click)="nextImage(-1)" aria-label="Ảnh trước">‹</button><button *ngFor="let src of images; let i = index" type="button" [class.active]="activeImage === i" (click)="activeImage=i" [attr.aria-label]="'Xem ảnh ' + (i+1)" [attr.aria-pressed]="activeImage === i"><img [src]="src" alt=""></button><button type="button" (click)="nextImage(1)" aria-label="Ảnh tiếp theo">›</button></div>
+ <p class="image-credit" *ngFor="let credit of vehicle.image_sources"><a [href]="credit.page_url" target="_blank" rel="noopener noreferrer">{{credit.title}}</a> · {{credit.author}} · <a [href]="credit.license_url" target="_blank" rel="noopener noreferrer">{{credit.license}}</a> · Ảnh minh họa</p>
+</dialog>
