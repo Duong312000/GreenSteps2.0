@@ -26,7 +26,7 @@ export interface AdminUserQuery {
   providedIn: 'root'
 })
 export class ApiService {
-  private BACKEND_URL = getApiUrl();
+  public BACKEND_URL = getApiUrl();
 
   walletRequest(method: string, path: string, body?: unknown, key?: string): Promise<any> {
     return firstValueFrom(this.http.request(method, `${this.BACKEND_URL}/wallet${path}`, { body, withCredentials: true, headers: key ? { 'Idempotency-Key': key } : {} }));
@@ -567,13 +567,17 @@ export class ApiService {
     }
   }
 
-  public async addCommunityPost(postData: any): Promise<boolean> {
+  public async addCommunityPost(postData: any): Promise<{ success: boolean; message?: string }> {
     try {
       this.clearCache('community_posts_');
-      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/posts`, postData));
-      return true;
-    } catch (e) {
-      return false;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('greensteps_token') : null;
+      const headers: any = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await firstValueFrom(this.http.post<any>(this.BACKEND_URL + '/community/posts', postData, { headers, withCredentials: true }));
+      return { success: true, message: res?.message };
+    } catch (e: any) {
+      console.error('addCommunityPost error:', e);
+      return { success: false, message: e?.error?.message || e?.message || 'Không thể chia sẻ bài viết lên cộng đồng.' };
     }
   }
 
@@ -913,7 +917,7 @@ export class ApiService {
     }
   }
 
-  public async postServiceReview(reviewData: { bookingId: string; serviceId: string; rating: number; text: string }): Promise<any> {
+  public async postServiceReview(reviewData: { bookingId?: string; serviceId: string; rating?: number | null; text: string; parentCommentId?: string | null }): Promise<any> {
     this.clearCache(`service_reviews_${reviewData.serviceId}`);
     this.clearCache(`service_detail_tour_${reviewData.serviceId}`);
     this.clearCache(`preset_tour_${reviewData.serviceId}`);
@@ -1022,6 +1026,34 @@ export class ApiService {
       );
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi xác thực E-Voucher!' };
+    }
+  }
+
+    public async requestRefund(payload: { bookingId: string; reason: string; bankName?: string; accountNumber?: string; accountHolder?: string }): Promise<{ success: boolean; message: string; refundRate?: number; refundAmount?: number }> {
+    try {
+      return await firstValueFrom(
+        this.http.post<any>(`${this.BACKEND_URL}/bookings/request-refund`, payload)
+      );
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'Lỗi gửi yêu cầu hoàn tiền!' };
+    }
+  }
+
+  public async approveAdminRefund(id: string): Promise<boolean> {
+    try {
+      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/refunds/${id}/approve`, {}, { withCredentials: true }));
+      return res?.success ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  public async rejectAdminRefund(id: string, note?: string): Promise<boolean> {
+    try {
+      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/refunds/${id}/reject`, { note }, { withCredentials: true }));
+      return res?.success ?? false;
+    } catch {
+      return false;
     }
   }
 
@@ -1144,7 +1176,7 @@ export class ApiService {
   public reviewCommunityReport(id: string, action: string, note: string): Promise<any> {
     return firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/reports/${id}/review`, { action, note }, { withCredentials: true }));
   }
-  public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings'): Promise<AdminQueueResult<any>> {
+  public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings' | 'refunds'): Promise<AdminQueueResult<any>> {
     return this.getAdminQueue(`/admin/catalog/${kind}`);
   }
   private adminUserQuery(query: AdminUserQuery): string {

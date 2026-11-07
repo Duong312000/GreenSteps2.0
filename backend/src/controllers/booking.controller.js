@@ -714,6 +714,66 @@ exports.checkInEVoucher = async (req, res, next) => {
   }
 };
 
+exports.requestRefund = async (req, res, next) => {
+  const { bookingId, reason, bankName, accountNumber, accountHolder } = req.body;
+  if (!bookingId) {
+    return res.status(400).json({ success: false, message: 'Thiếu mã đặt chỗ.' });
+  }
+
+  try {
+    let booking = await TourBooking.findByPk(bookingId);
+    let isService = false;
+    if (!booking) {
+      booking = await ServiceBooking.findByPk(bookingId);
+      isService = true;
+    }
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn đặt chỗ.' });
+    }
+
+    if (booking.status === 'refunded') {
+      return res.status(400).json({ success: false, message: 'Đơn này đã được hoàn tiền trước đó.' });
+    }
+
+    const today = new Date();
+    const tourDate = new Date(booking.booking_date);
+    const diffTime = tourDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    let refundRate = 0;
+    if (diffDays >= 7) {
+      refundRate = 100;
+    } else if (diffDays >= 3) {
+      refundRate = 50;
+    } else {
+      refundRate = 0;
+    }
+
+    const depositAmount = Number(booking.value) || 0;
+    const refundAmount = Math.round(depositAmount * (refundRate / 100));
+
+    const note = `[Yêu cầu hoàn tiền] Tỷ lệ ${refundRate}% (${refundAmount.toLocaleString('vi-VN')}đ) | Lý do: ${reason || 'Đổi lịch trình'} | STK: ${accountNumber || '—'} (${bankName || ''} - ${accountHolder || ''})`;
+
+    booking.status = 'rejected';
+    booking.escrow_status = 'refund_pending';
+    booking.rejection_reason = note;
+    await booking.save();
+
+    return res.json({
+      success: true,
+      refundRate,
+      refundAmount,
+      diffDays,
+      message: refundRate > 0
+        ? `Đã tiếp nhận yêu cầu hoàn tiền (${refundRate}% cọc - ${refundAmount.toLocaleString('vi-VN')}đ). Quản trị viên sẽ xử lý trong 24-48h.`
+        : 'Đã hủy đơn. Do đơn hủy dưới 3 ngày trước khởi hành, số tiền cọc không đủ điều kiện hoàn trả theo chính sách.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.cancelBooking = async (req, res, next) => {
   const { bookingId } = req.body;
   const userId = req.user ? req.user.id : req.body.userId;

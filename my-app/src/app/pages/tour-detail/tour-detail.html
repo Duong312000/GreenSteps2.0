@@ -99,16 +99,20 @@
 
         <!-- Rating & Reviews link -->
         <div class="gs-rating-row" (click)="scrollToReviews()" role="button" tabindex="0">
-          <div class="gs-stars">
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i>
-          </div>
-          <span class="gs-rating-score">{{ activeTour.rating || 5.0 }}<span class="gs-rating-denom">/5</span></span>
-          <span class="gs-rating-dot">·</span>
-          <span class="gs-rating-count">{{ totalReviewsCount }} đánh giá</span>
+          <ng-container *ngIf="totalReviewsCount > 0; else noReviewsHeader">
+            <div class="gs-stars">
+              <i *ngFor="let s of [1,2,3,4,5]" class="bi" [ngClass]="getStarClass(s, averageScore)"></i>
+            </div>
+            <span class="gs-rating-score">{{ averageScore | number:'1.1-2' }}<span class="gs-rating-denom">/5</span></span>
+            <span class="gs-rating-dot">·</span>
+            <span class="gs-rating-count">{{ totalReviewsCount }} đánh giá</span>
+          </ng-container>
+          <ng-template #noReviewsHeader>
+            <div class="gs-stars gs-stars-muted text-slate-300">
+              <i *ngFor="let s of [1,2,3,4,5]" class="bi bi-star text-slate-300"></i>
+            </div>
+            <span class="gs-rating-count text-slate-500 font-medium">Chưa có đánh giá</span>
+          </ng-template>
         </div>
 
         <!-- Price Display -->
@@ -412,7 +416,7 @@
                 class="gs-tab-link"
                 [class.active]="activeInfoTab === 'reviews'"
                 (click)="setInfoTab('reviews')">
-          Đánh giá <span class="gs-tab-pill">({{ totalReviewsCount }})</span>
+          Đánh giá <span class="gs-tab-pill">({{ totalCommentsCount }})</span>
         </button>
       </div>
 
@@ -552,6 +556,12 @@
               </div>
             </div>
           </div>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <span style="font-size: 13px; color: #6B7280;">Quy chuẩn chất lượng dịch vụ sinh thái theo cam kết Net-Zero.</span>
+            <a routerLink="/cancellation-policy" [queryParams]="{ tab: 'amenities' }" style="font-size: 13px; font-weight: 600; color: #132b22; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              Xem toàn văn Quy chuẩn Dịch vụ & Tiện ích <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
         </div>
 
         <!-- TAB 4: POLICY -->
@@ -563,6 +573,12 @@
               <p>{{ p.desc }}</p>
             </div>
           </div>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <span style="font-size: 13px; color: #6B7280;">Mọi giao dịch đặt cọc và hoàn hủy được bảo đảm minh bạch 100%.</span>
+            <a routerLink="/cancellation-policy" [queryParams]="{ tab: 'deposit' }" style="font-size: 13px; font-weight: 600; color: #132b22; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              Xem chi tiết toàn văn Chính sách & Tiêu chuẩn <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
         </div>
 
         <!-- TAB 5: REVIEWS (Shop.co 2-Column Review Cards Grid) -->
@@ -571,17 +587,16 @@
           <!-- Review Summary Header -->
           <div class="gs-reviews-summary-bar">
             <div>
-              <h3 class="gs-rev-total-title">Tất cả đánh giá <span class="gs-sub-count">({{ totalReviewsCount }})</span></h3>
-              <div class="gs-rev-stars-sub">
+              <h3 class="gs-rev-total-title">Đánh giá & bình luận <span class="gs-sub-count">({{ totalCommentsCount }})</span></h3>
+              <div class="gs-rev-stars-sub" *ngIf="totalReviewsCount > 0; else noReviewsSummaryTab">
                 <div class="gs-stars">
-                  <i class="bi bi-star-fill"></i>
-                  <i class="bi bi-star-fill"></i>
-                  <i class="bi bi-star-fill"></i>
-                  <i class="bi bi-star-fill"></i>
-                  <i class="bi bi-star-fill"></i>
+                  <i *ngFor="let s of [1,2,3,4,5]" class="bi" [ngClass]="getStarClass(s, averageScore)"></i>
                 </div>
-                <strong>{{ activeTour.rating || 5.0 }} trên 5</strong>
+                <strong>{{ averageScore | number:'1.1-2' }} trên 5</strong> <span class="gs-rev-sub-muted">· {{ totalReviewsCount }} lượt chấm điểm</span>
               </div>
+              <ng-template #noReviewsSummaryTab>
+                <div class="text-xs text-slate-400 mt-1">Chưa có đánh giá nào cho chuyến đi này</div>
+              </ng-template>
             </div>
 
             <div class="gs-rev-actions-bar">
@@ -592,61 +607,100 @@
             </div>
           </div>
 
-          <!-- Review Form for Eligible Users -->
-          <div class="gs-write-review-box" *ngIf="currentUser && reviewBookings.length > 0">
-            <h4>Viết cảm nhận của bạn</h4>
-            <div class="gs-rating-picker">
-              <span class="gs-label">Chấm điểm:</span>
+          <!-- Review / Comment Form (any logged-in user) -->
+          <div class="gs-write-review-box" *ngIf="currentUser; else loginToReview">
+            <h4>{{ hasUserRated ? 'Viết bình luận' : 'Đánh giá & bình luận' }}</h4>
+            <div class="gs-rating-picker" *ngIf="!hasUserRated">
+              <span class="gs-label">Chấm điểm (không bắt buộc):</span>
               <div class="gs-picker-stars">
                 <i class="bi"
                    *ngFor="let s of [1,2,3,4,5]"
                    [ngClass]="s <= newReviewRating ? 'bi-star-fill active' : 'bi-star'"
-                   (click)="newReviewRating = s"></i>
+                   (click)="setNewReviewRating(s)"></i>
               </div>
             </div>
+            <p class="gs-rev-hint" *ngIf="hasUserRated">Bạn đã chấm điểm mục này. Bạn vẫn có thể tiếp tục bình luận.</p>
+            <p class="gs-rev-hint" *ngIf="reviewBookings.length > 0 && !hasUserRated">
+              <i class="bi bi-patch-check-fill"></i> Đánh giá của bạn sẽ được gắn nhãn "Đã trải nghiệm" từ đơn đặt chỗ đã hoàn thành.
+            </p>
             <textarea class="gs-rev-textarea"
                       [(ngModel)]="newReviewText"
-                      placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi này..."
+                      [placeholder]="activeTour.isService ? 'Chia sẻ cảm nhận hoặc đặt câu hỏi về dịch vụ này...' : 'Chia sẻ cảm nhận hoặc đặt câu hỏi về chuyến đi này...'"
                       rows="3"></textarea>
             <div class="gs-rev-btn-wrap">
               <button type="button"
                       class="gs-btn-primary gs-btn-sm"
                       [disabled]="isSubmittingReview || !newReviewText.trim()"
                       (click)="submitRootReview()">
-                {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                {{ isSubmittingReview ? 'Đang gửi...' : (newReviewRating > 0 && !hasUserRated ? 'Gửi đánh giá' : 'Gửi bình luận') }}
               </button>
             </div>
           </div>
+          <ng-template #loginToReview>
+            <div class="gs-write-review-box gs-login-prompt">
+              <p>Đăng nhập để đánh giá và bình luận về {{ activeTour.isService ? 'dịch vụ' : 'tour' }} này.</p>
+              <a routerLink="/login" class="gs-btn-primary gs-btn-sm">Đăng nhập</a>
+            </div>
+          </ng-template>
 
-          <!-- Reviews Grid (Shop.co 2-Column Minimal Card Style) -->
+          <!-- Reviews & Comments List -->
           <div class="gs-reviews-grid" *ngIf="filteredReviews.length > 0">
             <div class="gs-review-card" *ngFor="let rev of filteredReviews">
               <div class="gs-rc-header">
-                <div class="gs-rc-stars">
-                  <i class="bi bi-star-fill" *ngFor="let i of [1,2,3,4,5]" [class.empty]="i > (rev.rating || 5)"></i>
+                <div class="gs-rc-stars" *ngIf="rev.rating; else commentTag">
+                  <i class="bi bi-star-fill" *ngFor="let i of [1,2,3,4,5]" [class.empty]="i > rev.rating"></i>
                 </div>
+                <ng-template #commentTag><span class="gs-rc-comment-tag"><i class="bi bi-chat-left-text"></i> Bình luận</span></ng-template>
                 <span class="gs-rc-date">{{ rev.createdAt ? (rev.createdAt | date:'dd/MM/yyyy') : 'Gần đây' }}</span>
               </div>
 
               <div class="gs-rc-user-row">
                 <div class="gs-rc-avatar">
-                  <img *ngIf="isAvatarUrl(rev.avatar)" [src]="rev.avatar" [alt]="rev.userName">
-                  <span *ngIf="!isAvatarUrl(rev.avatar)">{{ getFirstLetter(rev.userName) }}</span>
+                  <img *ngIf="isAvatarUrl(rev.user?.avatar)" [src]="rev.user?.avatar" [alt]="rev.user?.fullname">
+                  <span *ngIf="!isAvatarUrl(rev.user?.avatar)">{{ getFirstLetter(rev.user?.fullname || rev.userName) }}</span>
                 </div>
                 <div class="gs-rc-user-info">
-                  <strong class="gs-rc-username">{{ rev.userName || 'Khách hàng GreenSteps' }}</strong>
-                  <span class="gs-verified-badge"><i class="bi bi-patch-check-fill"></i> Đã đi tour này</span>
+                  <strong class="gs-rc-username">{{ rev.user?.fullname || rev.userName || 'Khách hàng GreenSteps' }}</strong>
+                  <span class="gs-verified-badge" *ngIf="rev.verified || rev.bookingId">
+                    <i class="bi bi-patch-check-fill"></i> {{ activeTour.isService ? 'Đã sử dụng dịch vụ' : 'Đã đi tour này' }}
+                  </span>
                 </div>
               </div>
 
-              <p class="gs-rc-comment">"{{ rev.comment || rev.text || 'Chuyến đi rất tuyệt vời, gia đình tôi đã có những kỷ niệm khó quên!' }}"</p>
+              <p class="gs-rc-comment">{{ rev.comment || rev.text }}</p>
+
+              <div class="gs-rc-actions">
+                <button type="button" class="gs-rc-action" (click)="handleLikeComment(rev.id)" [class.liked]="likedReviewsSet.has(rev.id)">
+                  <i class="bi" [ngClass]="likedReviewsSet.has(rev.id) ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"></i>
+                  Hữu ích{{ rev.likesCount ? ' (' + rev.likesCount + ')' : '' }}
+                </button>
+                <button type="button" class="gs-rc-action" *ngIf="currentUser" (click)="toggleReplyBox(rev.id)">
+                  <i class="bi bi-reply"></i> Trả lời
+                </button>
+              </div>
+
+              <div class="gs-rc-replies" *ngIf="rev.replies?.length">
+                <div class="gs-rc-reply" *ngFor="let rep of rev.replies">
+                  <strong>{{ rep.user?.fullname || 'Người dùng' }}</strong>
+                  <span class="gs-rc-provider" *ngIf="rep.user?.role === 'provider'">Nhà cung cấp</span>
+                  <span class="gs-rc-date">· {{ rep.createdAt | date:'dd/MM/yyyy' }}</span>
+                  <p>{{ rep.text }}</p>
+                </div>
+              </div>
+
+              <div class="gs-rc-reply-box" *ngIf="activeReplyTarget[rev.id]">
+                <textarea class="gs-rev-textarea" rows="2" [(ngModel)]="replyInputs[rev.id]" placeholder="Viết phản hồi..."></textarea>
+                <div class="gs-rev-btn-wrap">
+                  <button type="button" class="gs-btn-primary gs-btn-sm" [disabled]="!replyInputs[rev.id]?.trim()" (click)="submitReply(rev.id)">Gửi phản hồi</button>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Empty Reviews State -->
           <div class="gs-empty-reviews" *ngIf="filteredReviews.length === 0">
             <i class="bi bi-chat-heart"></i>
-            <p>Chưa có đánh giá nào. Hãy là người đầu tiên trải nghiệm và chia sẻ!</p>
+            <p>Chưa có đánh giá hay bình luận nào. Hãy là người đầu tiên chia sẻ!</p>
           </div>
 
         </div>

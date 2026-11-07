@@ -833,3 +833,187 @@
     display: block;
   }
 }
+
+
+/* ==========================================================================
+   AI Planner Micro Banner & Source Tabs
+   ========================================================================== */
+.planner-hero-banner {
+  background: #fbfbf9;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .planner-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.planner-banner-content {
+  flex: 1;
+}
+
+.planner-micro-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.planner-hero-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.planner-hero-desc {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.btn-custom-planner {
+  background-color: #2d4a3e;
+  border: 1px solid #2d4a3e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-custom-planner:hover {
+  background-color: #223a30;
+  transform: translateY(-1px);
+}
+
+/* Source Filter Quick Tabs */
+.source-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.source-tab-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.source-tab-btn:hover {
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.source-tab-btn.active {
+  background-color: #2d4a3e;
+  border-color: #2d4a3e;
+  color: #ffffff;
+}
+
+.source-tab-btn.active i {
+  color: #ffffff !important;
+}
+
+/* Floating Card Badges for Partner vs Google */
+.partner-top-badge {
+  background: rgba(16, 185, 129, 0.9);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.google-top-badge {
+  background: rgba(55, 65, 81, 0.85);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+}
+
+/* Dest Row Tags */
+.partner-verified-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #065f46;
+  background-color: #ecfdf5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #d1fae5;
+}
+
+.google-public-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: #4b5563;
+  background-color: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Action button overrides */
+.partner-action-btn {
+  background-color: #2d4a3e !important;
+  color: #ffffff !important;
+  border-color: #2d4a3e !important;
+}
+
+.partner-action-btn:hover {
+  background-color: #223a30 !important;
+}
+
+.google-action-btn {
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.google-action-btn:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}

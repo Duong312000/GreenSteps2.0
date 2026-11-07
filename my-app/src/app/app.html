@@ -1,4 +1,5 @@
-<app-header *ngIf="!isAdminRoute"></app-header>
+<app-header *ngIf="!isAdminRoute && !isStandalonePolicyRoute"></app-header>
 <router-outlet></router-outlet>
-<app-footer *ngIf="!isAdminRoute"></app-footer>
-<app-greensteps-chat *ngIf="!isAdminRoute && !isScheduleRoute"></app-greensteps-chat>
+<app-footer *ngIf="!isAdminRoute && !isStandalonePolicyRoute"></app-footer>
+<app-greensteps-chat *ngIf="!isAdminRoute && !isScheduleRoute && !isStandalonePolicyRoute"></app-greensteps-chat>
+<app-onboarding-tour *ngIf="!isAdminRoute"></app-onboarding-tour>

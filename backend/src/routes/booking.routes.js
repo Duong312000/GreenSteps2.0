@@ -8,6 +8,7 @@ router.post('/quote', softAuth, bookingController.quoteBooking);
 router.post('/checkin', authMiddleware, checkRole(['admin', 'provider']), bookingController.checkInEVoucher);
 
 router.post('/cancel', softAuth, bookingController.cancelBooking);
+router.post('/request-refund', softAuth, bookingController.requestRefund);
 router.get('/', authMiddleware, bookingController.getBookings);
 router.get('/pending', authMiddleware, checkRole(['admin']), bookingController.getPendingBookings);
 router.get('/lookup/phone', softAuth, bookingController.lookupBookingsByPhone);

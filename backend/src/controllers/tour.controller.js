@@ -1,7 +1,7 @@
 const { Op } = require('../db/mongo-store');
 const { randomUUID } = require('node:crypto');
 const { sendItineraryInviteEmail } = require('../services/email.service');
-const { createBookingReview } = require('../services/review.service');
+const { createBookingReview, createReply } = require('../services/review.service');
 const {
   store,
   Schedule,
@@ -590,27 +590,7 @@ exports.postTourReview = async (req, res, next) => {
   try {
     if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
     if (parentCommentId) {
-      if (req.user.role !== 'traveler') {
-        return res.status(403).json({ success: false, message: 'Provider replies must use the owner-validated review reply endpoint.' });
-      }
-      if (typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
-        return res.status(400).json({ success: false, message: 'Nội dung phản hồi không hợp lệ.' });
-      }
-      const parent = await CommentPost.findByPk(parentCommentId);
-      if (!parent || parent.parent_comment_id) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy đánh giá gốc.' });
-      }
-      if (tourId && parent.tour_id && tourId !== parent.tour_id) {
-        return res.status(400).json({ success: false, message: 'Đánh giá không thuộc tour này.' });
-      }
-      const comment = await CommentPost.create({
-        id: 'CEPtra' + Date.now().toString().slice(-8),
-        user_id: userId,
-        rating: null,
-        text: text.trim(),
-        tour_id: parent.tour_id || tourId,
-        parent_comment_id: parentCommentId
-      });
+      const comment = await createReply({ type: 'tour', targetId: tourId, parentCommentId, userId, text });
       const user = await User.findByPk(userId);
       return res.status(201).json({
         success: true,
@@ -654,7 +634,7 @@ exports.postTourReview = async (req, res, next) => {
       success: true,
       review: comment,
       comment,
-      bookingId: result.booking.id,
+      bookingId: result.booking ? result.booking.id : null,
       type: 'tour',
       targetId: result.target.id,
       rating: result.rating,
@@ -690,6 +670,7 @@ exports.getTourReviews = async (req, res, next) => {
       const cJson = {
         id: c.id,
         bookingId: c.booking_id || null,
+        verified: !!(c.booking_id || c.is_verified),
         user: user ? {
           id: user.id,
           fullname: user.fullname,

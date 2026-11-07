@@ -1,0 +1,35 @@
+<div class="network-error-wrap">
+  <div class="network-card">
+    <div class="status-code">503</div>
+    <h1 class="error-title">Mất kết nối mạng</h1>
+    <p class="error-desc">
+      Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại đường truyền internet của bạn.
+    </p>
+
+    <div class="action-row">
+      <button 
+        type="button" 
+        class="btn-primary" 
+        (click)="retryConnection()" 
+        [disabled]="isChecking">
+        <span *ngIf="isChecking" class="spinner"></span>
+        <span>{{ isChecking ? 'Đang kiểm tra...' : 'Thử lại kết nối' }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-outline" 
+        (click)="goHome()">
+        Về trang chủ
+      </button>
+    </div>
+
+    <div *ngIf="checkResult === 'success'" class="feedback-msg success">
+      Kết nối máy chủ thành công. Đang chuyển hướng...
+    </div>
+    <div *ngIf="checkResult === 'failed'" class="feedback-msg error">
+      Vẫn chưa thể kết nối đến máy chủ. Vui lòng thử lại sau vài giây.
+    </div>
+  </div>
+</div>
+

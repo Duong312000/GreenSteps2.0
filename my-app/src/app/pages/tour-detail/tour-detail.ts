@@ -75,13 +75,45 @@ export class TourDetailComponent implements OnInit {
     return Math.round((this.getRatingCount(stars) / this.reviewsList.length) * 100);
   }
 
+  /** Root reviews that carry a star rating */
+  public get ratedReviews(): any[] {
+    return (this.reviewsList || []).filter(r => !r.parentCommentId && r.rating !== null && r.rating !== undefined && Number(r.rating) > 0);
+  }
+
   public get totalReviewsCount(): number {
-    return Number(this.activeTour?.votes_count ?? this.activeTour?.votes ?? this.reviewsList?.length ?? 0);
+    return this.ratedReviews.length;
+  }
+
+  public get totalCommentsCount(): number {
+    return (this.reviewsList || []).length;
   }
 
   public get averageScore(): number {
-    if (!this.activeTour || this.activeTour.rating == null || !Number.isFinite(Number(this.activeTour.rating))) return 0;
-    return Number(this.activeTour.rating);
+    const rated = this.ratedReviews;
+    if (!rated.length) return 0;
+    const sum = rated.reduce((acc, r) => acc + Number(r.rating), 0);
+    return Number((sum / rated.length).toFixed(1));
+  }
+
+  public get currentUserId(): string {
+    return this.currentUser?.id || this.currentUser?._id || '';
+  }
+
+  /** A user may rate a tour/service only once; further posts are plain comments */
+  public get hasUserRated(): boolean {
+    const uid = this.currentUserId;
+    return !!uid && this.ratedReviews.some(r => (r.user?.id || r.userId) === uid);
+  }
+
+  public setNewReviewRating(star: number) {
+    if (this.hasUserRated) return;
+    this.newReviewRating = this.newReviewRating === star ? 0 : star;
+  }
+
+  public getStarClass(index: number, score: number): string {
+    if (score >= index) return 'bi-star-fill';
+    if (score >= index - 0.5) return 'bi-star-half';
+    return 'bi-star';
   }
 
   public get ratingText(): string {
@@ -612,14 +644,15 @@ export class TourDetailComponent implements OnInit {
     const tourId = this.activeTour?.id || '';
 
     let res;
-    if (this.activeTour?.isService) {
-      res = await this.apiService.replyToComment(parentCommentId, userId, text);
-    } else {
-      res = await this.apiService.postTourReview({
-        tourId,
-        text,
-        parentCommentId
-      });
+    try {
+      if (this.activeTour?.isService) {
+        res = await this.apiService.postServiceReview({ serviceId: tourId, text, parentCommentId });
+      } else {
+        res = await this.apiService.postTourReview({ tourId, text, parentCommentId });
+      }
+    } catch (error: any) {
+      alert(error?.error?.message || 'Gửi phản hồi thất bại!');
+      return;
     }
 
     if (res && res.success) {
@@ -634,7 +667,7 @@ export class TourDetailComponent implements OnInit {
   }
 
   public async submitRootReview() {
-    if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim() || !this.selectedReviewBookingId) return;
+    if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim()) return;
 
     if (!this.currentUser) {
       alert('Vui lòng đăng nhập để gửi đánh giá!');
@@ -643,26 +676,27 @@ export class TourDetailComponent implements OnInit {
 
     const tourId = this.activeTour?.id || '';
 
+    const ratingToSend = !this.hasUserRated && this.newReviewRating > 0 ? this.newReviewRating : null;
     this.isSubmittingReview = true;
     let res;
     try {
       if (this.activeTour?.isService) {
         res = await this.apiService.postServiceReview({
-          bookingId: this.selectedReviewBookingId,
+          bookingId: this.selectedReviewBookingId || undefined,
           serviceId: tourId,
-          rating: this.newReviewRating,
+          rating: ratingToSend,
           text: this.newReviewText
         });
       } else {
         res = await this.apiService.postTourReview({
-          bookingId: this.selectedReviewBookingId,
+          bookingId: this.selectedReviewBookingId || undefined,
           tourId,
-          rating: this.newReviewRating,
+          rating: ratingToSend,
           text: this.newReviewText
         });
       }
     } catch (error: any) {
-      alert(error?.error?.message || 'Could not submit the review. Please try again.');
+      alert(error?.error?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
       this.isSubmittingReview = false;
       return;
     }
@@ -674,7 +708,7 @@ export class TourDetailComponent implements OnInit {
       if (this.activeTour) {
         await this.loadReviews(this.activeTour.id);
         await this.loadReviewEligibility();
-        this.activeTour.rating = res.rating;
+        if (res.rating !== undefined && res.rating !== null) this.activeTour.rating = res.rating;
         const reviewCount = res.votes_count ?? res.reviews_count;
         if (reviewCount !== undefined) {
           this.activeTour.votes_count = reviewCount;

@@ -14,6 +14,7 @@ export class App implements OnInit {
   title = 'GreenSteps Travel';
   isAdminRoute = false;
   isScheduleRoute = false;
+  isStandalonePolicyRoute = false;
 
   constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
 
@@ -34,5 +35,6 @@ export class App implements OnInit {
     const cleanUrl = (url || '').split('?')[0].split('#')[0];
     this.isAdminRoute = cleanUrl === '/admin';
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
+    this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
   }
 }

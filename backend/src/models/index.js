@@ -257,7 +257,10 @@ const GreenService = store.define('GreenService', {
   max_capacity: { type: FieldTypes.INTEGER, defaultValue: 10 },
   status: { type: FieldTypes.STRING, defaultValue: 'active', allowNull: false },
   views_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
-  rejection_reason: { type: FieldTypes.TEXT }
+  rejection_reason: { type: FieldTypes.TEXT },
+  is_partner: { type: FieldTypes.BOOLEAN, defaultValue: true },
+  source: { type: FieldTypes.STRING, defaultValue: 'partner' },
+  google_place_id: { type: FieldTypes.STRING, allowNull: true }
 }, { timestamps: true });
 
 // 17. BadgeService Junction

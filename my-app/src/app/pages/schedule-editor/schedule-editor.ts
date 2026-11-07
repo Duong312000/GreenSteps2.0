@@ -686,6 +686,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
+  public getItineraryDaysCount(iti: any): number {
+    if (!iti) return 1;
+    if (typeof iti.days === 'number') return iti.days;
+    if (Array.isArray(iti.days)) return iti.days.length || 1;
+    if (typeof iti.daysCount === 'number') return iti.daysCount;
+    return 1;
+  }
+
   // Share methods
   public openShareModal(iti: any, event: Event) {
     event.stopPropagation();
@@ -719,15 +727,15 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         rating: 5,
         tripName: this.sharingItinerary.name,
         dest: this.sharingItinerary.destination,
-        days: this.sharingItinerary.days,
+        days: this.getItineraryDaysCount(this.sharingItinerary),
         likes: 0,
         comments: 0,
         image: null,
         itineraryId: this.sharingItinerary.id
       };
 
-      const ok = await this.apiService.addCommunityPost(payload);
-      if (ok) {
+      const res = await this.apiService.addCommunityPost(payload);
+      if (res && res.success) {
         this.closeShareModal();
         this.showAlert('Đã chia sẻ lịch trình lên cộng đồng GreenSteps thành công!', 'success', () => {
           this.router.navigate(['/community']);
@@ -4764,7 +4772,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
     if (dest.includes('da-nang') || dest.includes('danang') || destLabel.includes('đà nẵng') || destLabel.includes('da nang') ||
       dest.includes('hoi-an') || dest.includes('hoian') || destLabel.includes('hội an') || destLabel.includes('hoi an')) {
-      return 'image/da38f44902391ce9a9e4f0fd4b69fb04.jpg';
+      return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
     }
     return 'image/Viet Nam.png';
   }

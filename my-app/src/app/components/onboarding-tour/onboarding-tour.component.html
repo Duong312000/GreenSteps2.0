@@ -1,0 +1,50 @@
+<div *ngIf="isVisible" class="tour-backdrop" (click)="finishTour()">
+  <div class="tour-modal" (click)="$event.stopPropagation()">
+    <!-- Top Bar -->
+    <div class="tour-top">
+      <span class="tour-badge">Hướng dẫn tân thủ</span>
+      <span class="tour-counter">{{ steps[currentStepIndex].step }} / 04</span>
+    </div>
+
+    <!-- Content -->
+    <div class="tour-body">
+      <h3 class="tour-title">{{ steps[currentStepIndex].title }}</h3>
+      <p class="tour-desc">{{ steps[currentStepIndex].desc }}</p>
+    </div>
+
+    <!-- Progress Indicator Line -->
+    <div class="tour-progress">
+      <div 
+        class="progress-segment" 
+        *ngFor="let s of steps; let i = index" 
+        [class.active]="i === currentStepIndex"
+        [class.completed]="i < currentStepIndex">
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="tour-footer">
+      <button type="button" class="btn-skip" (click)="finishTour()">
+        Bỏ qua
+      </button>
+
+      <div class="btn-group">
+        <button 
+          *ngIf="currentStepIndex > 0" 
+          type="button" 
+          class="btn-prev" 
+          (click)="prevStep()">
+          Quay lại
+        </button>
+
+        <button 
+          type="button" 
+          class="btn-next" 
+          (click)="nextStep()">
+          {{ currentStepIndex === steps.length - 1 ? 'Hoàn tất' : 'Tiếp theo →' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

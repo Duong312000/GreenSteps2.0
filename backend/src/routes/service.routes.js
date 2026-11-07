@@ -4,6 +4,7 @@ const serviceController = require('../controllers/service.controller');
 const { authMiddleware, checkRole } = require('../middlewares/auth.middleware');
 
 router.get('/', serviceController.getServices);
+router.post('/cache-google-place', serviceController.cacheGooglePlace);
 router.get('/recommendations/:userId', serviceController.getRecommendations);
 router.get('/provider/:providerId', authMiddleware, checkRole(['provider', 'admin']), serviceController.getProviderServices);
 router.post('/', authMiddleware, checkRole(['provider', 'admin']), serviceController.addService);

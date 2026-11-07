@@ -1151,7 +1151,7 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png'))"
+                                <img [src]="iti.imageUrl || (iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' || iti.destination === 'Hội An' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png')))"
                                     alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
@@ -1237,7 +1237,7 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png'))"
+                                <img [src]="iti.imageUrl || (iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' || iti.destination === 'Hội An' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png')))"
                                     alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
@@ -1843,7 +1843,7 @@
                 <div class="flex-grow min-w-0">
                     <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name }}</h4>
                     <span class="text-[10px] text-gray-500 font-semibold uppercase">{{ sharingItinerary?.destination }}
-                        • {{ sharingItinerary?.days }} ngày</span>
+                        • {{ getItineraryDaysCount(sharingItinerary) }} ngày</span>
                 </div>
             </div>
 

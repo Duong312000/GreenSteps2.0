@@ -12,7 +12,7 @@ const {
   CommentPost,
   CPGS
 } = require('../models/index');
-const { createBookingReview } = require('../services/review.service');
+const { createBookingReview, createReply } = require('../services/review.service');
 
 function saveBase64Image(base64Data, subfolder = 'services') {
   if (!base64Data || typeof base64Data !== 'string') return base64Data;
@@ -78,6 +78,9 @@ exports.getServices = async (req, res, next) => {
         bookings_count: s.bookings_count,
         max_capacity: s.max_capacity || 10,
         badges: badges,
+        is_partner: s.is_partner !== false,
+        source: s.source || (s.is_partner === false ? 'google_maps' : 'partner'),
+        google_place_id: s.google_place_id || null,
         image_url: s.image_url || (s.current_data ? s.current_data.img : null),
         current_data: s.current_data || {}
       };
@@ -271,6 +274,26 @@ exports.getRecommendations = async (req, res, next) => {
 // 5. Post Service Review
 exports.postServiceReview = async (req, res, next) => {
   try {
+    if (req.body.parentCommentId) {
+      const reply = await createReply({
+        type: 'service',
+        targetId: req.body.serviceId,
+        parentCommentId: req.body.parentCommentId,
+        userId: req.user?.id,
+        text: req.body.text
+      });
+      const replyUser = await User.findByPk(reply.user_id);
+      return res.status(201).json({
+        success: true,
+        comment: {
+          id: reply.id,
+          parentCommentId: reply.parent_comment_id,
+          text: reply.text,
+          createdAt: reply.createdAt,
+          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role } : null
+        }
+      });
+    }
     const result = await createBookingReview({
       type: 'service',
       bookingId: req.body.bookingId,
@@ -291,7 +314,7 @@ exports.postServiceReview = async (req, res, next) => {
       success: true,
       review: comment,
       comment,
-      bookingId: result.booking.id,
+      bookingId: result.booking ? result.booking.id : null,
       type: 'service',
       targetId: result.target.id,
       rating: result.rating,
@@ -330,6 +353,7 @@ exports.getServiceReviews = async (req, res, next) => {
       reviews.push({
         id: c.id,
         bookingId: c.booking_id || null,
+        verified: !!(c.booking_id || c.is_verified),
         user: user ? {
           id: user.id,
           fullname: user.fullname,
@@ -498,3 +522,41 @@ exports.getServiceDetails = async (req, res, next) => {
   }
 };
 
+
+exports.cacheGooglePlace = async (req, res, next) => {
+  try {
+    const { place_id, name, type, destination, rating, reviews_count, image_url, address, lat, lng } = req.body;
+    if (!place_id || !name) {
+      return res.status(400).json({ success: false, message: 'Thiếu place_id hoặc tên địa điểm' });
+    }
+
+    let service = await GreenService.findOne({ where: { google_place_id: place_id } });
+    if (!service) {
+      service = await GreenService.create({
+        id: 'GGP-' + Date.now(),
+        google_place_id: place_id,
+        name_service: name,
+        type: type || 'attraction',
+        destination: destination || 'Hội An',
+        cost: 0,
+        carbon: 2.5,
+        rating: rating || 4.7,
+        reviews_count: reviews_count || 120,
+        image_url: image_url || 'image/Viet Nam.png',
+        is_partner: false,
+        source: 'google_maps',
+        current_data: { address, lat, lng, source: 'google_maps' }
+      });
+    } else {
+      service.name_service = name;
+      if (rating) service.rating = rating;
+      if (reviews_count) service.reviews_count = reviews_count;
+      if (image_url) service.image_url = image_url;
+      await service.save();
+    }
+
+    res.json({ success: true, message: 'Đã lưu trữ / cập nhật địa điểm Google Maps thành công (Upsert)', data: service });
+  } catch (err) {
+    next(err);
+  }
+};

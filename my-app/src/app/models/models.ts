@@ -45,12 +45,16 @@ export interface Tour {
   rating?: number | null;
   votes?: number;
   votes_count?: number;
+  reviews_count?: number;
   discountPercent?: number;
   ecoFeature?: string;
   badges?: string[];
   tags?: string[];
   data: Activity[][];
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
   isService?: boolean;
   maxCapacity?: number;
   highlights?: string[];
@@ -110,6 +114,9 @@ export interface Service {
   max_capacity?: number;
   rejection_reason?: string;
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
 }
 
 export interface Booking {
