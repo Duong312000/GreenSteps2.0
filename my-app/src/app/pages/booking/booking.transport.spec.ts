@@ -36,6 +36,7 @@ describe('Transport in the existing service checkout', () => {
     expect(c.totalAmount).toBe(250000);expect(c.depositAmount).toBe(250000);
     expect(c.serviceFee).toBe(0);expect(c.discountAmount).toBe(0);
     expect(c.hotelName).toBe('Xe chia sẻ 9 chỗ');expect(legacyApi.getBooking).not.toHaveBeenCalled();
+    expect(c.checkoutPaymentMethods.some(method => method.id === 'momo')).toBe(false);
     c.ngOnDestroy();
   });
   it('requires consent and settles without invoking legacy real payment APIs', async () => {
@@ -61,5 +62,6 @@ describe('Transport in the existing service checkout', () => {
     const {c}=create(false);c.activeTour={cost:1000000} as any;c.bookingContext.guestCount=2;
     expect(c.basePrice).toBe(2000000);expect(c.discountAmount).toBe(160000);
     expect(c.serviceFee).toBe(120000);expect(c.depositAmount).toBe(588000);
+    expect(c.checkoutPaymentMethods.some(method => method.id === 'momo')).toBe(true);
   });
 });

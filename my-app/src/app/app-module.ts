@@ -34,6 +34,10 @@ import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/p
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
+import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
+import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
+import { NetworkErrorComponent } from './pages/network-error/network-error';
+import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
@@ -78,6 +82,9 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerRegisterComponent,
     HelpCenterComponent,
     HelpCenterContactComponent,
+    HowItWorksComponent,
+    CancellationPolicyComponent,
+    NetworkErrorComponent,
   ],
   imports: [
     TransportBookingsComponent,
@@ -90,7 +97,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     GreenStepsChatComponent,
     PartnerIconComponent,
     AdminUsersComponent,
-    AccountDetailModalComponent
+    AccountDetailModalComponent,
+    OnboardingTourComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

@@ -219,7 +219,7 @@
 
               <div class="table-scroll" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
                 <table class="admin-data-table">
-                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab">Thao tác</th></tr></thead>
+                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab || activeTab === 'refunds'">Thao tác</th></tr></thead>
                   <tbody>
                     <tr *ngFor="let row of pageRows" [class.provider-clickable-row]="activeTab === 'providers' && !isPreviewMode" [attr.tabindex]="activeTab === 'providers' && !isPreviewMode ? 0 : null" (click)="activeTab === 'providers' && openProviderDetail(row)" (keydown.enter)="$event.target === $event.currentTarget && activeTab === 'providers' && openProviderDetail(row)">
                       <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>

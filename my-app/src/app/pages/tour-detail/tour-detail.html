@@ -1,3 +1,4 @@
+<ng-container *ngIf="isServiceDetail; else tourDetailLayout">
 <!-- Skeleton Loading State -->
 <main class="tour-detail-page" *ngIf="isPageLoading" style="padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%;">
   <section class="tour-heading" style="display: flex; justify-content: space-between; margin-bottom: 24px;">
@@ -135,7 +136,7 @@
                         </select>
                     </label>
                 </div>
-                
+
                 <div style="font-size: 11px; color: #047857; font-weight: 700; margin-top: -6px; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;" *ngIf="activeTour.maxCapacity">
                     <i class="bi bi-info-circle"></i>
                     <span>Sức chứa tối đa: {{ activeTour.maxCapacity }} khách</span>
@@ -659,16 +660,16 @@
                                 </label>
                             </div>
                             <div class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
-                                <i *ngFor="let star of [1,2,3,4,5]" 
+                                <i *ngFor="let star of [1,2,3,4,5]"
                                    [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
                                    (click)="newReviewRating = star"></i>
                             </div>
                         </div>
                         <div class="comment-input-container" style="display: flex; gap: 12px; align-items: flex-end;">
-                            <textarea [(ngModel)]="newReviewText" 
-                                      placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi..." 
+                            <textarea [(ngModel)]="newReviewText"
+                                      placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi..."
                                       style="flex: 1; min-height: 80px; border: 1px solid #dde6e0; border-radius: 12px; padding: 12px; font-size: 14px; resize: vertical; outline: none;"></textarea>
-                            <button type="button" 
+                            <button type="button"
                                     (click)="submitRootReview()" [disabled]="isSubmittingReview"
                                     style="background-color: var(--g, #174c39); color: white; border: none; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
                                 Gửi đánh giá
@@ -722,11 +723,11 @@
                                     </div>
                                 </div>
                                 <p class="review-copy" style="margin-top: 10px; margin-bottom: 12px; line-height: 1.6;">{{ comment.text }}</p>
-                                
+
                                 <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-                                    <button type="button" 
-                                            class="helpful-button" 
-                                            (click)="handleLikeComment(comment.id)" 
+                                    <button type="button"
+                                            class="helpful-button"
+                                            (click)="handleLikeComment(comment.id)"
                                             [class.liked]="likedReviewsSet.has(comment.id)"
                                             style="border: 1px solid #dde6e0; border-radius: 99px; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;">
                                         <i class="bi bi-hand-thumbs-up-fill" *ngIf="likedReviewsSet.has(comment.id)"></i>
@@ -734,7 +735,7 @@
                                         Hữu ích ({{ comment.likesCount || 0 }})
                                     </button>
 
-                                    <button type="button" 
+                                    <button type="button"
                                             (click)="toggleReplyBox(comment.id)"
                                             style="background: none; border: none; font-size: 12px; color: #5f6863; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                                         <i class="bi bi-reply-fill"></i> Trả lời
@@ -762,12 +763,12 @@
 
                                 <!-- Nested Reply Input Box -->
                                 <div *ngIf="activeReplyTarget[comment.id]" class="nested-reply-input-box" style="margin-left: 20px; display: flex; gap: 10px; align-items: center; margin-top: 12px;">
-                                    <input type="text" 
-                                           [(ngModel)]="replyInputs[comment.id]" 
-                                           placeholder="Viết phản hồi..." 
+                                    <input type="text"
+                                           [(ngModel)]="replyInputs[comment.id]"
+                                           placeholder="Viết phản hồi..."
                                            (keyup.enter)="submitReply(comment.id)"
                                            style="flex: 1; height: 38px; border: 1px solid #dde6e0; border-radius: 10px; padding: 0 12px; font-size: 13px; outline: none;">
-                                    <button type="button" 
+                                    <button type="button"
                                             (click)="submitReply(comment.id)"
                                             style="background: var(--g); color: white; border: none; height: 38px; width: 38px; border-radius: 10px; display: grid; place-items: center; cursor: pointer;">
                                         <i class="bi bi-send-fill"></i>
@@ -919,3 +920,753 @@
         </div>
     </div>
 </main>
+
+</ng-container>
+
+<ng-template #tourDetailLayout>
+<!-- ==========================================================================
+     GREENSTEPS - MINIMAL TOUR / SERVICE DETAIL
+     Inspired by Shop.co luxury e-commerce layout & Kinfolk travel editorial
+     ========================================================================== -->
+
+<!-- SKELETON LOADING STATE -->
+<main class="gs-detail-root" *ngIf="isPageLoading">
+  <div class="gs-detail-container">
+    <div class="gs-sk-breadcrumb skeleton"></div>
+    <div class="gs-hero-grid">
+      <div class="gs-gallery-layout">
+        <div class="gs-thumbs-col">
+          <div class="gs-thumb-sk skeleton" *ngFor="let i of [1,2,3,4]"></div>
+        </div>
+        <div class="gs-main-photo-sk skeleton"></div>
+      </div>
+      <div class="gs-info-pane">
+        <div class="skeleton" style="width: 35%; height: 14px; margin-bottom: 12px; border-radius: 4px;"></div>
+        <div class="skeleton" style="width: 90%; height: 38px; margin-bottom: 16px; border-radius: 8px;"></div>
+        <div class="skeleton" style="width: 25%; height: 20px; margin-bottom: 20px; border-radius: 4px;"></div>
+        <div class="skeleton" style="width: 45%; height: 36px; margin-bottom: 24px; border-radius: 6px;"></div>
+        <div class="skeleton" style="width: 100%; height: 72px; margin-bottom: 24px; border-radius: 8px;"></div>
+        <div class="skeleton" style="width: 100%; height: 52px; border-radius: 999px;"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- MAIN LOADED STATE -->
+<main class="gs-detail-root" *ngIf="!isPageLoading && activeTour">
+  <div class="gs-detail-container">
+
+    <!-- 1. BREADCRUMB (Clean Shop.co slash separator) -->
+    <nav class="gs-breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/home">Trang chủ</a>
+      <span class="gs-bc-sep">/</span>
+      <a *ngIf="!activeTour.isService" routerLink="/tours">Tour GreenSteps</a>
+      <a *ngIf="activeTour.isService" routerLink="/services" [queryParams]="{ type: detailBackQueryType }">{{ detailKindLabel }}</a>
+      <span class="gs-bc-sep">/</span>
+      <span class="gs-bc-current">{{ activeTour.title }}</span>
+    </nav>
+
+    <!-- 2. PRODUCT HERO: 2-COLUMN LUXURY GRID -->
+    <section class="gs-hero-grid">
+
+      <!-- LEFT: SHOP.CO GALLERY (Vertical Thumbnails + Natural Aspect Ratio Main Image) -->
+      <div class="gs-gallery-layout">
+
+        <!-- VERTICAL THUMBNAIL COLUMN -->
+        <div class="gs-thumbs-col" *ngIf="slideImages.length > 1">
+          <button type="button"
+                  *ngFor="let img of slideImages.slice(0, 5); let idx = index"
+                  class="gs-thumb-btn"
+                  [class.active]="activeSlideIndex === idx"
+                  (click)="setSlide(idx)"
+                  [attr.aria-label]="'Xem ảnh ' + (idx + 1)">
+            <img [src]="img" [alt]="activeTour.title" loading="lazy" (error)="onThumbError($event)">
+          </button>
+        </div>
+
+        <!-- MAIN HERO PHOTO (Fixed natural 4:3 ratio - NEVER STRETCHED OR DISTORTED) -->
+        <div class="gs-main-photo-frame"
+             (click)="openPhotoGallery(activeSlideIndex)"
+             role="button"
+             tabindex="0"
+             title="Bấm để xem ảnh phóng to">
+          <img [src]="slideImages[activeSlideIndex] || slideImages[0]"
+               [alt]="activeTour.title"
+               class="gs-main-img">
+
+          <!-- Subtle Floating Badges -->
+          <div class="gs-photo-floating-badges">
+            <span class="gs-eco-chip" *ngIf="formattedCarbon">
+              <i class="bi bi-leaf-fill"></i> {{ formattedCarbon }}
+            </span>
+            <button type="button" class="gs-gallery-count-btn" (click)="$event.stopPropagation(); openPhotoGallery(0)">
+              <i class="bi bi-images"></i> {{ slideImages.length }} ảnh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: PRODUCT BUYING PANEL -->
+      <div class="gs-info-pane">
+
+        <!-- Destination / Tag Kicker -->
+        <div class="gs-kicker-row">
+          <span class="gs-kicker-text">
+            {{ activeTour.destination | uppercase }} · {{ activeTour.isService ? detailKindLabel : 'ECO TOUR' }}
+          </span>
+          <div class="gs-action-pills">
+            <button type="button" class="gs-icon-btn" title="Chia sẻ" aria-label="Chia sẻ"><i class="bi bi-share"></i></button>
+            <button type="button" class="gs-icon-btn" title="Lưu yêu thích" aria-label="Lưu"><i class="bi bi-heart"></i></button>
+          </div>
+        </div>
+
+        <!-- Tour Title -->
+        <h1 class="gs-title">{{ activeTour.title }}</h1>
+
+        <!-- Rating & Reviews link -->
+        <div class="gs-rating-row" (click)="scrollToReviews()" role="button" tabindex="0">
+          <ng-container *ngIf="totalReviewsCount > 0; else noReviewsHeader">
+            <div class="gs-stars">
+              <i *ngFor="let s of [1,2,3,4,5]" class="bi" [ngClass]="getStarClass(s, averageScore)"></i>
+            </div>
+            <span class="gs-rating-score">{{ averageScore | number:'1.1-2' }}<span class="gs-rating-denom">/5</span></span>
+            <span class="gs-rating-dot">·</span>
+            <span class="gs-rating-count">{{ totalReviewsCount }} đánh giá</span>
+          </ng-container>
+          <ng-template #noReviewsHeader>
+            <div class="gs-stars gs-stars-muted text-slate-300">
+              <i *ngFor="let s of [1,2,3,4,5]" class="bi bi-star text-slate-300"></i>
+            </div>
+            <span class="gs-rating-count text-slate-500 font-medium">Chưa có đánh giá</span>
+          </ng-template>
+        </div>
+
+        <!-- Price Display -->
+        <div class="gs-price-wrap">
+          <div class="gs-price-main">
+            <span class="gs-price-current">{{ totalPrice | number:'1.0-0':'vi-VN' }}₫</span>
+            <span class="gs-price-old" *ngIf="displayOldCost > activeTour.cost">
+              {{ (displayOldCost * totalGuests) | number:'1.0-0':'vi-VN' }}₫
+            </span>
+          </div>
+          <span class="gs-price-note">
+            {{ activeTour.isService ? 'Theo đơn vị dịch vụ' : 'Tổng tiền cho ' + totalGuests + ' khách' }}
+          </span>
+        </div>
+
+        <!-- Short Description -->
+        <p class="gs-lead-desc">
+          {{ activeTour.description || (activeTour.isService ? 'Dịch vụ xanh được tuyển chọn kỹ lưỡng, hỗ trợ bạn khám phá bản địa trọn vẹn và bền vững.' : 'Hành trình trải nghiệm thiên nhiên được thiết kế nhẹ nhàng, thân thiện cho mọi gia đình và giảm tối đa phát thải carbon.') }}
+        </p>
+
+        <!-- SHOPEE-INSPIRED ULTRA-MINIMAL SPEC MATRIX (Every row is an interactive expand/link) -->
+        <div class="gs-shopee-matrix">
+
+          <!-- 1. VOUCHERS ROW (Shopee Style: only 1 voucher pill displayed; hover expands full voucher list) -->
+          <div class="gs-matrix-row gs-voucher-row" *ngIf="tourVouchers && tourVouchers.length > 0">
+            <span class="gs-mr-label">Mã Giảm Giá</span>
+            <div class="gs-mr-content gs-vouchers-group">
+              <div class="gs-voucher-single-trigger-wrap">
+                <!-- Single prominent voucher tag -->
+                <button type="button" class="gs-voucher-tag gs-voucher-pill-interactive" (click)="copyVoucher(tourVouchers[0].code, $event)">
+                  <span class="gs-vt-code">{{ tourVouchers[0].code }}</span>
+                  <span class="gs-vt-title">{{ tourVouchers[0].title }}</span>
+                  <span class="gs-vt-count-badge" *ngIf="tourVouchers.length > 1">+{{ tourVouchers.length - 1 }} mã</span>
+                  <i class="bi bi-chevron-down gs-vt-chevron"></i>
+                </button>
+
+                <!-- Hover Popover showing ALL vouchers from MongoDB Atlas -->
+                <div class="gs-matrix-popover gs-pop-all-vouchers" (click)="$event.stopPropagation()">
+                  <div class="gs-pop-arrow"></div>
+                  <div class="gs-pop-vouchers-header">
+                    <div class="gs-pvh-title">
+                      <i class="bi bi-ticket-perforated-fill text-green"></i>
+                      <h4>Mã Giảm Giá GreenSteps ({{ tourVouchers.length }})</h4>
+                    </div>
+                    <p class="gs-pvh-sub">Ưu đãi chuyến đi độc quyền, bấm lưu hoặc sao chép để áp dụng.</p>
+                  </div>
+
+                  <div class="gs-pop-vouchers-list">
+                    <div class="gs-pop-voucher-card" *ngFor="let v of tourVouchers">
+                      <div class="gs-pvc-left">
+                        <div class="gs-pvc-badge">
+                          <span>{{ v.code }}</span>
+                        </div>
+                        <div class="gs-pvc-info">
+                          <div class="gs-pvc-title">{{ v.title }}</div>
+                          <div class="gs-pvc-desc" *ngIf="v.description">{{ v.description }}</div>
+                          <div class="gs-pvc-meta">
+                            <span *ngIf="v.min_order_value">Đơn từ {{ v.min_order_value | number:'1.0-0':'vi-VN' }}₫</span>
+                            <span *ngIf="v.expires_at"> · HSD: {{ v.expires_at | date:'dd/MM/yyyy' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button"
+                              class="gs-pvc-copy-btn"
+                              [class.copied]="copiedVoucher === v.code"
+                              (click)="copyVoucher(v.code, $event)">
+                        <i class="bi" [class.bi-check2]="copiedVoucher === v.code" [class.bi-copy]="copiedVoucher !== v.code"></i>
+                        {{ copiedVoucher === v.code ? 'Đã lưu' : 'Lưu mã' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="gs-pop-vouchers-foot">
+                    <span>Áp dụng khi thanh toán đặt tour hoặc dịch vụ</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. DEPARTURE / VẬN CHUYỂN ROW (Interactive Link to Itinerary) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('itinerary')" role="button" tabindex="0">
+            <span class="gs-mr-label">Khởi hành</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-geo-alt-fill text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>{{ activeTour.destination }}, Việt Nam</strong>
+                  <span class="gs-mr-sub">· {{ activeTour.days }} ngày {{ displayNights }} đêm</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Xem lịch trình <i class="bi bi-chevron-right"></i></span>
+
+              <!-- Hover Popover Preview -->
+              <div class="gs-matrix-popover gs-pop-schedule" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <h4>Chi tiết điểm đón & Khởi hành</h4>
+                <ul class="gs-pop-quick-list">
+                  <li><i class="bi bi-pin-map"></i> <strong>Điểm đón:</strong> Trung tâm TP. {{ activeTour.destination }}</li>
+                  <li><i class="bi bi-clock-history"></i> <strong>Thời gian:</strong> 07:30 sáng ngày khởi hành</li>
+                  <li><i class="bi bi-ev-front"></i> <strong>Phương tiện:</strong> Xe điện sinh thái & xe đạp</li>
+                </ul>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Lịch trình linh hoạt theo nhu cầu</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('itinerary')">Xem toàn bộ lịch trình →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. ASSURANCE / SHOPPING GUARANTEE ROW (Interactive Link to Policy) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('policy')" role="button" tabindex="0" *ngIf="tourGuarantees && tourGuarantees.length > 0">
+            <span class="gs-mr-label">Bảo đảm</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-shield-fill-check text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>GreenSteps Đảm Bảo</strong>
+                  <span class="gs-mr-sub">· Giữ chỗ 7 ngày · Đổi ngày miễn phí · Ký quỹ Escrow</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Chính sách <i class="bi bi-chevron-down"></i></span>
+
+              <!-- Hover Popover with full 4 Guarantees from MongoDB -->
+              <div class="gs-matrix-popover gs-pop-assurance" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <div class="gs-pop-assurance-head">
+                  <div class="gs-pah-shield"><i class="bi bi-shield-check"></i></div>
+                  <div>
+                    <h4>GreenSteps Guarantee · Đảm bảo trải nghiệm</h4>
+                    <p>Mọi quyền lợi và sự an tâm của bạn được cam kết từ dữ liệu hệ thống.</p>
+                  </div>
+                </div>
+                <div class="gs-pop-assurance-grid">
+                  <div class="gs-pag-item" *ngFor="let g of tourGuarantees">
+                    <i [class]="'bi ' + (g.icon || 'bi-check-circle-fill')"></i>
+                    <div>
+                      <strong>{{ g.title }}</strong>
+                      <p>{{ g.desc }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Áp dụng cho mọi booking qua GreenSteps</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('policy')">Xem điều khoản chi tiết →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. ECO CARBON ROW (Interactive Link to Overview) -->
+          <div class="gs-matrix-row gs-row-interactive" (click)="scrollToTab('overview')" role="button" tabindex="0">
+            <span class="gs-mr-label">Môi trường</span>
+            <div class="gs-mr-content gs-interactive-link-content">
+              <div class="gs-mr-val-wrap">
+                <i class="bi bi-leaf-fill text-green"></i>
+                <span class="gs-mr-text">
+                  <strong>{{ formattedCarbon || '-3.7kg CO₂' }}</strong>
+                  <span class="gs-mr-sub">· Giảm phát thải carbon so với tour thông thường</span>
+                </span>
+              </div>
+              <span class="gs-mr-action">Chỉ số xanh <i class="bi bi-chevron-right"></i></span>
+
+              <!-- Hover Popover Carbon Preview -->
+              <div class="gs-matrix-popover gs-pop-carbon" (click)="$event.stopPropagation()">
+                <div class="gs-pop-arrow"></div>
+                <h4>Đóng góp giảm thiểu carbon</h4>
+                <p class="gs-pop-desc">Hành trình ưu tiên xe điện, cơ sở lưu trú đạt chuẩn sinh thái và nguyên liệu nông sản hữu cơ bản địa.</p>
+                <div class="gs-pop-foot">
+                  <span class="gs-pop-note">Chứng nhận du lịch Net-Zero</span>
+                  <button type="button" class="gs-pop-link-btn" (click)="scrollToTab('overview')">Xem phân tích phát thải →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="gs-divider"></div>
+
+        <!-- BOOKING CONTROLS (Shop.co style form) -->
+        <form class="gs-booking-form" (submit)="submitBooking($event)">
+
+          <!-- Departure Date -->
+          <div class="gs-field-group">
+            <label class="gs-label" for="gs-book-date">Ngày khởi hành</label>
+            <div class="gs-input-box">
+              <i class="bi bi-calendar3"></i>
+              <input type="date"
+                     id="gs-book-date"
+                     [(ngModel)]="bookingDate"
+                     [min]="minBookingDate"
+                     (change)="validateBookingDate()"
+                     name="bookingDate"
+                     required>
+            </div>
+          </div>
+
+          <!-- Guests Selector -->
+          <div class="gs-guests-grid">
+            <div class="gs-field-group">
+              <label class="gs-label" for="gs-adults">Người lớn</label>
+              <div class="gs-input-box">
+                <i class="bi bi-person"></i>
+                <select id="gs-adults" [(ngModel)]="bookingAdults" name="bookingAdults">
+                  <option *ngFor="let opt of adultOptions" [ngValue]="opt">{{ opt }} khách</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="gs-field-group">
+              <label class="gs-label" for="gs-children">Trẻ em</label>
+              <div class="gs-input-box">
+                <i class="bi bi-person-down"></i>
+                <select id="gs-children" [(ngModel)]="bookingChildren" name="bookingChildren">
+                  <option *ngFor="let opt of childrenOptions" [ngValue]="opt">{{ opt }} trẻ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Capacity Note if available -->
+          <div class="gs-capacity-hint" *ngIf="activeTour.maxCapacity">
+            <i class="bi bi-info-circle"></i> Sức chứa tối đa: {{ activeTour.maxCapacity }} khách
+          </div>
+
+          <!-- Primary CTA Buttons -->
+          <div class="gs-cta-actions">
+            <button type="submit" class="gs-btn-primary">
+              <i class="bi bi-calendar2-check"></i>
+              {{ detailBookingLabel }}
+            </button>
+
+            <button *ngIf="!activeTour.isService"
+                    type="button"
+                    class="gs-btn-secondary"
+                    (click)="cloneAndEditTrip()"
+                    title="Tùy biến lịch trình theo nhu cầu riêng">
+              <i class="bi bi-sliders"></i>
+              Tự chỉnh sửa lịch trình
+            </button>
+          </div>
+        </form>
+
+        <!-- Trust Features Strip with Interactive Jump Links -->
+        <div class="gs-trust-strip">
+          <div class="gs-trust-item" (click)="scrollToTab('policy')" role="button" tabindex="0" title="Xem chính sách giữ chỗ và bảo lãnh">
+            <i class="bi bi-shield-check"></i>
+            <span>Xác nhận tức thì <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
+          </div>
+          <div class="gs-trust-item" (click)="scrollToTab('policy')" role="button" tabindex="0" title="Xem điều khoản đổi ngày linh hoạt">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Đổi ngày linh hoạt <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
+          </div>
+          <div class="gs-trust-item" (click)="scrollToTab('overview')" role="button" tabindex="0" title="Xem thông số trải nghiệm du lịch xanh">
+            <i class="bi bi-flower1"></i>
+            <span>Trải nghiệm xanh <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. UNDERLINE TABS (Shop.co minimal tab bar) -->
+    <section class="gs-tabs-section">
+      <div class="gs-tabs-nav" role="tablist">
+        <button type="button"
+                role="tab"
+                class="gs-tab-link"
+                [class.active]="activeInfoTab === 'overview'"
+                (click)="setInfoTab('overview')">
+          Tổng quan
+        </button>
+
+        <button type="button"
+                role="tab"
+                class="gs-tab-link"
+                [class.active]="activeInfoTab === 'itinerary'"
+                (click)="setInfoTab('itinerary')">
+          {{ activeTour.isService ? 'Chi tiết dịch vụ' : 'Lịch trình' }}
+        </button>
+
+        <button type="button"
+                role="tab"
+                class="gs-tab-link"
+                [class.active]="activeInfoTab === 'included'"
+                (click)="setInfoTab('included')">
+          Bao gồm & Tiện ích
+        </button>
+
+        <button type="button"
+                role="tab"
+                class="gs-tab-link"
+                [class.active]="activeInfoTab === 'policy'"
+                (click)="setInfoTab('policy')">
+          Chính sách đặt cọc
+        </button>
+
+        <button type="button"
+                role="tab"
+                class="gs-tab-link"
+                [class.active]="activeInfoTab === 'reviews'"
+                (click)="setInfoTab('reviews')">
+          Đánh giá <span class="gs-tab-pill">({{ totalCommentsCount }})</span>
+        </button>
+      </div>
+
+      <!-- TAB PANEL CONTENT -->
+      <div class="gs-tab-panel">
+
+        <!-- TAB 1: OVERVIEW -->
+        <div class="gs-panel-overview" *ngIf="activeInfoTab === 'overview'">
+          <div class="gs-overview-cards-grid">
+            <div class="gs-ov-card">
+              <div class="gs-ov-icon"><i class="bi bi-compass"></i></div>
+              <div>
+                <span class="gs-ov-label">{{ activeTour.isService ? 'Loại hình' : 'Phong cách tour' }}</span>
+                <strong class="gs-ov-val">{{ tourStyle }}</strong>
+                <p class="gs-ov-sub">Trải nghiệm gắn liền với thiên nhiên và văn hóa địa phương.</p>
+              </div>
+            </div>
+
+            <div class="gs-ov-card">
+              <div class="gs-ov-icon"><i class="bi bi-people"></i></div>
+              <div>
+                <span class="gs-ov-label">Quy mô nhóm</span>
+                <strong class="gs-ov-val">{{ tourGroupSize }}</strong>
+                <p class="gs-ov-sub">Không gian thư giãn, dễ dàng tương tác và chăm sóc các thành viên.</p>
+              </div>
+            </div>
+
+            <div class="gs-ov-card">
+              <div class="gs-ov-icon"><i class="bi bi-activity"></i></div>
+              <div>
+                <span class="gs-ov-label">Cường độ vận động</span>
+                <strong class="gs-ov-val">{{ tourFitnessLevel }}</strong>
+                <p class="gs-ov-sub">Lộ trình êm dịu, phù hợp cho mọi lứa tuổi từ trẻ em đến người lớn.</p>
+              </div>
+            </div>
+
+            <div class="gs-ov-card">
+              <div class="gs-ov-icon"><i class="bi bi-leaf"></i></div>
+              <div>
+                <span class="gs-ov-label">Chỉ số phát thải</span>
+                <strong class="gs-ov-val">{{ formattedCarbon || '0kg CO₂' }}</strong>
+                <p class="gs-ov-sub">Ưu tiên xe điện, đi bộ và các cơ sở lưu trú bền vững.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Highlight bullets -->
+          <div class="gs-section-block">
+            <h3 class="gs-block-title">Điểm nổi bật của {{ activeTour.isService ? 'dịch vụ' : 'chuyến đi' }}</h3>
+            <div class="gs-bullet-grid">
+              <div class="gs-bullet-item" *ngFor="let hl of tourHighlights">
+                <i class="bi bi-check2"></i>
+                <span>{{ hl }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Full description -->
+          <div class="gs-section-block" *ngIf="activeTour.description">
+            <h3 class="gs-block-title">Giới thiệu chi tiết</h3>
+            <p class="gs-prose-text">{{ activeTour.description }}</p>
+          </div>
+        </div>
+
+        <!-- TAB 2: ITINERARY (Clean Minimal Timeline) -->
+        <div class="gs-panel-itinerary" *ngIf="activeInfoTab === 'itinerary'">
+
+          <!-- Day selector pills -->
+          <div class="gs-day-pills-row" *ngIf="!activeTour.isService && activeTour.data && activeTour.data.length > 1">
+            <button *ngFor="let day of activeTour.data; let idx = index"
+                    type="button"
+                    class="gs-day-pill"
+                    [class.active]="activeDayIndex === idx"
+                    (click)="setDay(idx)">
+              Ngày {{ idx + 1 }}
+            </button>
+          </div>
+
+          <!-- Timeline Activities -->
+          <div class="gs-timeline-wrap" *ngIf="activeTour.data && activeTour.data[activeDayIndex]">
+            <div class="gs-timeline-item" *ngFor="let act of activeTour.data[activeDayIndex]">
+              <div class="gs-timeline-time-col">
+                <span class="gs-time-badge">{{ act.time }}</span>
+              </div>
+              <div class="gs-timeline-node">
+                <div class="gs-node-dot"></div>
+                <div class="gs-node-line"></div>
+              </div>
+              <div class="gs-timeline-body">
+                <div class="gs-timeline-head">
+                  <h4 class="gs-act-title">{{ act.name }}</h4>
+                  <div class="gs-act-meta-tags">
+                    <span class="gs-tag-free" *ngIf="act.cost === 0">Miễn phí</span>
+                    <span class="gs-tag-cost" *ngIf="act.cost > 0">{{ act.cost | number:'1.0-0':'vi-VN' }}₫</span>
+                    <span class="gs-tag-carbon" *ngIf="act.carbon"><i class="bi bi-leaf"></i> {{ act.carbon }}kg CO₂</span>
+                  </div>
+                </div>
+                <p class="gs-act-desc">
+                  {{ act.description || 'Hoạt động trải nghiệm nhẹ nhàng, kết hợp thiên nhiên và giao lưu văn hóa cộng đồng bản địa.' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edit prompt -->
+          <div class="gs-bottom-cta-banner" *ngIf="!activeTour.isService">
+            <div>
+              <h4>Muốn đổi một vài điểm đến trong lịch trình?</h4>
+              <p>Bạn hoàn toàn có thể tự thêm bớt địa điểm hoặc thay đổi khung giờ theo ý muốn.</p>
+            </div>
+            <button type="button" class="gs-btn-secondary" (click)="cloneAndEditTrip()">
+              <i class="bi bi-sliders"></i> Tự chỉnh sửa lịch trình này
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 3: INCLUDED -->
+        <div class="gs-panel-included" *ngIf="activeInfoTab === 'included'">
+          <div class="gs-included-grid">
+            <div class="gs-inc-card">
+              <div class="gs-inc-icon"><i class="bi bi-check-circle-fill text-green"></i></div>
+              <div>
+                <h4>Đã bao gồm trong chi phí</h4>
+                <ul>
+                  <li *ngFor="let inc of tourIncluded">{{ inc }}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="gs-inc-card">
+              <div class="gs-inc-icon"><i class="bi bi-x-circle-fill text-muted"></i></div>
+              <div>
+                <h4>Chưa bao gồm</h4>
+                <ul>
+                  <li *ngFor="let exc of tourExcluded">{{ exc }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <span style="font-size: 13px; color: #6B7280;">Quy chuẩn chất lượng dịch vụ sinh thái theo cam kết Net-Zero.</span>
+            <a routerLink="/cancellation-policy" [queryParams]="{ tab: 'amenities' }" style="font-size: 13px; font-weight: 600; color: #132b22; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              Xem toàn văn Quy chuẩn Dịch vụ & Tiện ích <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- TAB 4: POLICY -->
+        <div class="gs-panel-policy" *ngIf="activeInfoTab === 'policy'">
+          <div class="gs-policy-steps-grid">
+            <div class="gs-policy-step" *ngFor="let p of tourPolicies; let pIdx = index">
+              <div class="gs-step-num">{{ p.step || ('0' + (pIdx + 1)) }}</div>
+              <h4>{{ p.title }}</h4>
+              <p>{{ p.desc }}</p>
+            </div>
+          </div>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <span style="font-size: 13px; color: #6B7280;">Mọi giao dịch đặt cọc và hoàn hủy được bảo đảm minh bạch 100%.</span>
+            <a routerLink="/cancellation-policy" [queryParams]="{ tab: 'deposit' }" style="font-size: 13px; font-weight: 600; color: #132b22; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              Xem chi tiết toàn văn Chính sách & Tiêu chuẩn <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- TAB 5: REVIEWS (Shop.co 2-Column Review Cards Grid) -->
+        <div class="gs-panel-reviews" *ngIf="activeInfoTab === 'reviews'" id="reviews">
+
+          <!-- Review Summary Header -->
+          <div class="gs-reviews-summary-bar">
+            <div>
+              <h3 class="gs-rev-total-title">Đánh giá & bình luận <span class="gs-sub-count">({{ totalCommentsCount }})</span></h3>
+              <div class="gs-rev-stars-sub" *ngIf="totalReviewsCount > 0; else noReviewsSummaryTab">
+                <div class="gs-stars">
+                  <i *ngFor="let s of [1,2,3,4,5]" class="bi" [ngClass]="getStarClass(s, averageScore)"></i>
+                </div>
+                <strong>{{ averageScore | number:'1.1-2' }} trên 5</strong> <span class="gs-rev-sub-muted">· {{ totalReviewsCount }} lượt chấm điểm</span>
+              </div>
+              <ng-template #noReviewsSummaryTab>
+                <div class="text-xs text-slate-400 mt-1">Chưa có đánh giá nào cho chuyến đi này</div>
+              </ng-template>
+            </div>
+
+            <div class="gs-rev-actions-bar">
+              <select class="gs-rev-select" [value]="activeSort" (change)="setSort($event)">
+                <option value="Mới nhất">Mới nhất</option>
+                <option value="Đánh giá cao nhất">Đánh giá cao nhất</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Review / Comment Form (any logged-in user) -->
+          <div class="gs-write-review-box" *ngIf="currentUser; else loginToReview">
+            <h4>{{ hasUserRated ? 'Viết bình luận' : 'Đánh giá & bình luận' }}</h4>
+            <div class="gs-rating-picker" *ngIf="!hasUserRated">
+              <span class="gs-label">Chấm điểm (không bắt buộc):</span>
+              <div class="gs-picker-stars">
+                <i class="bi"
+                   *ngFor="let s of [1,2,3,4,5]"
+                   [ngClass]="s <= newReviewRating ? 'bi-star-fill active' : 'bi-star'"
+                   (click)="setNewReviewRating(s)"></i>
+              </div>
+            </div>
+            <p class="gs-rev-hint" *ngIf="hasUserRated">Bạn đã chấm điểm mục này. Bạn vẫn có thể tiếp tục bình luận.</p>
+            <p class="gs-rev-hint" *ngIf="reviewBookings.length > 0 && !hasUserRated">
+              <i class="bi bi-patch-check-fill"></i> Đánh giá của bạn sẽ được gắn nhãn "Đã trải nghiệm" từ đơn đặt chỗ đã hoàn thành.
+            </p>
+            <textarea class="gs-rev-textarea"
+                      [(ngModel)]="newReviewText"
+                      [placeholder]="activeTour.isService ? 'Chia sẻ cảm nhận hoặc đặt câu hỏi về dịch vụ này...' : 'Chia sẻ cảm nhận hoặc đặt câu hỏi về chuyến đi này...'"
+                      rows="3"></textarea>
+            <div class="gs-rev-btn-wrap">
+              <button type="button"
+                      class="gs-btn-primary gs-btn-sm"
+                      [disabled]="isSubmittingReview || !newReviewText.trim()"
+                      (click)="submitRootReview()">
+                {{ isSubmittingReview ? 'Đang gửi...' : (newReviewRating > 0 && !hasUserRated ? 'Gửi đánh giá' : 'Gửi bình luận') }}
+              </button>
+            </div>
+          </div>
+          <ng-template #loginToReview>
+            <div class="gs-write-review-box gs-login-prompt">
+              <p>Đăng nhập để đánh giá và bình luận về {{ activeTour.isService ? 'dịch vụ' : 'tour' }} này.</p>
+              <a routerLink="/login" class="gs-btn-primary gs-btn-sm">Đăng nhập</a>
+            </div>
+          </ng-template>
+
+          <!-- Reviews & Comments List -->
+          <div class="gs-reviews-grid" *ngIf="filteredReviews.length > 0">
+            <div class="gs-review-card" *ngFor="let rev of filteredReviews">
+              <div class="gs-rc-header">
+                <div class="gs-rc-stars" *ngIf="rev.rating; else commentTag">
+                  <i class="bi bi-star-fill" *ngFor="let i of [1,2,3,4,5]" [class.empty]="i > rev.rating"></i>
+                </div>
+                <ng-template #commentTag><span class="gs-rc-comment-tag"><i class="bi bi-chat-left-text"></i> Bình luận</span></ng-template>
+                <span class="gs-rc-date">{{ rev.createdAt ? (rev.createdAt | date:'dd/MM/yyyy') : 'Gần đây' }}</span>
+              </div>
+
+              <div class="gs-rc-user-row">
+                <div class="gs-rc-avatar">
+                  <img *ngIf="isAvatarUrl(rev.user?.avatar)" [src]="rev.user?.avatar" [alt]="rev.user?.fullname">
+                  <span *ngIf="!isAvatarUrl(rev.user?.avatar)">{{ getFirstLetter(rev.user?.fullname || rev.userName) }}</span>
+                </div>
+                <div class="gs-rc-user-info">
+                  <strong class="gs-rc-username">{{ rev.user?.fullname || rev.userName || 'Khách hàng GreenSteps' }}</strong>
+                  <span class="gs-verified-badge" *ngIf="rev.verified || rev.bookingId">
+                    <i class="bi bi-patch-check-fill"></i> {{ activeTour.isService ? 'Đã sử dụng dịch vụ' : 'Đã đi tour này' }}
+                  </span>
+                </div>
+              </div>
+
+              <p class="gs-rc-comment">{{ rev.comment || rev.text }}</p>
+
+              <div class="gs-rc-actions">
+                <button type="button" class="gs-rc-action" (click)="handleLikeComment(rev.id)" [class.liked]="likedReviewsSet.has(rev.id)">
+                  <i class="bi" [ngClass]="likedReviewsSet.has(rev.id) ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"></i>
+                  Hữu ích{{ rev.likesCount ? ' (' + rev.likesCount + ')' : '' }}
+                </button>
+                <button type="button" class="gs-rc-action" *ngIf="currentUser" (click)="toggleReplyBox(rev.id)">
+                  <i class="bi bi-reply"></i> Trả lời
+                </button>
+              </div>
+
+              <div class="gs-rc-replies" *ngIf="rev.replies?.length">
+                <div class="gs-rc-reply" *ngFor="let rep of rev.replies">
+                  <strong>{{ rep.user?.fullname || 'Người dùng' }}</strong>
+                  <span class="gs-rc-provider" *ngIf="rep.user?.role === 'provider'">Nhà cung cấp</span>
+                  <span class="gs-rc-date">· {{ rep.createdAt | date:'dd/MM/yyyy' }}</span>
+                  <p>{{ rep.text }}</p>
+                </div>
+              </div>
+
+              <div class="gs-rc-reply-box" *ngIf="activeReplyTarget[rev.id]">
+                <textarea class="gs-rev-textarea" rows="2" [(ngModel)]="replyInputs[rev.id]" placeholder="Viết phản hồi..."></textarea>
+                <div class="gs-rev-btn-wrap">
+                  <button type="button" class="gs-btn-primary gs-btn-sm" [disabled]="!replyInputs[rev.id]?.trim()" (click)="submitReply(rev.id)">Gửi phản hồi</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty Reviews State -->
+          <div class="gs-empty-reviews" *ngIf="filteredReviews.length === 0">
+            <i class="bi bi-chat-heart"></i>
+            <p>Chưa có đánh giá hay bình luận nào. Hãy là người đầu tiên chia sẻ!</p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FULLSCREEN PHOTO LIGHTBOX MODAL -->
+  <div class="gs-photo-modal-overlay" *ngIf="isPhotoGalleryOpen" (click)="closePhotoGallery()">
+    <div class="gs-photo-modal-container" (click)="$event.stopPropagation()">
+      <div class="gs-modal-header">
+        <div>
+          <span class="gs-modal-sub">Thư viện ảnh</span>
+          <h3 class="gs-modal-title">{{ activeTour.title }}</h3>
+        </div>
+        <button type="button" class="gs-modal-close" (click)="closePhotoGallery()" aria-label="Đóng thư viện ảnh">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="gs-modal-featured-frame">
+        <img [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+      </div>
+
+      <div class="gs-modal-thumbs-grid">
+        <button type="button"
+                *ngFor="let img of slideImages; let idx = index"
+                class="gs-modal-thumb"
+                [class.active]="activeSlideIndex === idx"
+                (click)="selectGalleryPhoto(idx, $event)"
+                [attr.aria-label]="'Chọn ảnh ' + (idx + 1)">
+          <img [src]="img" [alt]="activeTour.destination + ' ảnh ' + (idx + 1)">
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+
+
+</ng-template>

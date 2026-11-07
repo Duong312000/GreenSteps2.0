@@ -165,6 +165,18 @@
           <button (click)="resetFilters()" class="clear-all-chips">Xóa tất cả</button>
         </div>
 
+        <!-- Micro Banner: AI Custom Planner -->
+        <div class="planner-hero-banner">
+          <div class="planner-banner-content">
+            <span class="planner-micro-badge">AI Travel Assistant</span>
+            <h2 class="planner-hero-title">Muốn chuyến đi riêng theo sở thích của bạn?</h2>
+            <p class="planner-hero-desc">Khởi tạo lịch trình sinh thái cá nhân hóa, tối ưu chi phí và tự động kết nối các điểm đến xanh cùng AI.</p>
+          </div>
+          <button type="button" routerLink="/schedule" class="btn-custom-planner">
+            <i class="bi bi-magic"></i> Tự Thiết Kế Lịch Trình
+          </button>
+        </div>
+
         <!-- Product Cards Grid (Shop.co 3-column Grid) -->
         <div *ngIf="paginatedTours.length > 0; else noResults" class="shopco-products-grid">
           <div *ngFor="let tour of paginatedTours" class="shopco-product-card" [routerLink]="['/tour-detail', tour.id]" style="cursor: pointer;">
@@ -200,14 +212,19 @@
 
               <!-- Rating Row -->
               <div class="card-rating-row">
-                <div class="stars-box">
-                  <i *ngFor="let star of [1,2,3,4,5]" class="bi" [class.bi-star-fill]="star <= (tour.rating || 0)"
-                    [class.bi-star-half]="star - 0.5 === (tour.rating || 0)"
-                    [class.bi-star]="star > (tour.rating || 0)">
-                  </i>
-                </div>
-                <span class="rating-number">{{ tour.rating ?? '—' }}<span class="rating-total">/5</span></span>
-                <span class="reviews-count">({{ tour.votes_count || 0 }})</span>
+                <ng-container *ngIf="(tour.votes_count || 0) > 0; else noTourCardReviews">
+                  <div class="stars-box">
+                    <i *ngFor="let star of [1,2,3,4,5]" class="bi" [class.bi-star-fill]="star <= (tour.rating || 0)"
+                      [class.bi-star-half]="star - 0.5 === (tour.rating || 0)"
+                      [class.bi-star]="star > (tour.rating || 0)">
+                    </i>
+                  </div>
+                  <span class="rating-number">{{ tour.rating ?? '—' }}<span class="rating-total">/5</span></span>
+                  <span class="reviews-count">({{ tour.votes_count }})</span>
+                </ng-container>
+                <ng-template #noTourCardReviews>
+                  <span class="reviews-count text-slate-400 text-xs font-medium">Mới · Chưa có đánh giá</span>
+                </ng-template>
               </div>
 
               <!-- Eco Highlights -->

@@ -11,7 +11,7 @@ import { bookingDate } from '../../utils/booking-date';
 import { TransportService } from '../../services/transport.service';
 
 type BookingFor = 'self' | 'other';
-type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter';
+type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter' | 'momo';
 type PayTiming = 'now' | 'later';
 
 interface GuestInfo {
@@ -55,7 +55,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.isTransportBooking) return this.paymentMethods;
     // Keep object identities stable: recreating NgModel radio controls on every
     // change detection pass schedules another model update and can loop.
-    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => method.id !== 'counter').map(method => ({
+    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet','card','bank'].includes(method.id)).map(method => ({
       ...method, desc: 'Xử lý trong GreenSteps; không trừ tiền thật hoặc yêu cầu thông tin ngân hàng.'
     }));
     return this.transportMethodsCache;
@@ -164,6 +164,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     { id: 'wallet' as PaymentMethod, label: 'Ví điện tử', desc: 'Thanh toán nhanh qua ví liên kết.', icon: 'bi-wallet2' },
     { id: 'card' as PaymentMethod, label: 'Thẻ tín dụng / ghi nợ', desc: 'Thử luồng thanh toán bằng thẻ mẫu, không thu tiền thật.', icon: 'bi-credit-card' },
     { id: 'bank' as PaymentMethod, label: 'Chuyển khoản qua QR', desc: 'Quét VietQR trong ứng dụng ngân hàng của bạn.', icon: 'bi-bank' },
+    { id: 'momo' as PaymentMethod, label: 'Ví MoMo', desc: 'Thanh toán qua cổng MoMo sandbox.', icon: 'bi-wallet2' },
     { id: 'counter' as PaymentMethod, label: 'Thanh toán tại quầy', desc: 'Giữ chỗ tạm thời và xác nhận tại quầy.', icon: 'bi-shop' }
   ];
   public readonly addOnOptions = [
@@ -327,31 +328,55 @@ export class BookingComponent implements OnInit, OnDestroy {
   private async loadActiveTour() {
     const query = this.route.snapshot.queryParamMap;
     const isItinerary = query.get('bookingType') === 'itinerary' || 
-                        (this.bookingContext.tourId && this.bookingContext.tourId.startsWith('iti_'));
+                        (this.bookingContext.tourId && (this.bookingContext.tourId.startsWith('iti_') || this.bookingContext.tourId.startsWith('SCH')));
 
     if (isItinerary && this.bookingContext.tourId) {
       try {
-        const itinerary = await this.apiService.getItinerary(this.bookingContext.tourId);
-        if (itinerary) {
+        let itinerary = null;
+        try {
+          itinerary = await this.apiService.getItinerary(this.bookingContext.tourId);
+        } catch (e) {}
+
+        if (!itinerary) {
+          const raw = localStorage.getItem('greensteps_active_itinerary_checkout')
+                   || localStorage.getItem(`greensteps_guest_draft_${this.bookingContext.tourId}`);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            itinerary = {
+              id: parsed.id || this.bookingContext.tourId,
+              name: parsed.title || parsed.name || 'Lịch trình du lịch xanh',
+              destination: parsed.destLabel || parsed.destination || 'Việt Nam',
+              days: parsed.days ? parsed.days.length : 1,
+              totalCarbon: parsed.totalCarbon || 0,
+              daysData: (parsed.days || []).map((d: any) => d.activities || [])
+            };
+          }
+        }
+
+        if (!itinerary && this.bookingContext.tourId.startsWith('SCH')) {
+          this.activeTour = await this.apiService.getPresetTour(this.bookingContext.tourId);
+        } else if (itinerary) {
           let totalCost = 0;
+          let totalCarbon = 0;
           const daysData = itinerary.daysData || itinerary.days_data || [];
           daysData.forEach((day: any) => {
-            if (day) {
+            if (day && Array.isArray(day)) {
               day.forEach((act: any) => {
-                if (act && act.cost) totalCost += act.cost;
+                if (act && act.cost) totalCost += Number(act.cost) || 0;
+                if (act && act.carbon) totalCarbon += Number(act.carbon) || 0;
               });
             }
           });
 
           this.activeTour = {
             id: itinerary.id,
-            title: itinerary.name || 'Lịch trình tùy chỉnh của bạn',
-            destination: itinerary.destination || 'Đà Lạt',
+            title: itinerary.name || 'Lịch trình du lịch xanh',
+            destination: itinerary.destination || 'Việt Nam',
             days: itinerary.days || 1,
             cost: totalCost,
-            carbon: itinerary.totalCarbon || itinerary.total_carbon || 0,
+            carbon: totalCarbon || itinerary.totalCarbon || 0,
             data: daysData
-          } as any;
+          };
         }
       } catch (err) {
         console.error('Failed to load itinerary for booking:', err);
@@ -831,6 +856,44 @@ export class BookingComponent implements OnInit, OnDestroy {
       } finally {
         this.isBookingLoading = false;
       }
+    } else if (this.paymentMethod === 'momo') {
+      await this.startMomoPayment(bookingData);
+    }
+  }
+
+  private async startMomoPayment(bookingData: any) {
+    this.isBookingLoading = true;
+    try {
+      const config = await this.apiService.getMomoPaymentConfig();
+      if (!config.configured) {
+        const missing = config.missing?.length ? ` Thiếu: ${config.missing.join(', ')}.` : '';
+        this.showAlert('MoMo chưa được cấu hình', `Thêm Partner Code và Access Key sandbox vào backend/.env rồi khởi động lại backend.${missing}`, 'warning');
+        return;
+      }
+
+      const booking = await this.apiService.createBooking(bookingData);
+      if (!booking.success || !booking.bookingId) {
+        this.showAlert('Không thể tạo đơn MoMo', booking.message || 'Vui lòng thử lại.', 'error');
+        return;
+      }
+
+      this.currentBookingId = booking.bookingId;
+      this.paymentStatus = 'pending';
+      if (booking.autoCreatedUser) {
+        this.authService.loginWithToken(booking.autoCreatedUser.user, booking.autoCreatedUser.token);
+      }
+      this.saveDraft();
+
+      const payment = await this.apiService.createMomoPayment(booking.bookingId);
+      if (!payment.success || !payment.payUrl) {
+        this.showAlert('Chưa tạo được giao dịch MoMo', payment.message || 'Đơn đã được giữ lại; bạn có thể thử thanh toán lại.', 'error');
+        return;
+      }
+      window.location.assign(payment.payUrl);
+    } catch (error: any) {
+      this.showAlert('Không kết nối được MoMo', error?.message || 'Vui lòng thử lại sau.', 'error');
+    } finally {
+      this.isBookingLoading = false;
     }
   }
 
@@ -1321,7 +1384,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get confirmationPaymentMethod(): string {
     const method = this.confirmationPaymentMethodCode;
-    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy' } as Record<string, string>)[method] || this.selectedPaymentLabel;
+    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy', momo: 'Ví MoMo' } as Record<string, string>)[method] || this.selectedPaymentLabel;
   }
 
   public get confirmationPaymentMethodCode(): string {

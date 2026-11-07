@@ -21,6 +21,9 @@ import { roleGuard } from './guards/role.guard';
 import { PartnerLayoutComponent } from './components/partner-layout/partner-layout';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
+import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
+import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
+import { NetworkErrorComponent } from './pages/network-error/network-error';
 
 const routes: Routes = [
   { path:'transport', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
@@ -39,6 +42,10 @@ const routes: Routes = [
   { path: 'services/:id', component: TourDetailComponent },
   { path: 'service-detail/:id', component: TourDetailComponent },
   { path: 'services', component: ServicesComponent },
+  { path: 'how-it-works', component: HowItWorksComponent },
+  { path: 'cancellation-policy', component: CancellationPolicyComponent },
+  { path: 'transparency', component: CancellationPolicyComponent },
+  { path: 'network-error', component: NetworkErrorComponent },
   { path: 'help-center', component: HelpCenterComponent },
   { path: 'help-center/:slug', component: HelpCenterComponent },
   { path: 'contact', component: HelpCenterContactComponent },
@@ -46,6 +53,8 @@ const routes: Routes = [
   { path: 'community', component: CommunityComponent },
   { path: 'schedule', component: ScheduleEditorComponent },
   { path: 'schedule/:id', component: ScheduleEditorComponent },
+  { path: 'schedule-editor', component: ScheduleEditorComponent },
+  { path: 'schedule-editor/:id', component: ScheduleEditorComponent },
   { path: 'booking', component: BookingComponent },
   { path: 'booking/payment', component: BookingComponent },
   { path: 'booking/confirm', component: BookingComponent },

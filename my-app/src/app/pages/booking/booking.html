@@ -246,6 +246,7 @@
               <span *ngIf="method.id === 'wallet'" class="brand-greensteps-lockup"><img src="image/greensteps_logo_header.png" alt=""><span><b>GreenSteps</b><small>WALLET</small></span></span>
               <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="image/vietqr-wordmark.png" alt="VietQR">
               <img *ngIf="method.id === 'card'" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
+              <img *ngIf="method.id === 'momo'" class="brand-momo-image" src="image/payment/momo-logo.png" alt="Ví MoMo">
               <span *ngIf="method.id === 'counter'" class="brand-wordmark brand-counter"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
             </div>
             <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -254,6 +255,7 @@
                   {{ method.label }}
                   <span class="method-status-tag" *ngIf="method.id === 'card' && !isTransportBooking">Sandbox</span>
                   <span class="method-status-tag warning" *ngIf="method.id === 'wallet' && !walletRegistered && !usesInternalTransportPayment">Chưa kích hoạt</span>
+                  <span class="method-status-tag" *ngIf="method.id === 'momo' && !isTransportBooking">Sandbox</span>
                 </b>
                 <small>{{ method.desc }}</small>
               </label>
@@ -270,6 +272,11 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="card-sandbox-notice" *ngIf="paymentMethod === 'momo' && !isTransportBooking" style="margin-top:12px;">
+          <span class="sandbox-badge">SANDBOX</span>
+          <div><strong>Thanh toán thử nghiệm qua MoMo</strong><span>Bạn sẽ được chuyển đến cổng MoMo để xác nhận giao dịch.</span></div>
         </div>
 
         <div class="card-form" *ngIf="paymentMethod === 'card' && !isTransportBooking">
@@ -339,7 +346,7 @@
         </div>
         <small class="terms-error" *ngIf="paymentError('acceptedTerms')">{{ paymentError('acceptedTerms') }}</small>
         <button type="button" class="booking-submit payment-final-submit payment-continue-mobile" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
-          {{ payTiming === 'now' ? ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : 'Giữ chỗ và thanh toán tại quầy' }}
+          {{ payTiming === 'now' ? (paymentMethod === 'momo' ? 'Thanh toán bằng MoMo' : ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ')) : 'Giữ chỗ và thanh toán tại quầy' }}
         </button>
       </article>
     </section>
@@ -376,7 +383,7 @@
           <span *ngIf="isTransportBooking">Có thể hủy trước giờ khởi hành / nhận xe ít nhất {{ transportBooking?.cancellation_hours }} giờ.</span>
         </div>
         <button type="button" class="booking-submit payment-final-submit payment-continue-desktop" [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
-          <ng-container *ngIf="payTiming === 'now'">Thanh toán {{ depositAmount | number:'1.0-0':'vi-VN' }}đ</ng-container>
+          <ng-container *ngIf="payTiming === 'now'">{{ paymentMethod === 'momo' ? 'Thanh toán bằng MoMo' : ('Thanh toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') }}</ng-container>
           <ng-container *ngIf="payTiming === 'later'">Giữ chỗ và thanh toán tại quầy</ng-container>
         </button>
         <p class="payment-security-note">GreenSteps bảo vệ thông tin đặt chỗ của bạn.</p>

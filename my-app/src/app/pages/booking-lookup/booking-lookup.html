@@ -240,6 +240,22 @@
             <div style="font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.customer_email }}</div>
           </div>
         </div>
+        <!-- Actions & Refund Request -->
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+          <span *ngIf="item.rejection_reason && item.rejection_reason.includes('hoàn tiền')" style="font-size: 0.76rem; color: #b45309; font-weight: 500;">
+            Đã tiếp nhận yêu cầu hoàn tiền
+          </span>
+          <span *ngIf="!item.rejection_reason || !item.rejection_reason.includes('hoàn tiền')"></span>
+
+          <button 
+            *ngIf="item.status !== 'rejected' && item.status !== 'refunded' && item.status !== 'cancelled'"
+            type="button" 
+            style="padding: 6px 12px; font-size: 0.78rem; font-weight: 500; color: #991b1b; background: transparent; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;"
+            (click)="openRefundModal(item)">
+            Yêu cầu hủy & hoàn tiền
+          </button>
+        </div>
+
         <section *ngIf="item.order_details_snapshot?.daysData?.length" style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 14px;">
           <h3 style="font-size: .9rem; font-weight: 800; margin: 0 0 10px; color: #184A37;">Lịch trình trong đơn</h3>
           <div *ngFor="let day of item.order_details_snapshot.daysData; let dayIndex = index" style="margin: 0 0 10px;">
@@ -264,3 +280,56 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { animation: spin 0.8s linear infinite; display: inline-block; }
 </style>
+
+<!-- Minimalist Refund Modal -->
+<div *ngIf="selectedBookingForRefund" style="position: fixed; inset: 0; background: rgba(17,24,39,0.45); backdrop-filter: blur(2px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px;">
+  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+      <h3 style="font-size: 16px; font-weight: 600; color: #111827; margin: 0;">Yêu cầu hủy vé & hoàn tiền</h3>
+      <button type="button" (click)="closeRefundModal()" style="border: none; background: none; font-size: 18px; color: #6b7280; cursor: pointer; padding: 0;">&times;</button>
+    </div>
+
+    <!-- Refund Rate Info -->
+    <div style="background: #fbfbf9; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px;">
+      <div style="color: #4b5563; margin-bottom: 4px;">Mã đặt chỗ: <strong style="color: #111827;">{{ selectedBookingForRefund.id }}</strong></div>
+      <div style="color: #4b5563; margin-bottom: 4px;">Tỷ lệ hoàn dự kiến: <strong style="color: #2d4a3e;">{{ refundRatePreview }}%</strong></div>
+      <div style="color: #4b5563;">Số tiền cọc dự kiến hoàn: <strong style="color: #111827;">{{ refundAmountPreview | number:'1.0-0':'vi-VN' }}đ</strong></div>
+    </div>
+
+    <!-- Reason Select -->
+    <label style="display: block; margin-bottom: 12px; font-size: 13px;">
+      <span style="font-weight: 500; color: #374151; display: block; margin-bottom: 4px;">Lý do hủy đơn</span>
+      <select [(ngModel)]="refundReason" style="width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #1f2937;">
+        <option value="Thay đổi lịch trình cá nhân">Thay đổi lịch trình cá nhân</option>
+        <option value="Lý do sức khỏe / cá nhân">Lý do sức khỏe / cá nhân</option>
+        <option value="Thời tiết bất lợi">Thời tiết bất lợi</option>
+        <option value="Khác">Khác</option>
+      </select>
+    </label>
+
+    <!-- Bank Info (if rate > 0) -->
+    <div *ngIf="refundRatePreview > 0" style="margin-bottom: 16px;">
+      <span style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 8px;">Thông tin nhận tiền hoàn</span>
+      
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <input type="text" [(ngModel)]="refundBank" placeholder="Tên ngân hàng (ví dụ: Vietcombank, MB Bank)" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" />
+        <input type="text" [(ngModel)]="refundAccount" placeholder="Số tài khoản ngân hàng" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" />
+        <input type="text" [(ngModel)]="refundHolder" placeholder="Tên chủ tài khoản" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" />
+      </div>
+    </div>
+
+    <div *ngIf="refundMessage" style="font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+      {{ refundMessage }}
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f3f4f6; padding-top: 14px;">
+      <button type="button" (click)="closeRefundModal()" style="padding: 8px 14px; font-size: 13px; font-weight: 500; color: #4b5563; background: transparent; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">
+        Hủy bỏ
+      </button>
+      <button type="button" (click)="submitRefund()" [disabled]="refundSubmitting" style="padding: 8px 16px; font-size: 13px; font-weight: 500; color: #ffffff; background: #2d4a3e; border: 1px solid #2d4a3e; border-radius: 6px; cursor: pointer;">
+        {{ refundSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu hoàn tiền' }}
+      </button>
+    </div>
+  </div>
+</div>

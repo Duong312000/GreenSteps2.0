@@ -1,0 +1,200 @@
+<!-- MINIMAL TOP HEADER (ROUTINE CLEAN STYLE) -->
+<header class="routine-top-header">
+  <div class="nav-left-cluster">
+    <button type="button" (click)="goBack()" class="btn-routine-back" title="Quay lại trang trước (Esc)">
+      <i class="bi bi-arrow-left"></i>
+      <span>Quay lại</span>
+    </button>
+    <span class="nav-divider"></span>
+    <a routerLink="/home" class="brand-link" title="Trang chủ GreenSteps">
+      <img src="image/logo.png" alt="GreenSteps" class="brand-logo" onerror="this.style.display='none'">
+      <span class="brand-name">GreenSteps</span>
+    </a>
+  </div>
+
+  <div class="header-right-meta">
+    <span class="meta-tag"><i class="bi bi-shield-check text-success"></i> Trung tâm Quy chuẩn & Pháp lý</span>
+  </div>
+</header>
+
+<!-- MAIN ROUTINE 2-COLUMN LAYOUT WRAPPER (PURE EDITORIAL, NO IMAGES) -->
+<div class="routine-policy-layout">
+  
+  <!-- BREADCRUMB BAR -->
+  <div class="routine-breadcrumb-wrap">
+    <div class="container-1240">
+      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <a routerLink="/home" class="bc-link">Trang chủ</a>
+        <i class="bi bi-chevron-right bc-sep"></i>
+        <span class="bc-curr">Trung tâm chính sách</span>
+        <i class="bi bi-chevron-right bc-sep"></i>
+        <span class="bc-active">{{ currentPolicy.navTitle }}</span>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container-1240 layout-grid-container">
+
+    <!-- LEFT SIDEBAR: VERTICAL POLICY NAVIGATION (ROUTINE STYLE) -->
+    <aside class="routine-sidebar" aria-label="Danh mục chính sách">
+      <div class="sidebar-sticky-inner">
+        
+        <div class="sidebar-heading-box">
+          <span class="sidebar-kicker">DANH MỤC</span>
+          <h2 class="sidebar-title">CHÍNH SÁCH & QUY CHUẨN</h2>
+        </div>
+
+        <nav class="sidebar-nav-list">
+          <button type="button"
+                  *ngFor="let p of policies"
+                  class="sidebar-nav-item"
+                  [class.active]="p.id === activePolicyId"
+                  (click)="selectPolicy(p.id)">
+            <span class="nav-text">{{ p.navTitle }}</span>
+            <i class="bi bi-chevron-right nav-arrow"></i>
+          </button>
+        </nav>
+
+        <!-- ROUTINE CONTACT & SUPPORT CARD -->
+        <div class="sidebar-support-card">
+          <div class="support-icon-wrap">
+            <i class="bi bi-headset"></i>
+          </div>
+          <div class="support-text">
+            <strong>HỖ TRỢ KHÁCH HÀNG 24/7</strong>
+            <p>Hotline: <a href="tel:19006868">1900 6868</a></p>
+            <p>Email: <a href="mailto:support@greensteps.vn">support@greensteps.vn</a></p>
+          </div>
+          <a routerLink="/booking-lookup" class="sidebar-lookup-btn">
+            <span>Tra cứu mã vé / Hoàn cọc</span>
+            <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT: POLICY DETAIL & ARTICLES (PURE EDITORIAL, NO IMAGES) -->
+    <main class="routine-main-content">
+      
+      <!-- HERO POLICY INTRO BLOCK -->
+      <header class="content-header-block">
+        <div class="header-meta-row">
+          <span class="effective-badge">{{ currentPolicy.effectiveDate }}</span>
+          <span class="verified-pill"><i class="bi bi-shield-check"></i> Đang có hiệu lực thi hành</span>
+        </div>
+
+        <h1 class="main-policy-heading">{{ currentPolicy.fullTitle }}</h1>
+        <p class="main-policy-sub">{{ currentPolicy.subTitle }}</p>
+
+        <!-- 3 Quick Core Metrics (Minimalist Routine Row) -->
+        <div class="routine-metrics-bar">
+          <div class="routine-metric-item" *ngFor="let m of currentPolicy.quickMetrics">
+            <span class="metric-number">{{ m.value }}</span>
+            <strong class="metric-name">{{ m.label }}</strong>
+            <span class="metric-caption">{{ m.desc }}</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- IN-DEPTH LEGAL ARTICLES (FULL 2 TRANG A4 NỘI DUNG PHÁP LÝ RÕ RÀNG) -->
+      <article class="routine-articles-list">
+        
+        <section class="routine-article-card" *ngFor="let art of currentPolicy.articles">
+          
+          <div class="art-title-flex">
+            <span class="art-badge">{{ art.articleNum }}</span>
+            <h3 class="art-title-text">{{ art.title }}</h3>
+          </div>
+
+          <p class="art-lead-text" *ngIf="art.lead">{{ art.lead }}</p>
+
+          <!-- Article Text Content -->
+          <div class="art-text-col">
+            <!-- Paragraphs -->
+            <div class="art-paragraphs" *ngIf="art.paragraphs && art.paragraphs.length > 0">
+              <p *ngFor="let p of art.paragraphs">{{ p }}</p>
+            </div>
+
+            <!-- Bullet Points -->
+            <ul class="art-bullet-list" *ngIf="art.bullets && art.bullets.length > 0">
+              <li *ngFor="let b of art.bullets">{{ b }}</li>
+            </ul>
+          </div>
+
+          <!-- Precision Data Table -->
+          <div class="art-table-wrapper" *ngIf="art.table">
+            <div class="table-mobile-hint">
+              <i class="bi bi-arrow-left-right me-1"></i> Cuộn ngang để xem đầy đủ bảng biểu phí
+            </div>
+            <table class="routine-data-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let h of art.table.headers" scope="col">{{ h }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of art.table.rows">
+                  <td *ngFor="let cell of row; let cellIdx = index" [class.rate-cell]="cellIdx === 1">
+                    {{ cell }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Highlight Callout Box -->
+          <div class="art-callout-box" *ngIf="art.callout" [ngClass]="art.callout.type">
+            <div class="callout-icon-col">
+              <i class="bi" 
+                 [class.bi-info-circle-fill]="art.callout.type === 'info'"
+                 [class.bi-shield-check]="art.callout.type === 'tip'"
+                 [class.bi-exclamation-triangle-fill]="art.callout.type === 'warning'"></i>
+            </div>
+            <div class="callout-body">
+              <strong>{{ art.callout.title }}</strong>
+              <p>{{ art.callout.text }}</p>
+            </div>
+          </div>
+
+        </section>
+
+      </article>
+
+      <!-- LEGAL SIGNOFF & VALIDATION -->
+      <footer class="routine-signoff-box">
+        <div class="signoff-flex">
+          <div class="signoff-info">
+            <strong>Hội đồng Tiêu chuẩn & Pháp chế GreenSteps Việt Nam</strong>
+            <p>Văn bản có giá trị pháp lý bắt buộc áp dụng đối với toàn thể cán bộ điều hành, hướng dẫn viên, đối tác hợp tác xã và khách hàng sử dụng dịch vụ trên nền tảng.</p>
+          </div>
+          <div class="signoff-badge">
+            <i class="bi bi-patch-check-fill text-success"></i>
+            <span>ĐÃ XÁC THỰC PHÁP LÝ</span>
+          </div>
+        </div>
+      </footer>
+
+      <!-- BOTTOM ACTION CTA (ROUTINE E-COMMERCE STYLE) -->
+      <section class="routine-cta-section">
+        <div class="cta-inner-card">
+          <div class="cta-text-box">
+            <span class="cta-kicker">CỔNG TIẾP NHẬN ĐỐI SOÁT</span>
+            <h3 class="cta-heading">Bạn có mã vé cần tra cứu hoặc gửi yêu cầu hoàn tiền?</h3>
+            <p class="cta-desc">
+              Nhập mã đặt chỗ hoặc số điện thoại tại cổng tra cứu để hệ thống đối chiếu thời gian và chuyển tiền hoàn cọc tự động qua VietQR trong vòng 24 giờ.
+            </p>
+          </div>
+          <div class="cta-action-wrap">
+            <a routerLink="/booking-lookup" class="btn-routine-cta">
+              <span>Tra cứu mã vé & Yêu cầu hoàn cọc</span>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+</div>

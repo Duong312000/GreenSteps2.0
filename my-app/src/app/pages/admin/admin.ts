@@ -4,7 +4,7 @@ import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { AccountModalField, AccountModalRecord, AccountModalTab } from './account-detail-modal.component';
 
-type CatalogKey = 'services' | 'tours' | 'promotions' | 'allBookings';
+type CatalogKey = 'services' | 'tours' | 'promotions' | 'allBookings' | 'refunds';
 type AdminTab = 'providers' | CatalogKey | 'bookings' | 'deposits' | 'refunds' | 'withdrawals' | 'wallets' | 'reports';
 type QueueState = 'loading' | 'ready' | 'unavailable';
 type QueueKey = 'providers' | 'deposits' | 'withdrawals' | 'wallets' | 'bookings';
@@ -110,12 +110,12 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (!url) return '';
     return url.startsWith('/uploads/') ? (['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055' : 'https://greensteps-6swn.onrender.com') + url : url;
   }
-  public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [] };
-  public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading' };
+  public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [], refunds: [] };
+  public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading', refunds: 'loading' };
   private refreshTimer?: ReturnType<typeof setInterval>;
   private refreshing = false;
   private destroyed = false;
-  public get isCatalogTab(): boolean { return ['services', 'tours', 'promotions', 'allBookings'].includes(this.activeTab); }
+  public get isCatalogTab(): boolean { return ['services', 'tours', 'promotions', 'allBookings', 'refunds'].includes(this.activeTab); }
   @ViewChild('globalSearchInput') globalSearchInput?: ElementRef<HTMLInputElement>;
 
   public activeSection = 'overview';
@@ -362,7 +362,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.loadWallets(),
       this.loadBookings(),
       this.loadReports(),
-      ...(['services', 'tours', 'promotions', 'allBookings'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
+      ...(['services', 'tours', 'promotions', 'allBookings', 'refunds'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
     ]); } finally { this.refreshing = false; }
 
   }
@@ -444,7 +444,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public get currentQueueState(): QueueState | 'unsupported' {
     if (this.activeTab === 'reports') return this.reportsState;
     if (this.isCatalogTab) return this.catalogState[this.activeTab as CatalogKey];
-    if (this.activeTab === 'refunds') return 'unsupported';
+    // refunds supported via catalog
     return this.queueState[this.activeTab as QueueKey];
   }
 
@@ -470,6 +470,8 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   public get activeTableColumns(): AdminTableColumn[] {
     if (this.activeTab === 'reports') return [{ key: 'name', label: 'Tác giả' }, { key: 'serviceType', label: 'Nội dung' }, { key: 'detail', label: 'Lý do và nội dung báo cáo' }, { key: 'date', label: 'Ngày báo cáo' }, { key: 'status', label: 'Trạng thái' }];
+    if (this.activeTab === 'refunds') return [{ key: 'id', label: 'Mã' }, { key: 'name', label: 'Khách hàng' }, { key: 'detail', label: 'Dịch vụ' }, { key: 'documents', label: 'Lý do & STK' }, { key: 'amount', label: 'Tiền cọc' }, { key: 'status', label: 'Trạng thái' }];
+    
     if (this.isCatalogTab) return [
       { key: 'id', label: 'Mã' }, { key: 'name', label: 'Tên' }, { key: 'detail', label: 'Thông tin' },
       { key: 'amount', label: this.activeTab === 'promotions' ? 'Mức giảm' : 'Giá trị' },
@@ -1008,6 +1010,33 @@ export class AdminComponent implements OnInit, OnDestroy {
     return this.queueState[key] === 'unavailable' ? 'Không tải được dữ liệu' : this.queueState[key] === 'loading' ? 'Đang tải dữ liệu' : 'Yêu cầu đang chờ xử lý';
   }
 
+  
+  public async approveRefundRow(row: AdminTableRow) {
+    if (this.isPreviewMode) return;
+    this.showConfirm(`Xác nhận đã chuyển tiền hoàn cọc cho mã ${row.id}?`, async () => {
+      const ok = await this.apiService.approveAdminRefund(row.id);
+      if (ok) {
+        this.showAlert('Đã xác nhận hoàn tiền thành công.', 'success');
+        await this.loadCatalog('refunds');
+      } else {
+        this.showAlert('Không thể cập nhật trạng thái.', 'error');
+      }
+    });
+  }
+
+  public async rejectRefundRow(row: AdminTableRow) {
+    if (this.isPreviewMode) return;
+    this.showConfirm(`Từ chối yêu cầu hoàn tiền cho mã ${row.id}?`, async () => {
+      const ok = await this.apiService.rejectAdminRefund(row.id, 'Không đủ điều kiện theo chính sách');
+      if (ok) {
+        this.showAlert('Đã từ chối yêu cầu hoàn tiền.', 'info');
+        await this.loadCatalog('refunds');
+      } else {
+        this.showAlert('Không thể cập nhật trạng thái.', 'error');
+      }
+    });
+  }
+
   private queueFor(key: QueueKey): any[] {
     return {
       providers: this.pendingProviders,
@@ -1021,7 +1050,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   private getQueueItems(): any[] {
     if (this.activeTab === 'reports') return this.communityReports;
     if (this.isCatalogTab) return this.catalog[this.activeTab as CatalogKey];
-    if (this.activeTab === 'refunds') return [];
+    // refunds supported via catalog
     return this.queueFor(this.activeTab as QueueKey);
   }
 

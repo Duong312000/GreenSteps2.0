@@ -26,7 +26,7 @@ export interface AdminUserQuery {
   providedIn: 'root'
 })
 export class ApiService {
-  private BACKEND_URL = getApiUrl();
+  public BACKEND_URL = getApiUrl();
 
   walletRequest(method: string, path: string, body?: unknown, key?: string): Promise<any> {
     return firstValueFrom(this.http.request(method, `${this.BACKEND_URL}/wallet${path}`, { body, withCredentials: true, headers: key ? { 'Idempotency-Key': key } : {} }));
@@ -127,6 +127,18 @@ export class ApiService {
       cost: Number(tour.cost),
       oldCost: Number(tour.old_cost || tour.oldCost || tour.cost * 1.2),
       image: tour.image_url || tour.image,
+      gallery: Array.isArray(tour.gallery) && tour.gallery.length > 0 ? tour.gallery : (tour.image_url || tour.image ? [tour.image_url || tour.image] : []),
+      description: tour.description || tour.tour_description || '',
+      highlights: tour.highlights || [],
+      included: tour.included || [],
+      excluded: tour.excluded || [],
+      policy: tour.policy || [],
+      guarantees: tour.guarantees || [],
+      vouchers: tour.vouchers || [],
+      style: tour.style || 'Gia đình / Eco Travel',
+      group_size: tour.group_size || 'Nhóm nhỏ thân mật',
+      fitness_level: tour.fitness_level || 'Nhẹ nhàng',
+      maxCapacity: Number(tour.maxCapacity || tour.max_capacity || 10),
       tags: tour.badges || tour.tags || [],
       rating: this.optionalRating(tour.rating),
       votes: Number(tour.votes_count || tour.votes || 0),
@@ -555,13 +567,17 @@ export class ApiService {
     }
   }
 
-  public async addCommunityPost(postData: any): Promise<boolean> {
+  public async addCommunityPost(postData: any): Promise<{ success: boolean; message?: string }> {
     try {
       this.clearCache('community_posts_');
-      await firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/posts`, postData));
-      return true;
-    } catch (e) {
-      return false;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('greensteps_token') : null;
+      const headers: any = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await firstValueFrom(this.http.post<any>(this.BACKEND_URL + '/community/posts', postData, { headers, withCredentials: true }));
+      return { success: true, message: res?.message };
+    } catch (e: any) {
+      console.error('addCommunityPost error:', e);
+      return { success: false, message: e?.error?.message || e?.message || 'Không thể chia sẻ bài viết lên cộng đồng.' };
     }
   }
 
@@ -784,6 +800,18 @@ export class ApiService {
     }
   }
 
+  public async getMomoPaymentConfig(): Promise<{ configured: boolean; environment?: string; missing?: string[] }> {
+    return await firstValueFrom(this.http.get<{ configured: boolean; environment?: string; missing?: string[] }>(`${this.BACKEND_URL}/payments/momo/config`));
+  }
+
+  public async createMomoPayment(bookingId: string): Promise<{ success: boolean; bookingId?: string; payUrl?: string; message?: string }> {
+    try {
+      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/payments/momo/create`, { bookingId }));
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'MoMo payment creation failed.' };
+    }
+  }
+
   public getLocalCounterBookingNotifications(userId: string): any[] {
     try {
       const rows = JSON.parse(localStorage.getItem('greensteps-counter-notifications') || '[]');
@@ -917,7 +945,7 @@ export class ApiService {
     }
   }
 
-  public async postServiceReview(reviewData: { bookingId: string; serviceId: string; rating: number; text: string }): Promise<any> {
+  public async postServiceReview(reviewData: { bookingId?: string; serviceId: string; rating?: number | null; text: string; parentCommentId?: string | null }): Promise<any> {
     this.clearCache(`service_reviews_${reviewData.serviceId}`);
     this.clearCache(`service_detail_tour_${reviewData.serviceId}`);
     this.clearCache(`preset_tour_${reviewData.serviceId}`);
@@ -1027,6 +1055,34 @@ export class ApiService {
       );
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi xác thực E-Voucher!' };
+    }
+  }
+
+    public async requestRefund(payload: { bookingId: string; reason: string; bankName?: string; accountNumber?: string; accountHolder?: string }): Promise<{ success: boolean; message: string; refundRate?: number; refundAmount?: number }> {
+    try {
+      return await firstValueFrom(
+        this.http.post<any>(`${this.BACKEND_URL}/bookings/request-refund`, payload)
+      );
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'Lỗi gửi yêu cầu hoàn tiền!' };
+    }
+  }
+
+  public async approveAdminRefund(id: string): Promise<boolean> {
+    try {
+      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/refunds/${id}/approve`, {}, { withCredentials: true }));
+      return res?.success ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  public async rejectAdminRefund(id: string, note?: string): Promise<boolean> {
+    try {
+      const res = await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/refunds/${id}/reject`, { note }, { withCredentials: true }));
+      return res?.success ?? false;
+    } catch {
+      return false;
     }
   }
 
@@ -1149,7 +1205,7 @@ export class ApiService {
   public reviewCommunityReport(id: string, action: string, note: string): Promise<any> {
     return firstValueFrom(this.http.post(`${this.BACKEND_URL}/community/reports/${id}/review`, { action, note }, { withCredentials: true }));
   }
-  public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings'): Promise<AdminQueueResult<any>> {
+  public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings' | 'refunds'): Promise<AdminQueueResult<any>> {
     return this.getAdminQueue(`/admin/catalog/${kind}`);
   }
   private adminUserQuery(query: AdminUserQuery): string {
@@ -1720,5 +1776,27 @@ export class ApiService {
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Xác thực mã OTP thất bại.' };
     }
+  }
+
+  
+  // ==========================================
+  // OFFICIAL GOOGLE MAPS PLATFORM API METHODS
+  // ==========================================
+  searchGooglePlaces(query: string): Promise<any[]> {
+    return firstValueFrom(
+      this.http.get<any>(this.BACKEND_URL + '/maps/places/search?query=' + encodeURIComponent(query))
+    ).then((res: any) => res && res.success ? res.places : []).catch(() => []);
+  }
+
+  getGooglePlaceDetails(placeId: string): Promise<any | null> {
+    return firstValueFrom(
+      this.http.get<any>(this.BACKEND_URL + '/maps/places/details/' + encodeURIComponent(placeId))
+    ).then((res: any) => res && res.success ? res.place : null).catch(() => null);
+  }
+
+  computeGoogleRoute(origin: { lat: number; lng: number }, destination: { lat: number; lng: number }, waypoints?: { lat: number; lng: number }[], travelMode?: string): Promise<any | null> {
+    return firstValueFrom(
+      this.http.post<any>(this.BACKEND_URL + '/maps/routes', { origin, destination, waypoints, travelMode: travelMode || 'DRIVE' })
+    ).then((res: any) => res && res.success ? res : null).catch(() => null);
   }
 }
