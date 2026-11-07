@@ -26,6 +26,7 @@ export class ServicesComponent implements OnInit {
   public filterRating: string = 'all';
   public selectedEcoBadge: string = 'all';
   public sortOrder: string = 'popular';
+  public onlyPartner: boolean = false;
 
   // Pagination
   public currentPage: number = 1;
@@ -45,7 +46,10 @@ export class ServicesComponent implements OnInit {
     'Đà Lạt',
     'Phú Yên',
     'Hội An',
-    'Đà Nẵng'
+    'Đà Nẵng',
+    'Ninh Bình',
+    'Sa Pa',
+    'Hà Giang'
   ];
 
   public priceRanges = [
@@ -134,6 +138,12 @@ export class ServicesComponent implements OnInit {
       const isTransport = this.serviceType === 'transport' && s.type === 'transport';
       const isExplore = this.serviceType === 'attraction' && (s.type === 'attraction' || s.type === 'explore');
       
+      // 0. Only Partner filter
+      if (this.onlyPartner) {
+        const isPartner = s.is_partner !== false && s.source !== 'google_maps';
+        if (!isPartner) return false;
+      }
+
       if (!isStay && !isFood && !isTransport && !isExplore) {
         return false;
       }
@@ -196,6 +206,16 @@ export class ServicesComponent implements OnInit {
     this.filteredServices = list;
     this.currentPage = 1;
     this.updatePagination();
+  }
+
+  
+  public addToSchedule(service: any) {
+    this.router.navigate(['/schedule'], {
+      queryParams: {
+        addPlace: service.name,
+        destination: service.destination
+      }
+    });
   }
 
   public updatePagination() {
@@ -276,6 +296,7 @@ export class ServicesComponent implements OnInit {
     this.filterPrice = 'all';
     this.filterRating = 'all';
     this.selectedEcoBadge = 'all';
+    this.onlyPartner = false;
     this.sortOrder = 'popular';
     this.filterServices();
   }
@@ -285,4 +306,4 @@ export class ServicesComponent implements OnInit {
   }
 }
 
-export { ServicesComponent as Services };
+export { ServicesComponent as Services }; 

@@ -25,6 +25,7 @@ export interface Activity {
   type: 'lodging' | 'dining' | 'transport' | 'attraction';
   lat?: number;
   lng?: number;
+  description?: string;
 }
 
 export interface Tour {
@@ -44,14 +45,27 @@ export interface Tour {
   rating?: number | null;
   votes?: number;
   votes_count?: number;
+  reviews_count?: number;
   discountPercent?: number;
   ecoFeature?: string;
   badges?: string[];
   tags?: string[];
   data: Activity[][];
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
   isService?: boolean;
   maxCapacity?: number;
+  highlights?: string[];
+  included?: string[];
+  excluded?: string[];
+  policy?: Array<{ step?: string; title: string; desc: string }>;
+  style?: string;
+  group_size?: string;
+  fitness_level?: string;
+  guarantees?: Array<{ icon?: string; title: string; desc: string }>;
+  vouchers?: Array<any>;
 }
 
 export interface Itinerary {
@@ -100,6 +114,9 @@ export interface Service {
   max_capacity?: number;
   rejection_reason?: string;
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
 }
 
 export interface Booking {

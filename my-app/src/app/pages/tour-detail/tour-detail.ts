@@ -50,6 +50,15 @@ export class TourDetailComponent implements OnInit {
   public bookingGuests: number = 2;
   public bookingAdults: number = 2;
   public bookingChildren: number = 0;
+  public copiedVoucher: string | null = null;
+  public copyVoucher(code: string, event: Event) {
+    event.stopPropagation();
+    navigator.clipboard?.writeText(code);
+    this.copiedVoucher = code;
+    setTimeout(() => {
+      if (this.copiedVoucher === code) this.copiedVoucher = null;
+    }, 2500);
+  }
 
   // Dynamic reviews rating statistics
   public getRatingCount(stars: number): number {
@@ -66,13 +75,45 @@ export class TourDetailComponent implements OnInit {
     return Math.round((this.getRatingCount(stars) / this.reviewsList.length) * 100);
   }
 
+  /** Root reviews that carry a star rating */
+  public get ratedReviews(): any[] {
+    return (this.reviewsList || []).filter(r => !r.parentCommentId && r.rating !== null && r.rating !== undefined && Number(r.rating) > 0);
+  }
+
   public get totalReviewsCount(): number {
-    return Number(this.activeTour?.votes_count ?? this.activeTour?.votes ?? this.reviewsList?.length ?? 0);
+    return this.ratedReviews.length;
+  }
+
+  public get totalCommentsCount(): number {
+    return (this.reviewsList || []).length;
   }
 
   public get averageScore(): number {
-    if (!this.activeTour || this.activeTour.rating == null || !Number.isFinite(Number(this.activeTour.rating))) return 0;
-    return Number(this.activeTour.rating);
+    const rated = this.ratedReviews;
+    if (!rated.length) return 0;
+    const sum = rated.reduce((acc, r) => acc + Number(r.rating), 0);
+    return Number((sum / rated.length).toFixed(1));
+  }
+
+  public get currentUserId(): string {
+    return this.currentUser?.id || this.currentUser?._id || '';
+  }
+
+  /** A user may rate a tour/service only once; further posts are plain comments */
+  public get hasUserRated(): boolean {
+    const uid = this.currentUserId;
+    return !!uid && this.ratedReviews.some(r => (r.user?.id || r.userId) === uid);
+  }
+
+  public setNewReviewRating(star: number) {
+    if (this.hasUserRated) return;
+    this.newReviewRating = this.newReviewRating === star ? 0 : star;
+  }
+
+  public getStarClass(index: number, score: number): string {
+    if (score >= index) return 'bi-star-fill';
+    if (score >= index - 0.5) return 'bi-star-half';
+    return 'bi-star';
   }
 
   public get ratingText(): string {
@@ -82,6 +123,101 @@ export class TourDetailComponent implements OnInit {
     if (score >= 4.3) return 'Rất tốt';
     if (score >= 3.8) return 'Tốt';
     return 'Trung bình';
+  }
+
+  public get formattedCarbon(): string {
+    if (!this.activeTour || this.activeTour.carbon === undefined || this.activeTour.carbon === null) return '';
+    const num = Number(this.activeTour.carbon);
+    if (isNaN(num) || num === 0) return '0kg CO₂';
+    const absVal = Math.abs(num);
+    return `-${absVal}kg CO₂`;
+  }
+
+  public get tourHighlights(): string[] {
+    if (this.activeTour?.highlights && Array.isArray(this.activeTour.highlights) && this.activeTour.highlights.length > 0) {
+      return this.activeTour.highlights;
+    }
+    return [
+      'Lịch trình thong thả, có nhiều thời gian nghỉ ngơi thoải mái',
+      'Ưu tiên trải nghiệm văn hóa và ẩm thực bản địa sạch',
+      'Hướng dẫn viên thân thiện, chu đáo và am hiểu sinh thái',
+      'Có thể cá nhân hóa lại các hoạt động theo mong muốn của bạn'
+    ];
+  }
+
+  public get tourIncluded(): string[] {
+    if (this.activeTour?.included && Array.isArray(this.activeTour.included) && this.activeTour.included.length > 0) {
+      return this.activeTour.included;
+    }
+    return [
+      'Phương tiện di chuyển xanh theo lịch trình đã xác nhận',
+      'Vé vào cổng các điểm tham quan chính trong tour',
+      'Hướng dẫn viên đồng hành chuyên nghiệp, thân thiện',
+      'Bảo hiểm du lịch theo quy định'
+    ];
+  }
+
+  public get tourExcluded(): string[] {
+    if (this.activeTour?.excluded && Array.isArray(this.activeTour.excluded) && this.activeTour.excluded.length > 0) {
+      return this.activeTour.excluded;
+    }
+    return [
+      'Chi tiêu cá nhân ngoài chương trình (mua sắm quà lưu niệm...)',
+      'Các bữa ăn uống tự do ngoài các bữa chính trong hành trình',
+      'Phụ phí phòng đơn nếu có nhu cầu ở riêng'
+    ];
+  }
+
+  public get tourGuarantees(): Array<{ icon?: string; title: string; desc: string }> {
+    return (this.activeTour?.guarantees && Array.isArray(this.activeTour.guarantees) && this.activeTour.guarantees.length > 0)
+      ? this.activeTour.guarantees
+      : [];
+  }
+
+  public get tourVouchers(): any[] {
+    return (this.activeTour?.vouchers && Array.isArray(this.activeTour.vouchers) && this.activeTour.vouchers.length > 0)
+      ? this.activeTour.vouchers
+      : [];
+  }
+
+  public activeAssuranceOpen: boolean = false;
+  public toggleAssurance() {
+    this.activeAssuranceOpen = !this.activeAssuranceOpen;
+  }
+
+  public get tourPolicies(): Array<{ step?: string; title: string; desc: string }> {
+    if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
+      return this.activeTour.policy;
+    }
+    return [
+      {
+        step: '01',
+        title: 'Giữ chỗ miễn phí 7 ngày',
+        desc: 'Bạn có thể đặt trước để giữ chỗ mà không mất phí trong 7 ngày đầu, dễ dàng lên kế hoạch cùng gia đình.'
+      },
+      {
+        step: '02',
+        title: 'Đổi ngày linh hoạt',
+        desc: 'Hỗ trợ đổi ngày khởi hành không giới hạn số lần trước 48 giờ so với lịch trình dự kiến.'
+      },
+      {
+        step: '03',
+        title: 'Chính sách hoàn cọc',
+        desc: 'Hoàn 90% nếu thông báo hủy trước 7 ngày. Mọi chi phí được minh bạch tuyệt đối.'
+      }
+    ];
+  }
+
+  public get tourStyle(): string {
+    return this.activeTour?.style || (this.activeTour?.isService ? this.detailKindLabel : 'Gia đình / Eco Travel');
+  }
+
+  public get tourGroupSize(): string {
+    return this.activeTour?.group_size || 'Nhóm nhỏ thân mật';
+  }
+
+  public get tourFitnessLevel(): string {
+    return this.activeTour?.fitness_level || 'Nhẹ nhàng';
   }
 
   // Fallback slider images by destination
@@ -176,56 +312,32 @@ export class TourDetailComponent implements OnInit {
   }
 
 
+  public onThumbError(event: Event) {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
+    }
+  }
+
   private setupSlides() {
     if (!this.activeTour) return;
-    const coverImage = this.activeTour.image || this.activeTour.image_url || this.localTourImage('cover.jpg');
-    const galleryImages = (this.activeTour.gallery || []).filter(Boolean);
+    const coverImage = (this.activeTour.image || this.activeTour.image_url || 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg').replace(/^\//, '');
+    const rawGallery = (this.activeTour.gallery || []).map((img: string) => (img || '').replace(/^\//, '')).filter(Boolean);
 
-    let rawImages = [coverImage, ...galleryImages];
-
-    if (this.activeTour.isService) {
-      if (galleryImages.length === 0) {
-        const dest = this.activeTour.destination || 'Đà Lạt';
-        const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
-        rawImages = [coverImage, ...destImgs.slice(0, 4)];
-      }
-      this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img));
-      if (this.slideImages.length === 0) {
-        this.slideImages = [coverImage];
-      }
-      this.activeSlideIndex = 0;
-      return;
+    let rawImages: string[] = [];
+    if (rawGallery.length > 0) {
+      rawImages = Array.from(new Set([coverImage, ...rawGallery]));
+    } else {
+      const dest = this.activeTour.destination || 'Đà Lạt';
+      const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'] || [];
+      rawImages = Array.from(new Set([coverImage, ...destImgs]));
     }
 
-    for (let index = 1; rawImages.length < 7 && index <= 6; index++) {
-      const localGalleryImage = this.localTourImage(`gallery-${String(index).padStart(2, '0')}.jpg`);
-      if (!rawImages.includes(localGalleryImage)) {
-        rawImages.push(localGalleryImage);
-      }
-    }
-
-    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img));
-    this.activeSlideIndex = 0;
-
-    const dest = this.activeTour.destination || 'Đà Lạt';
-    const destImgs = this.destinationImages[dest] || this.destinationImages['Đà Lạt'];
-
-    destImgs.forEach(img => {
-      if (img !== this.activeTour?.image && this.slideImages.length < 7 && !this.slideImages.includes(img)) {
-        this.slideImages.push(img);
-      }
-    });
-
+    this.slideImages = rawImages.filter(img => !this.isLowQualityGalleryImage(img)).slice(0, 5);
     if (this.slideImages.length === 0) {
-      this.slideImages = destImgs.slice(0, 7);
+      this.slideImages = [coverImage];
     }
-
-    while (this.slideImages.length < 7) {
-      const fallbackImg = destImgs[this.slideImages.length % destImgs.length];
-      this.slideImages.push(fallbackImg);
-    }
-
-    this.slideImages = this.slideImages.slice(0, 7);
+    this.activeSlideIndex = 0;
   }
 
   private localTourImage(fileName: string): string {
@@ -266,6 +378,16 @@ export class TourDetailComponent implements OnInit {
 
   public setDay(index: number) {
     this.activeDayIndex = index;
+  }
+
+  public scrollToTab(tab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews') {
+    this.activeInfoTab = tab;
+    setTimeout(() => {
+      const el = document.querySelector('.gs-tabs-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   }
 
   public setInfoTab(tab: 'overview' | 'included' | 'itinerary' | 'policy' | 'reviews') {
@@ -522,14 +644,15 @@ export class TourDetailComponent implements OnInit {
     const tourId = this.activeTour?.id || '';
 
     let res;
-    if (this.activeTour?.isService) {
-      res = await this.apiService.replyToComment(parentCommentId, userId, text);
-    } else {
-      res = await this.apiService.postTourReview({
-        tourId,
-        text,
-        parentCommentId
-      });
+    try {
+      if (this.activeTour?.isService) {
+        res = await this.apiService.postServiceReview({ serviceId: tourId, text, parentCommentId });
+      } else {
+        res = await this.apiService.postTourReview({ tourId, text, parentCommentId });
+      }
+    } catch (error: any) {
+      alert(error?.error?.message || 'Gửi phản hồi thất bại!');
+      return;
     }
 
     if (res && res.success) {
@@ -544,7 +667,7 @@ export class TourDetailComponent implements OnInit {
   }
 
   public async submitRootReview() {
-    if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim() || !this.selectedReviewBookingId) return;
+    if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim()) return;
 
     if (!this.currentUser) {
       alert('Vui lòng đăng nhập để gửi đánh giá!');
@@ -553,26 +676,27 @@ export class TourDetailComponent implements OnInit {
 
     const tourId = this.activeTour?.id || '';
 
+    const ratingToSend = !this.hasUserRated && this.newReviewRating > 0 ? this.newReviewRating : null;
     this.isSubmittingReview = true;
     let res;
     try {
       if (this.activeTour?.isService) {
         res = await this.apiService.postServiceReview({
-          bookingId: this.selectedReviewBookingId,
+          bookingId: this.selectedReviewBookingId || undefined,
           serviceId: tourId,
-          rating: this.newReviewRating,
+          rating: ratingToSend,
           text: this.newReviewText
         });
       } else {
         res = await this.apiService.postTourReview({
-          bookingId: this.selectedReviewBookingId,
+          bookingId: this.selectedReviewBookingId || undefined,
           tourId,
-          rating: this.newReviewRating,
+          rating: ratingToSend,
           text: this.newReviewText
         });
       }
     } catch (error: any) {
-      alert(error?.error?.message || 'Could not submit the review. Please try again.');
+      alert(error?.error?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
       this.isSubmittingReview = false;
       return;
     }
@@ -584,7 +708,7 @@ export class TourDetailComponent implements OnInit {
       if (this.activeTour) {
         await this.loadReviews(this.activeTour.id);
         await this.loadReviewEligibility();
-        this.activeTour.rating = res.rating;
+        if (res.rating !== undefined && res.rating !== null) this.activeTour.rating = res.rating;
         const reviewCount = res.votes_count ?? res.reviews_count;
         if (reviewCount !== undefined) {
           this.activeTour.votes_count = reviewCount;

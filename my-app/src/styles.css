@@ -1,11 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Geist:wght@300;400;500;600;700;800;900&display=swap');
 @import './app/pages/booking/booking.css';
 
 /* ==========================================================================
            1. DESIGN TOKENS & CSS VARIABLES (LIGHT/DARK THEMES)
            ========================================================================== */
         :root {
-            --font-main: 'Be Vietnam Pro', 'Inter', sans-serif;
+            --font-main: 'Be Vietnam Pro', 'Geist', 'Inter', sans-serif;
+            --ui-primary: #047857;
+            --ui-primary-hover: #065f46;
+            --ui-accent: #f2c14e;
+            --ui-success: #15803d;
+            --ui-warning: #a16207;
+            --ui-danger: #b91c1c;
+            --ui-info: #0369a1;
+            --ui-neutral-950: #17221c;
+            --ui-neutral-800: #34443a;
+            --ui-neutral-700: #4b5c51;
+            --ui-neutral-600: #5f7065;
+            --ui-neutral-500: #748278;
+            --ui-neutral-300: #d7e0da;
+            --ui-neutral-200: #e5ebe7;
+            --ui-neutral-100: #f3f6f4;
+            --ui-surface: #ffffff;
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-6: 24px;
+            --space-8: 32px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
+            --shadow-soft: 0 2px 10px rgba(23, 34, 28, 0.05);
             /* Light Mode Colors */
             --bg-primary: #F3F7F5; /* Soft Minty Warm Gray */
             --bg-secondary: #FFFFFF;
@@ -75,6 +102,17 @@
             --logo-bg: rgba(10, 13, 20, 0.75);
             --menubar-bg: rgba(10, 13, 20, 0.75);
             --overflow-bg: rgba(10, 13, 20, 0.85);
+            --ui-primary: #34d399;
+            --ui-primary-hover: #6ee7b7;
+            --ui-neutral-950: #ecf5ef;
+            --ui-neutral-800: #d5e2d9;
+            --ui-neutral-700: #b8c9be;
+            --ui-neutral-600: #aabdb1;
+            --ui-neutral-500: #91a69a;
+            --ui-neutral-300: #405348;
+            --ui-neutral-200: #304437;
+            --ui-neutral-100: #1b2920;
+            --ui-surface: #192920;
         }
 
         /* ==========================================================================
@@ -9063,22 +9101,22 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10B981 0%, #047857 100%); /* Default premium green gradient */
+    background: #4A6B5D !important; /* Low-saturation calm forest sage */
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
     margin-top: 6px;
-    border: 3px solid #FFFFFF;
-    box-shadow: 0 3px 8px rgba(4, 120, 87, 0.15);
+    border: 2.5px solid #FFFFFF;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     z-index: 2;
 }
 
-/* Bullet icon backgrounds overrides by type */
-.timeline-item[data-type="lodging"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #4299E1 0%, #2B6CB0 100%) !important; }
-.timeline-item[data-type="dining"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #ED8936 0%, #C05621 100%) !important; }
-.timeline-item[data-type="transport"] .timeline-time-node .node-icon-bullet { background: linear-gradient(135deg, #718096 0%, #4A5568 100%) !important; }
+/* Bullet icon backgrounds overrides by type (Desaturated & harmonious) */
+.timeline-item[data-type="lodging"] .timeline-time-node .node-icon-bullet { background: #5B788A !important; }
+.timeline-item[data-type="dining"] .timeline-time-node .node-icon-bullet { background: #9C684E !important; }
+.timeline-item[data-type="transport"] .timeline-time-node .node-icon-bullet { background: #64748B !important; }
 
 .timeline-item .timeline-time-node::after {
     content: "";
@@ -9088,7 +9126,7 @@
     top: 38px;
     bottom: -30px;
     width: 0;
-    border-left: 2px dashed rgba(16, 185, 129, 0.25);
+    border-left: 1.5px dashed #CBD5E1 !important;
     z-index: 1;
 }
 
@@ -10539,17 +10577,17 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
     margin-left: -12px !important;
     border: none !important;
     border-radius: 0 9999px 9999px 0 !important;
-    background: linear-gradient(90deg, #f43f5e 0%, #a855f7 50%, #6366f1 100%) !important;
-    color: white !important;
-    font-weight: 800 !important;
-    padding: 14px 24px !important;
-    font-size: 14px !important;
+    background: #1E3E2F !important;
+    color: #F8FAF8 !important;
+    font-weight: 700 !important;
+    padding: 13px 24px !important;
+    font-size: 13.5px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.35) !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 4px 14px rgba(30, 62, 47, 0.22) !important;
     position: relative !important;
     z-index: 10 !important;
 }
@@ -10562,7 +10600,8 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
 
 .btn-ai-assistant:hover {
     transform: translateX(4px) !important;
-    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5) !important;
+    background: #234E3C !important;
+    box-shadow: 0 6px 18px rgba(30, 62, 47, 0.3) !important;
     filter: brightness(1.05) !important;
 }
 
@@ -10875,7 +10914,9 @@ app-partner-register {
     }
 
     .schedule-editor-container .checkout-actions {
-        gap: 5px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
         margin-top: 8px !important;
     }
 
@@ -10948,13 +10989,18 @@ app-partner-register {
     }
 
     .schedule-editor-container .timeline-item .timeline-time-node {
-        width: 70px !important;
+        width: 82px !important;
     }
 
     .schedule-editor-container .timeline-time-node input[type="time"] {
-        width: 66px !important;
+        width: 80px !important;
         min-height: 24px !important;
-        font-size: 9px !important;
+        font-size: 11px !important;
+    }
+
+    .schedule-editor-container .timeline-time-node input[type="time"]::-webkit-calendar-picker-indicator {
+        display: none !important;
+        -webkit-appearance: none !important;
     }
 
     .schedule-editor-container .timeline-item .timeline-time-node .node-icon-bullet {
@@ -13647,4 +13693,67 @@ app-tour-detail .show-all-tile span {
   app-home .gs-wallet-dashboard-pane {
     grid-column: 1 / -1 !important;
   }
+}
+
+/* Keep the confirmation receipt within one laptop viewport. */
+app-root:has(.confirm-page) app-footer { display: block !important; }
+app-root:has(.confirm-page) app-greensteps-chat { display: none !important; }
+
+/* Partner Workspace uses the shared footer-free dashboard canvas. */
+app-root:has(app-partner-layout) app-footer { display: none !important; }
+
+app-partner-layout {
+  --partner-green: var(--ui-primary);
+  --partner-dark: var(--ui-primary-hover);
+  --partner-text: var(--ui-neutral-950);
+  --partner-muted: var(--ui-neutral-600);
+  --partner-border: var(--ui-neutral-200);
+  --partner-line: var(--ui-neutral-200);
+  --partner-surface: var(--ui-surface);
+  font-family: var(--font-main);
+}
+
+app-partner-layout .partner-content .primary {
+  background: var(--ui-primary);
+  color: #fff;
+}
+
+app-partner-layout .partner-content .primary:hover {
+  background: var(--ui-primary-hover);
+}
+
+app-partner-layout .partner-content .secondary {
+  background: #fff8e5;
+  border-color: #e7c76a;
+  color: #684d08;
+}
+
+app-partner-layout .partner-content .secondary:hover {
+  background: #fff1c2;
+}
+
+app-partner-layout .partner-content .text-xs {
+  font-size: 13px !important;
+}
+
+app-partner-layout [class*="text-[9px]"],
+app-partner-layout [class*="text-[10px]"],
+app-partner-layout [class*="text-[11px]"],
+app-partner-layout [class*="text-[12px]"] {
+  font-size: 13px !important;
+}
+
+app-partner-layout .partner-content :is(small, p, label, th, td, dt, dd, .eyebrow, .axis-label) {
+  font-size: max(13px, 1em) !important;
+  line-height: 1.5;
+}
+
+/* Keep the travel photo only on the confirmation page. */
+body:has(.confirm-page) {
+  background-color: #edf4ef;
+  background-image: linear-gradient(rgba(240, 247, 242, .42), rgba(234, 243, 236, .48)), url('/image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }

@@ -3002,7 +3002,7 @@ input[type="radio"] {
 
 /* Confirmation page refresh: clear state, trip details, and payment summary. */
 :host:has(.confirm-shell.confirm-page) {
-  background: #f4f8f5;
+  background: transparent;
 }
 
 .confirm-shell.confirm-page {
@@ -3011,9 +3011,11 @@ input[type="radio"] {
   height: auto;
   min-height: 0;
   padding: clamp(14px, 2.2vh, 24px) clamp(12px, 2.4vw, 28px);
-  background:
-    radial-gradient(ellipse at 12% 0%, rgba(213, 236, 221, .58), transparent 34%),
-    #f4f8f5;
+  background-color: #edf4ef;
+  background-image: linear-gradient(rgba(238, 245, 239, .70), rgba(232, 243, 235, .74)), url('/image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .confirm-layout {
@@ -3208,6 +3210,7 @@ input[type="radio"] {
 .confirm-primary-action,
 .confirm-secondary-action { min-height: 46px; padding: 0 18px; border-radius: 12px; font-size: 13px; font-weight: 650; }
 .confirm-primary-action { border-color: #176a49; background: #176a49; box-shadow: 0 5px 12px rgba(23, 106, 73, .13); }
+.confirm-shell.confirm-page .confirm-actions .confirm-primary-action { color: #fff; -webkit-text-fill-color: #fff; font-size: 13px; text-indent: 0; }
 .confirm-primary-action:hover:not(:disabled) { background: #11583b; box-shadow: 0 7px 16px rgba(23, 106, 73, .18); }
 .confirm-secondary-action { border-color: #d1e0d6; color: #315d46; }
 .confirm-secondary-action:hover:not(:disabled) { border-color: #b2cdbb; background: #f8fbf9; }

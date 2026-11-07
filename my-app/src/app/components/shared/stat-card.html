@@ -1,0 +1,8 @@
+<article class="stat-card">
+  <div class="stat-card__copy">
+    <p class="stat-card__label">{{ label }}</p>
+    <strong class="stat-card__value">{{ value }}</strong>
+    <p class="stat-card__note" *ngIf="note">{{ note }}</p>
+  </div>
+  <span class="stat-card__icon" *ngIf="icon" aria-hidden="true"><i [class]="icon"></i></span>
+</article>

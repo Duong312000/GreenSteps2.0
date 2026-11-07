@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { User } from '../models/models';
 import { ApiService } from './api.service';
+import { getApiUrl } from '../config/api-config';
 
 export interface AuthResult {
   success: boolean;
@@ -20,9 +21,7 @@ export interface AuthResult {
   providedIn: 'root'
 })
 export class AuthService {
-  private BACKEND_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? 'http://localhost:5055/api/auth'
-    : 'https://greensteps-6swn.onrender.com/api/auth';
+  private BACKEND_URL = `${getApiUrl()}/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();

@@ -42,6 +42,17 @@
 
         <hr class="shopco-divider" />
 
+        <!-- 2. Partner Filter Section -->
+        <div class="filter-section">
+          <h4 class="filter-section-title">Nhà Cung Cấp</h4>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" [(ngModel)]="onlyPartner" (change)="filterServices()" style="accent-color: #2d4a3e; width: 16px; height: 16px; cursor: pointer;">
+            <span style="font-size: 0.84rem; font-weight: 500; color: #374151;">Chỉ hiện Đối tác chính thức</span>
+          </label>
+        </div>
+
+        <hr class="shopco-divider" />
+
         <!-- 3. Price Range Section -->
         <div class="filter-section">
           <h4 class="filter-section-title">Khoảng Giá</h4>
@@ -153,6 +164,8 @@
           <button (click)="resetFilters()" class="clear-all-chips">Xóa tất cả</button>
         </div>
 
+
+
         <!-- Product Cards Grid (Shop.co 3-column Grid) -->
         <div *ngIf="paginatedServices.length > 0; else noResults" class="shopco-products-grid">
           <div *ngFor="let s of paginatedServices" class="shopco-product-card" [routerLink]="['/tour-detail', s.id]" style="cursor: pointer;">
@@ -178,6 +191,12 @@
             <div class="card-body">
               <div class="card-dest-row">
                 <span class="card-dest-tag">{{ s.destination }}</span>
+                <span *ngIf="s.source !== 'google_maps' && s.is_partner !== false" class="partner-verified-tag">
+                  Cam kết Net-Zero
+                </span>
+                <span *ngIf="s.source === 'google_maps'" class="google-public-tag">
+                  Điểm tham quan
+                </span>
                 <span *ngIf="s.isRecommended" class="recommended-badge">
                   <i class="bi bi-sparkles"></i> Gợi ý
                 </span>
@@ -189,16 +208,21 @@
 
               <!-- Rating Row -->
               <div class="card-rating-row">
-                <div class="stars-box">
-                  <i *ngFor="let star of [1,2,3,4,5]" 
-                     class="bi" 
-                     [class.bi-star-fill]="star <= (s.rating || 0)"
-                     [class.bi-star-half]="star - 0.5 === (s.rating || 0)"
-                     [class.bi-star]="star > (s.rating || 0)">
-                  </i>
-                </div>
-                <span class="rating-number">{{ s.rating ?? '—' }}<span class="rating-total">/5</span></span>
-                <span class="reviews-count">({{ s.reviews_count || 0 }})</span>
+                <ng-container *ngIf="(s.reviews_count || 0) > 0; else noServiceCardReviews">
+                  <div class="stars-box">
+                    <i *ngFor="let star of [1,2,3,4,5]" 
+                       class="bi" 
+                       [class.bi-star-fill]="star <= (s.rating || 0)"
+                       [class.bi-star-half]="star - 0.5 === (s.rating || 0)"
+                       [class.bi-star]="star > (s.rating || 0)">
+                    </i>
+                  </div>
+                  <span class="rating-number">{{ s.rating }}<span class="rating-total">/5</span></span>
+                  <span class="reviews-count">({{ s.reviews_count }})</span>
+                </ng-container>
+                <ng-template #noServiceCardReviews>
+                  <span class="reviews-count text-slate-400 text-xs font-medium">Mới · Chưa có đánh giá</span>
+                </ng-template>
               </div>
 
               <!-- Eco Highlights -->
