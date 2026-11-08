@@ -1,0 +1,29 @@
+<div class="hiw-container">
+  <header class="hiw-header">
+    <span class="hiw-badge">Hướng dẫn sử dụng</span>
+    <h1 class="hiw-title">Cách thức hoạt động</h1>
+    <p class="hiw-subtitle">
+      4 bước để khởi tạo và thực hiện chuyến đi du lịch sinh thái cùng GreenSteps.
+    </p>
+  </header>
+
+  <div class="steps-list">
+    <div class="step-card" *ngFor="let s of steps">
+      <div class="step-num">{{ s.num }}</div>
+      <div class="step-content">
+        <h2 class="step-title">{{ s.title }}</h2>
+        <p class="step-desc">{{ s.desc }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="hiw-cta-bar">
+    <button type="button" class="btn-primary" (click)="launchTour()">
+      Bật hướng dẫn tương tác
+    </button>
+    <a routerLink="/schedule" class="btn-outline">
+      Thử tạo lịch trình ngay
+    </a>
+  </div>
+</div>
+

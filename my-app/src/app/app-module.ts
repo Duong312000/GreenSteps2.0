@@ -1,4 +1,7 @@
+import { TransportBookingsComponent } from './pages/transport/transport-bookings';
 import { GreenWalletComponent } from './pages/profile/green-wallet';
+import { FavoriteButtonComponent } from './components/favorites/favorite-button';
+import { FavoriteCollectionComponent } from './components/favorites/favorite-collection';
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -25,6 +28,9 @@ import { ScheduleEditorComponent } from './pages/schedule-editor/schedule-editor
 import { AdminComponent } from './pages/admin/admin';
 import { AdminUsersComponent } from './pages/admin/admin-users';
 import { AccountDetailModalComponent } from './pages/admin/account-detail-modal.component';
+import { AdminTableComponent } from './pages/admin/admin-table.component';
+import { StatusBadgeComponent } from './components/shared/status-badge';
+import { CopyableIdComponent } from './pages/admin/copyable-id.component';
 import { PartnerDashboardComponent } from './pages/partner/partner-dashboard/partner-dashboard';
 import { PartnerServicesComponent } from './pages/partner/partner-services/partner-services';
 import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partner-bookings';
@@ -33,6 +39,10 @@ import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/p
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
+import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
+import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
+import { NetworkErrorComponent } from './pages/network-error/network-error';
+import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
@@ -77,8 +87,14 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerRegisterComponent,
     HelpCenterComponent,
     HelpCenterContactComponent,
+    HowItWorksComponent,
+    CancellationPolicyComponent,
+    NetworkErrorComponent,
   ],
   imports: [
+    FavoriteButtonComponent,
+    FavoriteCollectionComponent,
+    TransportBookingsComponent,
     GreenWalletComponent,
     BrowserModule,
     CommonModule,
@@ -88,7 +104,11 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     GreenStepsChatComponent,
     PartnerIconComponent,
     AdminUsersComponent,
-    AccountDetailModalComponent
+    AccountDetailModalComponent,
+    AdminTableComponent,
+    StatusBadgeComponent,
+    CopyableIdComponent,
+    OnboardingTourComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

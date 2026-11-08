@@ -1,4 +1,4 @@
-<div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
+﻿<div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
   <header class="admin-topbar">
     <div class="admin-brand">
       <button type="button" class="admin-mobile-menu" aria-label="Mở menu" (click)="mobileMenuOpen = !mobileMenuOpen">
@@ -67,6 +67,7 @@
 
     <aside class="admin-sidebar" [class.mobile-open]="mobileMenuOpen" aria-label="Điều hướng quản trị">
       <div class="sidebar-nav">
+        <a routerLink="/admin/transport" class="sidebar-item"><i class="bi bi-bus-front"></i><span class="sidebar-label">Di chuyển xanh</span></a>
         <button type="button" class="sidebar-item" *ngFor="let item of navigationItems"
           [class.active]="activeSection === item.id" [attr.title]="item.label"
           (mouseenter)="item.id === 'users' && prefetchUsers()" (focus)="item.id === 'users' && prefetchUsers()"
@@ -87,14 +88,14 @@
       <div class="admin-content-grid" [class.users-layout]="isUserManagement">
         <section class="admin-primary-column">
           <div class="page-heading" *ngIf="!isUserManagement">
-            <div class="breadcrumb"><span>Tổng quan</span><i class="bi bi-chevron-right"></i><strong>{{ isOverview ? 'Bảng điều khiển' : activeSectionLabel }}</strong></div>
+            <div class="breadcrumb"><span>Tổng quan</span><i class="bi bi-chevron-right"></i><strong>{{ isOverview ? 'Bảng điều khiển' : activeManagementGroupLabel }}</strong><i class="bi bi-chevron-right" *ngIf="!isOverview && !isUserManagement"></i><strong *ngIf="!isOverview && !isUserManagement">{{ activeTableTitle }}</strong></div>
             <div class="heading-line">
               <div>
-                <p class="eyebrow">GREENSTEPS TRAVEL · ADMIN</p>
-                <h1>{{ isOverview ? 'Bảng điều khiển Quản trị viên' : activeSectionLabel }}</h1>
-                <p class="page-description">Trung tâm điều hành GreenSteps Travel — theo dõi hoạt động, phê duyệt, tài chính và vận hành hệ thống.</p>
+                <p class="eyebrow" *ngIf="!isPolishedAdminTable">GREENSTEPS TRAVEL · ADMIN</p>
+                <h1>{{ isOverview ? 'Bảng điều khiển Quản trị viên' : isUserManagement ? activeSectionLabel : 'Hàng đợi phê duyệt' }}</h1>
+                <p class="page-description" *ngIf="isOverview">Trung tâm điều hành GreenSteps Travel — theo dõi hoạt động, phê duyệt, tài chính và vận hành hệ thống.</p>
               </div>
-              <span class="preview-label" *ngIf="isPreviewMode"><i class="bi bi-eye"></i> DỮ LIỆU MINH HỌA</span>
+              <button type="button" class="pending-report-chip" *ngIf="!isOverview && !isUserManagement" (click)="setActiveTab('reports')"><i class="bi bi-flag"></i> Báo cáo đang chờ xử lý <strong *ngIf="pendingCommunityReportCount > 0">{{ pendingCommunityReportCount }}</strong></button><span class="preview-label" *ngIf="isPreviewMode"><i class="bi bi-eye"></i> DỮ LIỆU MINH HỌA</span>
             </div>
           </div>
 
@@ -141,6 +142,7 @@
             </section>
 
             <section class="community-moderation-workspace" *ngIf="activeTab === 'reports'">
+              <nav class="admin-tab-navigation" [class.polished-navigation]="isPolishedAdminTable" aria-label="Admin groups"><div class="admin-group-tabs" role="tablist"><button type="button" *ngFor="let group of managementGroups" [class.active]="activeManagementGroup === group.id" (click)="activeManagementGroup = group.id; setActiveTab(group.tabs[0])">{{ group.label }}</button></div><div class="admin-item-tabs" role="tablist"><button type="button" *ngFor="let tab of visibleManagementTabs" [class.active]="activeTab === tab.id" (click)="setActiveTab(tab.id)" role="tab" [attr.aria-selected]="activeTab === tab.id"><i class="bi" [ngClass]="tab.icon"></i>{{ tab.label }}<span *ngIf="tab.badgeKey && (getQueueCount(tab.badgeKey) || 0) &gt; 0" class="tab-count">{{ getQueueCount(tab.badgeKey) }}</span></button></div></nav>
               <div class="community-report-metrics">
                 <article class="community-report-metric" *ngFor="let metric of reportMetrics" [ngClass]="'report-tone-' + metric.tone">
                   <span class="report-metric-symbol"><i class="bi" [ngClass]="metric.icon" aria-hidden="true"></i></span>
@@ -161,10 +163,10 @@
               </div>
 
               <section class="community-report-table panel-card" aria-label="Danh sách báo cáo cộng đồng">
-                <div class="queue-state" *ngIf="reportsState === 'loading'"><span class="loading-spinner"></span>Đang tải báo cáo...</div>
+                <div class="admin-table-skeleton" *ngIf="reportsState === 'loading'" aria-label="Loading reports"><span *ngFor="let row of [1,2,3,4,5]"><i></i><i></i><i></i><i></i></span></div>
                 <div class="queue-state queue-unavailable" *ngIf="reportsState === 'unavailable'"><i class="bi bi-cloud-slash"></i><span>Không tải được báo cáo.</span><button class="report-tool-button" type="button" (click)="loadReports()">Thử lại</button></div>
                 <div class="report-selection-summary" *ngIf="selectedReportIds.size">Đã chọn {{ selectedReportIds.size }} báo cáo <button type="button" class="text-action" (click)="selectedReportIds.clear()">Bỏ chọn</button></div>
-                <div class="table-scroll" *ngIf="reportsState === 'ready'">
+                <app-admin-table *ngIf="reportsState === 'ready'"><div class="table-scroll">
                   <table>
                     <thead><tr><th class="report-checkbox"><input type="checkbox" aria-label="Chọn tất cả báo cáo trên trang" [checked]="allPageReportsSelected" (change)="togglePageReportSelection()" [disabled]="!pageRows.length"></th><th>Tác giả</th><th>Loại nội dung</th><th>Lý do báo cáo</th><th>Ngày báo cáo</th><th>Trạng thái</th><th class="report-actions-heading">Thao tác</th></tr></thead>
                     <tbody>
@@ -180,7 +182,7 @@
                       <tr *ngIf="!filteredRows.length"><td colspan="7" class="report-empty"><i class="bi bi-inbox"></i><strong>Không có báo cáo phù hợp</strong><span>Thử thay đổi tìm kiếm hoặc bộ lọc.</span></td></tr>
                     </tbody>
                   </table>
-                </div>
+                </div></app-admin-table>
                 <div class="community-report-pagination" *ngIf="reportsState === 'ready'">
                   <span>Hiển thị {{ filteredRows.length ? (currentPage - 1) * pageSize + 1 : 0 }}–{{ pageEnd }} trong {{ filteredRows.length }} kết quả</span>
                   <div><button type="button" (click)="changePage(currentPage - 1)" [disabled]="currentPage <= 1" aria-label="Trang báo cáo trước"><i class="bi bi-chevron-left"></i></button><span class="report-page-number">{{ currentPage }}</span><button type="button" (click)="changePage(currentPage + 1)" [disabled]="currentPage >= pageCount" aria-label="Trang báo cáo sau"><i class="bi bi-chevron-right"></i></button><select [(ngModel)]="reportsPageSize" (ngModelChange)="currentPage = 1" aria-label="Số báo cáo mỗi trang"><option [ngValue]="10">10 / trang</option><option [ngValue]="20">20 / trang</option><option [ngValue]="50">50 / trang</option></select></div>
@@ -189,52 +191,61 @@
             </section>
 
             <section class="workspace-panel panel-card" *ngIf="activeTab !== 'reports'">
-              <div class="workspace-tabs-wrap">
-                <div class="workspace-tabs" role="tablist" aria-label="Danh sách quản trị">
-                  <button type="button" class="workspace-tab" *ngFor="let tab of managementTabs" [class.selected]="activeTab === tab.id" (click)="setActiveTab(tab.id)" role="tab" [attr.aria-selected]="activeTab === tab.id">
-                    <i class="bi" [ngClass]="tab.icon"></i><span>{{ tab.label }}</span>
-                    <span class="tab-count" *ngIf="tab.badgeKey && getQueueCount(tab.badgeKey) !== null">{{ getQueueCount(tab.badgeKey) }}</span>
-                  </button>
-                </div>
-                <div class="workspace-tools" *ngIf="activeTab !== 'refunds'">
-                  <label class="queue-search"><i class="bi bi-search"></i><input [(ngModel)]="queueSearch" (ngModelChange)="currentPage = 1" placeholder="Tìm trong danh sách..." /></label>
-                  <button type="button" class="filter-button" disabled title="Bộ lọc nâng cao chưa kết nối"><i class="bi bi-funnel"></i><span>Bộ lọc</span></button>
-                </div>
-              </div>
+              <nav class="admin-tab-navigation" [class.polished-navigation]="isPolishedAdminTable" aria-label="Admin groups"><div class="admin-group-tabs" role="tablist"><button type="button" *ngFor="let group of managementGroups" [class.active]="activeManagementGroup === group.id" (click)="activeManagementGroup = group.id; setActiveTab(group.tabs[0])">{{ group.label }}</button></div><div class="admin-item-tabs" role="tablist"><button type="button" *ngFor="let tab of visibleManagementTabs" [class.active]="activeTab === tab.id" (click)="setActiveTab(tab.id)" role="tab" [attr.aria-selected]="activeTab === tab.id"><i class="bi" [ngClass]="tab.icon"></i>{{ tab.label }}<span *ngIf="tab.badgeKey && (getQueueCount(tab.badgeKey) || 0) &gt; 0" class="tab-count">{{ getQueueCount(tab.badgeKey) }}</span></button></div></nav>
 
-              <div class="workspace-title-row">
-                <div><h2>{{ activeTableTitle }}</h2><p *ngIf="isPreviewMode" class="workspace-caption">Dữ liệu minh họa — thao tác quản trị đã tắt.</p></div>
+
+              <div class="workspace-title-row" [class.polished-table-toolbar]="isPolishedAdminTable">
+                <div *ngIf="!isPolishedAdminTable"><h2>{{ activeTableTitle }}</h2><p *ngIf="isPreviewMode" class="workspace-caption">Dữ liệu minh họa — thao tác quản trị đã tắt.</p></div><div class="workspace-tools" [class.polished-tools]="isPolishedAdminTable" *ngIf="activeTab !== 'refunds'">
+                  <label class="queue-search"><i class="bi bi-search"></i><input [(ngModel)]="queueSearch" (ngModelChange)="currentPage = 1" placeholder="Tìm trong danh sách..." /></label>
+                  <div class="table-toolbar-actions" *ngIf="isPolishedAdminTable">
+                    <button type="button" class="filter-button" disabled title="Bộ lọc nâng cao chưa kết nối"><i class="bi bi-funnel"></i><span>Bộ lọc</span></button>
+                    <div class="column-picker" *ngIf="activeTab === 'providers'">
+                      <button type="button" class="filter-button" (click)="columnPopoverOpen = !columnPopoverOpen" [attr.aria-expanded]="columnPopoverOpen"><i class="bi bi-columns-gap"></i><span>Cột</span></button>
+                      <div class="columns-popover" *ngIf="columnPopoverOpen" role="group" aria-label="Chọn cột hiển thị">
+                        <label *ngFor="let column of columnPickerColumns"><input type="checkbox" [checked]="activeTab === 'providers' ? providerVisibleColumns[column.key] : serviceVisibleColumns[column.key]" (change)="toggleTableColumn(column.key)" />{{ column.label }}</label>
+                      </div>
+                    </div>
+                    <button type="button" class="refresh-button" *ngIf="!isPreviewMode" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
+                  </div>
+                  <button type="button" class="filter-button" disabled title="Bộ lọc nâng cao chưa kết nối" *ngIf="!isPolishedAdminTable"><i class="bi bi-funnel"></i><span>Bộ lọc</span></button>
+                </div>
                 <div class="booking-bulk-actions" *ngIf="activeTab === 'bookings' && !isPreviewMode && pendingBookings.length">
                   <button type="button" class="button-primary button-small" (click)="approveAllBookings()"><i class="bi bi-check2-all"></i> Duyệt tất cả</button>
                   <button type="button" class="button-danger-light button-small" (click)="rejectAllBookings()"><i class="bi bi-x-circle"></i> Từ chối tất cả</button>
                 </div>
-                <button type="button" class="refresh-button" *ngIf="activeTab !== 'refunds' && !isPreviewMode" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
+                <button type="button" class="refresh-button" *ngIf="activeTab !== 'refunds' && !isPreviewMode && !isPolishedAdminTable" (click)="refreshActiveQueue()"><i class="bi bi-arrow-clockwise"></i><span>Tải lại</span></button>
               </div>
 
-              <div class="queue-state" *ngIf="currentQueueState === 'loading'"><span class="loading-spinner"></span><span>Đang tải dữ liệu từ API...</span></div>
+              <div class="admin-table-skeleton" *ngIf="currentQueueState === 'loading'" aria-label="Loading rows"><span *ngFor="let row of [1,2,3,4,5]"><i></i><i></i><i></i><i></i></span></div>
               <div class="queue-state queue-unavailable" *ngIf="currentQueueState === 'unavailable'"><i class="bi bi-cloud-slash"></i><div><strong>Không tải được dữ liệu</strong><span>Kiểm tra kết nối API hoặc quyền truy cập rồi thử tải lại.</span></div><button type="button" class="small-outline-button" (click)="refreshActiveQueue()">Thử lại</button></div>
               <div class="queue-state queue-empty" *ngIf="currentQueueState === 'unsupported'"><i class="bi bi-cone-striped"></i><div><strong>Chưa có API cho mục này</strong><span>Giao diện đã sẵn sàng; dữ liệu sẽ hiển thị khi backend hỗ trợ.</span></div></div>
               <div class="queue-state queue-empty" *ngIf="currentQueueState === 'ready' && filteredRows.length === 0"><i class="bi bi-inbox"></i><div><strong>{{ queueSearch ? 'Không tìm thấy kết quả' : (isCatalogTab ? 'Chưa có dữ liệu' : 'Không có yêu cầu đang chờ') }}</strong><span>{{ queueSearch ? 'Thử đổi cụm từ tìm kiếm.' : 'Hàng đợi này hiện không có dữ liệu cần xử lý.' }}</span></div></div>
 
-              <div class="table-scroll" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
-                <table class="admin-data-table">
-                  <thead><tr><th class="checkbox-column"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab">Thao tác</th></tr></thead>
+              <app-admin-table *ngIf="currentQueueState === 'ready' && filteredRows.length > 0"><div class="table-scroll" [class.polished-table-scroll]="isPolishedAdminTable" [class.provider-table-scroll]="activeTab === 'providers'">
+                <table class="admin-data-table" [class.provider-table]="activeTab === 'providers'" [class.service-table]="activeTab === 'services'" [class.catalog-table]="isCatalogTab && activeTab !== 'refunds' && activeTab !== 'services'" [class.refund-table]="activeTab === 'refunds'">
+                  <thead><tr><th class="checkbox-column" [style.width]="isPolishedAdminTable ? '48px' : null"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns" [class]="column.key + '-column'" [style.width]="column.width || null" [style.min-width]="column.minWidth || null" [class.text-right]="column.align === 'right'" [class.text-center]="column.align === 'center'">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab || activeTab === 'refunds'">Thao tác</th></tr></thead>
                   <tbody>
                     <tr *ngFor="let row of pageRows" [class.provider-clickable-row]="activeTab === 'providers' && !isPreviewMode" [attr.tabindex]="activeTab === 'providers' && !isPreviewMode ? 0 : null" (click)="activeTab === 'providers' && openProviderDetail(row)" (keydown.enter)="$event.target === $event.currentTarget && activeTab === 'providers' && openProviderDetail(row)">
                       <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
-                      <td *ngFor="let column of activeTableColumns" [class.cell-strong]="column.key === 'id' || column.key === 'name'" [class.detail-cell]="column.key === 'detail'" [title]="cellValue(row, column.key)">
-                        <span *ngIf="column.key === 'status'" class="status-badge" [ngClass]="statusClass(row.status)">{{ row.status }}</span>
-                        <span *ngIf="column.key !== 'status'">{{ cellValue(row, column.key) }}</span>
+                      <td *ngFor="let column of activeTableColumns" [class]="column.key + '-column'" [class.cell-strong]="column.primary || (column.key === 'name' && !isPolishedAdminTable)" [class.detail-cell]="column.key === 'detail'" [class.text-right]="column.align === 'right'" [class.text-center]="column.align === 'center'" [style.width]="column.width || null" [style.min-width]="column.minWidth || null" [title]="cellValue(row, column.key)">
+                        <div class="provider-name-cell" *ngIf="activeTab === 'providers' && column.key === 'name'"><strong [title]="row.name">{{ row.name }}</strong><app-copyable-id [value]="row.raw.id" appearance="subtle"></app-copyable-id></div>
+                        <app-status-badge *ngIf="column.key === 'status'" [status]="row.status" [tone]="statusTone(row.status)" [withDot]="isPolishedAdminTable"></app-status-badge>
+                        <app-status-badge *ngIf="activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu'" [status]="row.documents" tone="neutral" [withDot]="true"></app-status-badge>
+                        <app-copyable-id *ngIf="!(activeTab === 'providers' && column.key === 'name') && column.key !== 'status' && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && (column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key))" [value]="cellValue(row, column.key)"></app-copyable-id>
+                        <span *ngIf="column.key !== 'status' && !(activeTab === 'providers' && column.key === 'name') && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && !((column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key)) )" [class.detail-cell]="column.key === 'detail'" [class.service-name-cell]="activeTab === 'services' && column.key === 'name'">{{ cellValue(row, column.key) }}</span>
                       </td>
                       <td class="row-actions" (click)="$event.stopPropagation()" *ngIf="!isCatalogTab">
-
-                        <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">{{ activeTab === 'providers' ? 'Phê duyệt' : 'Duyệt' }}</button>
+                        <div class="provider-actions" *ngIf="activeTab === 'providers'">
+                          <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="openProviderDetail(row)">Chi tiết</button>
+                          <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">Phê duyệt</button>
+                        </div>
+                        <button type="button" class="small-outline-button" *ngIf="activeTab !== 'providers'" [disabled]="isPreviewMode" (click)="runRowAction(row, 'approve')">Duyệt</button>
                         <button type="button" class="row-more-button" *ngIf="activeTab !== 'providers'" [disabled]="isPreviewMode" (click)="runRowAction(row, 'reject')" aria-label="Từ chối"><i class="bi bi-x-lg"></i></button>
                       </td>
                     </tr>
                   </tbody>
                 </table>
-              </div>
+              </div></app-admin-table>
 
               <div class="table-footer" *ngIf="currentQueueState === 'ready' && filteredRows.length > 0">
                 <span>Hiển thị {{ (currentPage - 1) * pageSize + 1 }}–{{ pageEnd }} trong {{ filteredRows.length }} kết quả</span>
@@ -242,7 +253,7 @@
                   <button type="button" (click)="changePage(currentPage - 1)" [disabled]="currentPage <= 1" aria-label="Trang trước"><i class="bi bi-chevron-left"></i></button>
                   <span class="current-page">{{ currentPage }}</span><span>/ {{ pageCount }}</span>
                   <button type="button" (click)="changePage(currentPage + 1)" [disabled]="currentPage >= pageCount" aria-label="Trang sau"><i class="bi bi-chevron-right"></i></button>
-                  <select [ngModel]="pageSize" disabled aria-label="Số kết quả mỗi trang"><option>5 / trang</option></select>
+                  <select [ngModel]="pageSize" (ngModelChange)="setQueuePageSize($event)" aria-label="Số kết quả mỗi trang"><option [ngValue]="5" *ngIf="!isPolishedAdminTable">5 / trang</option><option [ngValue]="10">10 / trang</option><option [ngValue]="20">20 / trang</option><option [ngValue]="50">50 / trang</option></select>
                 </div>
               </div>
             </section>
@@ -260,7 +271,7 @@
           </ng-container>
         </section>
 
-        <aside class="admin-insights-column" *ngIf="!isUserManagement">
+        <aside class="admin-insights-column" *ngIf="!isUserManagement && isPreviewMode">
           <section class="insight-card panel-card system-card">
             <div class="insight-card-heading"><div><h2>Tình trạng hệ thống</h2><small>Giám sát dịch vụ</small></div></div>
             <div class="system-overview"><span class="system-status-dot"></span><div><strong>Chưa có dữ liệu giám sát</strong><small>Trạng thái dịch vụ chưa được cung cấp trong dashboard.</small></div></div>

@@ -10,3 +10,12 @@
   font-size: 13px;
   line-height: 1.5;
 }
+.provider-catalog-information { display: grid; gap: 22px; font-size: 15px; line-height: 1.7; }
+.provider-catalog-information section { border-top: 1px solid #e0e8dc; padding-top: 18px; }
+.provider-catalog-information h4 { margin: 0 0 12px; color: #174c39; font-size: 17px; font-weight: 750; }
+.provider-catalog-information a { display: block; color: #25633b; overflow-wrap: anywhere; text-underline-offset: 3px; margin-bottom: 8px; }
+.provider-room-row { display: grid; gap: 6px; border: 1px solid #dce6d5; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.provider-room-row p { margin: 0; }
+.provider-amenity-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.provider-amenity-groups ul { padding-left: 20px; margin: 8px 0 0; }
+@media (max-width: 600px) { .provider-amenity-groups { grid-template-columns: minmax(0, 1fr); } }

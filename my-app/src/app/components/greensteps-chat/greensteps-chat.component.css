@@ -329,7 +329,9 @@
 
 :host .chat-panel {
   border-color: var(--gs-chat-border);
-  background: var(--gs-chat-ivory);
+  background:
+    radial-gradient(ellipse 65% 62% at 52% 64%, #b9dff185 0%, #d2ece05c 48%, transparent 100%),
+    var(--gs-chat-ivory);
   box-shadow: 0 12px 36px #14231d14, 0 1px 4px #14231d0a;
 }
 :host .welcome-eyebrow { color: var(--gs-chat-secondary); }
@@ -345,7 +347,8 @@
 :host .history-item, :host .welcome-copy, :host .message-sender, :host .chat-structured-result,
 :host .planner-empty-state p, :host .planner-result-heading span:not(.result-leaf) { color: var(--gs-chat-secondary); }
 :host .history-item:hover, :host .welcome-prompts button:hover { background: var(--gs-chat-ivory); }
-:host .chat-transcript { background: var(--gs-chat-ivory); scrollbar-color: #AEB9AE transparent; }
+:host .chat-transcript { background: transparent; scrollbar-color: #AEB9AE transparent; }
+:host .chat-composer { background: transparent; }
 :host .message-bubble { background: var(--gs-chat-ivory); color: var(--gs-natural-forest); }
 :host .chat-message--assistant .message-bubble { background: var(--gs-chat-card); }
 :host .chat-message--user .message-bubble { background: var(--gs-natural-forest); color: var(--gs-chat-card); }

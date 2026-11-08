@@ -1,0 +1,94 @@
+/* Page layout is scoped to the planner; the support widget keeps its layout. */
+:host.planner-page {
+  --gs-chat-ivory: #f7faf8;
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  display: block;
+  height: calc(100dvh - 88px);
+  min-height: 480px;
+  margin-top: 88px;
+  pointer-events: auto;
+  color: #243d32;
+}
+:host.planner-page .planner-workspace { display: grid; grid-template-columns: 286px minmax(0, 1fr); height: 100%; background: #f7faf8; }
+.planner-sidebar { display: flex; min-height: 0; flex-direction: column; gap: 30px; padding: 32px 24px 22px; border-right: 1px solid #dce7df; background: #eaf4ee; overflow-y: auto; }
+.planner-identity { display: flex; align-items: center; gap: 13px; }
+.planner-identity > span { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 15px 15px 15px 3px; background: #184a37; color: white; font-size: 26px; }
+.planner-identity strong { display: block; font-size: 20px; font-weight: 800; color: #184a37; letter-spacing: -.5px; }
+.planner-identity p { margin: 5px 0 0; font-size: 10px; color: #597163; }
+.planner-tools { display: grid; gap: 8px; }
+.planner-tools button, .planner-tools a { display: flex; align-items: center; gap: 11px; width: 100%; padding: 13px 12px; border: 0; border-radius: 10px; background: transparent; color: #375d48; text-align: left; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; }
+.planner-tools .planner-new { background: #184a37; color: white; padding-block: 15px; margin-bottom: 7px; }
+.planner-tools button:hover, .planner-tools a:hover { background: #dbece1; }
+.planner-tools .planner-new:hover { background: #123d2d; }
+.planner-tools button:disabled { opacity: .55; cursor: wait; }
+.planner-tools :focus-visible { outline: 2px solid #0e9f6e; outline-offset: 3px; }
+.planner-tools i { font-size: 16px; }
+.planner-field-notes { margin-top: auto; }
+.planner-field-notes > i { font-size: 24px; color: #538966; }
+.planner-field-notes h2 { margin: 13px 0 10px; color: #184a37; font-size: 18px; font-weight: 700; line-height: 1.5; letter-spacing: -.5px; }
+.planner-field-notes p { margin: 0; max-width: 28ch; color: #597163; font-size: 12px; line-height: 1.8; }
+.planner-destination { position: relative; flex-shrink: 0; height: 160px; margin: 0; overflow: hidden; border-radius: 65px 65px 12px 12px; background: #d6e8dc; }
+.planner-destination img { width: 100%; height: 100%; object-fit: cover; }
+.planner-destination figcaption { position: absolute; right: 10px; bottom: 10px; left: 10px; display: flex; align-items: center; gap: 6px; width: fit-content; margin: auto; padding: 6px 10px; border-radius: 20px; background: #fffef5ed; color: #184a37; font-size: 10px; }
+:host.planner-page .chat-panel { position: relative; inset: auto; width: 100%; height: 100%; min-height: 0; max-height: none; border: 0; border-radius: 0; box-shadow: none; transform: none; transition: none; }
+:host.planner-page .chat-header { flex-shrink: 0; min-height: 77px; padding: 15px 36px; border-bottom: 1px solid #e3ebe5; background: #fff; }
+:host.planner-page .chat-header .brand-mark { width: 34px; height: 34px; }
+:host.planner-page .chat-header .brand-copy h1 { font-size: 15px; font-weight: 700; }
+:host.planner-page .chat-header .brand-copy p { font-size: 11px; }
+:host.planner-page .chat-transcript { padding: 28px max(32px, calc((100% - 850px) / 2)); overflow-x: hidden; overscroll-behavior: contain; }
+:host.planner-page .welcome-state { width: min(100%, 760px); padding: 25px 0 36px; justify-items: start; text-align: left; }
+:host.planner-page .welcome-sparkle { width: 50px; height: 50px; margin-bottom: 21px; border-radius: 18px 18px 18px 4px; background: #e4f1e8; color: #0e9f6e; font-size: 29px; }
+:host.planner-page .welcome-state h2 { color: #184a37; font-size: clamp(32px, 3.3vw, 50px); font-weight: 750; line-height: 1.22; letter-spacing: -1.5px; }
+:host.planner-page .welcome-copy { max-width: 58ch; margin: 21px 0 23px; color: #62776b; font-size: 14px; line-height: 1.85; }
+:host.planner-page .welcome-hint { max-width: 58ch; margin: 0 0 18px; font-size: 12px; line-height: 1.8; color: #597163; }
+:host.planner-page .welcome-prompts { display: flex; width: 100%; flex-wrap: wrap; gap: 10px; }
+:host.planner-page .welcome-prompts button { flex: 1 1 190px; min-height: 74px; padding: 16px 18px; border: 1px solid #d8e5dc; border-radius: 14px; background: white; color: #375d48; font-size: 12px; line-height: 1.75; text-align: left; box-shadow: none; }
+:host.planner-page .welcome-prompts button:hover { border-color: #70a88a; background: #eef7f1; }
+:host.planner-page .chat-message { width: 100%; max-width: 850px; }
+:host.planner-page .message-content { min-width: 0; }
+:host.planner-page .message-bubble { max-width: 72ch; font-size: 14px; line-height: 1.85; }
+:host.planner-page .itinerary-result .planner-plan-actions .planner-primary { background: #184a37; color: #fff; border-color: #184a37 !important; }
+:host.planner-page .itinerary-result .planner-plan-actions .planner-primary:hover { background: #123d2d; }
+:host.planner-page .chat-composer { padding: 16px max(32px, calc((100% - 850px) / 2)) 16px; border-top: 0; background: transparent; }
+:host.planner-page .composer-box { min-height: 68px; padding: 10px 12px 10px 20px; border-radius: 20px; border-color: #cbded1; box-shadow: 0 5px 22px #184a3709; }
+:host.planner-page .composer-box input { height: 34px; font-size: 13px; }
+:host.planner-page .send-button { width: 43px; height: 43px; border-radius: 13px; }
+:host.planner-page .composer-caption { margin-top: 10px; font-size: 10px; color: #7c8e82; }
+:host.planner-page .history-menu { width: 100%; max-width: 850px; }
+@media (max-width: 1000px) {
+  :host.planner-page .planner-workspace { grid-template-columns: 236px minmax(0, 1fr); }
+  .planner-sidebar { padding: 26px 18px 20px; gap: 22px; }
+  :host.planner-page .chat-transcript { padding: 24px; }
+  :host.planner-page .chat-composer { padding: 14px 24px; }
+  :host.planner-page .chat-header { padding-inline: 24px; }
+}
+@media (max-width: 700px) {
+  :host.planner-page { min-height: 0; height: calc(var(--gs-chat-viewport, 100dvh) - 88px); }
+  :host.planner-page .planner-workspace { display: flex; flex-direction: column; }
+  .planner-sidebar { flex: 0 0 auto; display: block; padding: 10px 12px; border-right: 0; border-bottom: 1px solid #dce7df; overflow: visible; }
+  .planner-identity, .planner-field-notes, .planner-destination { display: none; }
+  .planner-tools { display: flex; align-items: center; gap: 6px; }
+  .planner-tools button, .planner-tools a { justify-content: center; width: auto; min-height: 42px; padding: 8px; font-size: 10px; gap: 5px; }
+  .planner-tools .planner-new { flex: 1; margin: 0; padding-block: 8px; }
+  .planner-tools i { font-size: 14px; }
+  :host.planner-page .chat-panel { flex: 1; min-height: 0; }
+  :host.planner-page .chat-header { min-height: 63px; padding: 10px 15px; }
+  :host.planner-page .chat-header .brand-mark { display: none; }
+  :host.planner-page .chat-header .brand-copy h1 { font-size: 13px; }
+  :host.planner-page .chat-header .brand-copy p { font-size: 10px; }
+  :host.planner-page .chat-transcript { padding: 20px 18px; }
+  :host.planner-page .welcome-state { padding: 10px 0 22px; }
+  :host.planner-page .welcome-sparkle { width: 38px; height: 38px; margin-bottom: 16px; font-size: 22px; }
+  :host.planner-page .welcome-state h2 { font-size: 30px; letter-spacing: -.8px; }
+  :host.planner-page .welcome-copy { margin: 16px 0; font-size: 12px; }
+  :host.planner-page .welcome-copy br { display: none; }
+  :host.planner-page .welcome-hint { font-size: 11px; }
+  :host.planner-page .welcome-prompts { gap: 8px; }
+  :host.planner-page .welcome-prompts button { flex-basis: 100%; min-height: 48px; padding: 10px 13px; font-size: 11px; }
+  :host.planner-page .chat-composer { padding: 10px 12px max(10px, env(safe-area-inset-bottom)); }
+  :host.planner-page .composer-box { min-height: 58px; padding: 8px 8px 8px 12px; border-radius: 16px; }
+  :host.planner-page .composer-box input { font-size: 12px; }
+  :host.planner-page .composer-caption { font-size: 8px; margin-top: 6px; }
+}

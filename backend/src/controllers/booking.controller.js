@@ -138,15 +138,15 @@ exports.sendBookingConfirmationIfNeeded = sendBookingConfirmationIfNeeded;
 
 exports.quoteBooking = async (req, res, next) => {
   try {
-    const { type, targetId, guests, addonIds, paymentMethod } = req.body;
+    const { type, targetId, guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate } = req.body;
     const { calculatePricing } = require('../services/booking-pricing.service');
-    const pricing = await calculatePricing({ type, targetId, guestCount: guests, addonIds, paymentMethod });
+    const pricing = await calculatePricing({ type, targetId, guestCount: guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate });
     res.json({ success: true, pricing });
   } catch (error) { next(error); }
 };
 
 exports.createBooking = async (req, res, next) => {
-  const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail } = req.body;
+  const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail, roomId, roomCount, checkOutDate } = req.body;
   let userId = req.user ? req.user.id : req.body.customerId;
   const fullname = (req.user && req.user.fullname) ? req.user.fullname : (req.body.customerName || 'Khách hàng');
   const email = customerEmail || (req.user ? req.user.email : null);
@@ -225,6 +225,7 @@ exports.createBooking = async (req, res, next) => {
     let totalValue = 0;
     let tourNameOrServiceName = '';
     let discount = 0;
+    let lodgingSnapshot = null;
 
     // 1. Calculate prices, validate availability and vouchers
     if (type === 'service') {
@@ -232,6 +233,7 @@ exports.createBooking = async (req, res, next) => {
       if (!service) {
         return res.status(404).json({ success: false, message: 'Dịch vụ xanh không tồn tại!' });
       }
+      require('../services/catalog-presentation.service').assertCatalogBookable(service);
 
       // Check capacity in CSDL
       const bookedGuests = await ServiceBooking.sum('guests', {
@@ -249,7 +251,16 @@ exports.createBooking = async (req, res, next) => {
         });
       }
 
-      totalValue = service.cost * guests;
+      if (roomId) {
+        const { calculatePricing } = require('../services/booking-pricing.service');
+        lodgingSnapshot = await calculatePricing({ type, targetId, guestCount: guests, roomId, roomCount, bookingDate, checkOutDate, paymentMethod });
+        totalValue = lodgingSnapshot.amountDueNow;
+      } else {
+        if (['stay', 'lodging'].includes(service.type) && service.current_data?.rooms?.length) {
+          throw loyalty.error('Vui lòng chọn phòng trước khi đặt dịch vụ lưu trú.');
+        }
+        totalValue = service.cost * guests;
+      }
       tourNameOrServiceName = service.name_service;
       bookingId = 'BKS-' + Date.now();
     } else if (type === 'tour' || type === 'itinerary') {
@@ -324,6 +335,7 @@ exports.createBooking = async (req, res, next) => {
             id: bookingId,
             user_id: userId,
             service_id: targetId,
+            ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -408,6 +420,7 @@ exports.createBooking = async (req, res, next) => {
             id: bookingId,
             user_id: userId,
             service_id: targetId,
+            ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -475,6 +488,7 @@ exports.createBooking = async (req, res, next) => {
             id: bookingId,
             user_id: userId,
             service_id: targetId,
+            ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -551,6 +565,7 @@ exports.createBooking = async (req, res, next) => {
           id: bookingId,
           user_id: userId,
           service_id: targetId,
+          ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
           fullname: fullname,
           name_service: tourNameOrServiceName,
           booking_date: bookingDate,

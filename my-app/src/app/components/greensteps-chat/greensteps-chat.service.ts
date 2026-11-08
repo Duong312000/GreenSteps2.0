@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, fromEvent, takeUntil, timeout, TimeoutError } from 'rxjs';
 import type { AIProvider, ChatMessage, Conversation, IConversationManager } from 'aura-ai-chat';
 import type { ChatItineraryDraft, ChatProviderRequest, ChatTranscriptMessage, ChatTour, GreenStepsChatRequest, GreenStepsChatResponse, GreenStepsChatResult } from './greensteps-chat.types';
+import { getApiUrl } from '../../config/api-config';
 
 function normalizeChatIntent(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, character => character === 'đ' ? 'd' : 'D').toLowerCase();
@@ -68,9 +69,7 @@ function parseTextItinerary(reply: string, request: string): ChatItineraryDraft 
 @Injectable({ providedIn: 'root' })
 export class GreenStepsChatService {
   private readonly http = inject(HttpClient);
-  private readonly endpoint = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? 'http://localhost:5055/api/support/chat'
-    : 'https://greensteps-6swn.onrender.com/api/support/chat';
+  private readonly endpoint = `${getApiUrl()}/support/chat`;
   // Memory only: opening/closing and routing never erase messages; reload starts
   // fresh. These interfaces can later be backed by authenticated MongoDB storage.
   private readonly conversations = new Map<string, Conversation>();

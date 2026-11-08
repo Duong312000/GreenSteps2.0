@@ -1,0 +1,47 @@
+{
+  "tool": "Built-in image_gen",
+  "purpose": "Project-local Transport vehicle catalog photographs",
+  "promptTemplate": "Photorealistic GreenSteps travel vehicle catalog photo, landscape 3:2, full vehicle visible with margin, three-quarter front side view, natural daylight, realistic details. No logos, readable license plates, carrier branding, text, watermark or people. A single standalone photograph.",
+  "assets": [
+    {
+      "file": "shared-mpv-white.jpg",
+      "subject": "White seven-seat MPV on a coastal road near Da Nang"
+    },
+    {
+      "file": "shared-van-silver.jpg",
+      "subject": "Silver nine-seat van on a riverside road"
+    },
+    {
+      "file": "shared-minibus-ivory.jpg",
+      "subject": "Ivory sixteen-seat minibus on a mountain road"
+    },
+    {
+      "file": "shared-mpv-teal.jpg",
+      "subject": "Dark teal seven-seat MPV near Hoi An"
+    },
+    {
+      "file": "shared-van-black.jpg",
+      "subject": "Black nine-seat van at a hillside rest stop near Da Lat"
+    },
+    {
+      "file": "shared-minibus-green.jpg",
+      "subject": "Sage green sixteen-seat minibus on a seaside boulevard"
+    },
+    {
+      "file": "bus-coach-white.jpg",
+      "subject": "White 29-seat coach beside a mountain viewpoint"
+    },
+    {
+      "file": "bus-coach-green.jpg",
+      "subject": "Forest green 45-seat coach with tropical hills"
+    },
+    {
+      "file": "rental-motorbike.jpg",
+      "subject": "Red step-through petrol scooter in a leafy courtyard"
+    },
+    {
+      "file": "rental-electric-motorbike.jpg",
+      "subject": "Mint-green electric scooter in a contemporary courtyard"
+    }
+  ]
+}

@@ -12,11 +12,18 @@
     "migrate:postgres": "node scripts/migrate-postgres.js",
     "seed": "node scripts/seed_mongo.js",
     "seed:community": "node scripts/seed-community-posts.js",
+    "seed:detail-demo": "node scripts/seed-detail-demo.js --apply",
+    "seed:room-prices": "node scripts/seed-room-prices.js --apply",
     "verify:mongo": "node scripts/smoke-mongo.js",
     "verify:n8n": "node scripts/check-n8n-chat.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "seed:transport": "node scripts/seed-transport.js",
+    "test:transport": "node --test test/transport*.test.js",
+    "seed:transport-images": "node scripts/refresh-transport-images.js"
   },
-  "engines": { "node": ">=20.19" },
+  "engines": {
+    "node": ">=20.19"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "bcrypt": "^6.0.0",
@@ -29,5 +36,7 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^7.0.0"
   },
-  "devDependencies": { "pg": "^8.16.3" }
+  "devDependencies": {
+    "pg": "^8.16.3"
+  }
 }

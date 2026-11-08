@@ -1,10 +1,10 @@
 import { Component, ElementRef, HostListener, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, isDevMode } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { AccountModalField, AccountModalRecord, AccountModalTab } from './account-detail-modal.component';
 
-type CatalogKey = 'services' | 'tours' | 'promotions' | 'allBookings';
+type CatalogKey = 'services' | 'tours' | 'promotions' | 'allBookings' | 'refunds';
 type AdminTab = 'providers' | CatalogKey | 'bookings' | 'deposits' | 'refunds' | 'withdrawals' | 'wallets' | 'reports';
 type QueueState = 'loading' | 'ready' | 'unavailable';
 type QueueKey = 'providers' | 'deposits' | 'withdrawals' | 'wallets' | 'bookings';
@@ -20,6 +20,11 @@ interface AdminNavItem {
 interface AdminTableColumn {
   key: string;
   label: string;
+  width?: string;
+  minWidth?: string;
+  align?: 'left' | 'right' | 'center';
+  primary?: boolean;
+  optional?: boolean;
 }
 
 interface AdminTableRow {
@@ -110,16 +115,23 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (!url) return '';
     return url.startsWith('/uploads/') ? (['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055' : 'https://greensteps-6swn.onrender.com') + url : url;
   }
-  public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [] };
-  public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading' };
+  public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [], refunds: [] };
+  public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading', refunds: 'loading' };
   private refreshTimer?: ReturnType<typeof setInterval>;
   private refreshing = false;
   private destroyed = false;
-  public get isCatalogTab(): boolean { return ['services', 'tours', 'promotions', 'allBookings'].includes(this.activeTab); }
+  public get isCatalogTab(): boolean { return ['services', 'tours', 'promotions', 'allBookings', 'refunds'].includes(this.activeTab); }
   @ViewChild('globalSearchInput') globalSearchInput?: ElementRef<HTMLInputElement>;
 
   public activeSection = 'overview';
   public activeTab: AdminTab = 'providers';
+  public queuePageSize = 5;
+  public polishedTablePageSize = 20;
+  public columnPopoverOpen = false;
+  public providerVisibleColumns: Record<string, boolean> = {
+    serviceType: false, revenue: false, cancellationRate: false, rating: false, priority: false
+  };
+  public serviceVisibleColumns: Record<string, boolean> = { id: true, name: true, detail: true, amount: true, date: true, status: true };
   public sidebarCollapsed = false;
   public mobileMenuOpen = false;
   public isPreviewMode = isDevMode()
@@ -129,7 +141,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public globalSearch = '';
   public queueSearch = '';
   public currentPage = 1;
-  public get pageSize(): number { return this.activeTab === 'reports' ? this.reportsPageSize : 5; }
+  public get pageSize(): number { return this.activeTab === 'reports' ? this.reportsPageSize : this.isPolishedAdminTable ? this.polishedTablePageSize : this.queuePageSize; }
   public isDateMenuOpen = false;
   public isNotificationMenuOpen = false;
   public isCreateMenuOpen = false;
@@ -190,12 +202,20 @@ export class AdminComponent implements OnInit, OnDestroy {
     { id: 'promotions', label: 'Khuyến mãi', icon: 'bi-megaphone' },
     { id: 'allBookings', label: 'Tất cả booking', icon: 'bi-calendar2' },
     { id: 'bookings', label: 'Booking', icon: 'bi-calendar2-check', badgeKey: 'bookings' },
-    { id: 'deposits', label: 'Nạp tiền', icon: 'bi-arrow-down-left-circle' },
+    { id: 'deposits', badgeKey: 'deposits', label: 'Nạp tiền', icon: 'bi-arrow-down-left-circle' },
     { id: 'refunds', label: 'Hoàn tiền', icon: 'bi-arrow-counterclockwise' },
     { id: 'withdrawals', label: 'Rút tiền', icon: 'bi-arrow-up-right-circle', badgeKey: 'withdrawals' },
     { id: 'wallets', label: 'Kích hoạt ví', icon: 'bi-wallet' },
     { id: 'reports', label: 'Nội dung báo cáo', icon: 'bi-flag' }
   ];
+
+  public readonly managementGroups = [
+    { id: 'partners', label: 'Đối tác', tabs: ['providers', 'services', 'tours', 'promotions'] as AdminTab[] },
+    { id: 'transactions', label: 'Giao dịch', tabs: ['allBookings', 'bookings'] as AdminTab[] },
+    { id: 'wallet', label: 'Ví', tabs: ['deposits', 'withdrawals', 'refunds', 'wallets'] as AdminTab[] },
+    { id: 'content', label: 'Nội dung', tabs: ['reports'] as AdminTab[] }
+  ];
+  public activeManagementGroup = 'partners';
 
   public customDialog: {
     message: string;
@@ -208,8 +228,26 @@ export class AdminComponent implements OnInit, OnDestroy {
     public apiService: ApiService,
     private authService: AuthService,
     private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
+  ) {
+    this.route.queryParamMap.subscribe(params => {
+      const tab = params.get('tab') as AdminTab | null;
+      const group = params.get('group');
+      if (!tab || !this.managementTabs.some(item => item.id === tab)) return;
+      this.activeTab = tab;
+      this.activeManagementGroup = this.managementGroups.some(item => item.id === group && item.tabs.includes(tab))
+        ? group! : this.managementGroups.find(item => item.tabs.includes(tab))?.id || 'partners';
+      const nav = this.navigationItems.find(item => item.tab === tab);
+      if (nav) this.activeSection = nav.id;
+      this.queueSearch = '';
+      this.currentPage = 1;
+      if (this.currentUser) {
+        this.loadQueueOnDemand(tab);
+        if (tab === 'reports' && !this.isPreviewMode && this.reportsState === 'loading') void this.loadReports();
+      }
+    });
+  }
 
   async ngOnInit() {
     const user = this.authService.getCurrentUser();
@@ -252,6 +290,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.isNotificationMenuOpen = false;
       this.isCreateMenuOpen = false;
       this.isProfileMenuOpen = false;
+      this.columnPopoverOpen = false;
     }
   }
 
@@ -276,7 +315,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.queueSearch = '';
     this.currentPage = 1;
     this.loadQueueOnDemand(tab);
+    const group = this.managementGroups.find(item => item.tabs.includes(tab));
+    if (group) this.activeManagementGroup = group.id;
+    const nav = this.navigationItems.find(item => item.tab === tab);
+    if (nav) this.activeSection = nav.id;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { group: group?.id || null, tab }, queryParamsHandling: 'merge' });
   }
+
+  public get visibleManagementTabs() { return this.managementTabs.filter(tab => this.managementGroups.find(group => group.id === this.activeManagementGroup)?.tabs.includes(tab.id)); }
 
   private loadQueueOnDemand(tab: AdminTab): void {
     if (this.isPreviewMode) return;
@@ -362,7 +408,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.loadWallets(),
       this.loadBookings(),
       this.loadReports(),
-      ...(['services', 'tours', 'promotions', 'allBookings'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
+      ...(['services', 'tours', 'promotions', 'allBookings', 'refunds'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
     ]); } finally { this.refreshing = false; }
 
   }
@@ -433,6 +479,10 @@ export class AdminComponent implements OnInit, OnDestroy {
     return this.navigationItems.find(item => item.id === this.activeSection)?.label || 'Tổng quan';
   }
 
+  public get activeManagementGroupLabel(): string {
+    return this.managementGroups.find(group => group.id === this.activeManagementGroup)?.label || this.activeSectionLabel;
+  }
+
   public get isOverview(): boolean { return this.activeSection === 'overview'; }
 
   public get isUserManagement(): boolean { return this.activeSection === 'users'; }
@@ -444,7 +494,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public get currentQueueState(): QueueState | 'unsupported' {
     if (this.activeTab === 'reports') return this.reportsState;
     if (this.isCatalogTab) return this.catalogState[this.activeTab as CatalogKey];
-    if (this.activeTab === 'refunds') return 'unsupported';
+    // refunds supported via catalog
     return this.queueState[this.activeTab as QueueKey];
   }
 
@@ -468,21 +518,47 @@ export class AdminComponent implements OnInit, OnDestroy {
     }[this.activeTab];
   }
 
+  public get isPolishedAdminTable(): boolean { return this.activeTab === 'providers' || this.activeTab === 'services'; }
+
+  public readonly providerOptionalColumns: AdminTableColumn[] = [
+    { key: 'serviceType', label: 'Loại dịch vụ', width: '100px', optional: true },
+    { key: 'revenue', label: 'Doanh thu', width: '100px', align: 'right', optional: true },
+    { key: 'cancellationRate', label: 'Tỷ lệ hủy', width: '86px', align: 'right', optional: true },
+    { key: 'rating', label: 'Đánh giá', width: '82px', align: 'right', optional: true },
+    { key: 'priority', label: 'Ưu tiên', width: '86px', optional: true }
+  ];
+  public readonly serviceTableColumns: AdminTableColumn[] = [
+    { key: 'id', label: 'Mã', width: '180px', minWidth: '180px' },
+    { key: 'name', label: 'Tên', minWidth: '280px', primary: true },
+    { key: 'detail', label: 'Thông tin', width: '150px', minWidth: '140px' },
+    { key: 'amount', label: 'Giá trị', width: '120px', align: 'right' },
+    { key: 'date', label: 'Ngày tạo', width: '110px' },
+    { key: 'status', label: 'Trạng thái', width: '110px' }
+  ];
+
+  public get columnPickerColumns(): AdminTableColumn[] {
+    return this.activeTab === 'providers' ? this.providerOptionalColumns : this.serviceTableColumns;
+  }
+
   public get activeTableColumns(): AdminTableColumn[] {
     if (this.activeTab === 'reports') return [{ key: 'name', label: 'Tác giả' }, { key: 'serviceType', label: 'Nội dung' }, { key: 'detail', label: 'Lý do và nội dung báo cáo' }, { key: 'date', label: 'Ngày báo cáo' }, { key: 'status', label: 'Trạng thái' }];
+    if (this.activeTab === 'refunds') return [{ key: 'id', label: 'Mã' }, { key: 'name', label: 'Khách hàng' }, { key: 'detail', label: 'Dịch vụ' }, { key: 'documents', label: 'Lý do & STK' }, { key: 'amount', label: 'Tiền cọc' }, { key: 'status', label: 'Trạng thái' }];
+    if (this.activeTab === 'services') return this.serviceTableColumns.filter(column => this.serviceVisibleColumns[column.key]);
     if (this.isCatalogTab) return [
       { key: 'id', label: 'Mã' }, { key: 'name', label: 'Tên' }, { key: 'detail', label: 'Thông tin' },
       { key: 'amount', label: this.activeTab === 'promotions' ? 'Mức giảm' : 'Giá trị' },
       { key: 'date', label: 'Ngày tạo' }, { key: 'status', label: 'Trạng thái' }
     ];
-    if (this.activeTab === 'providers') return [
-      { key: 'id', label: 'Mã hồ sơ' }, { key: 'name', label: 'Nhà cung cấp / Doanh nghiệp' },
-      { key: 'account', label: 'Tài khoản' }, { key: 'date', label: 'Ngày gửi' },
-      { key: 'status', label: 'Trạng thái hồ sơ' }, { key: 'serviceType', label: 'Loại dịch vụ' },
-      { key: 'documents', label: 'Tình trạng giấy tờ' }, { key: 'revenue', label: 'Doanh thu' },
-      { key: 'cancellationRate', label: 'Tỷ lệ hủy' }, { key: 'rating', label: 'Đánh giá' },
-      { key: 'priority', label: 'Ưu tiên' }, { key: 'detail', label: 'Thông tin đăng ký' }
-    ];
+    if (this.activeTab === 'providers') {
+      const base: AdminTableColumn[] = [
+        { key: 'name', label: 'Nhà cung cấp / Doanh nghiệp', width: '270px', minWidth: '260px', primary: true },
+        { key: 'account', label: 'Tài khoản', width: '160px' },
+        { key: 'date', label: 'Ngày gửi', width: '130px' },
+        { key: 'status', label: 'Trạng thái hồ sơ', width: '160px' },
+        { key: 'documents', label: 'Tình trạng giấy tờ', width: '180px' }
+      ];
+      return [...base, ...this.providerOptionalColumns.filter(column => this.providerVisibleColumns[column.key])];
+    }
     return [
       { key: 'id', label: 'Mã yêu cầu' }, { key: 'name', label: 'Khách hàng / Đối tác' },
       { key: 'account', label: 'Tài khoản' }, { key: 'detail', label: 'Nội dung' },
@@ -549,6 +625,27 @@ export class AdminComponent implements OnInit, OnDestroy {
     return (row as any)[key] ?? '—';
   }
 
+  public isLongIdentifier(value: string): boolean {
+    const candidate = String(value || '').trim();
+    if (/\s|@/.test(candidate)) return false;
+    return /^[a-f\d]{20,}$/i.test(candidate)
+      || /^[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}$/i.test(candidate)
+      || /^[a-z]{2,6}[-_][a-z\d_-]{4,}$/i.test(candidate);
+  }
+
+  public statusTone(status: string): 'pending' | 'active' | 'danger' | 'neutral' {
+    const value = String(status || '').toLocaleLowerCase('vi');
+    if (value.includes('chờ') || value.includes('pending')) return 'pending';
+    if (value.includes('hoạt động') || value.includes('active') || value.includes('đã duyệt')) return 'active';
+    if (value.includes('từ chối') || value.includes('rejected') || value.includes('ẩn') || value.includes('vi phạm')) return 'danger';
+    return 'neutral';
+  }
+
+  public toggleTableColumn(key: string): void {
+    if (this.activeTab === 'providers') this.providerVisibleColumns[key] = !this.providerVisibleColumns[key];
+    else if (this.activeTab === 'services') this.serviceVisibleColumns[key] = !this.serviceVisibleColumns[key];
+  }
+
   public statusClass(status: string): string {
     const value = String(status || '').toLocaleLowerCase('vi');
     if (['success', 'approved', 'completed', 'hoàn thành', 'đã xác nhận'].some(token => value.includes(token))) return 'status-success';
@@ -584,6 +681,12 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   public changePage(page: number) {
     this.currentPage = Math.max(1, Math.min(this.pageCount, page));
+  }
+
+  public setQueuePageSize(size: number): void {
+    if (this.isPolishedAdminTable) this.polishedTablePageSize = size;
+    else this.queuePageSize = size;
+    this.currentPage = 1;
   }
 
   public approveProvider(targetUserId: string) {
@@ -1008,6 +1111,33 @@ export class AdminComponent implements OnInit, OnDestroy {
     return this.queueState[key] === 'unavailable' ? 'Không tải được dữ liệu' : this.queueState[key] === 'loading' ? 'Đang tải dữ liệu' : 'Yêu cầu đang chờ xử lý';
   }
 
+  
+  public async approveRefundRow(row: AdminTableRow) {
+    if (this.isPreviewMode) return;
+    this.showConfirm(`Xác nhận đã chuyển tiền hoàn cọc cho mã ${row.id}?`, async () => {
+      const ok = await this.apiService.approveAdminRefund(row.id);
+      if (ok) {
+        this.showAlert('Đã xác nhận hoàn tiền thành công.', 'success');
+        await this.loadCatalog('refunds');
+      } else {
+        this.showAlert('Không thể cập nhật trạng thái.', 'error');
+      }
+    });
+  }
+
+  public async rejectRefundRow(row: AdminTableRow) {
+    if (this.isPreviewMode) return;
+    this.showConfirm(`Từ chối yêu cầu hoàn tiền cho mã ${row.id}?`, async () => {
+      const ok = await this.apiService.rejectAdminRefund(row.id, 'Không đủ điều kiện theo chính sách');
+      if (ok) {
+        this.showAlert('Đã từ chối yêu cầu hoàn tiền.', 'info');
+        await this.loadCatalog('refunds');
+      } else {
+        this.showAlert('Không thể cập nhật trạng thái.', 'error');
+      }
+    });
+  }
+
   private queueFor(key: QueueKey): any[] {
     return {
       providers: this.pendingProviders,
@@ -1021,7 +1151,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   private getQueueItems(): any[] {
     if (this.activeTab === 'reports') return this.communityReports;
     if (this.isCatalogTab) return this.catalog[this.activeTab as CatalogKey];
-    if (this.activeTab === 'refunds') return [];
+    // refunds supported via catalog
     return this.queueFor(this.activeTab as QueueKey);
   }
 

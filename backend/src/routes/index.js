@@ -19,6 +19,8 @@ const changeRequestRoutes = require('./change-request.routes');
 const operationsRoutes = require('./operations.routes');
 const adminUsersRoutes = require('./admin-users.routes');
 
+router.use('/transport', require('../transport/routes'));
+router.use('/favorites', require('./favorites.routes'));
 router.use('/auth', authRoutes);
 router.use('/admin', require('./admin.routes'));
 router.use('/bookings', bookingRoutes);

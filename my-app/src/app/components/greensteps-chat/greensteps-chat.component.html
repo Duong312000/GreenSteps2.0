@@ -1,13 +1,33 @@
+<div class="planner-workspace">
+  @if (pageMode()) {
+    <aside class="planner-sidebar" aria-label="Công cụ lập lịch trình">
+      <div class="planner-identity"><span aria-hidden="true">✦</span><div><strong>AI Planner</strong><p>Hành trình theo cách của bạn</p></div></div>
+      <nav class="planner-tools" aria-label="Cuộc trò chuyện">
+        <button type="button" class="planner-new" [disabled]="chat.isSending()" (click)="startNewChat()"><i class="bi bi-plus-lg" aria-hidden="true"></i> Lên kế hoạch mới</button>
+        <button type="button" [attr.aria-expanded]="historyOpen()" (click)="toggleHistory()"><i class="bi bi-chat-left-text" aria-hidden="true"></i> Cuộc trò chuyện gần đây</button>
+        <a routerLink="/schedule"><i class="bi bi-calendar2-week" aria-hidden="true"></i> Lịch trình của tôi</a>
+      </nav>
+      <div class="planner-field-notes">
+        <i class="bi bi-signpost-split" aria-hidden="true"></i>
+        <h2>Một chuyến đi vừa ý,<br>từ những điều bạn thích.</h2>
+        <p>Kể về điểm đến, thời gian và ngân sách. Cùng AI sắp xếp thành hành trình của riêng bạn.</p>
+      </div>
+      <figure class="planner-destination">
+        <img src="/image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg" alt="Hồ Xuân Hương giữa những đồi thông Đà Lạt">
+        <figcaption><i class="bi bi-geo-alt" aria-hidden="true"></i> Đà Lạt, Việt Nam</figcaption>
+      </figure>
+    </aside>
+  }
 <section #panel id="greensteps-chat-panel" class="chat-panel" [class.is-open]="isChatOpen()"
-  [attr.aria-hidden]="!isChatOpen()" [attr.inert]="isChatOpen() ? null : ''" role="dialog" aria-modal="false"
+  [attr.aria-hidden]="!isChatOpen()" [attr.inert]="isChatOpen() ? null : ''" [attr.role]="pageMode() ? 'region' : 'dialog'" aria-modal="false"
   aria-label="GreenSteps AI — Trợ lý du lịch" tabindex="-1">
   <header class="chat-header">
     <div class="brand-mark" aria-hidden="true">
       <svg viewBox="0 0 32 32"><path d="M25 6C13 5 7 12 9 21c7 4 15-2 16-15Z"/><path d="M7 27c2-7 7-12 13-16"/></svg>
     </div>
     <div class="brand-copy">
-      <h1>GreenSteps AI</h1>
-      <p>Trợ lý AI du lịch</p>
+      <h1>{{ pageMode() ? 'Cùng bạn lên kế hoạch' : 'GreenSteps AI' }}</h1>
+      <p>{{ pageMode() ? 'GreenSteps AI' : 'Trợ lý AI du lịch' }}</p>
     </div>
     <div class="header-actions">
       <button id="greensteps-new-chat" type="button" class="icon-button" aria-label="Cuộc trò chuyện mới"
@@ -19,10 +39,12 @@
         [disabled]="chat.isSending()" (click)="toggleHistory()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5M12 7v5l3.5 2"/></svg>
       </button>
+      @if (!pageMode()) {
       <button id="greensteps-chat-close" type="button" class="icon-button close-button" aria-label="Đóng chat GreenSteps AI"
         title="Đóng" (click)="closeChat()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
       </button>
+      }
     </div>
   </header>
 
@@ -42,14 +64,27 @@
     @if (chat.transcript().length === 0) {
       <section class="welcome-state" aria-label="Chào mừng">
         <div class="welcome-sparkle" aria-hidden="true">✦</div>
-        <p class="welcome-eyebrow">Xin chào, mình là</p>
-        <h2>GreenSteps AI</h2>
-        <p class="welcome-copy">Một chuyến đi đáng nhớ, một dấu chân xanh.</p>
-        <p class="welcome-hint">Bạn muốn khám phá nơi nào?</p>
+        @if (pageMode()) {
+          <h2>Chuyến đi tiếp theo,<br>bạn muốn đến đâu?</h2>
+          <p class="welcome-copy">Từ một ý tưởng nhỏ đến một hành trình trọn vẹn.<br> Chia sẻ mong muốn, để GreenSteps cùng bạn lên kế hoạch.</p>
+        } @else {
+          <p class="welcome-eyebrow">Xin chào, mình là</p>
+          <h2>GreenSteps AI</h2>
+          <p class="welcome-copy">Một chuyến đi đáng nhớ, một dấu chân xanh.</p>
+        }
+        <p class="welcome-hint">{{ plannerMode() ? 'Bạn muốn đi đâu, mấy ngày, bao nhiêu người và ngân sách dự kiến là bao nhiêu?' : 'Bạn muốn khám phá nơi nào?' }}</p>
         <div class="welcome-prompts" aria-label="Gợi ý câu hỏi">
-          <button type="button" (click)="sendSuggestedQuestion('Gợi ý tour Đà Nẵng 3 ngày 2 đêm')">Gợi ý tour Đà Nẵng 3 ngày 2 đêm</button>
+          @if (plannerMode()) {
+            <button type="button" (click)="sendSuggestedQuestion('Lập lịch trình Đà Nẵng 3 ngày 2 đêm cho 2 người, ngân sách 5 triệu đồng')">Lập lịch trình Đà Nẵng cho 2 người</button>
+          } @else {
+            <button type="button" (click)="sendSuggestedQuestion('Gợi ý tour Đà Nẵng 3 ngày 2 đêm')">Gợi ý tour Đà Nẵng 3 ngày 2 đêm</button>
+          }
           <button type="button" (click)="sendSuggestedQuestion('Lập lịch trình Đà Lạt 3 ngày 2 đêm')">Lập lịch trình Đà Lạt 3 ngày 2 đêm</button>
-          <button type="button" (click)="sendSuggestedQuestion('Tìm tour du lịch xanh tiết kiệm')">Tìm tour du lịch xanh tiết kiệm</button>
+          @if (pageMode()) {
+            <button type="button" (click)="sendSuggestedQuestion('Lập lịch trình Hội An 2 ngày cho gia đình, ưu tiên hoạt động gần gũi thiên nhiên')">Cuối tuần cùng gia đình ở Hội An</button>
+          } @else {
+            <button type="button" (click)="sendSuggestedQuestion('Tìm tour du lịch xanh tiết kiệm')">Tìm tour du lịch xanh tiết kiệm</button>
+          }
         </div>
       </section>
     }
@@ -127,7 +162,7 @@
     <div class="composer-box" [class.is-sending]="chat.isSending()">
       <span class="composer-sparkle" aria-hidden="true">✦</span>
       <input #composer id="greensteps-chat-input" type="text" maxlength="4000" autocomplete="off" [value]="draftMessage()"
-        placeholder="Hỏi mình về chuyến đi…" [disabled]="chat.isSending()"
+        [placeholder]="pageMode() ? 'Ví dụ: Mình muốn đi Đà Lạt 3 ngày, 2 người, khoảng 5 triệu…' : 'Hỏi mình về chuyến đi…'" [disabled]="chat.isSending()"
         (input)="onComposerInput($event)" (keydown)="onComposerKeydown($event)">
       @if (chat.isSending()) {
         <button type="button" class="send-button stop-button" aria-label="Dừng trả lời" title="Dừng trả lời" (click)="cancelMessage()">
@@ -143,7 +178,9 @@
     <p class="composer-caption">GreenSteps AI có thể giúp bạn lên kế hoạch du lịch xanh</p>
   </footer>
 </section>
+</div>
 
+@if (!pageMode()) {
 <div class="launcher-wrap" [class.chat-is-open]="isChatOpen()">
   <span id="greensteps-chat-tooltip" class="launcher-tooltip" role="tooltip">Chat với GreenSteps AI</span>
   <button #launcher type="button" class="chat-launcher" (click)="toggleChat()"
@@ -160,3 +197,4 @@
     }
   </button>
 </div>
+}

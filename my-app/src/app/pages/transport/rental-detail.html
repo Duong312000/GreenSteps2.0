@@ -1,0 +1,43 @@
+<header class="bus-heading">
+ <h1>{{detail.vehicle.name}}</h1>
+ <div class="bus-subtitle"><p>{{detail.partner.name}} · {{fuelLabel}} · {{detail.vehicle.capacity}} chỗ</p><span class="seats-badge"><i class="bi bi-key" aria-hidden="true"></i> Thuê xe tự chủ</span></div>
+</header>
+<div class="bus-layout rental-layout">
+ <app-vehicle-gallery class="detail-gallery" [vehicle]="detail.vehicle" />
+
+ <section class="route-card rental-information" aria-labelledby="rental-location-title">
+  <h2 id="rental-location-title">Nhận và trả xe</h2>
+  <p class="route-meta">Chọn thời gian phù hợp, kiểm tra xe trước khi đặt.</p>
+  <div class="rental-location"><i class="bi bi-geo-alt" aria-hidden="true"></i><div><h3>{{detail.pickup_location}}</h3><p>Địa điểm nhận và trả phương tiện</p></div></div>
+  <div class="rental-facts"><div><span>Giá theo giờ</span><strong>{{detail.price_per_hour | number:'1.0-0':'vi-VN'}} ₫ <small>/ giờ</small></strong></div><div><span>Giá theo ngày</span><strong>{{detail.price_per_day | number:'1.0-0':'vi-VN'}} ₫ <small>/ ngày</small></strong></div></div>
+  <div class="deposit-note"><i class="bi bi-shield-check" aria-hidden="true"></i><div><h3>Tiền cọc {{detail.deposit | number:'1.0-0':'vi-VN'}} ₫</h3><p>Tiền cọc tách riêng khỏi giá thuê, chưa thu khi thanh toán trực tuyến.</p></div></div>
+  <p class="billing-note">Làm tròn lên từng giờ; mỗi 24 giờ tính một ngày. Phần giờ lẻ tối đa bằng giá một ngày.</p>
+ </section>
+
+ <aside class="bus-booking rental-booking" aria-labelledby="rental-booking-title">
+  <h2 id="rental-booking-title">Đặt thuê xe</h2>
+  <p class="bus-price">{{detail.price_per_day | number:'1.0-0':'vi-VN'}} ₫ <span>/ ngày</span></p>
+  <form (ngSubmit)="submit()">
+   <div class="rental-dates"><label for="rental-pickup">Ngày nhận<input id="rental-pickup" name="pickup" type="date" [(ngModel)]="pickupDate" (ngModelChange)="dateChanged()" [min]="today" required></label><label for="rental-pickup-time">Giờ nhận<input id="rental-pickup-time" name="pickupTime" type="time" [(ngModel)]="pickupTime" (ngModelChange)="dateChanged()" required></label></div>
+   <div class="rental-dates"><label for="rental-return">Ngày trả<input id="rental-return" name="return" type="date" [(ngModel)]="returnDate" (ngModelChange)="dateChanged()" [min]="pickupDate || today" required></label><label for="rental-return-time">Giờ trả<input id="rental-return-time" name="returnTime" type="time" [(ngModel)]="returnTime" (ngModelChange)="dateChanged()" required></label></div>
+   <p class="field-hint" *ngIf="pickupDate && returnDate && !validDates" role="status">Ngày nhận phải ở tương lai, ngày trả sau ngày nhận và thời gian thuê không quá 90 ngày.</p>
+   <button class="quote-button" type="button" (click)="quote()" [disabled]="!validDates || quoting || submitting"><i class="bi bi-calendar-check" aria-hidden="true"></i> {{quoting ? 'Đang kiểm tra xe…' : 'Kiểm tra xe và tính giá'}}</button>
+   <p class="field-hint" role="alert" *ngIf="error">{{error}}</p>
+   <div class="selected-duration" *ngIf="currentQuote && detail.available" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i><div><strong>Xe còn trống · {{hours}} giờ thuê</strong><small>{{pickupDate | date:'dd/MM/yyyy'}} {{pickupTime}} → {{returnDate | date:'dd/MM/yyyy'}} {{returnTime}}</small></div></div>
+   <p class="field-hint" role="status" *ngIf="currentQuote && !detail.available">Xe đã có người đặt trong khoảng thời gian này. Vui lòng chọn thời gian khác.</p>
+   <div class="booking-total"><span>Giá thuê</span><strong>{{currentQuote && detail.available ? (currentQuote.total_price | number:'1.0-0':'vi-VN') + ' ₫' : 'Chưa tính'}}</strong></div>
+   <p class="rental-deposit-line">Tiền cọc riêng <strong>{{detail.deposit | number:'1.0-0':'vi-VN'}} ₫</strong></p>
+   <label class="bus-agreement"><input name="rentalTerms" #terms="ngModel" type="checkbox" [(ngModel)]="agreed" [disabled]="!currentQuote || !detail.available || quoting"> <span>Tôi đồng ý điều kiện thuê xe và chính sách hủy.</span></label>
+   <button class="bus-continue" type="submit" [disabled]="!canContinue">{{submitting ? 'Đang chuyển đến thanh toán…' : 'Tiếp tục thanh toán'}}</button>
+   <p class="payment-note">{{detail.booking_notice}}</p>
+  </form>
+ </aside>
+
+ <section class="bus-policies rental-policies" aria-label="Điều kiện thuê xe">
+  <div><i class="bi bi-person-vcard" aria-hidden="true"></i><div><h3>Điều kiện thuê</h3><p>{{detail.rental_conditions}}</p></div></div>
+  <div><i class="bi bi-check2-circle" aria-hidden="true"></i><div><h3>Tiện ích</h3><p>{{detail.vehicle.amenities.join(' · ') || 'Đối tác đang cập nhật tiện ích.'}}</p></div></div>
+  <div><i class="bi bi-calendar-x" aria-hidden="true"></i><div><h3>Chính sách hủy</h3><p>Được hủy trước giờ nhận xe ít nhất {{detail.cancellation_hours}} giờ.</p></div></div>
+ </section>
+
+ <section class="bus-emissions rental-emissions" aria-labelledby="rental-emissions-title"><i class="bi bi-leaf" aria-hidden="true"></i><div><h3 id="rental-emissions-title">Ước tính phát thải cho hành trình</h3><p>Nhập quãng đường dự kiến để ước tính phát thải. Xe điện vẫn có phát thải gián tiếp từ năng lượng.</p><form (ngSubmit)="compare()"><label for="rental-distance">Quãng đường dự kiến (km)</label><div class="emissions-fields"><input id="rental-distance" type="number" name="distance" [(ngModel)]="distanceKm" (ngModelChange)="distanceChanged()" min="0" max="5000" required placeholder="Nhập số km"><button type="submit" [disabled]="distanceKm === null || distanceKm < 0 || distanceKm > 5000 || comparing">{{comparing ? 'Đang tính…' : 'Tính phát thải'}}</button></div></form><p class="field-hint" role="alert" *ngIf="comparisonError">{{comparisonError}}</p><p class="emissions-result" role="status" *ngIf="comparison">Ước tính <strong>{{comparison.estimated_co2e | number:'1.1-3'}} kg CO₂e</strong> cho {{comparison.distance_km}} km.</p><small *ngIf="comparison">{{comparison.scope}} {{comparison.source}}</small></div></section>
+</div>

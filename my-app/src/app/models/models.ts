@@ -25,9 +25,43 @@ export interface Activity {
   type: 'lodging' | 'dining' | 'transport' | 'attraction';
   lat?: number;
   lng?: number;
+  description?: string;
 }
 
-export interface Tour {
+// Optional lodging details supplied by the service catalog (current_data).
+export interface ServiceRoom {
+  id: string;
+  name: string;
+  images?: string[];
+  area?: number;
+  capacity?: number;
+  beds?: string;
+  amenities?: string[];
+  policies?: string[];
+  price_per_night?: number;
+  available_rooms?: number;
+}
+
+export interface ServiceAmenityGroup {
+  name: string;
+  items: ServiceAmenity[];
+}
+
+export type ServiceAmenity = string | { name: string; fee?: 'free' | 'paid'; available?: boolean; note?: string };
+export interface ServicePolicyGroup { title: string; lines: string[]; }
+export interface ServiceNearbyGroup { name: string; items: { name: string; distance?: string }[]; }
+export interface ServiceGreenFeature { title: string; description?: string; }
+
+export interface CatalogMetadata {
+  priceStatus?: 'reference' | 'on_request';
+  bookingEnabled?: boolean;
+  sourceUrls?: string[];
+  sourceCheckedAt?: string;
+  carbonKnown?: boolean;
+  capacityKnown?: boolean;
+}
+
+export interface Tour extends CatalogMetadata {
   id: string;
   title: string;
   destination: string;
@@ -44,14 +78,41 @@ export interface Tour {
   rating?: number | null;
   votes?: number;
   votes_count?: number;
+  reviews_count?: number;
   discountPercent?: number;
   ecoFeature?: string;
   badges?: string[];
   tags?: string[];
   data: Activity[][];
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
   isService?: boolean;
   maxCapacity?: number;
+  rooms?: ServiceRoom[];
+  amenityGroups?: ServiceAmenityGroup[];
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  areaDescription?: string;
+  nearby?: string[];
+  policies?: string[];
+  popularAmenities?: ServiceAmenity[];
+  policyGroups?: ServicePolicyGroup[];
+  nearbyGroups?: ServiceNearbyGroup[];
+  greenFeatures?: ServiceGreenFeature[];
+  isDemo?: boolean;
+  contactPhone?: string;
+  highlights?: string[];
+  included?: string[];
+  excluded?: string[];
+  policy?: Array<{ step?: string; title: string; desc: string }>;
+  style?: string;
+  group_size?: string;
+  fitness_level?: string;
+  guarantees?: Array<{ icon?: string; title: string; desc: string }>;
+  vouchers?: Array<any>;
 }
 
 export interface Itinerary {
@@ -75,7 +136,7 @@ export interface Itinerary {
   collaborators?: any[];
 }
 
-export interface Service {
+export interface Service extends CatalogMetadata {
   id: string;
   provider_id: string;
   name: string;
@@ -100,6 +161,9 @@ export interface Service {
   max_capacity?: number;
   rejection_reason?: string;
   isRecommended?: boolean;
+  source?: string;
+  is_partner?: boolean;
+  google_place_id?: string;
 }
 
 export interface Booking {

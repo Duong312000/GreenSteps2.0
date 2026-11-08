@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { ChatTour } from './greensteps-chat.types';
+import { getBackendOrigin } from '../../config/api-config';
 
 @Component({
   selector: 'gs-tour-card',
@@ -79,9 +80,7 @@ export class TourCardComponent {
     const source = this.tour?.imageUrl?.trim();
     if (!source) return null;
     if (/^(?:https?:|data:|blob:)/i.test(source)) return source;
-    const origin = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? 'http://localhost:5055'
-      : 'https://greensteps-6swn.onrender.com';
+    const origin = getBackendOrigin();
     const path = source.replace(/^\/?image\//i, '/images/');
     return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
   }

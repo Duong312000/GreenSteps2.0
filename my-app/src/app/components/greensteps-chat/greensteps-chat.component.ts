@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, ElementRef, HostListener, effect, inject, signal, viewChild } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { Component, DestroyRef, ElementRef, HostListener, effect, inject, input, signal, viewChild } from '@angular/core';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { Conversation } from 'aura-ai-chat';
 import { filter } from 'rxjs';
@@ -62,12 +62,13 @@ export function isItineraryPrompt(value: string): boolean {
 @Component({
   selector: 'app-greensteps-chat',
   standalone: true,
-  imports: [CommonModule, TourCardComponent, ItineraryTimelineComponent],
+  imports: [CommonModule, RouterLink, TourCardComponent, ItineraryTimelineComponent],
   templateUrl: './greensteps-chat.component.html',
-  styleUrl: './greensteps-chat.component.css',
-  host: { '[hidden]': '!isCustomerRoute()' }
+  styleUrls: ['./greensteps-chat.component.css', './planner-page.css'],
+  host: { '[hidden]': '!isCustomerRoute()', '[class.planner-page]': 'pageMode()' }
 })
 export class GreenStepsChatComponent {
+  readonly pageMode = input(false);
   readonly chat = inject(GreenStepsChatService);
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
@@ -82,6 +83,7 @@ export class GreenStepsChatComponent {
   private readonly transcriptElement = viewChild<ElementRef<HTMLElement>>('transcript');
 
   readonly isChatOpen = signal(false);
+  readonly plannerMode = signal(false);
   readonly isCustomerRoute = signal(this.customerRoute(this.router.url));
   readonly historyOpen = signal(false);
   readonly conversations = signal<Conversation[]>([]);
@@ -91,7 +93,24 @@ export class GreenStepsChatComponent {
   readonly visibleTourCounts = signal<Record<string, number>>({});
 
   constructor() {
-    this.supportChatLauncher.openRequested$.pipe(takeUntilDestroyed()).subscribe(() => { void this.toggleChat(); });
+    effect(() => {
+      if (this.pageMode()) {
+        this.isChatOpen.set(true);
+        this.plannerMode.set(true);
+      }
+    });
+    this.supportChatLauncher.openRequested$.pipe(takeUntilDestroyed()).subscribe(mode => {
+      // Finish the launcher's click first so the outside-click listener does
+      // not immediately dismiss the panel opened by that same event.
+      setTimeout(() => {
+        if (this.destroyRef.destroyed) return;
+        if (mode === 'planner') {
+          this.plannerMode.set(true);
+          this.supportChatLauncher.plannerOpen.set(true);
+        }
+        void this.openChat();
+      }, 0);
+    });
     effect(() => {
       this.chat.transcript();
       this.scrollTranscriptToBottom();
@@ -111,6 +130,7 @@ export class GreenStepsChatComponent {
     viewport?.addEventListener('scroll', updateViewport);
     window.addEventListener('resize', updateViewport);
     this.destroyRef.onDestroy(() => {
+      this.supportChatLauncher.plannerOpen.set(false);
       viewport?.removeEventListener('resize', updateViewport);
       viewport?.removeEventListener('scroll', updateViewport);
       window.removeEventListener('resize', updateViewport);
@@ -121,6 +141,10 @@ export class GreenStepsChatComponent {
 
   async toggleChat(): Promise<void> {
     if (this.isChatOpen()) { this.closeChat(); return; }
+    await this.openChat();
+  }
+
+  async openChat(): Promise<void> {
     this.isChatOpen.set(true);
     this.historyOpen.set(false);
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -133,6 +157,8 @@ export class GreenStepsChatComponent {
   }
 
   closeChat(restoreFocus = true): void {
+    if (this.pageMode()) return;
+    this.supportChatLauncher.plannerOpen.set(false);
     this.isChatOpen.set(false);
     this.historyOpen.set(false);
     if (restoreFocus) requestAnimationFrame(() => {
@@ -320,6 +346,7 @@ export class GreenStepsChatComponent {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    if (this.pageMode()) return;
     if (!this.isChatOpen()) return;
     const path = event.composedPath();
     if (path.includes(this.host.nativeElement) || this.isLoginModalInteraction(path)) return;
@@ -328,6 +355,10 @@ export class GreenStepsChatComponent {
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
+    if (this.pageMode()) {
+      if (event.key === 'Escape' && this.historyOpen()) this.closeHistory();
+      return;
+    }
     if (!this.isChatOpen() || event.defaultPrevented) return;
     const path = event.composedPath();
     if (this.isLoginModalInteraction(path)) return;

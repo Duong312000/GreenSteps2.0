@@ -274,6 +274,8 @@ const ServiceBooking = store.define('ServiceBooking', {
   pricing_snapshot: { type: FieldTypes.JSONB },
   order_details_snapshot: { type: FieldTypes.JSONB },
   check_out_date: { type: FieldTypes.DATEONLY },
+  room_id: { type: FieldTypes.STRING },
+  room_count: { type: FieldTypes.INTEGER },
   operation_status: { type: FieldTypes.STRING, defaultValue: 'preparing', allowNull: false },
   confirm_deadline: { type: FieldTypes.DATE },
   payment_deadline: { type: FieldTypes.DATE },
@@ -475,6 +477,17 @@ const CommunityReport = store.define('CommunityReport', {
   review_note: { type: FieldTypes.TEXT },
   history: { type: FieldTypes.JSONB, defaultValue: [] }
 }, { tableName: 'community_reports', timestamps: true });
+
+const Favorite = store.define('Favorite', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  target_type: { type: FieldTypes.ENUM('tour', 'service', 'itinerary', 'place', 'transport_trip', 'transport_rental'), allowNull: false },
+  target_id: { type: FieldTypes.STRING, allowNull: false },
+  snapshot: { type: FieldTypes.JSONB, allowNull: false }
+}, { tableName: 'favorites', timestamps: true, indexes: [
+  { key: { user_id: 1, target_type: 1, target_id: 1 }, options: { unique: true } },
+  { key: { user_id: 1, createdAt: -1 }, options: {} }
+] });
 
 const SavedCommunityItem = store.define('SavedCommunityItem', {
   id: { type: FieldTypes.STRING, primaryKey: true },
@@ -815,6 +828,7 @@ module.exports = {
   CommunityReport,
   CommentPost,
   SavedCommunityItem,
+  Favorite,
   CommunityChallenge,
   CommunityChallengeEntry,
   CPSS,

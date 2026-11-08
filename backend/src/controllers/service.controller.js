@@ -13,6 +13,7 @@ const {
   CPGS
 } = require('../models/index');
 const { createBookingReview } = require('../services/review.service');
+const { catalogMetadata } = require('../services/catalog-presentation.service');
 
 function saveBase64Image(base64Data, subfolder = 'services') {
   if (!base64Data || typeof base64Data !== 'string') return base64Data;
@@ -58,7 +59,7 @@ exports.getServices = async (req, res, next) => {
       ]
     });
 
-    const formatted = services.map(s => {
+    const formatted = services.filter(s => !s.current_data?.catalogHidden).map(s => {
       const badges = (s.Badges || []).map(b => b.id);
       const providerId = s.Vender ? s.Vender.user_id : 'UG26pro0001';
 
@@ -79,7 +80,8 @@ exports.getServices = async (req, res, next) => {
         max_capacity: s.max_capacity || 10,
         badges: badges,
         image_url: s.image_url || (s.current_data ? s.current_data.img : null),
-        current_data: s.current_data || {}
+        current_data: s.current_data || {},
+        ...catalogMetadata(s)
       };
     });
 
@@ -110,7 +112,8 @@ exports.getProviderServices = async (req, res, next) => {
       max_capacity: s.max_capacity,
       carbon: s.carbon,
       image_url: s.image_url,
-      current_data: s.current_data || {}
+      current_data: s.current_data || {},
+      ...catalogMetadata(s)
     }));
 
     res.json(mapped);
@@ -238,7 +241,7 @@ exports.getRecommendations = async (req, res, next) => {
     }
 
     const formatted = [];
-    for (const s of recommendedServices) {
+    for (const s of recommendedServices.filter(item => !item.current_data?.catalogHidden)) {
       const badgeServices = await BadgeService.findAll({ where: { service_id: s.id } });
       const vender = await Vender.findByPk(s.vender_id);
       const providerId = vender ? vender.user_id : 'UG26pro0001';
@@ -258,7 +261,8 @@ exports.getRecommendations = async (req, res, next) => {
         max_capacity: s.max_capacity || 10,
         badges: badgeServices.map(bs => bs.badge_name),
         image_url: s.image_url || (s.current_data ? s.current_data.img : null),
-        current_data: s.current_data || {}
+        current_data: s.current_data || {},
+        ...catalogMetadata(s)
       });
     }
 
@@ -391,6 +395,14 @@ exports.updateService = async (req, res, next) => {
       service.current_data = { ...currentData, ...resolvedCurrentData };
     } else {
       service.current_data = { ...currentData };
+    }
+
+    // The provider's legacy policy editor and public structured rows must agree.
+    if (current_data?.policy !== undefined && current_data.policy !== currentData.policy
+        && current_data.policyGroups === undefined) {
+      const lines = String(current_data.policy).split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      service.current_data.policies = lines;
+      service.current_data.policyGroups = lines.length ? [{ title: 'Chính sách dịch vụ', lines }] : [];
     }
 
     // Ensure image in current_data is aligned

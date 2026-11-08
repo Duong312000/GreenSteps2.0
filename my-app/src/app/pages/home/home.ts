@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +19,8 @@ type DestinationPosition = 'left' | 'center' | 'right';
   styleUrl: './home.css',
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
+  private plannerFragmentSubscription?: Subscription;
+  private plannerScrollFrame?: number;
   private revealObserver?: IntersectionObserver;
   private parallaxFrame = 0;
   private storyProgrammaticTimer?: ReturnType<typeof setTimeout>;
@@ -668,6 +671,14 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    this.plannerFragmentSubscription = this.route.fragment.subscribe(fragment => {
+      if (this.plannerScrollFrame !== undefined) cancelAnimationFrame(this.plannerScrollFrame);
+      if (fragment !== 'ai-planner') return;
+      // Let Angular render the page before scrolling to the planner section.
+      this.plannerScrollFrame = requestAnimationFrame(() => {
+        document.getElementById('ai-planner')?.scrollIntoView({ block: 'start' });
+      });
+    });
     const root = this.elementRef.nativeElement;
     requestAnimationFrame(() => this.initAiPlannerMap());
     const story = root.querySelector<HTMLElement>('.gs-itinerary');
@@ -703,6 +714,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.plannerFragmentSubscription?.unsubscribe();
+    if (this.plannerScrollFrame !== undefined) cancelAnimationFrame(this.plannerScrollFrame);
     this.revealObserver?.disconnect();
     this.aiPlannerMap?.remove();
     this.aiPlannerMap = null;

@@ -9,6 +9,7 @@
   --partner-surface: #fff;
   --partner-page: #f7f9fa;
   --partner-line: #edf1f4;
+  --partner-sidebar-gutter: 12px;
   font-family: 'Be Vietnam Pro', Inter, system-ui, sans-serif;
   color: var(--partner-text);
 }
@@ -28,11 +29,27 @@
   box-sizing: border-box;
   background: #fbfdfc;
   border-right: 1px solid var(--partner-border);
-  padding: 22px 12px;
+  padding: 14px var(--partner-sidebar-gutter);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 40;
+}
+.partner-sidebar,
+.partner-sidebar * {
+  box-sizing: border-box;
+}
+.partner-identity,
+nav,
+.sidebar-divider,
+.profile-link,
+.partner-note,
+.sidebar-landscape,
+.sidebar-brand {
+  width: 100%;
+  margin-inline: 0;
+  box-sizing: border-box;
 }
 .partner-identity {
   display: flex;
@@ -41,8 +58,8 @@
   background: white;
   border: 1px solid var(--partner-border);
   border-radius: 16px;
-  padding: 14px 12px;
-  margin-bottom: 22px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
   min-width: 0;
 }
 .partner-identity img,
@@ -79,7 +96,7 @@
 }
 nav {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 nav a,
 .profile-link {
@@ -87,7 +104,7 @@ nav a,
   align-items: center;
   gap: 12px;
   border-radius: 12px;
-  padding: 14px 13px;
+  padding: 10px 13px;
   color: #475569;
   text-decoration: none;
   font-size: 12px;
@@ -117,41 +134,46 @@ button:focus-visible {
 }
 .sidebar-divider {
   border-top: 1px solid var(--partner-border);
-  margin: 22px 10px 12px;
+  margin-block: 14px 8px;
 }
 .profile-link {
   font-weight: 400;
 }
 .partner-note {
   position: relative;
-  overflow: hidden;
   background: #e4f4eb;
   border-radius: 16px;
-  margin: 32px 6px 0;
-  padding: 20px 16px;
+  flex: 0 0 auto;
+  margin-top: 14px;
+  padding: 12px;
 }
-.partner-note > app-partner-icon {
-  float: right;
+.partner-note-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
+}
+.partner-note-heading > app-partner-icon {
   color: #36a970;
   width: 32px;
   height: 32px;
 }
 .partner-note strong {
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.35;
   color: #065438;
   display: block;
 }
 .partner-note p {
-  font-size: 12px;
-  line-height: 1.8;
+  font-size: 11px;
+  line-height: 1.4;
   color: #4b6558;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
 }
 .sidebar-landscape {
-  margin: 24px -12px 0;
-  min-height: 130px;
-  flex: 1;
+  margin-top: 12px;
+  min-height: 80px;
+  flex: 1 1 80px;
   background:
     linear-gradient(#fbfdfce0, #fbfdfc20),
     url('/image/greensteps_wallet_mountain_bg.png') center bottom/cover no-repeat;
@@ -162,7 +184,8 @@ button:focus-visible {
   letter-spacing: 0.8px;
   text-align: center;
   color: #6f8c7e;
-  padding-top: 10px;
+  padding-top: 6px;
+  flex: 0 0 auto;
 }
 .partner-content {
   min-width: 0;
@@ -182,16 +205,13 @@ button:focus-visible {
   .partner-workspace {
     grid-template-columns: 216px minmax(0, 1fr);
   }
-  .partner-sidebar {
-    padding-inline: 8px;
-  }
   nav a {
     padding: 12px 10px;
     font-size: 11px;
     gap: 9px;
   }
   .partner-note {
-    padding: 15px;
+    padding: 12px;
   }
   .partner-note strong {
     font-size: 13px;
@@ -241,7 +261,7 @@ button:focus-visible {
     transition:
       transform 0.2s,
       visibility 0.2s;
-    padding: 18px 12px;
+    padding: 14px 12px;
   }
   .partner-sidebar.is-open {
     transform: none;
@@ -260,7 +280,7 @@ button:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 0 4px 18px;
+    margin: 0 4px 10px;
     font-size: 14px;
   }
   .sidebar-mobile-heading button {
@@ -276,10 +296,11 @@ button:focus-visible {
     font-size: 13px;
   }
   .sidebar-landscape {
-    min-height: 90px;
+    min-height: 64px;
+    flex-basis: 64px;
   }
   .partner-note {
-    margin-top: 24px;
+    margin-top: 14px;
   }
   :host ::ng-deep .partner-content > router-outlet + * > main {
     padding: 20px 16px !important;
@@ -355,4 +376,49 @@ nav a,
 nav a,
 .profile-link {
   font-weight: 600;
+}
+
+.partner-identity div span {
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+@media (max-height: 760px) {
+  .partner-sidebar {
+    padding-block: 8px;
+  }
+
+  .partner-identity {
+    padding-block: 8px;
+    margin-bottom: 8px;
+  }
+
+  nav {
+    gap: 3px;
+  }
+
+  nav a,
+  .profile-link {
+    padding-block: 8px;
+  }
+
+  .sidebar-divider {
+    margin-block: 8px 6px;
+  }
+
+  .partner-note {
+    margin-top: 8px;
+    padding: 10px;
+  }
+
+  .sidebar-landscape {
+    min-height: 56px;
+    flex-basis: 56px;
+    margin-top: 8px;
+  }
+
+  .sidebar-brand {
+    padding-top: 3px;
+  }
 }

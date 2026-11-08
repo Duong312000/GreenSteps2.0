@@ -1,0 +1,53 @@
+<section class="transport-page">
+ <header class="transport-hero" *ngIf="!isDetail">
+  <div class="hero-copy"><span><i class="bi bi-leaf"></i> Di chuyển xanh</span><h1>Di chuyển tiện lợi,<br>ít tác động đến môi trường</h1><p>So sánh, lựa chọn và đặt dịch vụ phù hợp cho hành trình của bạn.</p></div>
+  <div class="search-panel">
+   <nav class="transport-tabs" aria-label="Loại dịch vụ"><button *ngFor="let t of tabs" (click)="tab(t.id)" [class.selected]="q['type']===t.id" [attr.aria-pressed]="q['type']===t.id"><i class="bi" [ngClass]="t.icon"></i>{{t.label}}</button></nav>
+   <form class="search-fields" (ngSubmit)="search()">
+    <ng-container *ngIf="!rental"><label>Điểm đi<input name="origin" [(ngModel)]="q['origin']" list="origins" placeholder="Tất cả điểm đi"></label><label>Điểm đến<input name="destination" [(ngModel)]="q['destination']" list="destinations" placeholder="Tất cả điểm đến"></label><label>Ngày đi<input name="date" type="date" [(ngModel)]="q['date']" [min]="today"></label><label>Số khách<input name="passengers" type="number" [(ngModel)]="q['passengers']" min="1" max="100" required></label></ng-container>
+    <ng-container *ngIf="rental"><label>Loại xe<select name="vehicleType" [(ngModel)]="q['vehicleType']"><option value="">Tất cả loại xe</option><option *ngFor="let v of vehicleTypes" [value]="v">{{labels[v]||v}}</option></select></label><label>Địa điểm nhận xe<input name="location" [(ngModel)]="q['location']" list="locations" placeholder="Chọn địa điểm"></label><label>Ngày nhận<input name="pickup" type="date" [(ngModel)]="pickupDate" [min]="today"></label><label>Giờ nhận<input name="pickupTime" type="time" [(ngModel)]="pickupTime" required></label><label>Ngày trả<input name="return" type="date" [(ngModel)]="returnDate" [min]="pickupDate||today"></label><label>Giờ trả<input name="returnTime" type="time" [(ngModel)]="returnTime" required></label></ng-container>
+    <button class="primary" type="submit"><i class="bi bi-search"></i> {{rental?'Tìm xe':'Tìm chuyến'}}</button>
+   </form>
+  </div>
+ </header>
+ <datalist id="origins"><option *ngFor="let v of metadata.origins" [value]="v"></option></datalist><datalist id="destinations"><option *ngFor="let v of metadata.destinations" [value]="v"></option></datalist><datalist id="locations"><option *ngFor="let v of metadata.locations" [value]="v"></option></datalist>
+ <p class="notice error" role="alert" *ngIf="error">{{error}} <button (click)="load()" *ngIf="!isDetail">Thử lại</button></p>
+ <p class="notice success" role="status" *ngIf="success">{{success}} <a [routerLink]="['/transport-bookings',bookingId]">Xem yêu cầu</a></p>
+ <div class="transport-layout" *ngIf="!isDetail">
+  <aside class="filters"><div class="filter-heading"><h2><i class="bi bi-funnel"></i> Bộ lọc</h2><button (click)="reset()">Đặt lại</button></div>
+   <form (ngSubmit)="search()">
+    <fieldset><legend>Khoảng giá ({{rental?'ngày':'1 người'}})</legend><label>Từ<input name="minPrice" type="number" min="0" [(ngModel)]="q['minPrice']" placeholder="0 ₫"></label><label>Đến<input name="maxPrice" type="number" min="0" [(ngModel)]="q['maxPrice']" placeholder="Không giới hạn"></label></fieldset>
+    <fieldset *ngIf="!rental"><legend>Giờ khởi hành</legend><select aria-label="Giờ khởi hành" name="departurePeriod" [(ngModel)]="q['departurePeriod']"><option value="">Tất cả khung giờ</option><option value="morning">Buổi sáng (05:00–11:59)</option><option value="afternoon">Buổi chiều (12:00–17:59)</option><option value="evening">Buổi tối (18:00–23:59)</option><option value="night">Đêm (00:00–04:59)</option></select></fieldset>
+    <fieldset><legend>Phương tiện</legend><label>Loại xe<select name="vehicleType" [(ngModel)]="q['vehicleType']"><option value="">Tất cả loại xe</option><option *ngFor="let v of vehicleTypes" [value]="v">{{labels[v]||v}}</option></select></label><label>{{rental?'Số chỗ tối thiểu':'Chỗ trống tối thiểu'}}<input name="minSeats" type="number" min="1" max="100" [(ngModel)]="q['minSeats']"></label></fieldset>
+    <fieldset><legend>Tiêu chí xanh</legend><label>Năng lượng<select name="fuelType" [(ngModel)]="q['fuelType']"><option value="">Tất cả năng lượng</option><option *ngFor="let v of metadata.fuelTypes" [value]="v">{{labels[v]||v}}</option></select></label><label class="check" *ngIf="!rental"><input type="checkbox" name="lowEmission" [ngModel]="q['lowEmission']==='true'" (ngModelChange)="q['lowEmission']=$event?'true':''">Ít phát thải hơn ô tô riêng</label></fieldset>
+    <button type="submit" class="primary">Áp dụng bộ lọc</button>
+   </form>
+  </aside>
+  <main class="results" [attr.aria-busy]="loading">
+   <div class="results-heading"><div><h2>{{rental ? 'Chọn xe cho hành trình' : ((q['origin']||'Điểm đi')+' → '+(q['destination']||'Điểm đến'))}}</h2><p>{{total}} {{rental?'phương tiện':'chuyến xe'}} phù hợp</p></div><label>Sắp xếp theo<select [(ngModel)]="q['sortBy']" (change)="search()"><option value="price">Giá thấp nhất</option><option value="price_desc">Giá cao nhất</option><option value="departure" *ngIf="!rental">Giờ khởi hành</option><option value="duration" *ngIf="!rental">Thời gian di chuyển</option><option value="co2" *ngIf="!rental">CO₂e thấp nhất</option></select></label></div>
+   <div class="empty" role="status" *ngIf="loading"><i class="bi bi-hourglass-split"></i> Đang tìm hành trình phù hợp…</div>
+   <div class="empty" *ngIf="!loading&&!data.length&&!error"><i class="bi bi-signpost-split"></i><h3>Chưa có dịch vụ phù hợp</h3><p>Thử đổi ngày, địa điểm hoặc giảm số lượng khách.</p><button (click)="reset()">Xóa bộ lọc</button></div>
+   <div *ngIf="!loading" class="result-list">
+    <article class="transport-card" *ngFor="let item of data">
+     <img class="vehicle-photo" [src]="item.vehicle.images[0]||'/image/services/transport_electric_car.png'" [alt]="item.vehicle.name">
+     <div class="card-info"><h3>{{item.partner.name}}</h3><p>{{item.vehicle.name}} · {{item.vehicle.capacity}} chỗ</p><p class="energy"><i class="bi bi-lightning-charge"></i> {{labels[item.vehicle.fuel_type]}}</p><div class="trip-meta" *ngIf="!rental"><span><i class="bi bi-clock"></i> {{item.departure_time|date:'HH:mm':'+0700'}} – {{item.arrival_time|date:'HH:mm':'+0700'}}<small>{{item.departure_time|date:'dd/MM/yyyy':'+0700'}} · {{item.duration_minutes}} phút</small></span><span><i class="bi bi-geo-alt"></i> {{item.pickup_point}}<small>{{item.dropoff_point}}</small></span></div><p *ngIf="rental"><i class="bi bi-geo-alt"></i> {{item.pickup_location}}</p></div>
+     <div class="card-impact"><div class="co2" *ngIf="item.sustainability as s"><strong><i class="bi bi-leaf"></i> {{s.co2e_per_person|number:'1.1-2'}} kg CO₂e</strong><span *ngIf="s.reduction_percent>0">Giảm ước tính {{s.reduction_percent}}%</span></div><small *ngIf="!rental"><i class="bi bi-people"></i> Còn {{item.available_seats}} chỗ</small><small *ngIf="rental">{{item.price_per_hour|number}} ₫ / giờ</small></div>
+     <div class="card-action"><app-favorite-button [targetType]="rental ? 'transport_rental' : 'transport_trip'" [targetId]="item._id" [label]="item.vehicle.name" /><strong>{{(rental?item.price_per_day:item.price_per_person)|number}} ₫</strong><small>/ {{rental?'ngày':'người'}}</small><button class="primary" (click)="open(item)">{{rental?'Xem chi tiết':'Xem chuyến xe'}} <i class="bi bi-arrow-right"></i></button></div>
+    </article>
+   </div>
+   <nav class="pagination" aria-label="Phân trang" *ngIf="pages>1"><button [disabled]="+q['page']<=1||loading" (click)="search(+q['page']-1)">Trang trước</button><span>{{q['page']}} / {{pages}}</span><button [disabled]="+q['page']>=pages||loading" (click)="search(+q['page']+1)">Trang sau</button></nav>
+  </main>
+  <aside class="sustainability-aside"><section><h2><i class="bi bi-leaf"></i> Mỗi lựa chọn, một bước xanh</h2><div><i class="bi bi-people"></i><p><strong>Chia sẻ hành trình</strong><small>Tận dụng chỗ ngồi, giảm nhu cầu đi xe riêng.</small></p></div><div><i class="bi bi-wallet2"></i><p><strong>So sánh rõ ràng</strong><small>Giá và số chỗ được cập nhật theo từng dịch vụ.</small></p></div><div><i class="bi bi-signpost"></i><p><strong>Chủ động lịch trình</strong><small>Chọn điểm đón và thời gian phù hợp.</small></p></div></section><section *ngIf="!rental&&data[0]?.sustainability as s"><h3>So sánh phát thải</h3><p>{{data[0].route.origin}} → {{data[0].route.destination}}, 1 người</p><label>Ô tô riêng <strong>{{s.baseline_co2e|number:'1.1-2'}} kg</strong></label><progress [value]="s.baseline_co2e" [max]="s.baseline_co2e"></progress><label>Chuyến đầu danh sách <strong>{{s.co2e_per_person|number:'1.1-2'}} kg</strong></label><progress [value]="s.co2e_per_person" [max]="s.baseline_co2e"></progress><small>{{s.scope}} Phân bổ {{s.allocated_passengers}} khách. {{s.source}}</small></section></aside>
+ </div>
+ <div class="detail-page" [class.bus-detail-page]="!!detail" *ngIf="isDetail">
+  <a routerLink="/transport" [queryParams]="q">‹ Quay lại tìm kiếm</a>
+  <p *ngIf="loading" role="status">Đang tải thông tin dịch vụ…</p>
+  <ng-container *ngIf="detail as d">
+   <div style="display:flex;justify-content:flex-end;margin:12px 0"><app-favorite-button [targetType]="rental ? 'transport_rental' : 'transport_trip'" [targetId]="d._id" [label]="d.vehicle.name" [showLabel]="true" /></div>
+   <app-bus-trip-detail *ngIf="!rental" [initialPassengers]="seatCount" [trip]="d" [submitting]="submitting" (continueBooking)="book($event)" />
+   <app-rental-detail *ngIf="rental" [detail]="d" [pickupDate]="pickupDate" [pickupTime]="pickupTime" [returnDate]="returnDate" [returnTime]="returnTime" [submitting]="submitting" (continueBooking)="book($event)" />
+  </ng-container>
+ </div>
+</section>
+
+
