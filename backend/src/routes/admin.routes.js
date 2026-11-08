@@ -23,9 +23,60 @@ router.get('/catalog/:kind', authMiddleware, checkRole(['admin']), async (req, r
           ...tours.map(b => ({ id: b.id, name: b.fullname, detail: b.tour_name || b.schedule_id, type: 'tour', value: b.value, status: b.status, createdAt: b.createdAt }))];
         break;
       }
+      case 'refunds': {
+        const [services, tours] = await Promise.all([ServiceBooking.findAll(), TourBooking.findAll()]);
+        const all = [...services, ...tours];
+        const refundItems = all.filter(b =>
+          b.status === 'refunded' ||
+          b.escrow_status === 'refund_pending' ||
+          b.escrow_status === 'refunded' ||
+          (b.rejection_reason && (b.rejection_reason.includes('hoàn tiền') || b.rejection_reason.includes('REFUND')))
+        );
+        rows = refundItems.map(b => ({
+          id: b.id,
+          name: b.fullname,
+          detail: b.tour_name || b.name_service || 'Dịch vụ',
+          reason: b.rejection_reason || 'Yêu cầu hoàn tiền',
+          value: b.value,
+          status: b.status === 'refunded' ? 'Đã hoàn tiền' : 'Chờ hoàn tiền',
+          createdAt: b.createdAt
+        }));
+        break;
+      }
       default: return res.status(404).json({ message: 'Unknown catalog' });
     }
     res.json(rows.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+  } catch (error) { next(error); }
+});
+
+router.post('/refunds/:id/approve', authMiddleware, checkRole(['admin']), async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    let b = await TourBooking.findByPk(id);
+    if (!b) b = await ServiceBooking.findByPk(id);
+    if (!b) return res.status(404).json({ success: false, message: 'Không tìm thấy booking' });
+
+    b.status = 'refunded';
+    b.escrow_status = 'refunded';
+    b.rejection_reason = (b.rejection_reason ? b.rejection_reason + ' | ' : '') + 'Quản trị viên đã xác nhận hoàn tiền chuyển khoản thành công.';
+    await b.save();
+
+    res.json({ success: true, message: 'Đã xác nhận hoàn tiền thành công' });
+  } catch (error) { next(error); }
+});
+
+router.post('/refunds/:id/reject', authMiddleware, checkRole(['admin']), async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const { note } = req.body || {};
+    let b = await TourBooking.findByPk(id);
+    if (!b) b = await ServiceBooking.findByPk(id);
+    if (!b) return res.status(404).json({ success: false, message: 'Không tìm thấy booking' });
+
+    b.rejection_reason = (b.rejection_reason ? b.rejection_reason + ' | ' : '') + `Từ chối hoàn tiền: ${note || 'Không đủ điều kiện'}`;
+    await b.save();
+
+    res.json({ success: true, message: 'Đã từ chối hoàn tiền' });
   } catch (error) { next(error); }
 });
 

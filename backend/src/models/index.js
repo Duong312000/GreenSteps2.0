@@ -202,7 +202,17 @@ const Schedule = store.define('Schedule', {
   carbon: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   image_url: { type: FieldTypes.STRING },
   tour_description: { type: FieldTypes.TEXT },
-  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 }
+  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
+  gallery: { type: FieldTypes.JSONB },
+  highlights: { type: FieldTypes.JSONB },
+  included: { type: FieldTypes.JSONB },
+  excluded: { type: FieldTypes.JSONB },
+  policy: { type: FieldTypes.JSONB },
+  guarantees: { type: FieldTypes.JSONB },
+  style: { type: FieldTypes.STRING },
+  group_size: { type: FieldTypes.STRING },
+  fitness_level: { type: FieldTypes.STRING },
+  max_capacity: { type: FieldTypes.INTEGER }
 }, { timestamps: true });
 
 // 12. BadgeSchedule Junction
@@ -214,7 +224,7 @@ const ScheduleSample = store.define('ScheduleSample', {
   cost: { type: FieldTypes.DOUBLE, allowNull: false },
   old_cost: { type: FieldTypes.DOUBLE },
   rating: { type: FieldTypes.DOUBLE, allowNull: true, defaultValue: null },
-  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 }
+  votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
 }, { timestamps: true });
 
 // 14. ScheduleCustom Model
@@ -247,7 +257,10 @@ const GreenService = store.define('GreenService', {
   max_capacity: { type: FieldTypes.INTEGER, defaultValue: 10 },
   status: { type: FieldTypes.STRING, defaultValue: 'active', allowNull: false },
   views_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
-  rejection_reason: { type: FieldTypes.TEXT }
+  rejection_reason: { type: FieldTypes.TEXT },
+  is_partner: { type: FieldTypes.BOOLEAN, defaultValue: true },
+  source: { type: FieldTypes.STRING, defaultValue: 'partner' },
+  google_place_id: { type: FieldTypes.STRING, allowNull: true }
 }, { timestamps: true });
 
 // 17. BadgeService Junction

@@ -1,7 +1,7 @@
 const { Op } = require('../db/mongo-store');
 const { randomUUID } = require('node:crypto');
 const { sendItineraryInviteEmail } = require('../services/email.service');
-const { createBookingReview } = require('../services/review.service');
+const { createBookingReview, createReply } = require('../services/review.service');
 const {
   store,
   Schedule,
@@ -36,6 +36,7 @@ function formatActivitiesIntoDays(schedule, activities) {
         icon: act.icon,
         type: act.type,
         is_shared: act.is_shared,
+        description: act.description || '',
         lat: act.coordinates ? parseFloat(act.coordinates.split(',')[0]) : null,
         lng: act.coordinates ? parseFloat(act.coordinates.split(',')[1]) : null
       });
@@ -45,7 +46,7 @@ function formatActivitiesIntoDays(schedule, activities) {
 }
 
 // Helper: Format a ScheduleSample+Schedule row into a tour response object
-function formatTourResponse(sample, schedule, badges, activities) {
+function formatTourResponse(sample, schedule, badges, activities, vouchers) {
   return {
     id: sample.id,
     title: schedule.tour_name,
@@ -59,6 +60,18 @@ function formatTourResponse(sample, schedule, badges, activities) {
     rating: sample.rating,
     votes_count: sample.votes_count,
     tags: badges,
+    gallery: schedule.gallery || (schedule.image_url ? [schedule.image_url] : []),
+    highlights: schedule.highlights || [],
+    included: schedule.included || [],
+    excluded: schedule.excluded || [],
+    policy: schedule.policy || [],
+    guarantees: schedule.guarantees || [],
+    style: schedule.style || 'Gia đình / Eco Travel',
+    group_size: schedule.group_size || 'Nhóm nhỏ thân mật',
+    fitness_level: schedule.fitness_level || 'Nhẹ nhàng',
+    maxCapacity: schedule.max_capacity || 10,
+    max_capacity: schedule.max_capacity || 10,
+    vouchers: vouchers || schedule.vouchers || [],
     data: activities ? formatActivitiesIntoDays(schedule, activities) : undefined
   };
 }
@@ -139,11 +152,33 @@ exports.getPresetTourById = async (req, res, next) => {
     const badgeSchedules = await BadgeSchedule.findAll({ where: { schedule_id: id } });
     const badges = badgeSchedules.map(bs => bs.badge_name);
 
+    // Fetch active vouchers dynamically from MongoDB Atlas
+    let vouchers = [];
+    try {
+      await store.authenticate();
+      if (store.db) {
+        const rawVouchers = await store.db.collection('vouchers').find({ status: 'active' }).limit(4).toArray();
+        vouchers = rawVouchers.map(v => ({
+          code: v.code,
+          title: v.title || (v.discount_type === 'percent' ? `Giảm ${v.discount_value}%` : `Giảm ${v.discount_value / 1000}k`),
+          discount_type: v.discount_type,
+          discount_value: v.discount_value,
+          min_order_value: v.min_order_value || 0,
+          max_discount: v.max_discount || 0,
+          expires_at: v.expires_at,
+          description: v.description || `Mã ưu đãi ${v.code} áp dụng cho tour du lịch xanh.`
+        }));
+      }
+    } catch (ve) {
+      console.warn('Vouchers query error:', ve.message);
+    }
+
     const result = formatTourResponse(
       s,
       s.Schedule,
       badges,
-      s.Schedule.ScheduleActivities
+      s.Schedule.ScheduleActivities,
+      vouchers
     );
 
     res.json(result);
@@ -555,27 +590,7 @@ exports.postTourReview = async (req, res, next) => {
   try {
     if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
     if (parentCommentId) {
-      if (req.user.role !== 'traveler') {
-        return res.status(403).json({ success: false, message: 'Provider replies must use the owner-validated review reply endpoint.' });
-      }
-      if (typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
-        return res.status(400).json({ success: false, message: 'Nội dung phản hồi không hợp lệ.' });
-      }
-      const parent = await CommentPost.findByPk(parentCommentId);
-      if (!parent || parent.parent_comment_id) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy đánh giá gốc.' });
-      }
-      if (tourId && parent.tour_id && tourId !== parent.tour_id) {
-        return res.status(400).json({ success: false, message: 'Đánh giá không thuộc tour này.' });
-      }
-      const comment = await CommentPost.create({
-        id: 'CEPtra' + Date.now().toString().slice(-8),
-        user_id: userId,
-        rating: null,
-        text: text.trim(),
-        tour_id: parent.tour_id || tourId,
-        parent_comment_id: parentCommentId
-      });
+      const comment = await createReply({ type: 'tour', targetId: tourId, parentCommentId, userId, text });
       const user = await User.findByPk(userId);
       return res.status(201).json({
         success: true,
@@ -619,7 +634,7 @@ exports.postTourReview = async (req, res, next) => {
       success: true,
       review: comment,
       comment,
-      bookingId: result.booking.id,
+      bookingId: result.booking ? result.booking.id : null,
       type: 'tour',
       targetId: result.target.id,
       rating: result.rating,
@@ -655,6 +670,7 @@ exports.getTourReviews = async (req, res, next) => {
       const cJson = {
         id: c.id,
         bookingId: c.booking_id || null,
+        verified: !!(c.booking_id || c.is_verified),
         user: user ? {
           id: user.id,
           fullname: user.fullname,
