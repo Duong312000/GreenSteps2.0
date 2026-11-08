@@ -113,12 +113,12 @@
                 </div>
             </div>
 
-            <!-- 4. Lịch trình của tôi -->
-            <a (click)="handleAiPlannerClick()"
-               [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
+            <!-- 4. AI Planner -->
+            <a routerLink="/ai-planner"
+               [class.active-nav-tab]="isAiPlannerActive()"
                class="nav-tab-item"
                [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
-                Lịch trình của tôi
+                AI Planner
             </a>
 
             <!-- Provider / Admin Specific Tabs (if logged in) -->
@@ -252,7 +252,7 @@
 
             <!-- Profile (đã đăng nhập) -->
             <div *ngIf="currentUser" class="relative">
-                <button (click)="toggleProfileOpen($event)"
+                <button aria-label="Tài khoản" [attr.aria-expanded]="isProfileOpen" (click)="toggleProfileOpen($event)"
                         class="h-10 flex items-center gap-1.5 rounded-full bg-white/50
                                border border-[#184A37]/10 px-2 pr-3 font-bold text-[#0F6B4C]
                                hover:bg-white hover:border-[#0E9F6E] transition-all duration-300
@@ -273,13 +273,7 @@
                      [style.pointer-events]="isProfileOpen ? 'auto' : 'none'"
                      [style.transform]="isProfileOpen ? 'translateY(0)' : 'translateY(-8px)'"
                      (click)="$event.stopPropagation()">
-                    <a routerLink="/profile"
-                       (click)="isProfileOpen = false"
-                       class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#184A37]
-                              hover:bg-gray-50 hover:text-[#0E9F6E] rounded-xl transition-colors"
-                       style="text-decoration:none;">
-                        <i class="bi bi-person text-lg"></i> Trang cá nhân
-                    </a>
+                    <ng-container *ngTemplateOutlet="accountLinks"></ng-container>
 
                     <div class="border-t border-[#184A37]/10 my-1"></div>
                     <button (click)="isProfileOpen = false; handleLogout()"
@@ -354,7 +348,7 @@
                     </a>
 
                     <a *ngIf="tab.action === 'ai_planner'"
-                       (click)="handleAiPlannerClick()"
+                       routerLink="/ai-planner"
                        [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
                        class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
                               text-[#184A37] relative cursor-pointer transition-colors duration-300
@@ -383,7 +377,7 @@
      [class.opacity-0]="!isMobileMenuOpen"
      [class.pointer-events-none]="!isMobileMenuOpen"
      (click)="toggleMobileMenu()">
-    <div class="absolute right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-md p-6
+    <div class="absolute right-0 top-0 h-full w-80 overflow-y-auto bg-white/95 backdrop-blur-md p-6
                 shadow-2xl transition-transform duration-300 flex flex-col justify-between"
          [class.translate-x-0]="isMobileMenuOpen"
          [class.translate-x-full]="!isMobileMenuOpen"
@@ -419,7 +413,7 @@
                        (click)="toggleMobileMenu(); showGreenHandbookAlert()"
                        class="hover:text-[#0E9F6E] cursor-pointer transition-colors">{{ tab.label }}</a>
                     <a *ngIf="tab.action === 'ai_planner'"
-                       (click)="toggleMobileMenu(); handleAiPlannerClick()"
+                       routerLink="/ai-planner" (click)="toggleMobileMenu()"
                        [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
                        class="hover:text-[#0E9F6E] cursor-pointer transition-colors">{{ tab.label }}</a>
                 </ng-container>
@@ -440,7 +434,7 @@
                           bg-[#184A37] text-[16px] font-bold text-white shadow-md hover:bg-[#184A37]
                           transition-all border-0 cursor-pointer">Đăng nhập</button>
             </div>
-            <a *ngIf="currentUser" routerLink="/profile" (click)="toggleMobileMenu()"
+            <button *ngIf="currentUser" type="button" aria-label="Tài khoản" [attr.aria-expanded]="isProfileOpen" (click)="toggleProfileOpen($event)"
                class="w-full h-14 flex items-center gap-3 rounded-full bg-gray-50 px-4 py-2
                       text-sm font-bold text-[#0F6B4C]"
                style="text-decoration:none;">
@@ -449,10 +443,32 @@
                     <span *ngIf="!currentUser.avatarUrl">{{ getFirstLetter(currentUser.fullname) }}</span>
                 </span>
                 <span class="truncate">{{ currentUser.fullname }}</span>
-            </a>
+                <i class="bi bi-chevron-down ml-auto"></i>
+            </button>
+            <div *ngIf="currentUser && isProfileOpen" class="mt-2 rounded-2xl border border-[#184A37]/10 bg-white p-2">
+                <ng-container *ngTemplateOutlet="accountLinks"></ng-container>
+            </div>
         </div>
     </div>
 </div>
+
+<ng-template #accountLinks>
+                    <a routerLink="/profile"
+                       (click)="isProfileOpen = false; isMobileMenuOpen && toggleMobileMenu()"
+                       class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#184A37]
+                              hover:bg-gray-50 hover:text-[#0E9F6E] rounded-xl transition-colors"
+                       style="text-decoration:none;">
+                        <i class="bi bi-person text-lg"></i> Trang cá nhân
+                    </a>
+                    <a routerLink="/schedule"
+                       (click)="isProfileOpen = false; isMobileMenuOpen && toggleMobileMenu()"
+                       class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#184A37]
+                              hover:bg-gray-50 hover:text-[#0E9F6E] rounded-xl transition-colors"
+                       style="text-decoration:none;">
+                        <i class="bi bi-calendar2-week text-lg"></i> Lịch trình của tôi
+                    </a>
+
+</ng-template>
 
 <app-login-modal *ngIf="isLoginModalOpen" [initialMode]="loginModalMode" (close)="closeLoginModal()"></app-login-modal>
 

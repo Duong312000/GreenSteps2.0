@@ -459,7 +459,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public isAiPlannerActive(): boolean {
-    return this.router.url.startsWith('/schedule');
+    return this.router.url.split(/[?#]/)[0] === '/ai-planner';
   }
 
   public isServicesActive(): boolean {
@@ -470,10 +470,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.smartSearchQuery = dest;
     this.isSearchDropdownActive = false;
     this.router.navigate(['/tours'], { queryParams: { dest: dest } });
-  }
-
-  public handleAiPlannerClick() {
-    this.router.navigate(['/schedule']);
   }
 
   public openProfileMenu() {
@@ -662,7 +658,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
       { label: 'Phương tiện', link: '/services', queryParams: { type: 'transport' } },
       { label: 'Ăn uống', link: '/services', queryParams: { type: 'food' } },
       { label: 'Giải trí', link: '/services', queryParams: { type: 'attraction' } },
-      { label: 'Lịch trình của tôi', action: 'ai_planner' }
+      { label: 'AI Planner', action: 'ai_planner' }
     ];
 
     if (this.currentUser && this.currentUser.role === 'provider') {

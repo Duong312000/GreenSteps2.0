@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +15,26 @@ type DestinationPosition = 'left' | 'center' | 'right';
   standalone: false,
   templateUrl: './home.html',
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
+  private plannerFragmentSubscription?: Subscription;
+  private plannerScrollFrame?: number;
+
+  ngAfterViewInit() {
+    this.plannerFragmentSubscription = this.route.fragment.subscribe(fragment => {
+      if (this.plannerScrollFrame !== undefined) cancelAnimationFrame(this.plannerScrollFrame);
+      if (fragment !== 'ai-planner') return;
+      // Native scrolling also handles the body's mobile scroll container.
+      this.plannerScrollFrame = requestAnimationFrame(() => {
+        document.getElementById('ai-planner')?.scrollIntoView({ block: 'start' });
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    this.plannerFragmentSubscription?.unsubscribe();
+    if (this.plannerScrollFrame !== undefined) cancelAnimationFrame(this.plannerScrollFrame);
+  }
+
   private readonly realPreviewImages = {
     daNang: 'https://i.pinimg.com/736x/f3/34/b3/f334b3d836d0d5fd68f797f7ad3c7021.jpg',
     baNa: 'https://i.pinimg.com/736x/3d/a1/1f/3da11f5f8766b7c71fdce561420950e1.jpg',

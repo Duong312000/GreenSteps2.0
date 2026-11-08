@@ -1,4 +1,4 @@
-﻿<section class="transport-page">
+<section class="transport-page">
  <header class="transport-hero" *ngIf="!isDetail">
   <div class="hero-copy"><span><i class="bi bi-leaf"></i> Di chuyển xanh</span><h1>Di chuyển tiện lợi,<br>ít tác động đến môi trường</h1><p>So sánh, lựa chọn và đặt dịch vụ phù hợp cho hành trình của bạn.</p></div>
   <div class="search-panel">
@@ -32,7 +32,7 @@
      <img class="vehicle-photo" [src]="item.vehicle.images[0]||'/image/services/transport_electric_car.png'" [alt]="item.vehicle.name">
      <div class="card-info"><h3>{{item.partner.name}}</h3><p>{{item.vehicle.name}} · {{item.vehicle.capacity}} chỗ</p><p class="energy"><i class="bi bi-lightning-charge"></i> {{labels[item.vehicle.fuel_type]}}</p><div class="trip-meta" *ngIf="!rental"><span><i class="bi bi-clock"></i> {{item.departure_time|date:'HH:mm':'+0700'}} – {{item.arrival_time|date:'HH:mm':'+0700'}}<small>{{item.departure_time|date:'dd/MM/yyyy':'+0700'}} · {{item.duration_minutes}} phút</small></span><span><i class="bi bi-geo-alt"></i> {{item.pickup_point}}<small>{{item.dropoff_point}}</small></span></div><p *ngIf="rental"><i class="bi bi-geo-alt"></i> {{item.pickup_location}}</p></div>
      <div class="card-impact"><div class="co2" *ngIf="item.sustainability as s"><strong><i class="bi bi-leaf"></i> {{s.co2e_per_person|number:'1.1-2'}} kg CO₂e</strong><span *ngIf="s.reduction_percent>0">Giảm ước tính {{s.reduction_percent}}%</span></div><small *ngIf="!rental"><i class="bi bi-people"></i> Còn {{item.available_seats}} chỗ</small><small *ngIf="rental">{{item.price_per_hour|number}} ₫ / giờ</small></div>
-     <div class="card-action"><strong>{{(rental?item.price_per_day:item.price_per_person)|number}} ₫</strong><small>/ {{rental?'ngày':'người'}}</small><button class="primary" (click)="open(item)">{{rental?'Xem chi tiết':'Xem chuyến xe'}} <i class="bi bi-arrow-right"></i></button></div>
+     <div class="card-action"><app-favorite-button [targetType]="rental ? 'transport_rental' : 'transport_trip'" [targetId]="item._id" [label]="item.vehicle.name" /><strong>{{(rental?item.price_per_day:item.price_per_person)|number}} ₫</strong><small>/ {{rental?'ngày':'người'}}</small><button class="primary" (click)="open(item)">{{rental?'Xem chi tiết':'Xem chuyến xe'}} <i class="bi bi-arrow-right"></i></button></div>
     </article>
    </div>
    <nav class="pagination" aria-label="Phân trang" *ngIf="pages>1"><button [disabled]="+q['page']<=1||loading" (click)="search(+q['page']-1)">Trang trước</button><span>{{q['page']}} / {{pages}}</span><button [disabled]="+q['page']>=pages||loading" (click)="search(+q['page']+1)">Trang sau</button></nav>
@@ -43,6 +43,7 @@
   <a routerLink="/transport" [queryParams]="q">‹ Quay lại tìm kiếm</a>
   <p *ngIf="loading" role="status">Đang tải thông tin dịch vụ…</p>
   <ng-container *ngIf="detail as d">
+   <div style="display:flex;justify-content:flex-end;margin:12px 0"><app-favorite-button [targetType]="rental ? 'transport_rental' : 'transport_trip'" [targetId]="d._id" [label]="d.vehicle.name" [showLabel]="true" /></div>
    <app-bus-trip-detail *ngIf="!rental" [initialPassengers]="seatCount" [trip]="d" [submitting]="submitting" (continueBooking)="book($event)" />
    <app-rental-detail *ngIf="rental" [detail]="d" [pickupDate]="pickupDate" [pickupTime]="pickupTime" [returnDate]="returnDate" [returnTime]="returnTime" [submitting]="submitting" (continueBooking)="book($event)" />
   </ng-container>

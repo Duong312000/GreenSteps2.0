@@ -1,3 +1,5 @@
+import { Subscription } from 'rxjs';
+import { FavoritesService } from '../../services/favorites.service';
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -226,7 +228,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     private authService: AuthService,
     private loginModalService: LoginModalService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private favoritesService?: FavoritesService
   ) { }
 
   public openLoginModal() {
@@ -271,6 +274,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnDestroy() {
+    this.favoritesSubscription?.unsubscribe();
     this.stopBackgroundSync();
     this.clearSearchMarkers();
     if (this.map) {
@@ -1118,62 +1122,43 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return `-${val.toFixed(1).replace(/\.0$/, '')} kg CO₂`;
   }
 
-  // Favorite Places Management
+  private favoritesSubscription?: Subscription;
   public loadFavoritePlaces() {
+    if (!this.favoritesService) return;
+    this.favoritesSubscription?.unsubscribe();
+    this.favoritesSubscription = this.favoritesService.items$.subscribe(items => {
+      this.favoritePlaces = items.filter(item => item.available && ['place','service'].includes(item.target_type)).map(item => ({
+        name:item.name,title:item.name,type:item.place_type||'explore',category:item.target_type === 'service' ? 'Dịch vụ':'Địa điểm',
+        cost:item.price||0,carbon:0,img:item.image,lat:item.lat,lng:item.lng,
+        _favoriteType:item.target_type,_favoriteId:item.target_id
+      }));
+      this.cdr.markForCheck();
+    });
+  }
+  public isPlaceFavorite(place:any):boolean {
+    if(!this.favoritesService||!place)return false;
+    const ref=this.favoritesService.placeRef(place);
+    return this.favoritesService.isSaved(ref.type,ref.id);
+  }
+  public async toggleFavoritePlace(place:any,event?:Event) {
+    event?.stopPropagation();
+    if(!place||!this.favoritesService)return;
     try {
-      const saved = localStorage.getItem('greensteps_favorite_places');
-      if (saved) {
-        this.favoritePlaces = JSON.parse(saved);
-      }
-    } catch (e) {
-      this.favoritePlaces = [];
-    }
+      const ref=this.favoritesService.placeRef({...place,img:place.img||this.getPlacePlaceholderImage(place.name||place.title)});
+      if(await this.favoritesService.toggle(ref))this.showAlert(this.favoritesService.isSaved(ref.type,ref.id)?'Đã lưu vào Địa điểm yêu thích.':'Đã bỏ khỏi Địa điểm yêu thích.','success');
+    } catch(error){this.showAlert(this.favoritesService.message(error),'error');}
+    this.cdr.markForCheck();
   }
-
-  public saveFavoritePlaces() {
-    try {
-      localStorage.setItem('greensteps_favorite_places', JSON.stringify(this.favoritePlaces));
-    } catch (e) { }
+  public async removeFavoritePlace(index:number,event?:Event) {
+    event?.stopPropagation();const place=this.favoritePlaces[index];
+    if(!place||!this.favoritesService)return;
+    try{await this.favoritesService.setSaved(place._favoriteType,place._favoriteId,false);}catch(error){this.showAlert(this.favoritesService.message(error),'error');}
+    this.cdr.markForCheck();
   }
-
-  public isPlaceFavorite(place: any): boolean {
-    if (!place) return false;
-    const name = (place.name || place.title || '').trim().toLowerCase();
-    return this.favoritePlaces.some(p => (p.name || p.title || '').trim().toLowerCase() === name);
-  }
-
-  public toggleFavoritePlace(place: any, event?: Event) {
-    if (event) event.stopPropagation();
-    if (!place) return;
-    const name = (place.name || place.title || '').trim().toLowerCase();
-    const idx = this.favoritePlaces.findIndex(p => (p.name || p.title || '').trim().toLowerCase() === name);
-    if (idx >= 0) {
-      this.favoritePlaces.splice(idx, 1);
-      this.showAlert(`Đã bỏ "${place.name || place.title}" khỏi danh sách yêu thích`, 'info');
-    } else {
-      this.favoritePlaces.push({
-        name: place.name || place.title,
-        title: place.title || place.name,
-        type: place.type || 'explore',
-        category: place.category || 'Khám phá',
-        cost: place.cost || 0,
-        carbon: place.carbon || 0,
-        img: place.img || this.getPlacePlaceholderImage(place.name || place.title),
-        lat: place.lat,
-        lng: place.lng
-      });
-      this.showAlert(`Đã lưu "${place.name || place.title}" vào Địa điểm yêu thích!`, 'success');
-    }
-    this.saveFavoritePlaces();
-    this.cdr.detectChanges();
-  }
-
-  public removeFavoritePlace(idx: number, event?: Event) {
-    if (event) event.stopPropagation();
-    this.favoritePlaces.splice(idx, 1);
-    this.saveFavoritePlaces();
-    this.cdr.detectChanges();
-  }
+  public readonly persistFavoriteItinerary = async () => {
+    if(!this.activeItinerary||!this.currentUser)return;
+    if(!await this.apiService.saveItinerary(this.convertEditorToApiItinerary(this.activeItinerary)))throw new Error('Không thể lưu lịch trình. Vui lòng thử lại.');
+  };
 
   // Smart Scheduler Math & Validation
   public getDwellMinutesForType(type: string): number {
@@ -1478,6 +1463,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           else if (recType === 'food' || recType === 'dining') recType = 'dining';
 
           return {
+            id: srv.id, service_id: srv.id,
             name: srv.name || srv.name_service,
             category: srv.current_data?.category || (srv.type === 'food' || srv.type === 'dining' ? 'Ăn uống' : srv.type === 'stay' || srv.type === 'lodging' ? 'Lưu trú' : 'Khám phá'),
             type: recType,

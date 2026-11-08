@@ -227,6 +227,7 @@
             <!-- 3 Actions Buttons in a Row at the Top-Right (with merged avatar stack) -->
             <div
                 style="position: absolute; top: 15px; right: 15px; display: flex; align-items: center; gap: 8px; z-index: 10;">
+                <app-favorite-button *ngIf="!activeItinerary.id?.startsWith('BKT-') && !activeItinerary.id?.startsWith('BKS-')" targetType="itinerary" [targetId]="activeItinerary.id" [label]="activeItinerary.name || activeItinerary.title" [beforeSave]="persistFavoriteItinerary" />
                 <!-- Button 1: Chia sẻ lịch trình -->
                 <button (click)="openShareModal(activeItinerary, $event)"
                     style="width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: white; border: 1.5px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
@@ -1164,6 +1165,7 @@
                                 </div>
 
                                 <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
+                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary" [targetId]="iti.id" [label]="iti.name" />
                                     <button (click)="openShareModal(iti, $event)"
                                         class="h-7 w-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all"
                                         title="Chia sẻ">
@@ -1254,6 +1256,7 @@
                                 </span>
 
                                 <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
+                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary" [targetId]="iti.id" [label]="iti.name" />
                                     <button (click)="openShareModal(iti, $event)"
                                         class="h-7 w-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all"
                                         title="Chia sẻ">

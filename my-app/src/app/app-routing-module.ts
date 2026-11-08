@@ -26,6 +26,7 @@ import { CancellationPolicyComponent } from './pages/cancellation-policy/cancell
 import { NetworkErrorComponent } from './pages/network-error/network-error';
 
 const routes: Routes = [
+  { path: 'ai-planner', loadComponent: () => import('./pages/ai-planner/ai-planner').then(m => m.AiPlannerComponent) },
   { path:'transport', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
   { path:'transport/:kind/:id', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
   { path:'transport-bookings', loadComponent:()=>import('./pages/transport/transport-bookings').then(m=>m.TransportBookingPageComponent) },

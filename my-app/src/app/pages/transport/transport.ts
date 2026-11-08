@@ -1,4 +1,5 @@
-﻿import { Component, inject, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
+import { FavoriteButtonComponent } from '../../components/favorites/favorite-button';
+import { Component, inject, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -8,7 +9,7 @@ import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { BusTripDetailComponent, BusSelection } from './bus-trip-detail';
 import { RentalDetailComponent, RentalSelection } from './rental-detail';
-@Component({ selector:'app-transport',standalone:true,imports:[CommonModule,FormsModule,RouterModule,BusTripDetailComponent,RentalDetailComponent],templateUrl:'./transport.html',styleUrl:'./transport.css' })
+@Component({ selector:'app-transport',standalone:true,imports:[FavoriteButtonComponent,CommonModule,FormsModule,RouterModule,BusTripDetailComponent,RentalDetailComponent],templateUrl:'./transport.html',styleUrl:'./transport.css' })
 export class TransportComponent implements OnInit,OnDestroy {
  api=inject(TransportService); route=inject(ActivatedRoute); router=inject(Router); auth=inject(AuthService); login=inject(LoginModalService); cdr=inject(ChangeDetectorRef);
  subscriptions=new Subscription(); version=0; loading=false; submitting=false; error=''; success=''; data:any[]=[]; total=0; detail:any=null; comparison:any=null; metadata:any={origins:[],destinations:[],locations:[],vehicleTypes:[],fuelTypes:[]};

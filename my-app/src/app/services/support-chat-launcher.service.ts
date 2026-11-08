@@ -1,12 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SupportChatLauncherService {
-  private readonly openRequests = new Subject<void>();
+  readonly plannerOpen = signal(false);
+  private readonly openRequests = new Subject<'support' | 'planner'>();
   readonly openRequested$ = this.openRequests.asObservable();
 
-  requestOpen(): void {
-    this.openRequests.next();
+  requestOpen(mode: 'support' | 'planner' = 'support'): void {
+    this.openRequests.next(mode);
   }
 }

@@ -478,6 +478,17 @@ const CommunityReport = store.define('CommunityReport', {
   history: { type: FieldTypes.JSONB, defaultValue: [] }
 }, { tableName: 'community_reports', timestamps: true });
 
+const Favorite = store.define('Favorite', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  target_type: { type: FieldTypes.ENUM('tour', 'service', 'itinerary', 'place', 'transport_trip', 'transport_rental'), allowNull: false },
+  target_id: { type: FieldTypes.STRING, allowNull: false },
+  snapshot: { type: FieldTypes.JSONB, allowNull: false }
+}, { tableName: 'favorites', timestamps: true, indexes: [
+  { key: { user_id: 1, target_type: 1, target_id: 1 }, options: { unique: true } },
+  { key: { user_id: 1, createdAt: -1 }, options: {} }
+] });
+
 const SavedCommunityItem = store.define('SavedCommunityItem', {
   id: { type: FieldTypes.STRING, primaryKey: true },
   user_id: { type: FieldTypes.STRING, allowNull: false },
@@ -817,6 +828,7 @@ module.exports = {
   CommunityReport,
   CommentPost,
   SavedCommunityItem,
+  Favorite,
   CommunityChallenge,
   CommunityChallengeEntry,
   CPSS,

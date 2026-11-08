@@ -51,7 +51,7 @@
 
         <div class="title-actions" aria-label="Tour actions">
             <button type="button"><i class="bi bi-share"></i> Chia sẻ</button>
-            <button type="button"><i class="bi bi-heart"></i> Lưu</button>
+            <app-favorite-button [targetType]="activeTour.isService ? 'service' : 'tour'" [targetId]="activeTour.id" [label]="activeTour.title" [showLabel]="true" />
         </div>
     </section>
 
@@ -1016,7 +1016,7 @@
           </span>
           <div class="gs-action-pills">
             <button type="button" class="gs-icon-btn" title="Chia sẻ" aria-label="Chia sẻ"><i class="bi bi-share"></i></button>
-            <button type="button" class="gs-icon-btn" title="Lưu yêu thích" aria-label="Lưu"><i class="bi bi-heart"></i></button>
+            <app-favorite-button [targetType]="activeTour.isService ? 'service' : 'tour'" [targetId]="activeTour.id" [label]="activeTour.title" />
           </div>
         </div>
 

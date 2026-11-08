@@ -1,5 +1,7 @@
 import { TransportBookingsComponent } from './pages/transport/transport-bookings';
 import { GreenWalletComponent } from './pages/profile/green-wallet';
+import { FavoriteButtonComponent } from './components/favorites/favorite-button';
+import { FavoriteCollectionComponent } from './components/favorites/favorite-collection';
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -87,6 +89,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     NetworkErrorComponent,
   ],
   imports: [
+    FavoriteButtonComponent,
+    FavoriteCollectionComponent,
     TransportBookingsComponent,
     GreenWalletComponent,
     BrowserModule,

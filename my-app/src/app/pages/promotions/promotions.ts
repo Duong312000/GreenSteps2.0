@@ -17,7 +17,7 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   offers: Offer[] = []; filtered: Offer[] = [];
   loading = true; loadError = false; activeTab = 'all';
   selectedCategory = 'all'; selectedDestination = 'all'; selectedOfferType = 'all'; mobileFilters = false;
-  query = ''; sort = 'popular'; favorites = new Set<string>();
+  query = ''; sort = 'popular';
   private refreshTimer?: number;
   private refreshInFlight = false;
   @ViewChild('results') private results?: ElementRef<HTMLElement>;
@@ -178,8 +178,6 @@ export class PromotionsComponent implements OnInit, OnDestroy {
     return this.offerGroups.some((group) => this.sectionOffers(group.id).length > 0);
   }
   offerKey(offer: Offer) { return offer.offer_id || offer.id; }
-  isFavorite(offer: Offer) { return this.favorites.has(this.offerKey(offer)); }
-  toggleFavorite(offer: Offer, event: Event) { const key = this.offerKey(offer); event.stopPropagation(); this.favorites.has(key) ? this.favorites.delete(key) : this.favorites.add(key); }
   open(offer: Offer) { this.router.navigate(['/services', offer.category === 'stay' ? 'stay' : offer.category === 'transport' ? 'transport' : 'attraction', offer.service.id]); }
   categoryOf(o: Offer) { return o.category; }
   isEco(o: Offer) { return /xanh|eco|green|net.zero/i.test(o.name + ' ' + (o.services || [o.service]).map(s => `${s.name} ${s.type || ''}`).join(' ')); }

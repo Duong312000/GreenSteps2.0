@@ -72,7 +72,7 @@
                   </div>
                 </ng-container>
                 <ng-template #serviceOffer>
-                  <div class="photo"><img [src]="offer.service.image || 'image/Viet Nam.png'" [alt]="offer.service.name"><span class="discount">-{{ offer.discountPercent }}%</span><span class="kind">Flash Sale</span><button class="heart" (click)="toggleFavorite(offer,$event)"><i class="bi" [ngClass]="isFavorite(offer) ? 'bi-heart-fill' : 'bi-heart'"></i></button></div>
+                  <div class="photo"><img [src]="offer.service.image || 'image/Viet Nam.png'" [alt]="offer.service.name"><span class="discount">-{{ offer.discountPercent }}%</span><span class="kind">Flash Sale</span><app-favorite-button style="position:absolute;top:12px;right:12px;z-index:3" targetType="service" [targetId]="offer.service.id" [label]="offer.service.name" /></div>
                   <div class="card-body"><span class="recommend">Dành cho bạn</span><h2>{{ offer.service.name }}</h2><p><i class="bi bi-geo-alt"></i> {{ offer.service.destination || 'Việt Nam' }}</p><div class="prices"><del>{{ money(offer.service.cost) }}</del><strong>{{ money(offer.salePrice) }}</strong></div><small *ngIf="offer.min_order">Đơn tối thiểu {{ money(offer.min_order) }}</small></div>
                 </ng-template>
               </article>
