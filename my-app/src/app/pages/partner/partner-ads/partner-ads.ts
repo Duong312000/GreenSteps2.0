@@ -11,6 +11,7 @@ import { User } from '../../../models/models';
   selector: 'app-partner-ads',
   standalone: false,
   templateUrl: './partner-ads.html',
+  styleUrl: './partner-ads.css',
 })
 export class PartnerAdsComponent implements OnInit {
   public currentUser: User | null = null;
@@ -20,10 +21,13 @@ export class PartnerAdsComponent implements OnInit {
   public isLoading = false;
   public filterTab: 'all' | 'unread' = 'all';
   public internalNote: string = '';
+  public feedbackDialog: { title: string; message: string } | null = null;
+  private readReviewIds = new Set<string>();
+  private readReviewStorageKey: string | null = null;
 
   get filteredReviews() {
     if (this.filterTab === 'unread') {
-      return this.reviews.filter(r => !r.replied);
+      return this.reviews.filter(review => !this.isReviewRead(review));
     }
     return this.reviews;
   }
@@ -64,7 +68,8 @@ export class PartnerAdsComponent implements OnInit {
   async loadReviews(user: User) {
     this.isLoading = true;
     try {
-      const userId = (user as any).id || (user as any)._id;
+      const userId = String((user as any).id || (user as any)._id || '');
+      this.loadReadReviewIds(userId);
       const services = await this.apiService.getMyServices(userId);
       const allReviews: any[] = [];
 
@@ -98,8 +103,46 @@ export class PartnerAdsComponent implements OnInit {
 
   selectReview(review: any) {
     this.selectedReview = review;
+    this.markReviewAsRead(review);
     this.replyText = review.replyDraft || '';
     this.internalNote = review.internalNote || '';
+  }
+
+  isReviewRead(review: any): boolean {
+    return review?.id != null && this.readReviewIds.has(String(review.id));
+  }
+
+  private loadReadReviewIds(userId: string) {
+    this.readReviewStorageKey = userId ? `greensteps:partner:read-reviews:${userId}` : null;
+    try {
+      const saved = this.readReviewStorageKey
+        ? localStorage.getItem(this.readReviewStorageKey)
+        : null;
+      const ids: unknown = saved ? JSON.parse(saved) : [];
+      this.readReviewIds = new Set(
+        Array.isArray(ids) ? ids.map((id: unknown) => String(id)) : []
+      );
+    } catch {
+      this.readReviewIds = new Set<string>();
+    }
+  }
+
+  private markReviewAsRead(review: any) {
+    if (review?.id == null) return;
+    const reviewId = String(review.id);
+    if (this.readReviewIds.has(reviewId)) return;
+
+    this.readReviewIds.add(reviewId);
+    try {
+      if (this.readReviewStorageKey) {
+        localStorage.setItem(
+          this.readReviewStorageKey,
+          JSON.stringify(Array.from(this.readReviewIds))
+        );
+      }
+    } catch {
+      // Keep the current session's read state if browser storage is unavailable.
+    }
   }
 
   applyTemplate(template: 'thanks' | 'sorry' | 'voucher') {
@@ -115,7 +158,7 @@ export class PartnerAdsComponent implements OnInit {
     if (this.selectedReview) {
       this.selectedReview.replyDraft = this.replyText;
       this.selectedReview.internalNote = this.internalNote;
-      alert('Đã lưu nháp!');
+      this.openFeedbackDialog('Đã lưu nháp', 'Nội dung phản hồi đã được lưu lại để bạn tiếp tục sau.');
     }
   }
 
@@ -125,7 +168,17 @@ export class PartnerAdsComponent implements OnInit {
     this.selectedReview.replyText = this.replyText;
     this.selectedReview.replyDraft = '';
     this.replyText = '';
-    alert('Đã gửi phản hồi thành công!');
+    this.openFeedbackDialog('Đã gửi phản hồi', 'Phản hồi của bạn đã được gửi thành công đến khách hàng.');
+    this.cdr.detectChanges();
+  }
+
+  openFeedbackDialog(title: string, message: string) {
+    this.feedbackDialog = { title, message };
+    this.cdr.detectChanges();
+  }
+
+  closeFeedbackDialog() {
+    this.feedbackDialog = null;
     this.cdr.detectChanges();
   }
 

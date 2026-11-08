@@ -34,3 +34,9 @@
   background: #fff1f1;
   color: var(--ui-danger, #b91c1c);
 }
+.status-badge.with-dot { gap: 6px; min-height: 24px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.status-badge.with-dot::before { width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: currentColor; content: ''; }
+.status-badge.with-dot[data-tone='pending'] { border-color: #f2dfa1; background: #fff9e9; color: var(--ui-warning, #a16207); }
+.status-badge.with-dot[data-tone='active'] { border-color: #bbebc5; background: #effaf1; color: var(--ui-success, #15803d); }
+.status-badge.with-dot[data-tone='danger'] { border-color: #f4c4c4; background: #fff1f1; color: var(--ui-danger, #b91c1c); }
+.status-badge.with-dot[data-tone='neutral'] { border-color: var(--ui-neutral-300, #d7e0da); background: var(--ui-neutral-100, #f3f6f4); color: var(--ui-neutral-700, #4b5c51); }
