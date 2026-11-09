@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, ElementRef, HostListener, effect, inject, input, signal, viewChild } from '@angular/core';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { Conversation } from 'aura-ai-chat';
 import { filter } from 'rxjs';
@@ -62,9 +62,9 @@ export function isItineraryPrompt(value: string): boolean {
 @Component({
   selector: 'app-greensteps-chat',
   standalone: true,
-  imports: [CommonModule, RouterLink, TourCardComponent, ItineraryTimelineComponent],
+  imports: [CommonModule, TourCardComponent, ItineraryTimelineComponent],
   templateUrl: './greensteps-chat.component.html',
-  styleUrls: ['./greensteps-chat.component.css', './planner-page.css'],
+  styleUrl: './greensteps-chat.component.css',
   host: { '[hidden]': '!isCustomerRoute()', '[class.planner-page]': 'pageMode()' }
 })
 export class GreenStepsChatComponent {
@@ -79,13 +79,15 @@ export class GreenStepsChatComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly launcher = viewChild<ElementRef<HTMLButtonElement>>('launcher');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
-  private readonly composer = viewChild<ElementRef<HTMLInputElement>>('composer');
+  private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
   private readonly transcriptElement = viewChild<ElementRef<HTMLElement>>('transcript');
 
   readonly isChatOpen = signal(false);
-  readonly plannerMode = signal(false);
+  readonly isExpanded = signal(false);
+  readonly mobileActionsOpen = signal(false);
   readonly isCustomerRoute = signal(this.customerRoute(this.router.url));
   readonly historyOpen = signal(false);
+  readonly mobileItineraryOpen = signal(false);
   readonly conversations = signal<Conversation[]>([]);
   readonly draftMessage = signal('');
   readonly isCreatingItinerary = signal(false);
@@ -96,20 +98,12 @@ export class GreenStepsChatComponent {
     effect(() => {
       if (this.pageMode()) {
         this.isChatOpen.set(true);
-        this.plannerMode.set(true);
+        void this.chat.listConversations().then(conversations => this.conversations.set(conversations));
       }
     });
     this.supportChatLauncher.openRequested$.pipe(takeUntilDestroyed()).subscribe(mode => {
-      // Finish the launcher's click first so the outside-click listener does
-      // not immediately dismiss the panel opened by that same event.
-      setTimeout(() => {
-        if (this.destroyRef.destroyed) return;
-        if (mode === 'planner') {
-          this.plannerMode.set(true);
-          this.supportChatLauncher.plannerOpen.set(true);
-        }
-        void this.openChat();
-      }, 0);
+      if (mode === 'planner') this.supportChatLauncher.plannerOpen.set(true);
+      void this.toggleChat();
     });
     effect(() => {
       this.chat.transcript();
@@ -141,12 +135,11 @@ export class GreenStepsChatComponent {
 
   async toggleChat(): Promise<void> {
     if (this.isChatOpen()) { this.closeChat(); return; }
-    await this.openChat();
-  }
-
-  async openChat(): Promise<void> {
     this.isChatOpen.set(true);
     this.historyOpen.set(false);
+    this.mobileItineraryOpen.set(false);
+    this.mobileActionsOpen.set(false);
+    this.conversations.set(await this.chat.listConversations());
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     if (!this.isChatOpen() || this.destroyRef.destroyed) return;
     const focusTarget = window.matchMedia('(max-width: 600px)').matches
@@ -160,23 +153,29 @@ export class GreenStepsChatComponent {
     if (this.pageMode()) return;
     this.supportChatLauncher.plannerOpen.set(false);
     this.isChatOpen.set(false);
+    this.isExpanded.set(false);
+    this.mobileActionsOpen.set(false);
     this.historyOpen.set(false);
-    if (restoreFocus) requestAnimationFrame(() => {
+    this.mobileItineraryOpen.set(false);
+    if (restoreFocus) requestAnimationFrame(() => requestAnimationFrame(() => {
       if (!this.isChatOpen() && !this.destroyRef.destroyed) this.launcher()?.nativeElement.focus({ preventScroll: true });
-    });
+    }));
   }
 
   async startNewChat(): Promise<void> {
     if (this.chat.isSending()) return;
+    this.mobileActionsOpen.set(false);
     await this.chat.startNewConversation();
     this.draftMessage.set('');
     this.historyOpen.set(false);
+    this.mobileItineraryOpen.set(false);
     this.createItineraryError.set('');
     this.composer()?.nativeElement.focus({ preventScroll: true });
     this.scrollTranscriptToBottom();
   }
 
   async toggleHistory(): Promise<void> {
+    this.mobileActionsOpen.set(false);
     if (this.historyOpen()) { this.historyOpen.set(false); return; }
     this.conversations.set(await this.chat.listConversations());
     this.historyOpen.set(true);
@@ -193,6 +192,7 @@ export class GreenStepsChatComponent {
     if (this.chat.isSending()) return;
     await this.chat.loadConversation(conversation.id);
     this.historyOpen.set(false);
+    this.mobileItineraryOpen.set(false);
     this.createItineraryError.set('');
     this.scrollTranscriptToBottom();
     requestAnimationFrame(() => {
@@ -201,8 +201,16 @@ export class GreenStepsChatComponent {
   }
 
   onComposerInput(event: Event): void {
-    this.draftMessage.set((event.target as HTMLInputElement).value);
+    this.draftMessage.set((event.target as HTMLTextAreaElement).value);
   }
+
+  toggleExpanded(): void { this.isExpanded.update(value => !value); }
+
+  showChatTab(): void { this.mobileItineraryOpen.set(false); }
+
+  showItineraryTab(): void { this.mobileItineraryOpen.set(true); }
+
+  toggleMobileActions(): void { this.mobileActionsOpen.update(value => !value); }
 
   renderMarkdown(content: string): string {
     return marked.parse(content, { async: false }) as string;
@@ -226,6 +234,7 @@ export class GreenStepsChatComponent {
     } catch {
       // The service keeps the request error and the last user turn for retry.
     } finally {
+      this.conversations.set(await this.chat.listConversations());
       requestAnimationFrame(() => {
         if (this.isChatOpen() && !this.chat.isSending()) this.composer()?.nativeElement.focus({ preventScroll: true });
       });
@@ -364,7 +373,9 @@ export class GreenStepsChatComponent {
     if (this.isLoginModalInteraction(path)) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      this.closeChat();
+      if (this.mobileActionsOpen()) this.mobileActionsOpen.set(false);
+      else if (this.historyOpen()) this.closeHistory();
+      else this.closeChat();
     } else if (event.key === 'Tab') {
       const elements = this.focusableElements();
       if (!elements.length) return;

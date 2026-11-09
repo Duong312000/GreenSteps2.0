@@ -85,6 +85,8 @@ export class GreenStepsChatService {
   readonly transcript = signal<ChatTranscriptMessage[]>([]);
   private previousItinerary: ChatItineraryDraft | null = null;
 
+  get activeConversationId(): string { return this.activeId; }
+
   readonly conversationManager: IConversationManager = {
     createConversation: async conversation => {
       this.activeId = conversation.id;
