@@ -1,5 +1,7 @@
 <header
     [class.glass-panel]="!isHeaderTransparent && !(isHelpCenterRoute && !isScrolled)"
+    [class.header-at-top]="isHeaderTransparent"
+    [class.header-scrolled]="isScrolled"
     [class.help-center-header]="isHelpCenterRoute"
     [class.provider-header]="currentUser && currentUser.role === 'provider'"
     [class.partner-workspace-header]="currentPath.startsWith('/partner-') && !currentPath.startsWith('/partner-register')"
@@ -8,15 +10,15 @@
     <!-- ════════════════════════════════════════════════════════
          MAIN HEADER ROW — 3 độc lập divs: Logo | Nav | Controls
     ════════════════════════════════════════════════════════ -->
-    <div #headerWrapper class="main-header-row mx-auto flex max-w-[1720px] items-center justify-between px-6 lg:px-10" style="height: 88px;">
+    <div #headerWrapper class="main-header-row mx-auto max-w-[1720px] items-center">
 
         <!-- ── DIV 1: LOGO (flex-shrink-0) ── -->
-        <div class="flex items-center flex-shrink-0 mr-4 lg:mr-8">
+        <div class="header-logo flex items-center flex-shrink-0">
             <a routerLink="/home"
                class="flex items-center gap-3 px-1 py-1 transition-all duration-300 hover:opacity-90"
                style="text-decoration: none;">
                 <img src="image/greensteps_logo_header.png"
-                     class="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)] transition-all duration-300"
+                     class="h-14 w-14 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)] transition-all duration-300"
                      alt="GreenSteps">
                 <span class="flex flex-col leading-none">
                     <span class="text-[20px] font-extrabold tracking-normal drop-shadow-[0_1px_3px_rgba(0,0,0,0.26)] transition-colors duration-300"
@@ -32,9 +34,10 @@
         </div>
 
         <!-- ── DIV 2: NAV TABS (flex-shrink-0, Shop.co Navigation Menu) ── -->
+        <div class="header-nav-shell flex items-center justify-start lg:justify-center overflow-visible">
         <nav #navContainer
-             class="hidden md:flex items-center gap-5 xl:gap-7 flex-shrink-0"
-             style="height: 88px;">
+             class="header-main-nav hidden md:flex items-center gap-5 xl:gap-6"
+             [class.header-nav-light]="isHeaderTransparent">
 
             <a routerLink="/promotions" routerLinkActive="active-nav-tab" class="nav-tab-item"
                [ngClass]="isHeaderTransparent ? 'text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.7)] hover:text-white/90 after:bg-[#D9F99D]' : 'text-[#184A37] hover:text-[#0E9F6E] after:bg-[#0E9F6E]'">
@@ -133,9 +136,11 @@
                 </a>
             </ng-container>
         </nav>
+        </div>
 
-        <!-- ── DIV 3: SEARCH PILL (Shop.co style, flex-1 max-w-[260px]) ── -->
-        <div class="hidden xl:flex items-center flex-1 max-w-[260px] mx-4 shopco-header-search">
+        <!-- ── DIV 3: SEARCH + ACCOUNT CONTROLS ── -->
+        <div class="header-actions flex items-center justify-end gap-3">
+        <div class="header-search hidden xl:flex items-center shopco-header-search">
             <div class="shopco-search-pill">
                 <i class="bi bi-search text-gray-400 text-sm"></i>
                 <input type="text"
@@ -172,14 +177,14 @@
         </div>
 
         <!-- ── DIV 4: CONTROLS (flex-shrink-0, Notifications + Profile / Login) ── -->
-        <div class="flex items-center justify-end gap-3 flex-shrink-0 ml-auto">
+        <div class="header-controls flex items-center justify-end gap-3 flex-shrink-0">
 
             <!-- Notifications -->
-            <div class="relative">
+            <div class="header-notifications relative">
                 <button (click)="toggleNotificationDropdown($event)"
-                        class="relative h-10 w-10 flex items-center justify-center rounded-full bg-white/50
-                               border border-[#184A37]/10 text-[#0F6B4C] hover:bg-white hover:border-[#0E9F6E]
-                               transition-all duration-300 focus:outline-none cursor-pointer">
+                        class="relative h-11 w-11 flex items-center justify-center rounded-md border
+                               transition-all duration-300 focus:outline-none cursor-pointer"
+                        [ngClass]="isHeaderTransparent ? 'bg-transparent border-white/70 text-white hover:bg-white/10' : 'bg-white/50 border-[#184A37]/10 text-[#0F6B4C] hover:bg-white hover:border-[#0E9F6E]'">
                     <i class="bi bi-bell text-lg"></i>
                     <span *ngIf="unreadNotificationCount > 0"
                           class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full
@@ -251,7 +256,7 @@
             </div>
 
             <!-- Profile (đã đăng nhập) -->
-            <div *ngIf="currentUser" class="relative">
+            <div *ngIf="currentUser" class="header-profile-action relative">
                 <button aria-label="Tài khoản" [attr.aria-expanded]="isProfileOpen" (click)="toggleProfileOpen($event)"
                         class="h-10 flex items-center gap-1.5 rounded-full bg-white/50
                                border border-[#184A37]/10 px-2 pr-3 font-bold text-[#0F6B4C]
@@ -286,19 +291,17 @@
             </div>
 
             <!-- Đăng ký / Đăng nhập (chưa đăng nhập) -->
-            <div *ngIf="!currentUser" class="flex items-center gap-2">
+            <div *ngIf="!currentUser" class="header-auth-actions flex items-center gap-2">
                 <button type="button"
                    (click)="openLoginModal('register')"
-                   class="flex h-9 min-w-[78px] items-center justify-center whitespace-nowrap rounded-full bg-white/70
-                          px-3 text-xs font-bold text-[#0E9F6E]
-                          transition-all duration-300 hover:-translate-y-0.5 hover:bg-white
-                          border border-[#0E9F6E] cursor-pointer">Đăng ký</button>
+                   class="flex h-11 min-w-[90px] items-center justify-center whitespace-nowrap rounded-md
+                          px-3 text-sm font-bold transition-all duration-300 cursor-pointer"
+                   [ngClass]="isHeaderTransparent ? 'bg-transparent text-white border border-white/75 hover:bg-white/10' : 'bg-white/70 text-[#0E9F6E] border border-[#0E9F6E] hover:bg-white'">Đăng ký</button>
                 <button type="button"
                    (click)="openLoginModal('login')"
-                   class="flex h-9 min-w-[88px] items-center justify-center whitespace-nowrap rounded-full bg-[#184A37]
-                          px-3 text-xs font-bold text-white
-                          transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#184A37]
-                          border-0 cursor-pointer">Đăng nhập</button>
+                   class="flex h-11 min-w-[88px] items-center justify-center whitespace-nowrap rounded-md
+                          px-3 text-sm font-bold transition-all duration-300 cursor-pointer"
+                   [ngClass]="isHeaderTransparent ? 'bg-transparent text-white border border-transparent hover:bg-white/10' : 'bg-[#184A37] text-white border-0 hover:bg-[#184A37]'">Đăng nhập</button>
             </div>
 
             <!-- Hamburger mobile -->
@@ -310,6 +313,7 @@
                     (click)="toggleMobileMenu()">
                 <i class="bi bi-list"></i>
             </button>
+        </div>
         </div>
     </div>
 
@@ -460,12 +464,12 @@
                        style="text-decoration:none;">
                         <i class="bi bi-person text-lg"></i> Trang cá nhân
                     </a>
-                    <a routerLink="/schedule"
+                    <a routerLink="/ai-planner"
                        (click)="isProfileOpen = false; isMobileMenuOpen && toggleMobileMenu()"
                        class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#184A37]
                               hover:bg-gray-50 hover:text-[#0E9F6E] rounded-xl transition-colors"
                        style="text-decoration:none;">
-                        <i class="bi bi-calendar2-week text-lg"></i> Lịch trình của tôi
+                        <i class="bi bi-stars text-lg"></i> AI Planner
                     </a>
 
 </ng-template>

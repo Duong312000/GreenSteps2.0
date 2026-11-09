@@ -260,7 +260,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public get isHeaderTransparent(): boolean {
-    return this.isHomeHeaderCollapsed && !this.isOverflowOpen;
+    return this.isHomeHeaderCollapsed;
   }
 
   constructor(
