@@ -290,7 +290,11 @@
 
         <!-- Main Form Container -->
         <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
-            
+            <nav class="service-form-tabs" role="tablist" aria-label="Nhóm thông tin dịch vụ">
+                <button type="button" *ngFor="let step of serviceFormSteps" role="tab" [attr.aria-selected]="currentStep === step.id" [class.active]="currentStep === step.id" (click)="goToStep(step.id)">{{ step.label }}</button>
+            </nav>
+
+            <div *ngIf="currentStep === 1" class="space-y-6">
             <!-- Card 1: 1. Thông tin cơ bản -->
             <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
                 <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">1. Thông tin cơ bản</h4>
@@ -315,11 +319,6 @@
                         <label class="text-xs font-bold text-gray-600">Tỉnh / Thành phố *</label>
                         <input type="text" [(ngModel)]="serviceDest" required placeholder="VD: Lâm Đồng" class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
                     </div>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-gray-600">Địa chỉ cụ thể</label>
-                    <input type="text" [(ngModel)]="serviceAddress" placeholder="Số nhà, đường, phường/xã..." class="h-10 px-3.5 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -430,8 +429,42 @@
                 </div>
             </div>
 
+            </div>
+
+            <section *ngIf="currentStep === 2" class="service-field-panel">
+                <div class="service-field-heading"><div><h4>Phòng</h4><p>Thông tin phòng không bắt buộc; chỉ áp dụng cho dịch vụ lưu trú.</p></div><button *ngIf="serviceType === 'stay'" type="button" class="service-field-add" (click)="addRoom()"><i class="bi bi-plus-lg"></i> Thêm loại phòng</button></div>
+                <div *ngIf="serviceType !== 'stay'" class="service-field-empty">Hãy chọn loại dịch vụ “Khách sạn” ở tab Tổng quan để khai báo loại phòng.</div>
+                <div *ngIf="serviceType === 'stay' && !roomDrafts.length" class="service-field-empty">Chưa có loại phòng. Bạn có thể lưu dịch vụ trước và bổ sung phòng sau.</div>
+                <article class="service-repeat-card" *ngFor="let room of roomDrafts; let roomIndex = index">
+                    <div class="service-repeat-heading"><strong>Loại phòng {{ roomIndex + 1 }}</strong><button type="button" class="service-remove-button" (click)="removeRoom(roomIndex)" aria-label="Xóa loại phòng"><i class="bi bi-trash"></i></button></div>
+                    <div class="service-field-grid">
+                        <label>Tên phòng<input [(ngModel)]="room.name" type="text" placeholder="VD: Greenfield Terrace Villa"></label>
+                        <label>Diện tích (m²)<input [(ngModel)]="room.area" type="number" min="0" placeholder="49"></label>
+                        <label>Sức chứa (khách)<input [(ngModel)]="room.capacity" type="number" min="0" placeholder="3"></label>
+                        <label>Loại giường<input [(ngModel)]="room.beds" type="text" placeholder="Giường king"></label>
+                        <label>Giá mỗi đêm (VNĐ)<input [(ngModel)]="room.price_per_night" type="number" min="0" placeholder="6200000"></label>
+                        <label>Số phòng<input [(ngModel)]="room.available_rooms" type="number" min="0" placeholder="Để trống nếu chưa xác nhận"></label>
+                    </div>
+                    <div class="service-field-block"><span class="service-field-label">Tiện nghi phòng</span><div class="service-checkbox-grid"><label *ngFor="let amenity of roomAmenityOptions"><input type="checkbox" [checked]="room.amenities?.includes(amenity)" (change)="toggleRoomAmenity(roomIndex, amenity, $any($event.target).checked)">{{ amenity }}</label></div></div>
+                    <label class="service-field-block">Chính sách riêng của phòng<textarea [ngModel]="room.policies?.join('\n') || ''" (ngModelChange)="setRoomPolicies(room, $event)" rows="3" placeholder="Mỗi chính sách một dòng"></textarea></label>
+                    <div class="service-field-block"><span class="service-field-label">Ảnh phòng</span><div class="service-room-images"><div class="service-room-image" *ngFor="let image of room.images; let imageIndex = index"><img [src]="image" alt="Ảnh loại phòng"><button type="button" class="service-room-image-remove" (click)="removeRoomImage(roomIndex, imageIndex)" [attr.aria-label]="'Gỡ ảnh phòng ' + (imageIndex + 1)"><i class="bi bi-x-lg"></i></button></div><label class="service-upload-button"><i class="bi bi-cloud-arrow-up"></i> Tải ảnh<input type="file" accept="image/*" (change)="onRoomImageSelected(roomIndex, $event)"></label></div></div>
+                </article>
+            </section>
+
+            <section *ngIf="currentStep === 3" class="service-field-panel">
+                <div class="service-field-heading"><div><h4>Tiện nghi &amp; Dịch vụ</h4><p>Các nhóm tiện nghi, mục nổi bật và thực hành xanh hiển thị trên trang dịch vụ.</p></div></div>
+                <div class="service-field-block"><div class="service-repeat-heading"><span class="service-field-label">Nhóm tiện nghi</span><button type="button" class="service-field-add" (click)="addAmenityGroup()"><i class="bi bi-plus-lg"></i> Thêm nhóm</button></div>
+                    <article class="service-repeat-card" *ngFor="let group of amenityGroupDrafts; let groupIndex = index"><div class="service-repeat-heading"><label>Tên nhóm<input [(ngModel)]="group.name" type="text" placeholder="WiFi miễn phí"></label><button type="button" class="service-remove-button" (click)="removeAmenityGroup(groupIndex)" aria-label="Xóa nhóm tiện nghi"><i class="bi bi-trash"></i></button></div>
+                        <div class="service-amenity-editor" *ngFor="let item of group.items; let itemIndex = index"><label>Tên tiện nghi<input [ngModel]="amenityLabel(item)" (ngModelChange)="setAmenityItemName(groupIndex, itemIndex, $event)" type="text" placeholder="WiFi"></label><label>Phí<select *ngIf="$any(item).name !== undefined" [(ngModel)]="$any(item).fee"><option value="free">Miễn phí</option><option value="paid">Phụ phí</option></select></label><label class="service-checkbox-inline"><input *ngIf="$any(item).name !== undefined" type="checkbox" [(ngModel)]="$any(item).available"> Có sẵn</label><label>Ghi chú<input *ngIf="$any(item).name !== undefined" [(ngModel)]="$any(item).note" type="text" placeholder="Tùy chọn"></label><button type="button" class="service-remove-button" (click)="removeAmenityItem(groupIndex, itemIndex)" aria-label="Xóa tiện nghi"><i class="bi bi-x-lg"></i></button></div>
+                        <button type="button" class="service-text-button" (click)="addAmenityItem(groupIndex)">+ Thêm tiện nghi</button>
+                    </article>
+                </div>
+                <div class="service-field-block"><div class="service-repeat-heading"><span class="service-field-label">Tiện nghi nổi bật</span><button type="button" class="service-text-button" (click)="addPopularAmenity()">+ Thêm mục</button></div><div class="service-inline-list" *ngFor="let item of popularAmenityDrafts; let itemIndex = index"><input [(ngModel)]="popularAmenityDrafts[itemIndex]" type="text" placeholder="VD: Bữa sáng miễn phí"><button type="button" class="service-remove-button" (click)="removePopularAmenity(itemIndex)" aria-label="Xóa tiện nghi nổi bật"><i class="bi bi-x-lg"></i></button></div></div>
+                <div class="service-field-block"><div class="service-repeat-heading"><span class="service-field-label">Thực hành xanh</span><button type="button" class="service-field-add" (click)="addGreenFeature()"><i class="bi bi-plus-lg"></i> Thêm thực hành</button></div><article class="service-repeat-card" *ngFor="let feature of greenFeatureDrafts; let featureIndex = index"><div class="service-repeat-heading"><label>Tên thực hành<input [(ngModel)]="feature.title" type="text" placeholder="Tiết kiệm năng lượng"></label><button type="button" class="service-remove-button" (click)="removeGreenFeature(featureIndex)" aria-label="Xóa thực hành xanh"><i class="bi bi-trash"></i></button></div><label>Mô tả<textarea [(ngModel)]="feature.description" rows="2" placeholder="Mô tả ngắn về cách cơ sở thực hiện"></textarea></label></article></div>
+            </section>
+
             <!-- Card 4: 4. Chính sách & Lưu ý -->
-            <div class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
+            <div *ngIf="currentStep === 4" class="bg-white border border-gray-250/60 rounded-2xl p-6 space-y-4 shadow-xs">
                 <h4 class="text-sm font-bold text-gray-800 border-l-4 border-teal-600 pl-2 uppercase tracking-wider">4. Chính sách & Lưu ý</h4>
                 
                 <div class="flex flex-col gap-1.5">
@@ -443,15 +476,27 @@
                     <label class="text-xs font-bold text-gray-600">Lưu ý cho khách hàng</label>
                     <textarea [(ngModel)]="notesForCustomers" placeholder="Trang phục mang theo, yêu cầu sức khỏe..." rows="3" class="p-3 border border-gray-200 rounded-xl text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"></textarea>
                 </div>
+                <div class="service-field-block"><div class="service-repeat-heading"><div><span class="service-field-label">Chính sách theo nhóm</span><p class="service-field-hint">Mỗi dòng trong nội dung sẽ thành một điều kiện hiển thị.</p></div><button type="button" class="service-field-add" (click)="addPolicyGroup()"><i class="bi bi-plus-lg"></i> Thêm nhóm</button></div>
+                    <article class="service-repeat-card" *ngFor="let group of policyGroupDrafts; let policyIndex = index"><div class="service-repeat-heading"><label>Tên nhóm<input [(ngModel)]="group.title" type="text" placeholder="Thanh toán, nhận phòng..."></label><button type="button" class="service-remove-button" (click)="removePolicyGroup(policyIndex)" aria-label="Xóa nhóm chính sách"><i class="bi bi-trash"></i></button></div><label>Nội dung<textarea [ngModel]="group.lines.join('\n')" (ngModelChange)="setPolicyLines(group, $event)" rows="3" placeholder="Nhập mỗi điều kiện trên một dòng"></textarea></label></article>
+                </div>
             </div>
+
+            <section *ngIf="currentStep === 5" class="service-field-panel">
+                <div class="service-field-heading"><div><h4>Vị trí</h4><p>Địa chỉ, mô tả khu vực và địa điểm xung quanh đều không bắt buộc.</p></div></div>
+                <div class="service-field-grid"><label class="service-field-span">Địa chỉ cụ thể<input [(ngModel)]="serviceAddress" type="text" placeholder="Số nhà, đường, phường/xã..."></label><label class="service-field-span">Mô tả khu vực<textarea [(ngModel)]="areaDescription" rows="3" placeholder="Mô tả khu vực, cách di chuyển hoặc lưu ý vị trí"></textarea></label><label>Vĩ độ (tùy chọn)<input [(ngModel)]="locationLatitude" type="number" step="any" placeholder="10.762622"></label><label>Kinh độ (tùy chọn)<input [(ngModel)]="locationLongitude" type="number" step="any" placeholder="106.660172"></label></div>
+                <div class="service-field-block"><div class="service-repeat-heading"><div><span class="service-field-label">Điểm xung quanh</span><p class="service-field-hint">Thêm nhóm địa điểm và khoảng cách nếu có.</p></div><button type="button" class="service-field-add" (click)="addNearbyGroup()"><i class="bi bi-plus-lg"></i> Thêm nhóm</button></div>
+                    <article class="service-repeat-card" *ngFor="let group of nearbyGroupDrafts; let nearbyIndex = index"><div class="service-repeat-heading"><label>Loại địa điểm<input [(ngModel)]="group.name" type="text" placeholder="Ăn uống, tham quan, di chuyển"></label><button type="button" class="service-remove-button" (click)="removeNearbyGroup(nearbyIndex)" aria-label="Xóa nhóm địa điểm"><i class="bi bi-trash"></i></button></div><div class="service-inline-list" *ngFor="let place of group.items; let placeIndex = index"><label>Tên địa điểm<input [(ngModel)]="place.name" type="text" placeholder="Tên địa điểm"></label><label>Khoảng cách<input [(ngModel)]="place.distance" type="text" placeholder="5 phút đi bộ"></label><button type="button" class="service-remove-button" (click)="removeNearbyPlace(nearbyIndex, placeIndex)" aria-label="Xóa địa điểm"><i class="bi bi-x-lg"></i></button></div><button type="button" class="service-text-button" (click)="addNearbyPlace(nearbyIndex)">+ Thêm địa điểm</button></article>
+                </div>
+            </section>
 
             <!-- Bottom Action Row -->
             <div class="bg-white border border-gray-200 rounded-2xl p-4 flex justify-between items-center shadow-xs">
                 <button type="button" (click)="closeAddModal()" class="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors bg-white cursor-pointer">
                     Hủy bỏ
                 </button>
+                <div class="flex gap-2"><button *ngIf="currentStep > 1" type="button" (click)="prevStep()" class="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors bg-white cursor-pointer">Quay lại</button><button *ngIf="currentStep < serviceFormSteps.length" type="button" (click)="nextStep()" class="px-5 py-2.5 bg-teal-700 text-white rounded-xl text-xs font-bold hover:opacity-95 transition-all border-none cursor-pointer">Tiếp theo</button></div>
                 
-                <div class="flex gap-2">
+                <div *ngIf="currentStep === serviceFormSteps.length" class="flex gap-2">
                     <button type="button" (click)="previewService()" class="px-5 py-2.5 border border-teal-600 text-teal-600 rounded-xl text-xs font-bold hover:bg-teal-50 transition-colors bg-white cursor-pointer">
                         Xem trước
                     </button>

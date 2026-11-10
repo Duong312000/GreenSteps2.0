@@ -5,7 +5,7 @@
 
 <footer class="gs-footer bg-[#073D2B] text-white">
     <div class="gs-footer-inner mx-auto max-w-[1280px] px-12 py-12 max-md:px-6 max-sm:px-4">
-        <div class="gs-footer-grid grid gap-9 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.25fr]">
+        <div class="gs-footer-grid grid gap-9 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr_1.25fr]">
             <div class="gs-footer-brand">
                 <div class="gs-footer-logo mb-4 flex items-center gap-3">
                     <img src="image/greensteps_logo.png" class="h-8 w-8 rounded-full bg-white object-cover" alt="GreenSteps">
@@ -48,6 +48,16 @@
                     <a routerLink="/tours" class="hover:text-white">Đà Nẵng - Hội An</a>
                     <a routerLink="/tours" class="hover:text-white">Phú Yên</a>
                     <a routerLink="/tours" class="hover:text-white">Tất cả điểm đến</a>
+                </div>
+            </div>
+
+            <div class="gs-footer-col">
+                <h3 class="mb-4 text-xs font-extrabold">Dành cho đối tác</h3>
+                <div class="flex flex-col gap-2 text-xs text-white/75">
+                    <ng-container *ngIf="authService.currentUser$ | async as currentUser; else partnerSignupGuest"><a *ngIf="currentUser.role === 'traveler'" routerLink="/become-a-partner" class="hover:text-white">Trở thành đối tác</a></ng-container>
+                    <ng-template #partnerSignupGuest><a routerLink="/become-a-partner" class="hover:text-white">Trở thành đối tác</a></ng-template>
+                    <a routerLink="/provider-terms" class="hover:text-white">Điều khoản dành cho nhà cung cấp</a>
+                    <a routerLink="/payment-policy" class="hover:text-white">Chính sách thanh toán</a>
                 </div>
             </div>
 

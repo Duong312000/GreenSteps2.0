@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoginModalService } from '../../../services/login-modal.service';
-import { User, Service } from '../../../models/models';
+import { User, Service, ServiceRoom, ServiceAmenity, ServiceAmenityGroup, ServiceGreenFeature, ServiceNearbyGroup, ServicePolicyGroup } from '../../../models/models';
 
 @Component({
   selector: 'app-partner-services',
@@ -22,6 +22,13 @@ export class PartnerServicesComponent implements OnInit {
   private autoAddOpened = false;
   public editingServiceId: string | null = null;
   public currentStep: number = 1;
+  public readonly serviceFormSteps = [
+    { id: 1, label: 'Tổng quan' },
+    { id: 2, label: 'Phòng' },
+    { id: 3, label: 'Tiện nghi & Dịch vụ' },
+    { id: 4, label: 'Chính sách' },
+    { id: 5, label: 'Vị trí' }
+  ];
 
   // Form Fields
   public serviceName: string = '';
@@ -45,6 +52,16 @@ export class PartnerServicesComponent implements OnInit {
   public slotsPerDay: number = 1;
   public startTime: string = '';
   public notesForCustomers: string = '';
+  public roomDrafts: ServiceRoom[] = [];
+  public readonly roomAmenityOptions = ['WiFi', 'TV', 'Minibar', 'Điều hòa', 'Bồn tắm', 'Vòi sen riêng', 'Ban công', 'Máy sấy tóc'];
+  public amenityGroupDrafts: ServiceAmenityGroup[] = [];
+  public popularAmenityDrafts: ServiceAmenity[] = [];
+  public greenFeatureDrafts: ServiceGreenFeature[] = [];
+  public policyGroupDrafts: ServicePolicyGroup[] = [];
+  public areaDescription: string = '';
+  public nearbyGroupDrafts: ServiceNearbyGroup[] = [];
+  public locationLatitude: number | null = null;
+  public locationLongitude: number | null = null;
 
   // Drag and Drop Image state
   public isDragging: boolean = false;
@@ -273,6 +290,84 @@ export class PartnerServicesComponent implements OnInit {
   }
   public amenityLabel(item: any): string { return typeof item === 'string' ? item : item.name; }
 
+  private resetExtendedServiceFields() {
+    this.roomDrafts = [];
+    this.amenityGroupDrafts = [];
+    this.popularAmenityDrafts = [];
+    this.greenFeatureDrafts = [];
+    this.policyGroupDrafts = [];
+    this.areaDescription = '';
+    this.nearbyGroupDrafts = [];
+    this.locationLatitude = null;
+    this.locationLongitude = null;
+  }
+
+  private buildPolicyGroups(): ServicePolicyGroup[] {
+    const groups = this.policyGroupDrafts.map(group => ({
+      title: group.title.trim(),
+      lines: (group.lines || []).map(line => line.trim()).filter(Boolean)
+    })).filter(group => group.title && group.lines.length);
+    const cancellationLines = this.cancellationPolicy.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (cancellationLines.length) {
+      const index = groups.findIndex(group => group.title.toLocaleLowerCase('vi') === 'chính sách dịch vụ');
+      if (index >= 0) groups[index] = { ...groups[index], lines: cancellationLines };
+      else groups.unshift({ title: 'Chính sách dịch vụ', lines: cancellationLines });
+    }
+    return groups;
+  }
+
+  public addRoom() {
+    this.roomDrafts.push({ id: `room-${Date.now()}-${this.roomDrafts.length}`, name: '', images: [], amenities: [], policies: [] });
+  }
+  public removeRoom(index: number) { this.roomDrafts.splice(index, 1); }
+  public setRoomPolicies(room: ServiceRoom, value: string) { room.policies = value.split(/\r?\n/); }
+  public toggleRoomAmenity(index: number, amenity: string, selected: boolean) {
+    const values = new Set(this.roomDrafts[index].amenities || []);
+    selected ? values.add(amenity) : values.delete(amenity);
+    this.roomDrafts[index].amenities = [...values];
+  }
+  public addAmenityGroup() { this.amenityGroupDrafts.push({ name: '', items: [] }); }
+  public removeAmenityGroup(index: number) { this.amenityGroupDrafts.splice(index, 1); }
+  public addAmenityItem(groupIndex: number) { this.amenityGroupDrafts[groupIndex].items.push({ name: '', fee: 'free', available: true, note: '' }); }
+  public removeAmenityItem(groupIndex: number, itemIndex: number) { this.amenityGroupDrafts[groupIndex].items.splice(itemIndex, 1); }
+  public setAmenityItemName(groupIndex: number, itemIndex: number, name: string) {
+    const group = this.amenityGroupDrafts[groupIndex];
+    const item = group.items[itemIndex];
+    group.items[itemIndex] = typeof item === 'string' ? name : { ...item, name };
+  }
+  public addPopularAmenity() { this.popularAmenityDrafts.push(''); }
+  public removePopularAmenity(index: number) { this.popularAmenityDrafts.splice(index, 1); }
+  public addGreenFeature() { this.greenFeatureDrafts.push({ title: '', description: '' }); }
+  public removeGreenFeature(index: number) { this.greenFeatureDrafts.splice(index, 1); }
+  public addPolicyGroup() { this.policyGroupDrafts.push({ title: '', lines: [] }); }
+  public removePolicyGroup(index: number) { this.policyGroupDrafts.splice(index, 1); }
+  public setPolicyLines(group: ServicePolicyGroup, value: string) { group.lines = value.split(/\r?\n/); }
+  public addNearbyGroup() { this.nearbyGroupDrafts.push({ name: '', items: [] }); }
+  public removeNearbyGroup(index: number) { this.nearbyGroupDrafts.splice(index, 1); }
+  public addNearbyPlace(groupIndex: number) { this.nearbyGroupDrafts[groupIndex].items.push({ name: '', distance: '' }); }
+  public removeNearbyPlace(groupIndex: number, itemIndex: number) { this.nearbyGroupDrafts[groupIndex].items.splice(itemIndex, 1); }
+
+  public async onRoomImageSelected(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+    if (!file.type.startsWith('image/')) { this.showAlert('Vui lòng chọn tệp hình ảnh hợp lệ.', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { this.showAlert('Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.', 'error'); return; }
+    const base64 = await new Promise<string>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+    if (!base64) { this.showAlert('Không thể đọc ảnh vừa chọn.', 'error'); return; }
+    const uploaded = await this.apiService.uploadImageBase64(base64, 'image');
+    if (!uploaded.success || !uploaded.url) { this.showAlert('Tải ảnh phòng lên thất bại. Vui lòng thử lại.', 'error'); return; }
+    this.roomDrafts[index].images = [...(this.roomDrafts[index].images || []), uploaded.url];
+    this.cdr.detectChanges();
+  }
+  public removeRoomImage(roomIndex: number, imageIndex: number) { this.roomDrafts[roomIndex].images?.splice(imageIndex, 1); }
+
   public openAddModal() {
     this.editingServiceId = null;
     this.isAddModalOpen = true;
@@ -295,6 +390,7 @@ export class PartnerServicesComponent implements OnInit {
     this.slotsPerDay = 1;
     this.startTime = '';
     this.notesForCustomers = '';
+    this.resetExtendedServiceFields();
   }
 
   public async openEditModal(srv: Service) {
@@ -314,7 +410,9 @@ export class PartnerServicesComponent implements OnInit {
       this.imageUrl = details.image_url || details.current_data?.img || 'image/Viet Nam.png';
       this.galleryImages = details.current_data?.images || details.current_data?.gallery || [];
       this.openingSchedule = details.current_data?.schedule || '';
-      this.cancellationPolicy = this.servicePolicyText(details.current_data);
+      const savedPolicyGroups = details.current_data?.policyGroups || [];
+      const servicePolicyGroup = savedPolicyGroups.find((group: ServicePolicyGroup) => group.title?.toLocaleLowerCase('vi') === 'chính sách dịch vụ');
+      this.cancellationPolicy = details.current_data?.policy || servicePolicyGroup?.lines?.join('\n') || (savedPolicyGroups.length ? '' : this.servicePolicyText(details.current_data));
       this.itineraryText = details.current_data?.itinerary || details.current_data?.description || '';
       
       this.childPrice = details.current_data?.childPrice || null;
@@ -323,6 +421,16 @@ export class PartnerServicesComponent implements OnInit {
       this.slotsPerDay = details.current_data?.slotsPerDay || 1;
       this.startTime = details.current_data?.startTime || '';
       this.notesForCustomers = details.current_data?.notesForCustomers || '';
+      const currentData = details.current_data || {};
+      this.roomDrafts = (currentData.rooms || []).map((room: ServiceRoom) => ({ ...room, images: [...(room.images || [])], amenities: [...(room.amenities || [])], policies: [...(room.policies || [])] }));
+      this.amenityGroupDrafts = (currentData.amenityGroups || []).map((group: ServiceAmenityGroup) => ({ ...group, items: (group.items || []).map(item => typeof item === 'string' ? { name: item, fee: 'free', available: true, note: '' } : { ...item }) }));
+      this.popularAmenityDrafts = (currentData.popularAmenities || []).map((item: ServiceAmenity) => this.amenityLabel(item));
+      this.greenFeatureDrafts = (currentData.greenFeatures || []).map((feature: ServiceGreenFeature) => ({ ...feature }));
+      this.policyGroupDrafts = (currentData.policyGroups || []).map((group: ServicePolicyGroup) => ({ ...group, lines: [...(group.lines || [])] }));
+      this.areaDescription = currentData.areaDescription || '';
+      this.nearbyGroupDrafts = (currentData.nearbyGroups || []).map((group: ServiceNearbyGroup) => ({ ...group, items: (group.items || []).map(item => ({ ...item })) }));
+      this.locationLatitude = currentData.lat ?? null;
+      this.locationLongitude = currentData.lng ?? null;
     } else {
       this.serviceAddress = (srv as any).address || (srv as any).current_data?.address || '';
       this.maxCapacity = srv.max_capacity || null;
@@ -333,6 +441,7 @@ export class PartnerServicesComponent implements OnInit {
       this.slotsPerDay = 1;
       this.startTime = '';
       this.notesForCustomers = '';
+      this.resetExtendedServiceFields();
     }
     this.cdr.detectChanges();
   }
@@ -345,7 +454,7 @@ export class PartnerServicesComponent implements OnInit {
 
   // Wizard Navigation
   public nextStep() {
-    if (this.currentStep < 7) {
+    if (this.currentStep < this.serviceFormSteps.length) {
       this.currentStep++;
       this.cdr.detectChanges();
     }
@@ -359,7 +468,7 @@ export class PartnerServicesComponent implements OnInit {
   }
 
   public goToStep(step: number) {
-    this.currentStep = step;
+    if (step >= 1 && step <= this.serviceFormSteps.length) this.currentStep = step;
     this.cdr.detectChanges();
   }
 
@@ -462,8 +571,8 @@ export class PartnerServicesComponent implements OnInit {
     const providerId = this.currentUser.id || this.currentUser._id || '';
     const categoryMap: Record<string, string> = { stay: 'Lưu trú', food: 'Ăn uống', tour: 'Tour', transport: 'Di chuyển', attraction: 'Giải trí' };
 
-    let resolvedLat: number | null = null;
-    let resolvedLng: number | null = null;
+    let resolvedLat: number | null = this.locationLatitude;
+    let resolvedLng: number | null = this.locationLongitude;
 
     if (this.serviceAddress) {
       try {
@@ -476,8 +585,8 @@ export class PartnerServicesComponent implements OnInit {
         ]) as any[];
 
         if (res && res.length > 0) {
-          resolvedLat = parseFloat(res[0].lat);
-          resolvedLng = parseFloat(res[0].lon);
+          resolvedLat = this.locationLatitude ?? parseFloat(res[0].lat);
+          resolvedLng = this.locationLongitude ?? parseFloat(res[0].lon);
         }
       } catch (e) {
         console.warn('Geocoding failed, falling back to null', e);
@@ -500,7 +609,20 @@ export class PartnerServicesComponent implements OnInit {
       childPrice: this.childPrice ? Number(this.childPrice) : null,
       slotsPerDay: Number(this.slotsPerDay),
       startTime: this.startTime,
-      notesForCustomers: this.notesForCustomers
+      notesForCustomers: this.notesForCustomers,
+      description: this.serviceShortDesc || this.itineraryText,
+      rooms: this.roomDrafts.filter(room => room.name?.trim()).map(room => ({ ...room, name: room.name.trim() })),
+      amenityGroups: this.amenityGroupDrafts
+        .filter(group => group.name?.trim() || group.items?.length)
+        .map(group => ({ ...group, name: group.name.trim(), items: (group.items || []).filter(item => this.amenityLabel(item).trim()) })),
+      popularAmenities: this.popularAmenityDrafts.filter(item => this.amenityLabel(item).trim()),
+      greenFeatures: this.greenFeatureDrafts.filter(feature => feature.title?.trim()).map(feature => ({ ...feature, title: feature.title.trim() })),
+      policyGroups: this.buildPolicyGroups(),
+      policies: this.buildPolicyGroups().flatMap(group => group.lines),
+      areaDescription: this.areaDescription.trim(),
+      nearbyGroups: this.nearbyGroupDrafts
+        .filter(group => group.name?.trim() || group.items?.length)
+        .map(group => ({ ...group, name: group.name.trim(), items: (group.items || []).filter(item => item.name?.trim()) }))
     };
 
     if (this.editingServiceId) {

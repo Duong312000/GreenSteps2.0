@@ -6,6 +6,12 @@
   display: block;
 }
 
+.partner-entry-link, .partner-mobile-entry { align-items: center; justify-content: center; gap: .4rem; border: 1px solid #0E9F6E; border-radius: 9999px; color: #0E9F6E; background: rgba(255, 255, 255, .78); font-size: 11px; font-weight: 700; text-decoration: none; transition: background-color 160ms ease, color 160ms ease; }
+.partner-entry-link { min-height: 36px; padding: 0 .75rem; white-space: nowrap; }
+.partner-entry-link:hover, .partner-mobile-entry:hover { color: #184A37; background: #F4FAF6; }
+.partner-entry-link:focus-visible, .partner-mobile-entry:focus-visible { outline: 3px solid rgba(14, 159, 110, .38); outline-offset: 3px; }
+.partner-mobile-entry { justify-content: flex-start; min-height: 46px; padding: 0 .9rem; border-radius: .8rem; font-size: 15px; }
+
 /* 1. Header Base & Glassmorphism */
 .glass-panel {
   background-color: rgba(255, 255, 255, 0.95);

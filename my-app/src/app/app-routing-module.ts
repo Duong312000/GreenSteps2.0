@@ -13,6 +13,7 @@ import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partn
 import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
+import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
 import { BookingComponent } from './pages/booking/booking';
 import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 import { AdminComponent } from './pages/admin/admin';
@@ -68,6 +69,9 @@ const routes: Routes = [
     { path: 'partner-promotions', component: PartnerPromotionsComponent, canActivate: [roleGuard] }
   ] },
   { path: 'partner-register', component: PartnerRegisterComponent },
+  { path: 'become-a-partner', component: PartnerRegisterComponent },
+  { path: 'provider-terms', component: PartnerLegalComponent, data: { partnerPolicy: 'terms' } },
+  { path: 'payment-policy', component: PartnerLegalComponent, data: { partnerPolicy: 'payment' } },
   { path: 'admin', component: AdminComponent },
   { path: '**', redirectTo: 'home' }
 ];

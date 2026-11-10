@@ -58,6 +58,7 @@
           Bạn chưa có tài khoản?
           <button type="button" class="text-link" (click)="setMode('register')">Đăng ký ngay</button>
         </p>
+        <p class="partner-auth-entry">Bạn là nhà cung cấp? <a routerLink="/become-a-partner" (click)="requestClose()">Đăng ký làm đối tác</a></p>
       </div>
 
       <div *ngIf="mode === 'register' && authStep === 'login'" class="auth-panel auth-panel--register">
@@ -118,6 +119,7 @@
           Bạn đã có tài khoản?
           <button type="button" class="text-link" (click)="setMode('login')">Đăng nhập ngay <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
         </p>
+        <p class="partner-auth-entry">Bạn là nhà cung cấp? <a routerLink="/become-a-partner" (click)="requestClose()">Đăng ký làm đối tác</a></p>
       </div>
 
       <div *ngIf="authStep === 'registerVerify'" class="auth-panel centered">

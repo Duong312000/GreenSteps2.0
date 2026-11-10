@@ -301,6 +301,8 @@
                           border-0 cursor-pointer">Đăng nhập</button>
             </div>
 
+            <a *ngIf="!currentUser || currentUser.role === 'traveler'" routerLink="/become-a-partner" class="partner-entry-link hidden xl:inline-flex">Trở thành đối tác</a>
+
             <!-- Hamburger mobile -->
             <button type="button"
                     class="mobile-hamburger h-9 w-9 place-items-center rounded-full
@@ -420,6 +422,7 @@
                 <p *ngIf="filteredMobileTabs.length === 0" class="rounded-2xl bg-[#184A37]/5 px-4 py-3 text-sm font-semibold text-[#184A37]/60">
                     Không tìm thấy danh mục phù hợp.
                 </p>
+                <a *ngIf="!currentUser || currentUser.role === 'traveler'" routerLink="/become-a-partner" (click)="toggleMobileMenu()" class="partner-mobile-entry"><i class="bi bi-briefcase" aria-hidden="true"></i> Trở thành đối tác</a>
             </div>
         </div>
 

@@ -37,6 +37,7 @@ import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partn
 import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
+import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
@@ -85,6 +86,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerAdsComponent,
     PartnerPromotionsComponent,
     PartnerRegisterComponent,
+    PartnerLegalComponent,
     HelpCenterComponent,
     HelpCenterContactComponent,
     HowItWorksComponent,
