@@ -1,0 +1,66 @@
+<main class="maintenance-page" aria-labelledby="maintenance-title">
+  <div class="maintenance-page__container">
+    <a class="maintenance-brand" routerLink="/home" aria-label="GreenSteps Travel, về trang chủ">
+      <span class="maintenance-brand__mark"><img src="images/greensteps-ai-mark.svg" alt="" width="26" height="26"></span>
+      <span><strong>GreenSteps</strong><small>TRAVEL</small></span>
+    </a>
+
+    <section class="maintenance-card" aria-live="polite">
+      <div class="maintenance-art" aria-hidden="true">
+        <svg viewBox="0 0 260 184" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28 155h204" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".2" />
+          <rect x="48" y="54" width="164" height="98" rx="14" fill="var(--ui-surface)" stroke="currentColor" stroke-width="2" />
+          <path d="M48 78h164" stroke="currentColor" stroke-width="2" opacity=".25" />
+          <circle cx="65" cy="66" r="3" fill="currentColor" opacity=".55" />
+          <circle cx="77" cy="66" r="3" fill="currentColor" opacity=".35" />
+          <circle cx="89" cy="66" r="3" fill="currentColor" opacity=".2" />
+          <circle cx="130" cy="113" r="25" fill="var(--light-mint)" stroke="currentColor" stroke-width="2" />
+          <path d="M130 98v6m0 18v6m15-15h-6m-18 0h-6m25.6-10.6-4.2 4.2m-12.8 12.8-4.2 4.2m21.2 0-4.2-4.2m-12.8-12.8-4.2-4.2" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          <circle cx="130" cy="113" r="9" fill="currentColor" />
+          <path d="m38 49 6-6m-6 0 6 6M219 34l5-5m-5 0 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".55" />
+          <path d="M30 163c27 8 53 8 77 0s51-8 76 0 35 7 49 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".32" />
+        </svg>
+      </div>
+
+      <p class="maintenance-eyebrow">GREENSTEPS TRAVEL · THÔNG BÁO</p>
+      <h1 id="maintenance-title">Hệ thống đang được bảo trì</h1>
+      <p class="maintenance-lead">Chúng tôi đang nâng cấp hệ thống để chuyến đi của bạn thuận tiện và ổn định hơn. GreenSteps sẽ sớm hoạt động trở lại.</p>
+
+      <section class="maintenance-schedule" aria-label="Thời gian bảo trì">
+        <div class="maintenance-times">
+          <p><span>Bắt đầu</span><strong>{{ status?.startsAt ? (status?.startsAt | date:'HH:mm, dd/MM/yyyy':'':'vi-VN') : 'Đang cập nhật' }}</strong></p>
+          <p><span>Dự kiến hoàn tất</span><strong>{{ status?.expectedEndAt ? (status?.expectedEndAt | date:'HH:mm, dd/MM/yyyy':'':'vi-VN') : 'Chưa có thời gian dự kiến' }}</strong></p>
+        </div>
+        <div class="maintenance-countdown-slot" aria-live="polite">
+          <p *ngIf="showCountdown" class="maintenance-countdown"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Thời gian dự kiến còn: <strong>{{ countdownText }}</strong></p>
+        </div>
+      </section>
+
+      <section class="maintenance-work" aria-labelledby="maintenance-work-title">
+        <h2 id="maintenance-work-title">Chúng tôi đang làm gì</h2>
+        <p><i class="bi bi-arrow-up-right-circle" aria-hidden="true"></i> Nâng cấp một số thành phần của nền tảng.</p>
+        <p><i class="bi bi-speedometer2" aria-hidden="true"></i> Cải thiện hiệu năng và độ ổn định.</p>
+      </section>
+
+      <aside class="maintenance-partner-note">
+        <strong>Dành cho nhà cung cấp</strong>
+        <p>Vui lòng kiểm tra lại trạng thái giao dịch sau khi hệ thống hoạt động trở lại. Nếu cần hỗ trợ trong thời gian này, hãy liên hệ với đội ngũ GreenSteps qua email hoặc hotline bên dưới.</p>
+      </aside>
+
+      <div class="maintenance-actions">
+        <button type="button" class="maintenance-retry" (click)="checkStatus()" [disabled]="isChecking">
+          <i class="bi" [class.bi-arrow-clockwise]="!isChecking" [class.bi-hourglass-split]="isChecking" aria-hidden="true"></i>
+          {{ isChecking ? 'Đang kiểm tra…' : 'Tải lại trang' }}
+        </button>
+        <p class="maintenance-feedback" aria-live="polite">{{ checkMessage }}</p>
+      </div>
+
+      <footer class="maintenance-contact">
+        <span>Cần hỗ trợ khẩn?</span>
+        <a href="mailto:Greensteps@gmail.com">Greensteps@gmail.com</a>
+        <a href="tel:0913382135">0913 382 135</a>
+      </footer>
+    </section>
+    <p class="maintenance-footer-note">Cảm ơn bạn đã kiên nhẫn chờ GreenSteps.</p>
+  </div>
+</main>

@@ -1,0 +1,47 @@
+<main class="server-error" aria-labelledby="server-error-title">
+  <section class="server-error__panel" role="alert" aria-live="assertive">
+    <div class="server-error__illustration" aria-hidden="true">
+      <svg viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M35 124h170" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".25" />
+        <path d="M54 124V80a8 8 0 0 1 8-8h116a8 8 0 0 1 8 8v44" stroke="currentColor" stroke-width="3" />
+        <path d="M72 100h96M84 84h28M84 113h72" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".35" />
+        <circle cx="120" cy="48" r="24" fill="var(--light-mint)" stroke="currentColor" stroke-width="2" />
+        <path d="M110 47h20M120 37v20" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        <path d="m44 132 14-8m124 8-14-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </div>
+
+    <p class="server-error__code">500 <span>SERVER ERROR</span></p>
+    <h1 #pageTitle id="server-error-title" tabindex="-1">Máy chủ đang gặp sự cố</h1>
+    <p class="server-error__description">Rất tiếc, hiện tại chúng tôi chưa thể xử lý yêu cầu của bạn. Thông tin của bạn vẫn an toàn — hãy thử lại sau ít phút.</p>
+
+    <div class="server-error__actions">
+      <button class="server-error__button server-error__button--primary" type="button" (click)="retry()" [disabled]="isRetrying">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+        {{ isRetrying ? 'Đang thử lại…' : 'Thử lại' }}
+      </button>
+      <a class="server-error__button server-error__button--secondary" routerLink="/home">Về trang chủ</a>
+    </div>
+
+    <div class="server-error__tips" aria-label="Gợi ý xử lý">
+      <p><i class="bi bi-check-circle" aria-hidden="true"></i> Kiểm tra kết nối internet của bạn.</p>
+      <p><i class="bi bi-clock" aria-hidden="true"></i> Thử lại sau ít phút.</p>
+      <p><i class="bi bi-chat-dots" aria-hidden="true"></i> Liên hệ hỗ trợ nếu lỗi vẫn tiếp diễn.</p>
+    </div>
+
+    <div class="server-error__reference" aria-live="polite">
+      <span>Mã tham chiếu: <code>{{ report.id }}</code></span>
+      <button type="button" class="server-error__copy" (click)="copyReference()" [disabled]="copied" aria-label="Sao chép mã tham chiếu lỗi">
+        <i class="bi" [class.bi-copy]="!copied" [class.bi-check2]="copied" aria-hidden="true"></i>
+        {{ copied ? 'Đã sao chép' : 'Sao chép mã' }}
+      </button>
+    </div>
+    <a class="server-error__support" href="mailto:Greensteps@gmail.com">Liên hệ hỗ trợ</a>
+
+    <details class="server-error__details" *ngIf="isDev">
+      <summary>Chi tiết lỗi (chỉ hiển thị trong môi trường phát triển)</summary>
+      <pre>{{ report.details }}</pre>
+      <small>Ghi nhận lúc {{ report.occurredAt | date:'medium':'':'vi-VN' }}</small>
+    </details>
+  </section>
+</main>

@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes/index');
 const errorHandler = require('./middlewares/errorHandler');
+const { maintenanceMiddleware, maintenanceStatusHandler } = require('./middlewares/maintenance');
 const { store } = require('./config/db.config');
 
 const app = express();
@@ -43,6 +44,9 @@ app.get(['/api/health', '/api/v1/health'], async (req, res) => {
     res.status(503).json({ status: 'unavailable', database: 'mongodb' });
   }
 });
+
+app.get(['/api/maintenance-status', '/api/v1/maintenance-status'], maintenanceStatusHandler);
+app.use(maintenanceMiddleware);
 
 // Database connection check middleware
 app.use(async (req, res, next) => {

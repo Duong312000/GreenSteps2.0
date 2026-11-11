@@ -16,6 +16,7 @@ export class App implements OnInit {
   isScheduleRoute = false;
   isPlannerRoute = false;
   isStandalonePolicyRoute = false;
+  isStandaloneMaintenanceRoute = false;
 
   constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
 
@@ -38,5 +39,6 @@ export class App implements OnInit {
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
+    this.isStandaloneMaintenanceRoute = cleanUrl === '/maintenance';
   }
 }

@@ -14,6 +14,9 @@ import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
+import { ServerErrorComponent } from './pages/server-error/server-error';
+import { MaintenanceComponent } from './pages/maintenance/maintenance';
+import { maintenanceChildGuard, maintenanceGuard } from './guards/maintenance.guard';
 import { BookingComponent } from './pages/booking/booking';
 import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 import { AdminComponent } from './pages/admin/admin';
@@ -48,6 +51,8 @@ const routes: Routes = [
   { path: 'cancellation-policy', component: CancellationPolicyComponent },
   { path: 'transparency', component: CancellationPolicyComponent },
   { path: 'network-error', component: NetworkErrorComponent },
+  { path: '500', component: ServerErrorComponent },
+  { path: 'maintenance', component: MaintenanceComponent },
   { path: 'help-center', component: HelpCenterComponent },
   { path: 'help-center/:slug', component: HelpCenterComponent },
   { path: 'contact', component: HelpCenterContactComponent },
@@ -75,6 +80,16 @@ const routes: Routes = [
   { path: 'admin', component: AdminComponent },
   { path: '**', redirectTo: 'home' }
 ];
+
+// Maintenance is checked on public navigation; admin and the maintenance screen remain reachable.
+for (const route of routes) {
+  if (route.path === 'maintenance' || route.path === 'admin' || route.redirectTo || !route.path && !route.children) continue;
+  if (route.children) {
+    route.canActivateChild = [...(route.canActivateChild || []), maintenanceChildGuard];
+  } else {
+    route.canActivate = [...(route.canActivate || []), maintenanceGuard];
+  }
+}
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],

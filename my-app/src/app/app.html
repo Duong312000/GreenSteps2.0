@@ -1,5 +1,5 @@
-<app-header *ngIf="!isAdminRoute && !isStandalonePolicyRoute"></app-header>
+﻿<app-header *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute"></app-header>
 <router-outlet></router-outlet>
-<app-footer *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isPlannerRoute"></app-footer>
-<app-greensteps-chat *ngIf="!isAdminRoute && !isScheduleRoute && !isStandalonePolicyRoute && !isPlannerRoute"></app-greensteps-chat>
-<app-onboarding-tour *ngIf="!isAdminRoute"></app-onboarding-tour>
+<app-footer *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute && !isPlannerRoute"></app-footer>
+<app-greensteps-chat *ngIf="!isAdminRoute && !isScheduleRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute && !isPlannerRoute"></app-greensteps-chat>
+<app-onboarding-tour *ngIf="!isAdminRoute && !isStandaloneMaintenanceRoute"></app-onboarding-tour>

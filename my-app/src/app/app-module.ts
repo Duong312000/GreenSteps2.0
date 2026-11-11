@@ -2,7 +2,7 @@ import { TransportBookingsComponent } from './pages/transport/transport-bookings
 import { GreenWalletComponent } from './pages/profile/green-wallet';
 import { FavoriteButtonComponent } from './components/favorites/favorite-button';
 import { FavoriteCollectionComponent } from './components/favorites/favorite-collection';
-import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ErrorHandler, NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -38,6 +38,11 @@ import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
+import { LegalPageLayoutComponent } from './components/legal-page-layout/legal-page-layout';
+import { ServerErrorComponent } from './pages/server-error/server-error';
+import { MaintenanceComponent } from './pages/maintenance/maintenance';
+import { GlobalErrorHandler } from './services/global-error-handler';
+import { serverErrorInterceptor } from './services/server-error.interceptor';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
@@ -87,6 +92,9 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     PartnerPromotionsComponent,
     PartnerRegisterComponent,
     PartnerLegalComponent,
+    LegalPageLayoutComponent,
+    ServerErrorComponent,
+    MaintenanceComponent,
     HelpCenterComponent,
     HelpCenterContactComponent,
     HowItWorksComponent,
@@ -114,7 +122,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptors([authInterceptor]))
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    provideHttpClient(withInterceptors([authInterceptor, serverErrorInterceptor]))
   ],
   bootstrap: [App],
 })
