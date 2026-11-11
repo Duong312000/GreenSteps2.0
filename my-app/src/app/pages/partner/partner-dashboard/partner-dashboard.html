@@ -1,9 +1,22 @@
 <main class="partner-dashboard-page" [attr.aria-busy]="isLoading">
+  <section class="provider-hero" aria-label="Thông tin nhà cung cấp">
+    <span class="provider-hero-icon"><app-partner-icon name="briefcase" /></span>
+    <div class="provider-hero-copy">
+      <span class="eyebrow">NHÀ CUNG CẤP GREENSTEPS</span>
+      <h2>{{ currentUser?.companyName || currentUser?.company_name || currentUser?.fullname || 'Nhà cung cấp' }}</h2>
+      <p>
+        <span class="provider-status"><i></i>Tài khoản nhà cung cấp</span>
+        <span class="hero-rating" *ngIf="analytics.rating !== null">★ {{ formatNumber(analytics.rating) }} · {{ analytics.ratedServices }} dịch vụ có đánh giá</span>
+        <span class="hero-rating" *ngIf="analytics.rating === null">Chưa có đánh giá</span>
+      </p>
+    </div>
+    <a class="provider-edit" routerLink="/profile"><app-partner-icon name="edit" /> Chỉnh sửa hồ sơ</a>
+  </section>
   <header class="dashboard-heading">
     <div>
-      <span class="eyebrow">KHÔNG GIAN ĐỐI TÁC</span>
-      <h1>Thống kê hoạt động</h1>
-      <p>Tổng quan hiệu quả kinh doanh và hoạt động dịch vụ của bạn trên GreenSteps.</p>
+      <span class="eyebrow">TỔNG QUAN KINH DOANH</span>
+      <h1>Doanh thu & đơn đặt</h1>
+      <p>{{ formatNumber(analytics.activeServices) }} dịch vụ đang hoạt động · {{ periodText }}</p>
     </div>
     <label class="period-select"
       ><app-partner-icon name="calendar" /><span class="sr-only">Khoảng thời gian báo cáo</span
@@ -40,14 +53,14 @@
       </div>
     </article>
     <article class="kpi-card">
-      <span class="kpi-icon orange"><app-partner-icon name="layers" /></span>
+      <span class="kpi-icon orange"><app-partner-icon name="calendar" /></span>
       <div>
-        <h2>Dịch vụ đang hoạt động</h2>
+        <h2>Yêu cầu hủy / hoàn tiền</h2>
         <strong class="kpi-value">{{
-          isLoading ? '—' : formatNumber(analytics.activeServices)
+          isLoading ? '—' : formatNumber(analytics.refundRequests)
         }}</strong
-        ><a routerLink="/partner-services" class="pending-link"
-          >{{ analytics.pendingServices }} dịch vụ chờ duyệt <span aria-hidden="true">↗</span></a
+        ><a routerLink="/partner-bookings" class="pending-link"
+          >{{ analytics.pendingRefundRequests }} yêu cầu cần xử lý <span aria-hidden="true">↗</span></a
         >
       </div>
     </article>
@@ -74,8 +87,8 @@
       <div class="card-heading">
         <span class="section-icon"><app-partner-icon name="chart" /></span>
         <div>
-          <h2>Lượt xem & Đặt chỗ</h2>
-          <p>Diễn biến lượt đặt theo tháng trong dữ liệu đã chọn.</p>
+          <h2>Doanh thu theo thời gian</h2>
+          <p>Giá trị đơn còn hiệu lực theo tháng trong dữ liệu đã chọn.</p>
         </div>
       </div>
       <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
@@ -83,7 +96,7 @@
           viewBox="0 0 600 220"
           class="analytics-chart"
           role="img"
-          aria-label="Biểu đồ số lượng lượt đặt theo tháng"
+          aria-label="Biểu đồ doanh thu theo tháng"
         >
           <g *ngFor="let line of grid">
             <line
@@ -94,11 +107,11 @@
               class="grid-line"
             />
             <text x="35" [attr.y]="44 + line * 45" text-anchor="end" class="axis-label">
-              {{ formatNumber((analytics.maxBookings * (3 - line)) / 3) }}
+              {{ shortMoney((analytics.maxMonthlyRevenue * (3 - line)) / 3) }}
             </text>
           </g>
           <path
-            [attr.d]="analytics.bookingPath"
+            [attr.d]="analytics.revenuePath"
             class="revenue-line"
             fill="none"
             stroke-width="3"
@@ -108,15 +121,15 @@
           <g *ngFor="let month of analytics.monthly">
             <circle
               [attr.cx]="month.x"
-              [attr.cy]="month.y"
+              [attr.cy]="month.revenueY"
               r="4"
               class="booking-point"
               tabindex="0"
               [attr.aria-label]="
-                month.label + '/' + month.year + ': ' + month.bookings + ' lượt đặt'
+                month.label + '/' + month.year + ': ' + formatNumber(month.revenue) + ' đồng'
               "
             >
-              <title>{{ month.label }}/{{ month.year }}: {{ month.bookings }} lượt đặt</title>
+              <title>{{ month.label }}/{{ month.year }}: {{ formatNumber(month.revenue) }}đ</title>
             </circle>
             <text [attr.x]="month.x" y="204" text-anchor="middle" class="axis-label">
               {{ month.label }}
@@ -125,76 +138,34 @@
         </svg>
       </div>
       <div class="chart-legend">
-        <span><i class="legend-mark green-mark"></i>Lượt đặt</span
-        ><span class="unavailable-series">Lượt xem và tư vấn: chưa có dữ liệu theo tháng</span>
+        <span><i class="legend-mark green-mark"></i>Doanh thu từ đơn còn hiệu lực</span>
       </div>
     </article>
     <article class="dashboard-card partner-chart-card">
       <div class="card-heading">
         <span class="section-icon"><app-partner-icon name="revenue" /></span>
         <div>
-          <h2>Doanh thu theo tháng</h2>
-          <p>Giá trị đơn đặt theo nhóm dịch vụ hiện có.</p>
+          <h2>Cơ cấu đơn đặt</h2>
+          <p>Phân bổ theo dịch vụ trong dữ liệu đã chọn.</p>
         </div>
       </div>
-      <div class="chart-container" *ngIf="analytics.monthly.length; else emptyChart">
-        <svg
-          viewBox="0 0 600 220"
-          class="analytics-chart"
+      <div class="booking-mix" *ngIf="totalAllocation; else emptyChart">
+        <div
+          class="allocation-donut"
+          [style.background]="allocationChartBackground"
           role="img"
-          aria-label="Biểu đồ giá trị đơn đặt theo tháng"
+          [attr.aria-label]="'Cơ cấu của ' + totalAllocation + ' đơn đặt'"
         >
-          <g *ngFor="let line of grid">
-            <line
-              x1="45"
-              x2="566"
-              [attr.y1]="35 + line * 47"
-              [attr.y2]="35 + line * 47"
-              class="grid-line"
-            />
-            <text x="35" [attr.y]="39 + line * 47" text-anchor="end" class="axis-label">
-              {{ shortMoney((analytics.maxRevenue * (3 - line)) / 3) }}
-            </text>
-          </g>
-          <g *ngFor="let month of analytics.monthly">
-            <rect
-              [attr.x]="month.x - 17"
-              [attr.y]="176 - month.tourHeight"
-              width="14"
-              [attr.height]="month.tourHeight"
-              rx="4"
-              class="revenue-bar revenue-bar-tour"
-              tabindex="0"
-              [attr.aria-label]="month.label + ': nhóm tour ' + formatNumber(month.tour) + ' đồng'"
-            >
-              <title>
-                {{ month.label }}/{{ month.year }} · Nhóm tour: {{ formatNumber(month.tour) }}đ
-              </title>
-            </rect>
-            <rect
-              [attr.x]="month.x + 3"
-              [attr.y]="176 - month.stayHeight"
-              width="14"
-              [attr.height]="month.stayHeight"
-              rx="4"
-              class="revenue-bar revenue-bar-stay"
-              tabindex="0"
-              [attr.aria-label]="month.label + ': lưu trú ' + formatNumber(month.stay) + ' đồng'"
-            >
-              <title>
-                {{ month.label }}/{{ month.year }} · Lưu trú: {{ formatNumber(month.stay) }}đ
-              </title>
-            </rect>
-            <text [attr.x]="month.x" y="204" text-anchor="middle" class="axis-label">
-              {{ month.label }}
-            </text>
-          </g>
-        </svg>
+          <div><strong>{{ formatNumber(totalAllocation) }}</strong><span>lượt đặt</span></div>
+        </div>
+        <div class="donut-legend">
+          <div *ngFor="let row of allocationRows">
+            <i [attr.data-category]="row.key"></i><span>{{ row.label }}</span>
+            <strong>{{ totalAllocation ? formatNumber((row.value / totalAllocation) * 100) : 0 }}%</strong>
+          </div>
+        </div>
       </div>
-      <div class="chart-legend">
-        <span><i class="legend-mark green-mark"></i>Nhóm tour</span
-        ><span><i class="legend-mark mint-mark"></i>Lưu trú</span>
-      </div>
+      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có lượt đặt để phân tích.</p>
     </article>
   </section>
   <ng-template #emptyChart
@@ -222,6 +193,7 @@
               <th>Khách hàng</th>
               <th>Ngày đặt</th>
               <th>Trạng thái</th>
+              <th>Giá trị</th>
             </tr>
           </thead>
           <tbody>
@@ -239,6 +211,7 @@
                   bookingStatus(booking)
                 }}</span>
               </td>
+              <td class="money-cell">{{ formatNumber(booking.value) }}đ</td>
             </tr>
           </tbody>
         </table>
@@ -268,12 +241,23 @@
           ><strong>{{ analytics.pendingServices }} dịch vụ</strong> đang chờ duyệt</span
         ><app-partner-icon name="chevron"
       /></a>
+      <a *ngIf="analytics.pendingRefundRequests" routerLink="/partner-bookings" class="task-row"
+        ><span class="task-icon orange"><app-partner-icon name="calendar" /></span
+        ><span><strong>{{ analytics.pendingRefundRequests }} yêu cầu</strong> hủy / hoàn tiền từ khách</span
+        ><app-partner-icon name="chevron"
+      /></a>
       <div class="empty-state small" *ngIf="!taskCount">
         <span class="all-clear"><app-partner-icon name="check" /></span
         ><strong>Chưa có công việc cần xử lý</strong>
         <p>Chưa có đơn hoặc dịch vụ chờ xử lý trong dữ liệu hiện có.</p>
       </div>
-      <p class="card-footnote">Chưa có dữ liệu khuyến mãi sắp hết hạn.</p>
+      <div class="customer-request-list" *ngIf="analytics.recentRefundRequests.length">
+        <h3>Hoạt động hủy / hoàn tiền gần đây</h3>
+        <a routerLink="/partner-bookings" *ngFor="let request of analytics.recentRefundRequests">
+          <span><strong>{{ changeRequestType(request) }}</strong><small>{{ request.booking_id || request.booking?.id || request.id }}</small></span>
+          <span class="request-meta"><small>{{ changeRequestDateLabel(request) }}</small><i [attr.data-status]="request.status">{{ changeRequestStatus(request) }}</i></span>
+        </a>
+      </div>
     </article>
   </section>
 

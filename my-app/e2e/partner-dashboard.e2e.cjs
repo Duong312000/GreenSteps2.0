@@ -107,6 +107,31 @@ const services = [
     views_count: 20,
   },
 ];
+const changeRequests = [
+  {
+    id: 'UI-RETURN-1',
+    booking_id: 'UI-BOOK-1',
+    type: 'refund',
+    status: 'pending',
+    createdAt: '2026-10-22T10:00:00Z',
+    booking: { id: 'UI-BOOK-1', date: '20/10/2026', value: 100000 },
+  },
+  {
+    id: 'UI-RETURN-2',
+    booking_id: 'UI-BOOK-4',
+    type: 'cancel_booking',
+    status: 'completed',
+    createdAt: '2026-09-16T10:00:00Z',
+    booking: { id: 'UI-BOOK-4', date: '14/09/2026', value: 400000 },
+  },
+  {
+    id: 'UI-CHANGE-1',
+    booking_id: 'UI-BOOK-2',
+    type: 'date_change',
+    status: 'pending',
+    createdAt: '2026-10-23T10:00:00Z',
+  },
+];
 let browser;
 const unexpectedWrites = [];
 async function contextFor(
@@ -156,6 +181,7 @@ async function contextFor(
     }
     let data = [];
     if (url.pathname.endsWith('/bookings')) data = empty ? [] : bookings;
+    else if (url.pathname.endsWith('/change-requests')) data = empty ? [] : changeRequests;
     else if (url.pathname.includes('/services/provider/')) data = empty ? [] : services;
     else if (url.pathname.includes('/profile/')) data = { success: true, user: profile };
     else if (url.pathname.includes('/wallet'))
@@ -186,13 +212,27 @@ async function contextFor(
     assert.equal(await page.locator('app-partner-layout').count(), 1);
     assert.equal(await page.locator('.kpi-card').count(), 4);
     assert.match(await page.locator('.kpi-card').nth(1).innerText(), /600\.000/);
+    assert.equal(
+      await page.locator('.revenue-value').evaluate((el) => getComputedStyle(el).whiteSpace),
+      'nowrap',
+    );
+    assert.ok(
+      await page
+        .locator('.revenue-value')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
+      'Revenue value must fit on one line inside its KPI card',
+    );
+    assert.match(await page.locator('.kpi-card').nth(2).innerText(), /2[\s\S]*1 yêu cầu cần xử lý/);
     assert.match(await page.locator('.kpi-card').nth(3).innerText(), /4,6/);
-    assert.equal(await page.locator('.analytics-chart').count(), 2);
+    assert.equal(await page.locator('.analytics-chart').count(), 1);
+    assert.equal(await page.locator('.allocation-donut').count(), 1);
     assert.equal(await page.locator('tbody tr').count(), 4);
-    assert.equal(await page.locator('.task-row').count(), 2);
+    assert.equal(await page.locator('.task-row').count(), 3);
+    assert.equal(await page.locator('.customer-request-list > a').count(), 2);
     await page.locator('.period-select select').selectOption('2026-10');
     assert.equal(await page.locator('tbody tr').count(), 2);
     assert.match(await page.locator('.kpi-card').nth(1).innerText(), /300\.000/);
+    assert.match(await page.locator('.kpi-card').nth(2).innerText(), /1[\s\S]*1 yêu cầu cần xử lý/);
     await page.locator('.period-select select').selectOption('all');
     await page.evaluate(() => {
       window.partnerNavigationMarker = 'same-spa';
@@ -244,7 +284,7 @@ async function contextFor(
         .locator('.kpi-value')
         .first()
         .evaluate((el) => getComputedStyle(el).color),
-      'rgb(236, 245, 239)',
+      'rgb(236, 253, 245)',
     );
     await page.waitForFunction(
       () =>
@@ -269,18 +309,18 @@ async function contextFor(
         .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length),
       1,
     );
-    await page.getByRole('button', { name: 'Kênh đối tác', exact: true }).click();
+    await page.getByRole('button', { name: 'Quản lý doanh thu', exact: true }).click();
     await page.locator('.sidebar-overlay').waitFor();
     assert.equal(await sidebar.locator('a').first().isVisible(), true);
     await page.keyboard.press('Escape');
     await page.locator('.sidebar-overlay').waitFor({ state: 'detached' });
     assert.equal(await page.locator('.sidebar-overlay').count(), 0);
-    await page.getByRole('button', { name: 'Kênh đối tác', exact: true }).click();
+    await page.getByRole('button', { name: 'Quản lý doanh thu', exact: true }).click();
     await sidebar.locator('a[href="/partner-services"]').click();
     await page.waitForURL(base + '/partner-services');
     await page.locator('.sidebar-overlay').waitFor({ state: 'detached' });
     assert.equal(await page.locator('.sidebar-overlay').count(), 0);
-    await page.getByRole('button', { name: 'Kênh đối tác', exact: true }).click();
+    await page.getByRole('button', { name: 'Quản lý doanh thu', exact: true }).click();
     await sidebar.locator('a[href="/partner-dashboard"]').click();
     await page.waitForURL(base + '/partner-dashboard');
     await page.locator('.sidebar-overlay').waitFor({ state: 'detached' });
@@ -296,7 +336,7 @@ async function contextFor(
     const emptyContext = await contextFor('provider', true);
     const emptyPage = await emptyContext.newPage();
     await emptyPage.goto(base + '/partner-dashboard', { waitUntil: 'domcontentloaded' });
-    await emptyPage.getByText('Chưa có đánh giá', { exact: true }).waitFor();
+    await emptyPage.locator('.kpi-card').nth(3).getByText('Chưa có đánh giá', { exact: true }).waitFor();
     assert.equal(await emptyPage.locator('.empty-chart').count(), 2);
     assert.equal(await emptyPage.locator('tbody tr').count(), 0);
     assert.equal(
