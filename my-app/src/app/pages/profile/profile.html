@@ -44,7 +44,7 @@
                             <div class="profile-summary-meta">
                                 <span><i class="bi bi-envelope"></i>{{ profileUser.email }}<i
                                         class="bi bi-patch-check-fill verified"></i></span>
-                                <span><i class="bi bi-calendar2"></i>Thành viên từ 05/2024</span>
+                                <span><i class="bi bi-calendar2"></i>Thành viên GreenSteps</span>
                             </div>
                             <p class="profile-quote">"Travel far, live green, leave only footprints."</p>
                             <div class="overview-social-links" aria-label="Liên kết mạng xã hội">
@@ -90,34 +90,31 @@
                                 <span class="overview-stats-emblem"><i class="bi bi-compass"></i></span>
                                 <div>
                                     <h2>Tổng quan của bạn</h2>
-                                    <p>Theo dõi hành trình xanh của bạn cùng GreenSteps. <i class="bi bi-leaf-fill"></i>
-                                    </p>
+                                    <p>Theo dõi dữ liệu tài khoản và lịch trình GreenSteps của bạn.</p>
                                 </div>
                             </div>
-                            <button type="button" class="overview-filter"><i class="bi bi-calendar3"></i> 7 ngày qua <i
-                                    class="bi bi-chevron-down"></i></button>
+                                <span class="overview-filter"><i class="bi bi-calendar3"></i> Toàn bộ dữ liệu</span>
                         </header>
                         <section class="profile-stats-grid stats-grid" aria-label="GreenSteps stats">
                             <article class="profile-stat-card stat-item stat-item--trips">
                                 <div class="profile-stat-icon"><i class="bi bi-luggage"></i></div>
                                 <strong class="stat-number">{{ savedItinerariesCount }}</strong>
                                 <span class="stat-label">Lịch trình<br>đã lưu</span>
-                                <span class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> +1 so với 7 ngày
-                                    trước</span>
+                                <span class="stat-trend trend-neutral">Tổng lịch trình trong tài khoản</span>
                                 <a href="#" (click)="activeSection = 'tickets'; $event.preventDefault()">Xem tất cả <i class="bi bi-arrow-right"></i></a>
                             </article>
                             <article class="profile-stat-card stat-item stat-item--tours">
                                 <div class="profile-stat-icon"><i class="bi bi-ticket-perforated"></i></div>
                                 <strong class="stat-number">{{ bookedToursCount }}</strong>
                                 <span class="stat-label">Tour đã đặt</span>
-                                <span class="stat-trend trend-neutral">Không thay đổi</span>
+                                <span class="stat-trend trend-neutral">Đơn chưa hủy hoặc từ chối</span>
                                 <a href="#" (click)="activeSection = 'tickets'; $event.preventDefault()">Xem chi tiết <i class="bi bi-arrow-right"></i></a>
                             </article>
                             <article class="profile-stat-card stat-item stat-item--points">
                                 <div class="profile-stat-icon"><i class="bi bi-tree-fill"></i></div>
                                 <strong class="stat-number">{{ userGreenPoints }}</strong>
                                 <span class="stat-label">Điểm xanh</span>
-                                <span class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> +24 điểm</span>
+                                <span class="stat-trend trend-neutral">Điểm hiện có trong ví</span>
                                 <a href="#" (click)="activeSection = 'wallet'; $event.preventDefault()">Chi tiết <i
                                         class="bi bi-arrow-right"></i></a>
                             </article>
@@ -258,33 +255,47 @@
 
                     <article class="profile-card profile-carbon-card side-widget carbon-card">
                         <header class="profile-card-header">
-                            <h2>Carbon Footprint của bạn</h2><button type="button">Tháng này <i
-                                    class="bi bi-chevron-down"></i></button>
+                            <h2>CO₂ trong lịch trình đã lưu</h2>
+                            <span class="carbon-period-label">Tổng cộng</span>
                         </header>
-                        <div class="profile-carbon-chart" role="img"
-                            aria-label="Carbon Footprint 8.5 kg CO2, phương tiện 5.2 kg, lưu trú 2.1 kg, hoạt động 1.2 kg">
+                        <div class="profile-carbon-chart" *ngIf="carbonSummary.available; else noCarbonData"
+                            role="img"
+                            [attr.aria-label]="'Tổng CO₂ ghi nhận ' + (carbonSummary.total | number:'1.0-1') + ' kg'">
                             <svg viewBox="0 0 120 120" aria-hidden="true">
                                 <circle class="carbon-track" cx="60" cy="60" r="42" pathLength="100"></circle>
-                                <circle class="carbon-segment carbon-transport" cx="60" cy="60" r="42" pathLength="100">
+                                <circle class="carbon-segment carbon-transport" cx="60" cy="60" r="42" pathLength="100"
+                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.transport)"
+                                    [attr.stroke-dashoffset]="carbonSegmentOffset(0)">
                                 </circle>
-                                <circle class="carbon-segment carbon-stay" cx="60" cy="60" r="42" pathLength="100">
+                                <circle class="carbon-segment carbon-stay" cx="60" cy="60" r="42" pathLength="100"
+                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.stay)"
+                                    [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport)">
                                 </circle>
-                                <circle class="carbon-segment carbon-activity" cx="60" cy="60" r="42" pathLength="100">
+                                <circle class="carbon-segment carbon-activity" cx="60" cy="60" r="42" pathLength="100"
+                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.activity)"
+                                    [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport + carbonSummary.stay)">
                                 </circle>
                             </svg>
-                            <div class="profile-carbon-total"><strong>8.5</strong><span>kg CO₂</span></div>
+                            <div class="profile-carbon-total"><strong>{{ carbonSummary.total | number:'1.0-1' }}</strong><span>kg CO₂</span></div>
                         </div>
-                        <div class="profile-carbon-kpi"><span>Thấp hơn 32% so với tháng trước</span></div>
-                        <div class="profile-carbon-list">
+                        <ng-template #noCarbonData>
+                            <div class="carbon-empty-state">Chưa có dữ liệu CO₂ từ lịch trình đã lưu.</div>
+                        </ng-template>
+                        <div class="profile-carbon-kpi" *ngIf="carbonSummary.available">
+                            <span *ngIf="carbonSummary.breakdownAvailable">Ước tính từ các hoạt động trong lịch trình, không phải chuyến đi đã thực hiện.</span>
+                            <span *ngIf="!carbonSummary.breakdownAvailable">Tổng carbon đã lưu; chưa có dữ liệu phân bổ theo hoạt động.</span>
+                        </div>
+                        <div class="profile-carbon-list" *ngIf="carbonSummary.breakdownAvailable">
                             <div class="carbon-breakdown-transport"><span><i class="bi bi-bus-front"></i>Phương
-                                    tiện</span><strong>5.2 kg</strong></div>
+                                    tiện</span><strong>{{ carbonSummary.transport | number:'1.0-1' }} kg</strong></div>
                             <div class="carbon-breakdown-stay"><span><i class="bi bi-house-heart"></i>Lưu
-                                    trú</span><strong>2.1 kg</strong></div>
+                                    trú</span><strong>{{ carbonSummary.stay | number:'1.0-1' }} kg</strong></div>
                             <div class="carbon-breakdown-activity"><span><i class="bi bi-bicycle"></i>Hoạt
-                                    động</span><strong>1.2 kg</strong></div>
+                                    động</span><strong>{{ carbonSummary.activity | number:'1.0-1' }} kg</strong></div>
                         </div>
-                        <a class="profile-card-link" href="#" (click)="$event.preventDefault()">Xem chi tiết <i
-                                class="bi bi-arrow-right"></i></a>
+                        <div class="carbon-breakdown-empty" *ngIf="carbonSummary.available && !carbonSummary.breakdownAvailable">
+                            Phân bổ theo phương tiện, lưu trú và hoạt động chưa có dữ liệu.
+                        </div>
                     </article>
 
                 </aside>
@@ -321,7 +332,7 @@
                     <div class="profile-summary-meta">
                         <span><i class="bi bi-envelope"></i>{{ profileUser.email }}<i
                                 class="bi bi-patch-check-fill verified"></i></span>
-                        <span><i class="bi bi-calendar2"></i>Thành viên từ 05/2024</span>
+                        <span><i class="bi bi-calendar2"></i>Thành viên GreenSteps</span>
                     </div>
                     <div class="profile-photo-actions">
                         <button type="button"><i class="bi bi-camera"></i>Đổi ảnh đại diện</button>
@@ -1064,7 +1075,7 @@
                     <div class="profile-summary-meta">
                         <span><i class="bi bi-envelope"></i>{{ profileUser.email }}<i
                                 class="bi bi-patch-check-fill verified"></i></span>
-                        <span><i class="bi bi-calendar2"></i>Thành viên từ 05/2024</span>
+                        <span><i class="bi bi-calendar2"></i>Thành viên GreenSteps</span>
                     </div>
                     <div class="profile-photo-actions">
                         <button type="button" (click)="openAvatarModal()"><i class="bi bi-camera"></i>Đổi ảnh đại

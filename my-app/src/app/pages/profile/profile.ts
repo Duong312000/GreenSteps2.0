@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { User, WalletTransaction } from '../../models/models';
+import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
 
 type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map';
 
@@ -96,6 +97,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public savedItinerariesCount = 0;
   public bookedToursCount = 0;
   public userGreenPoints = 0;
+  public carbonSummary: ProfileCarbonSummary = profileCarbonSummary([]);
   public userTickets: any[] = [];
   public upcomingTrip: {
     id: string;
@@ -230,13 +232,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   ];
 
-  public readonly dashboardStats = [
-    { icon: 'bi-luggage', value: '3', label: 'Lịch trình đã lưu', link: 'Xem tất cả' },
-    { icon: 'bi-ticket-perforated', value: '0', label: 'Tour đã đặt', link: 'Xem tất cả' },
-    { icon: 'bi-leaf', value: '120', label: 'Điểm xanh', link: 'Chi tiết' },
-    { icon: 'bi-cloud', value: '8.5 kg', label: 'CO₂ đã tiết kiệm', link: 'Chi tiết' }
-  ];
-
   public readonly checklistItems = [
     { label: 'Đặt vé & xác nhận lịch trình', done: true },
     { label: 'Chuẩn bị giấy tờ tùy thân', done: true },
@@ -245,12 +240,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     { label: 'Chuẩn bị hành lý', done: false },
     { label: 'Mua bảo hiểm du lịch', done: false },
     { label: 'Đổi tiền mặt', done: false }
-  ];
-
-  public readonly carbonBreakdown = [
-    { icon: 'bi-bus-front', label: 'Phương tiện', value: '5.2 kg' },
-    { icon: 'bi-house-heart', label: 'Lưu trú', value: '2.1 kg' },
-    { icon: 'bi-bicycle', label: 'Hoạt động', value: '1.2 kg' }
   ];
 
   public readonly greenTravelLevel = {
@@ -273,15 +262,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     { icon: 'bi-leaf', label: 'Ecotourism', selected: true },
     { icon: 'bi-house-heart', label: 'Homestay', selected: true },
     { icon: 'bi-cup-hot', label: 'Food tour' }
-  ];
-
-  public readonly carbonTrend = [
-    { month: 'Jan', value: 12 },
-    { month: 'Feb', value: 10 },
-    { month: 'Mar', value: 9.5 },
-    { month: 'Apr', value: 11 },
-    { month: 'May', value: 8.5 },
-    { month: 'Jun', value: 8.5 }
   ];
 
   public readonly weatherAlert = {
@@ -505,8 +485,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     try {
       userItineraries = await this.apiService.getItineraries(userId);
       this.savedItinerariesCount = (userItineraries || []).length;
+      this.carbonSummary = profileCarbonSummary(userItineraries || []);
     } catch (e) {
       this.savedItinerariesCount = 0;
+      this.carbonSummary = profileCarbonSummary([]);
     }
 
     // Filter active bookings
@@ -638,6 +620,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
     } else {
       this.upcomingTrip = null;
     }
+  }
+
+  public carbonSegment(value: number): string {
+    if (!this.carbonSummary.available || this.carbonSummary.total <= 0) return '0 100';
+    const percent = (value / this.carbonSummary.total) * 100;
+    return `${percent} ${100 - percent}`;
+  }
+
+  public carbonSegmentOffset(before: number): string {
+    if (!this.carbonSummary.available || this.carbonSummary.total <= 0) return '0';
+    return `${-(before / this.carbonSummary.total) * 100}`;
   }
 
   public openTripDetails(trip: any) {

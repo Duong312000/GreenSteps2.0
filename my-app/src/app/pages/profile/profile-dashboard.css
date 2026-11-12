@@ -134,6 +134,30 @@
   aspect-ratio:1;
   margin:.35rem auto .2rem;
 }
+.overview-dashboard .carbon-empty-state{
+  display:grid;
+  min-height:9rem;
+  place-items:center;
+  padding:1.25rem;
+  border:1px dashed #cbded5;
+  border-radius:14px;
+  color:var(--overview-muted);
+  font-size:13px;
+  line-height:1.5;
+  text-align:center;
+}
+.overview-dashboard .carbon-period-label{
+  color:var(--overview-muted);
+  font-size:12px;
+  font-weight:700;
+}
+.overview-dashboard .carbon-breakdown-empty{
+  padding:0 8px 8px;
+  color:var(--overview-muted);
+  font-size:12px;
+  line-height:1.5;
+  text-align:center;
+}
 .overview-dashboard .profile-carbon-chart svg{
   width:100%;
   height:100%;
