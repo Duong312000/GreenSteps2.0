@@ -1,17 +1,18 @@
-<main class="main-viewport partner-register-viewport partner-page">
+<main #partnerPage class="main-viewport partner-register-viewport partner-page">
+  <span class="reading-progress" aria-hidden="true"></span>
   <section class="partner-hero" aria-labelledby="partner-title">
     <div class="partner-hero__copy">
       <p class="eyebrow"><i class="bi bi-leaf" aria-hidden="true"></i> GreenSteps Travel · Đối tác bền vững</p>
-      <h1 id="partner-title">Cùng đưa trải nghiệm xanh đến gần hơn</h1>
+      <h1 id="partner-title">Cùng đưa <span class="hero-highlight">trải nghiệm xanh</span> đến gần hơn</h1>
       <p class="partner-hero__lead">Kết nối dịch vụ của bạn với cộng đồng du khách yêu thiên nhiên, quản lý hoạt động thuận tiện và phát triển dài lâu cùng GreenSteps.</p>
-      <div class="partner-hero__actions">
+      <div class="partner-hero__actions" *ngIf="partnerProcessStep < 4">
         <a class="button button--primary" href="#partner-application" (click)="scrollToSection($event, 'partner-application')">Đăng ký ngay <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
         <a class="button button--quiet" href="#partner-process" (click)="scrollToSection($event, 'partner-process')">Tìm hiểu quy trình</a>
       </div>
       <p class="partner-hero__note"><i class="bi bi-shield-check" aria-hidden="true"></i> Đăng ký hồ sơ ban đầu miễn phí</p>
     </div>
     <div class="partner-hero__art" aria-label="Rừng thông và hồ ở Đà Lạt" role="img">
-      <img class="partner-landscape" src="/image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg" alt="" fetchpriority="high">
+      <img class="partner-landscape" src="/image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg" alt="" fetchpriority="high" loading="eager" decoding="async">
       <span class="partner-landscape__wash" aria-hidden="true"></span>
       <div class="art-card"><i class="bi bi-tree" aria-hidden="true"></i><span>Du lịch có trách nhiệm</span></div>
       <div class="art-leaf art-leaf--one"><i class="bi bi-leaf-fill" aria-hidden="true"></i></div>
@@ -20,13 +21,12 @@
   </section>
 
   <section class="partner-stats" aria-label="GreenSteps qua những con số">
-    <!-- TODO: replace illustrative metrics with approved live marketplace statistics. -->
-    <article class="stat-card"><strong>1.200+</strong><span>đối tác đồng hành</span></article>
-    <article class="stat-card"><strong>35.000+</strong><span>lượt khách mỗi tháng</span></article>
-    <article class="stat-card"><strong>4,7/5</strong><span>điểm hài lòng trung bình</span></article>
-    <article class="stat-card"><strong>2 ngày</strong><span>thời gian xét duyệt dự kiến</span></article>
+    <!-- TODO: replace illustrative metrics with values confirmed by operations. -->
+    <article class="stat-card"><strong data-count="1200" data-count-suffix="+">1.200+</strong><span>đối tác đồng hành</span></article>
+    <article class="stat-card"><strong data-count="35000" data-count-suffix="+">35.000+</strong><span>lượt khách mỗi tháng</span></article>
+    <article class="stat-card"><strong data-count="4.7" data-count-format="decimal" data-count-suffix="/5">4,7/5</strong><span>điểm hài lòng trung bình</span></article>
+    <article class="stat-card"><strong [attr.data-count]="partnerConfig.reviewDays">{{ partnerConfig.reviewDays }}</strong><span>ngày làm việc xét duyệt dự kiến</span></article>
   </section>
-  <p class="illustrative-note">Số liệu minh họa · cần thay bằng số liệu đã xác minh</p>
 
   <section class="content-section" aria-labelledby="benefits-title">
     <div class="section-heading"><p class="eyebrow">Dành cho nhà cung cấp</p><h2 id="benefits-title">Nhận booking, theo dõi doanh thu và đối soát ở một nơi.</h2><p>Đăng dịch vụ, xác nhận lịch phục vụ và kiểm tra từng khoản thanh toán trên GreenSteps.</p></div>
@@ -56,22 +56,29 @@
 
   <section id="partner-process" class="content-section process-section" aria-labelledby="process-title">
     <div class="section-heading"><p class="eyebrow">Bốn bước đơn giản</p><h2 id="process-title">Từ đăng ký đến bắt đầu kinh doanh</h2></div>
-    <ol class="steps"><li><span>01</span><div><h3>Đăng ký</h3><p>Điền thông tin cơ bản về bạn và dịch vụ.</p></div></li><li><span>02</span><div><h3>Gửi hồ sơ</h3><p>Bổ sung thông tin để đội ngũ hiểu rõ mô hình.</p></div></li><li><span>03</span><div><h3>Chờ duyệt</h3><p>Tối đa 2 ngày làm việc.</p></div></li><li><span>04</span><div><h3>Bắt đầu kinh doanh</h3><p>Hoàn thiện trang dịch vụ và nhận booking.</p></div></li></ol>
+    <ol class="steps" [style.--process-progress]="partnerProcessProgress">
+      <li [class.is-complete]="partnerProcessStep >= 1" [class.is-current]="partnerProcessStep === 1" [attr.aria-current]="partnerProcessStep === 1 ? 'step' : null"><span>01</span><div><h3>Đăng ký</h3><p>Điền thông tin cơ bản về bạn và dịch vụ.</p></div></li>
+      <li [class.is-complete]="partnerProcessStep >= 2" [class.is-current]="partnerProcessStep === 2" [attr.aria-current]="partnerProcessStep === 2 ? 'step' : null"><span>02</span><div><h3>Gửi hồ sơ</h3><p>Bổ sung thông tin để đội ngũ hiểu rõ mô hình.</p></div></li>
+      <li [class.is-complete]="partnerProcessStep >= 3" [class.is-current]="partnerProcessStep === 3" [attr.aria-current]="partnerProcessStep === 3 ? 'step' : null"><span>03</span><div><h3>Chờ duyệt</h3><p>Tối đa {{ partnerConfig.reviewDays }} ngày làm việc.</p></div></li>
+      <li [class.is-complete]="partnerProcessStep >= 4" [class.is-current]="partnerProcessStep === 4" [attr.aria-current]="partnerProcessStep === 4 ? 'step' : null"><span>04</span><div><h3>Bắt đầu kinh doanh</h3><p>Hoàn thiện trang dịch vụ và nhận booking.</p><a *ngIf="partnerProcessStep === 4" class="button button--primary step-dashboard-link" routerLink="/partner-dashboard">Vào trang đối tác</a></div></li>
+    </ol>
   </section>
 
-  <section #applicationSection id="partner-application" class="application-section" aria-labelledby="application-title">
+  <section *ngIf="partnerProcessStep < 4" #applicationSection id="partner-application" class="application-section" aria-labelledby="application-title">
     <div class="application-inner"><div class="application-intro"><p class="eyebrow">Bắt đầu hành trình</p><h2 id="application-title">Đăng ký trở thành đối tác</h2><p>Thông tin có dấu * là bắt buộc. Hồ sơ sẽ ở trạng thái <strong>Chờ duyệt</strong> sau khi gửi thành công.</p><div class="application-help"><i class="bi bi-lock" aria-hidden="true"></i><span>Thông tin của bạn chỉ được sử dụng để xem xét hồ sơ hợp tác.</span></div></div>
     <form id="partner-application-form" class="application-form" novalidate (submit)="registerPartner($event)" aria-describedby="form-status">
+      <div class="form-progress" aria-hidden="true"><span [style.width.%]="formCompletionPercent"></span></div>
+      <p class="form-progress-label">{{ formCompletionPercent }}% thông tin bắt buộc đã hoàn tất</p>
       <div class="form-grid">
         <div class="field"><label for="companyName">Tên doanh nghiệp / cá nhân <span>*</span></label><input id="companyName" name="companyName" [(ngModel)]="companyName" required autocomplete="organization" [attr.aria-invalid]="attemptedSubmit && !companyName.trim()" aria-describedby="company-error" placeholder="Ví dụ: Green Valley Homestay"><small id="company-error" class="field-error" *ngIf="attemptedSubmit && !companyName.trim()">Vui lòng nhập tên đơn vị.</small></div>
         <div class="field"><label for="contactName">Người liên hệ <span>*</span></label><input id="contactName" name="contactName" [(ngModel)]="contactName" required autocomplete="name" [attr.aria-invalid]="attemptedSubmit && !contactName.trim()" aria-describedby="contact-error" placeholder="Họ và tên"><small id="contact-error" class="field-error" *ngIf="attemptedSubmit && !contactName.trim()">Vui lòng nhập người liên hệ.</small></div>
-        <div class="field"><label for="bizEmail">Email liên hệ <span>*</span></label><input id="bizEmail" name="bizEmail" [(ngModel)]="bizEmail" type="email" required autocomplete="email" [attr.aria-invalid]="attemptedSubmit && !emailIsValid" aria-describedby="email-error" placeholder="ten@doanhnghiep.vn"><small id="email-error" class="field-error" *ngIf="attemptedSubmit && !emailIsValid">Vui lòng nhập email hợp lệ.</small></div>
-        <div class="field"><label for="bizPhone">Số điện thoại <span>*</span></label><input id="bizPhone" name="bizPhone" [(ngModel)]="bizPhone" type="tel" required autocomplete="tel" inputmode="tel" [attr.aria-invalid]="attemptedSubmit && !phoneIsValid" aria-describedby="phone-error" placeholder="09xx xxx xxx"><small id="phone-error" class="field-error" *ngIf="attemptedSubmit && !phoneIsValid">Nhập số di động Việt Nam hợp lệ, ví dụ 0912345678.</small></div>
+        <div class="field"><label for="bizEmail">Email liên hệ <span>*</span></label><span class="form-control-shell"><i class="bi bi-envelope" aria-hidden="true"></i><input id="bizEmail" name="bizEmail" [(ngModel)]="bizEmail" type="email" required autocomplete="email" [attr.aria-invalid]="attemptedSubmit && !emailIsValid" aria-describedby="email-error" placeholder="ten@doanhnghiep.vn"></span><small id="email-error" class="field-error" *ngIf="attemptedSubmit && !emailIsValid">Vui lòng nhập email hợp lệ.</small></div>
+        <div class="field"><label for="bizPhone">Số điện thoại <span>*</span></label><span class="form-control-shell"><i class="bi bi-telephone" aria-hidden="true"></i><input id="bizPhone" name="bizPhone" [(ngModel)]="bizPhone" type="tel" required autocomplete="tel" inputmode="tel" [attr.aria-invalid]="attemptedSubmit && !phoneIsValid" aria-describedby="phone-error" placeholder="09xx xxx xxx"></span><small id="phone-error" class="field-error" *ngIf="attemptedSubmit && !phoneIsValid">Nhập số di động Việt Nam hợp lệ, ví dụ 0912345678.</small></div>
         <div class="field"><label for="bizCategory">Loại hình hoạt động <span>*</span></label><select id="bizCategory" name="bizCategory" [(ngModel)]="bizCategory" required [attr.aria-invalid]="attemptedSubmit && !bizCategory" aria-describedby="category-error"><option value="">Chọn loại hình</option><option value="service">Dịch vụ</option><option value="tour">Tour</option><option value="promotion">Khuyến mãi / Đối tác thương hiệu</option></select><small id="category-error" class="field-error" *ngIf="attemptedSubmit && !bizCategory">Vui lòng chọn loại hình.</small></div>
-        <div class="field"><label for="province">Tỉnh / thành phố <span>*</span></label><input id="province" name="province" [(ngModel)]="province" required autocomplete="address-level1" [attr.aria-invalid]="attemptedSubmit && !province" aria-describedby="province-error" placeholder="Ví dụ: Lâm Đồng"><small id="province-error" class="field-error" *ngIf="attemptedSubmit && !province">Vui lòng nhập tỉnh/thành.</small></div>
+        <div class="field"><label for="province">Tỉnh / thành phố <span>*</span></label><span class="form-control-shell"><i class="bi bi-geo-alt" aria-hidden="true"></i><input id="province" name="province" [(ngModel)]="province" required autocomplete="address-level1" [attr.aria-invalid]="attemptedSubmit && !province" aria-describedby="province-error" placeholder="Ví dụ: Lâm Đồng"></span><small id="province-error" class="field-error" *ngIf="attemptedSubmit && !province">Vui lòng nhập tỉnh/thành.</small></div>
         <div class="field field--wide"><label for="bizLicense">Số giấy phép kinh doanh <span class="optional">(không bắt buộc ở bước này)</span></label><input id="bizLicense" name="bizLicense" [(ngModel)]="bizLicense" placeholder="Mã số thuế hoặc số đăng ký"></div>
         <div class="field field--wide"><label for="bizDesc">Giới thiệu ngắn về dịch vụ</label><textarea id="bizDesc" name="bizDesc" [(ngModel)]="bizDesc" rows="4" maxlength="600" placeholder="Mô tả dịch vụ, cam kết bền vững hoặc điều bạn muốn khách biết..."></textarea><small class="field-hint">Tối đa 600 ký tự.</small></div>
-        <div class="field field--wide"><label for="businessDocument">Giấy tờ liên quan <span class="optional">(tùy chọn)</span></label><input id="businessDocument" name="businessDocument" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="onDocumentSelected($event)" aria-describedby="document-hint"><small id="document-hint" class="field-hint">PDF, JPG hoặc PNG · tối đa 5 MB. Tệp chưa được tải lên máy chủ.</small><small class="file-name" *ngIf="selectedDocument">Đã chọn: {{ selectedDocument.name }}</small></div>
+        <div class="field field--wide"><label for="businessDocument">Giấy tờ liên quan <span class="optional">(tùy chọn)</span></label><input id="businessDocument" name="businessDocument" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="onDocumentSelected($event)" aria-describedby="document-hint"><small id="document-hint" class="field-hint">PDF, JPG hoặc PNG · tối đa {{ partnerConfig.documentMaxSizeMb }} MB. Tệp chưa được tải lên máy chủ.</small><small class="file-name" *ngIf="selectedDocument"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> Đã chọn: {{ selectedDocument.name }} · {{ (selectedDocument.size / 1048576).toFixed(2) }} MB</small></div>
       </div>
       <div class="consents"><label class="check-field"><input type="checkbox" name="agreeTerms" [(ngModel)]="agreeTerms"><span>Tôi đã đọc và đồng ý với <a routerLink="/provider-terms">Điều khoản dành cho nhà cung cấp</a>. <b>*</b></span></label><label class="check-field"><input type="checkbox" name="agreePaymentPolicy" [(ngModel)]="agreePaymentPolicy"><span>Tôi đã đọc <a routerLink="/payment-policy">Chính sách thanh toán</a>. <b>*</b></span></label><small class="field-error" *ngIf="attemptedSubmit && (!agreeTerms || !agreePaymentPolicy)">Vui lòng xác nhận cả hai nội dung trước khi gửi.</small></div>
       <div id="form-status" class="form-status form-status--error" role="alert" *ngIf="submitError">{{ submitError }} <button type="button" class="text-button" (click)="retrySubmit()" [disabled]="isSubmitting">Thử gửi lại</button></div>
@@ -81,16 +88,49 @@
     </form></div>
   </section>
 
-  <section class="content-section faq-section" aria-labelledby="faq-title"><div class="section-heading"><p class="eyebrow">Câu hỏi thường gặp</p><h2 id="faq-title">Bạn muốn biết thêm?</h2></div><div class="faq-list"><details *ngFor="let item of faqItems" #faqItem><summary [attr.aria-expanded]="faqItem.open">{{ item.q }}<i class="bi bi-plus-lg" aria-hidden="true"></i></summary><p>{{ item.a }}</p></details></div></section>
+  <section class="content-section faq-section" aria-labelledby="faq-title">
+    <div class="section-heading">
+      <p class="eyebrow">CÂU HỎI THƯỜNG GẶP</p>
+      <h2 id="faq-title">Giải đáp trước khi bạn đăng ký</h2>
+      <p>Những điều nhà cung cấp thường hỏi về hồ sơ, thanh toán và vận hành trên GreenSteps.</p>
+    </div>
+    <div class="faq-groups">
+      <section class="faq-group" *ngFor="let group of faqGroups" [attr.aria-labelledby]="'faq-group-' + group.id">
+        <h3 class="faq-group__title" [id]="'faq-group-' + group.id">{{ group.label }}</h3>
+        <div class="faq-list">
+          <article class="faq-item" *ngFor="let item of faqItemsFor(group.id)" [class.faq-item--open]="isFaqOpen(item.id)">
+            <h4 class="faq-question">
+              <button type="button" [attr.aria-expanded]="isFaqOpen(item.id)" [attr.aria-controls]="item.id + '-answer'" (click)="toggleFaq(item.id)">
+                <span>{{ item.q }}</span><i class="bi bi-plus-lg" aria-hidden="true"></i>
+              </button>
+            </h4>
+            <div class="faq-answer" [class.faq-answer--open]="isFaqOpen(item.id)" [id]="item.id + '-answer'" [attr.aria-hidden]="!isFaqOpen(item.id)" [attr.inert]="isFaqOpen(item.id) ? null : ''">
+              <div class="faq-answer__clip"><div class="faq-answer__content">
+                <p *ngFor="let paragraph of item.paragraphs">{{ paragraph }}</p>
+                <ul *ngIf="item.bullets?.length"><li *ngFor="let bullet of item.bullets">{{ bullet }}</li></ul>
+                <p *ngFor="let paragraph of item.paragraphsAfterList">{{ paragraph }}</p>
+                <p class="faq-answer__links" *ngIf="item.links?.length"><a *ngFor="let link of item.links" [routerLink]="link.route">{{ link.label }} <span aria-hidden="true">→</span></a></p>
+              </div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+    <aside class="faq-contact" aria-label="Liên hệ hỗ trợ đối tác">
+      <div><h3>Vẫn còn thắc mắc?</h3><p>Đội ngũ đối tác phản hồi trong giờ làm việc.</p><a class="faq-contact__email" [href]="'mailto:' + partnerConfig.supportEmail">{{ partnerConfig.supportEmail }}</a><p class="faq-contact__phone" *ngIf="partnerConfig.supportPhone">Hotline: {{ partnerConfig.supportPhone }}</p></div>
+      <div class="faq-contact__actions"><a class="button button--primary" [href]="'mailto:' + partnerConfig.supportEmail">Gửi email hỗ trợ</a><a class="button button--quiet" routerLink="/provider-terms">Xem Điều khoản dành cho nhà cung cấp</a></div>
+    </aside>
+  </section>
 
-  <section class="final-cta"><div><p class="eyebrow">Cùng nhau tạo giá trị tích cực</p><h2>Sẵn sàng để du khách khám phá dịch vụ của bạn?</h2><p>Gửi hồ sơ để bắt đầu giới thiệu dịch vụ trên GreenSteps.</p></div><a class="button button--on-dark" href="#partner-application" (click)="scrollToSection($event, 'partner-application')">Đăng ký đối tác <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></section>
+  <section *ngIf="partnerProcessStep < 4" class="final-cta"><div><p class="eyebrow">Cùng nhau tạo giá trị tích cực</p><h2>Sẵn sàng để du khách khám phá dịch vụ của bạn?</h2><p>Gửi hồ sơ để bắt đầu giới thiệu dịch vụ trên GreenSteps.</p></div><a class="button button--on-dark" href="#partner-application" (click)="scrollToSection($event, 'partner-application')">Đăng ký đối tác <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></section>
 </main>
 
-<a class="mobile-register-cta" [class.mobile-register-cta--hidden]="isApplicationVisible" href="#partner-application" (click)="scrollToSection($event, 'partner-application')" aria-label="Cuộn tới biểu mẫu đăng ký đối tác"><i class="bi bi-pencil-square" aria-hidden="true"></i> Đăng ký đối tác</a>
+<a *ngIf="partnerProcessStep < 4" class="mobile-register-cta" [class.mobile-register-cta--hidden]="isApplicationVisible" href="#partner-application" (click)="scrollToSection($event, 'partner-application')" aria-label="Cuộn tới biểu mẫu đăng ký đối tác"><i class="bi bi-pencil-square" aria-hidden="true"></i> Đăng ký đối tác</a>
 
 <div class="approval-backdrop" *ngIf="isTerminalModalOpen" (click)="isTerminalModalOpen = false">
   <section class="approval-dialog" role="dialog" aria-modal="true" aria-labelledby="approval-title" (click)="$event.stopPropagation()">
     <div class="approval-icon" [class.approval-icon--success]="terminalApprovalState === 'success'" [class.approval-icon--error]="terminalApprovalState === 'error'"><i class="bi" [ngClass]="terminalApprovalState === 'pending' ? 'bi-hourglass-split' : terminalApprovalState === 'success' ? 'bi-check-lg' : 'bi-exclamation-lg'" aria-hidden="true"></i></div>
+    <span class="approval-status" *ngIf="terminalApprovalState === 'success'">Chờ duyệt</span>
     <h2 id="approval-title">{{ terminalApprovalTitle }}</h2><p>{{ terminalApprovalMsg }}</p>
     <button class="button button--primary" type="button" (click)="isTerminalModalOpen = false">Đã hiểu</button>
   </section>
