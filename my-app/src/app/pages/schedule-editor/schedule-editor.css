@@ -3848,6 +3848,7 @@
   transform: translateY(0);
 }
 
+
 .ai-rec-add-btn {
   display: inline-block;
   margin-top: 4px;
@@ -3896,5 +3897,449 @@
   transform: translateY(0);
 }
 
+/* ==========================================================================
+   ENHANCED DRAG & DROP WITH SMOOTH GAP & DUAL VIEW PIPELINE
+   Adhering to Product Design Excellence 2.0 (Zero Emojis, 90-5-5 Palette)
+   ========================================================================== */
 
+/* 1. Drag Handle Grip */
+.drag-handle-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: #94a3b8;
+  cursor: grab;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+  align-self: center;
+  padding: 8px 2px;
+}
+
+.drag-handle-grip:hover {
+  color: #184a37;
+  background-color: #f1f5f9;
+}
+
+.drag-handle-grip:active {
+  cursor: grabbing;
+  color: #0f172a;
+}
+
+.timeline-item.is-drag-source {
+  opacity: 0.45;
+  border: 1px dashed #94a3b8 !important;
+}
+
+/* 2. Smooth Drop Gap with 2px dashed #10B981 */
+.smooth-drop-gap {
+  height: 54px;
+  margin: 6px 0 6px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: gap-expand 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.drop-dashed-slot {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #10b981;
+  border-radius: 8px;
+  background-color: rgba(16, 185, 129, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #047857;
+  letter-spacing: 0.3px;
+}
+
+@keyframes gap-expand {
+  from {
+    height: 0;
+    opacity: 0;
+    transform: scaleY(0.4);
+  }
+  to {
+    height: 54px;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* 3. Horizontal Smooth Drop Gap in Pipeline View */
+.pipeline-smooth-drop-gap {
+  width: 130px;
+  height: 68px;
+  margin: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: pipeline-gap-expand 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pipeline-smooth-drop-gap .drop-dashed-slot {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #10b981;
+  border-radius: 8px;
+  background-color: rgba(16, 185, 129, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes pipeline-gap-expand {
+  from {
+    width: 0;
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  to {
+    width: 130px;
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+/* 4. Cross-day Sidebar Target Highlight */
+.sidebar-menu-item.day-drop-target {
+  background: #ecfdf5 !important;
+  border: 1.5px dashed #059669 !important;
+  color: #065f46 !important;
+  transform: scale(1.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 5. View Mode Switcher (Zero Emojis, Clean Typography) */
+.timeline-view-modes-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-mode-btn:hover {
+  color: #0f172a;
+}
+
+.view-mode-btn.active {
+  background: #ffffff;
+  color: #184a37;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.view-mode-btn i {
+  font-size: 13px;
+}
+
+/* 6. Conflict Shake Focus Animation */
+.conflict-shake-focus {
+  animation: conflict-shake 0.5s ease-in-out, conflict-pulse 2s ease-in-out;
+  border: 1.5px solid #dc2626 !important;
+  border-radius: 8px;
+}
+
+@keyframes conflict-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+@keyframes conflict-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* 7. Mode 2: Sequential Journey Pipeline Canvas */
+.pipeline-canvas-container {
+  background: #fafaf7;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.pipeline-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.pipeline-station-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pipeline-zoom-btn {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pipeline-zoom-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.pipeline-zoom-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4b5563;
+  min-width: 38px;
+  text-align: center;
+}
+
+.pipeline-canvas-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 28px 20px;
+  background-color: #fafaf7;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+}
+
+.pipeline-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  transform-origin: left center;
+  transition: transform 0.2s ease;
+  white-space: nowrap;
+}
+
+/* Pipeline Node Card */
+.pipeline-node-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.pipeline-node-card:hover {
+  border-color: #184a37;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 74, 55, 0.12);
+}
+
+.pipeline-node-card.active-station {
+  border-color: #184a37;
+  box-shadow: 0 0 0 2px rgba(24, 74, 55, 0.2);
+}
+
+.pipeline-node-card.has-conflict {
+  border-color: #fca5a5;
+  background: #fffafa;
+}
+
+.pipeline-node-card.is-drag-source {
+  opacity: 0.45;
+  border: 1px dashed #94a3b8 !important;
+}
+
+.pipeline-node-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  color: #94a3b8;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.pipeline-node-grip:active {
+  cursor: grabbing;
+}
+
+.pipeline-node-thumb {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+
+.pipeline-node-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pipeline-node-order {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.pipeline-node-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.pipeline-node-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: #184a37;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pipeline-node-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pipeline-node-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline-node-type {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.pipeline-conflict-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* Connector Leg between nodes */
+.pipeline-connector-leg {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+}
+
+.pipeline-connector-leg:hover .pipeline-leg-pill {
+  border-color: #184a37;
+  color: #184a37;
+  background: #ecfdf5;
+}
+
+.pipeline-leg-line {
+  width: 20px;
+  height: 2px;
+  background: #d1d5db;
+}
+
+.pipeline-leg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.pipeline-connector-leg.active-leg .pipeline-leg-pill {
+  background: #184a37;
+  color: #ffffff;
+  border-color: #184a37;
+}
+
+.pipeline-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #9ca3af;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pipeline-empty-state i {
+  font-size: 28px;
+  color: #184a37;
+}
 

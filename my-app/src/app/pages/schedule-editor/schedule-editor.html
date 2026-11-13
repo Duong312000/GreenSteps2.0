@@ -62,7 +62,12 @@
                         style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; padding-left: 10px;">Lịch
                         trình ngày</span>
                     <div *ngFor="let day of activeItinerary.days; let idx = index" class="sidebar-menu-item"
-                        [class.active]="activeDayIdx === idx" (click)="switchActiveDay(idx)"
+                        [class.active]="activeDayIdx === idx" 
+                        [class.day-drop-target]="crossDayDropTargetIdx === idx"
+                        (click)="switchActiveDay(idx)"
+                        (dragover)="onDragOverDay($event, idx)"
+                        (dragleave)="onDragLeaveDay($event, idx)"
+                        (drop)="onDropOnDay($event, idx)"
                         style="padding: 10px 15px; border-radius: var(--border-radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; gap: 2px; position: relative;">
                         <div
                             style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
@@ -291,7 +296,19 @@
         </div>
 
         <div class="active-day-header">
-            <h3 id="activeDayTitle">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 id="activeDayTitle" style="margin: 0;">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
+                <div class="timeline-view-modes-segmented">
+                    <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'timeline'"
+                        (click)="activeTimelineViewMode = 'timeline'" title="Chế độ xem Danh sách">
+                        <i class="bi bi-list-ul"></i> <span>Danh sách</span>
+                    </button>
+                    <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'pipeline'"
+                        (click)="activeTimelineViewMode = 'pipeline'" title="Chế độ xem Sơ đồ tuyến">
+                        <i class="bi bi-diagram-3"></i> <span>Sơ đồ tuyến</span>
+                    </button>
+                </div>
+            </div>
 
             <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
                 <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput"
@@ -301,8 +318,8 @@
             </div>
         </div>
 
-        <!-- Timeline Activities List -->
-        <div class="timeline-list-container" id="timelineList">
+        <!-- Timeline Activities List (Mode 1: Danh sách) -->
+        <div class="timeline-list-container" id="timelineList" *ngIf="activeTimelineViewMode === 'timeline'">
             <!-- Empty state -->
             <div *ngIf="activeItinerary.days[activeDayIdx]?.activities.length === 0"
                 style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-size:14px; position:relative; z-index:2;">
@@ -314,14 +331,35 @@
             </div>
 
             <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
+                <!-- Smooth Drop Gap (Before) with 2px dashed #10B981 -->
+                <div class="smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'before'">
+                    <div class="drop-dashed-slot">
+                        <span class="slot-text">Thả vào đây</span>
+                    </div>
+                </div>
+
                 <div class="timeline-item" [class.cursor-grab]="!isItineraryLocked()"
                     [class.cursor-default]="isItineraryLocked()"
                     [class.dimmed-when-routing]="activeLegDirections && (idx !== activeLegDirections.fromIdx && idx !== activeLegDirections.toIdx)"
                     [class.highlighted-when-routing]="activeLegDirections && (idx === activeLegDirections.fromIdx || idx === activeLegDirections.toIdx)"
-                    [attr.data-type]="act.type" [draggable]="!isItineraryLocked()"
-                    (dragstart)="onDragStart($event, idx)" (dragover)="onDragOver($event, idx)"
-                    (drop)="onDrop($event, idx)" (dragend)="onDragEnd($event)" (mouseenter)="highlightMapPin(idx, true)"
+                    [class.is-drag-source]="dragSrcIdx === idx"
+                    [attr.data-type]="act.type" 
+                    [draggable]="canDragItem && dragSrcIdx === idx && !isItineraryLocked()"
+                    (dragstart)="onDragStart($event, idx)" 
+                    (dragover)="onDragOver($event, idx)"
+                    (dragleave)="onDragLeave($event, idx)"
+                    (drop)="onDrop($event, idx)" 
+                    (dragend)="onDragEnd($event)" 
+                    (mouseenter)="highlightMapPin(idx, true)"
                     (mouseleave)="highlightMapPin(idx, false)">
+
+                    <!-- Ergonomic Grip Handle -->
+                    <div class="drag-handle-grip" 
+                        *ngIf="!isItineraryLocked()"
+                        (mousedown)="onGripMouseDown(idx)"
+                        title="Nhấp giữ và kéo để sắp xếp lại vị trí">
+                        <i class="bi bi-grip-vertical"></i>
+                    </div>
 
                     <div class="timeline-time-node">
                         <div class="time-input-wrap">
@@ -434,6 +472,13 @@
                     </div>
                 </div>
 
+                <!-- Smooth Drop Gap (After) with 2px dashed #10B981 -->
+                <div class="smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'after'">
+                    <div class="drop-dashed-slot">
+                        <span class="slot-text">Thả vào đây</span>
+                    </div>
+                </div>
+
                 <!-- Organic Travel Transit note in Timeline (Subtle, desaturated) -->
                 <div class="travel-gap-item" *ngIf="idx < activeItinerary.days[activeDayIdx].activities.length - 1"
                     (click)="openLegDirections(idx)"
@@ -446,6 +491,110 @@
                     </div>
                 </div>
             </ng-container>
+        </div>
+
+        <!-- Mode 2: Sequential Journey Pipeline / Sơ đồ Tuyến trình -->
+        <div class="pipeline-canvas-container" *ngIf="activeTimelineViewMode === 'pipeline'">
+            <div class="pipeline-header-bar">
+                <span class="pipeline-station-count">
+                    <i class="bi bi-geo-alt"></i>
+                    {{ activeItinerary.days[activeDayIdx]?.activities.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
+                </span>
+                <div class="pipeline-zoom-controls">
+                    <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">
+                        <i class="bi bi-dash"></i>
+                    </button>
+                    <span class="pipeline-zoom-text">{{ (pipelineZoomScale * 100) | number:'1.0-0' }}%</span>
+                    <button type="button" (click)="zoomPipeline(0.1)" title="Phóng to (+10%)" class="pipeline-zoom-btn">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                    <button type="button" (click)="resetPipelineZoom()" title="Vừa khung hình (100%)" class="pipeline-zoom-btn">
+                        100%
+                    </button>
+                </div>
+            </div>
+
+            <div class="pipeline-canvas-viewport">
+                <div class="pipeline-track" [style.transform]="'scale(' + pipelineZoomScale + ')'">
+                    <!-- Empty State in Pipeline -->
+                    <div *ngIf="activeItinerary.days[activeDayIdx]?.activities.length === 0" class="pipeline-empty-state">
+                        <i class="bi bi-calendar-event"></i>
+                        <p>Chưa có điểm dừng nào trong ngày này</p>
+                    </div>
+
+                    <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
+                        <!-- Horizontal Smooth Drop Gap (Before) -->
+                        <div class="pipeline-smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'before'">
+                            <div class="drop-dashed-slot">
+                                <span class="slot-text">Thả vào đây</span>
+                            </div>
+                        </div>
+
+                        <!-- Station Node -->
+                        <div class="pipeline-node-card" 
+                             [class.has-conflict]="act.hasTimeConflict"
+                             [class.active-station]="locatingActivityIdx === idx"
+                             [class.is-drag-source]="dragSrcIdx === idx"
+                             [draggable]="canDragItem && dragSrcIdx === idx && !isItineraryLocked()"
+                             (dragstart)="onDragStart($event, idx)" 
+                             (dragover)="onDragOver($event, idx)"
+                             (dragleave)="onDragLeave($event, idx)"
+                             (drop)="onDrop($event, idx)" 
+                             (dragend)="onDragEnd($event)"
+                             (click)="openGooglePlacePanel(act, $event)">
+
+                            <!-- Grip handle in pipeline node -->
+                            <div class="pipeline-node-grip" 
+                                 *ngIf="!isItineraryLocked()"
+                                 (mousedown)="onGripMouseDown(idx)"
+                                 (click)="$event.stopPropagation()"
+                                 title="Nhấp giữ để kéo sắp xếp">
+                                <i class="bi bi-grip-vertical"></i>
+                            </div>
+
+                            <div class="pipeline-node-thumb">
+                                <img [src]="getPlacePlaceholderImage(act.title)" [alt]="act.title"
+                                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                                <span class="pipeline-node-order">{{ idx + 1 < 10 ? '0' + (idx + 1) : idx + 1 }}</span>
+                            </div>
+                            <div class="pipeline-node-info">
+                                <span class="pipeline-node-time" [class.text-red-700]="act.hasTimeConflict">
+                                    <i class="bi bi-clock"></i> {{ act.time || '08:00' }}
+                                    <i *ngIf="act.hasTimeConflict" class="bi bi-exclamation-triangle-fill ml-1" [title]="act.conflictReason"></i>
+                                </span>
+                                <h4 class="pipeline-node-title" [title]="act.title">{{ act.title }}</h4>
+                                <div class="pipeline-node-meta">
+                                    <span class="pipeline-node-type">{{ getActivityTypeLabel(act.type) }}</span>
+                                    <span *ngIf="act.hasTimeConflict" class="pipeline-conflict-tag" [title]="act.conflictReason">
+                                        Lỗi giờ
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Horizontal Smooth Drop Gap (After) -->
+                        <div class="pipeline-smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'after'">
+                            <div class="drop-dashed-slot">
+                                <span class="slot-text">Thả vào đây</span>
+                            </div>
+                        </div>
+
+                        <!-- Connector between Station idx and idx + 1 -->
+                        <div class="pipeline-connector-leg" *ngIf="idx < activeItinerary.days[activeDayIdx]?.activities.length - 1"
+                             (click)="openLegDirections(idx)"
+                             [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
+                             title="Bấm để xem đường đi và chọn phương tiện cho chặng này">
+                            <div class="pipeline-leg-line"></div>
+                            <div class="pipeline-leg-pill">
+                                <i class="bi bi-bus-front"></i>
+                                <span>{{ getTravelGapText(idx) }}</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="pipeline-leg-line"></div>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
         </div>
 
         <!-- Local Area Green Suggestions (Google Maps Style Explore) -->
