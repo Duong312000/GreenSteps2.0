@@ -7,6 +7,7 @@ import { ApiService } from '../../services/api.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { User, WalletTransaction } from '../../models/models';
 import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
+import { DestinationWeather, WeatherService } from '../../services/weather.service';
 
 type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map';
 
@@ -68,6 +69,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (this.sharedRefreshTimer) clearInterval(this.sharedRefreshTimer);
   }
 
+  public retryDestinationWeather() {
+    this.weatherDestinationKey = '';
+    void this.loadDestinationWeather();
+  }
+
   @HostListener('document:visibilitychange')
   async refreshSharedData() {
     if (this.profileDestroyed || !this.currentUser || document.visibilityState !== 'visible' || this.sharedRefreshInFlight) return;
@@ -76,16 +82,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
     finally { this.sharedRefreshInFlight = false; }
   }
   public activeSection: ProfileSection = 'overview';
+  public isMobileNavOpen = false;
+  public dashboardSearchQuery = '';
   public selectedSubSection: string = '';
   public currentUser: User | null = null;
   public profileUser: User = {
-    id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d',
-    username: 'kienldvk24411',
-    fullname: 'kienldvk24411',
-    email: 'kienldvk24411@st.uel.edu.vn',
+    username: '',
+    fullname: '',
+    email: '',
     phone: '',
     dob: '',
-    gender: 'Nữ',
     address: '',
     role: 'traveler'
   };
@@ -94,21 +100,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public walletBalance = 0;
   public depositAmount: number | null = null;
   public transactions: WalletTransaction[] = [];
-  public savedItinerariesCount = 0;
-  public bookedToursCount = 0;
-  public userGreenPoints = 0;
+  public savedItinerariesCount: number | null = null;
+  public bookedToursCount: number | null = null;
+  public userGreenPoints: number | null = null;
   public carbonSummary: ProfileCarbonSummary = profileCarbonSummary([]);
   public userTickets: any[] = [];
+  public tripImageFailed = false;
+  public destinationWeather: DestinationWeather | null = null;
+  public weatherLoading = false;
+  public weatherError = false;
+  private weatherDestinationKey = '';
   public upcomingTrip: {
     id: string;
     title: string;
-    destination: string;
-    dates: string;
-    guests: number;
-    cost: number;
+    destination?: string;
+    dates?: string;
+    guests?: number;
+    cost?: number;
+    evoucher?: string;
     daysLeftText: string;
     statusText: string;
-    image: string;
+    image?: string;
     type: 'booking' | 'itinerary';
     link: string;
   } | null = null;
@@ -264,12 +276,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     { icon: 'bi-cup-hot', label: 'Food tour' }
   ];
 
-  public readonly weatherAlert = {
-    destination: 'Sapa',
-    range: '18-22°C',
-    description: 'Có thể có mưa nhẹ vào buổi chiều. Nên mang áo khoác mỏng và giày chống trượt.'
-  };
-
   public readonly smartCostSuggestions: SmartCostSuggestion[] = [
     { label: 'Đổi sang homestay đối tác', saving: '-450.000đ' },
     { label: 'Đi shuttle bus thay vì xe riêng', saving: '-270.000đ' },
@@ -283,7 +289,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   ];
 
   public readonly coverImage = 'image/2eee566424c1f35fbeacf85496b4b6e7.jpg';
-  public readonly tripImage = 'image/4302842f8d693c25238f2141964a64b2.jpg';
   public readonly offerImage = 'image/1dc8619487310884c9d631d689ece1e7.jpg';
 
   public isAvatarModalOpen: boolean = false;
@@ -346,7 +351,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
-    private loginModalService: LoginModalService
+    private loginModalService: LoginModalService,
+    private weatherService: WeatherService
   ) {}
 
   ngOnInit() {
@@ -360,6 +366,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
 
     this.authService.currentUser$.subscribe(user => {
+      const previousUserId = this.currentUser?.id || this.currentUser?._id || '';
+      const nextUserId = user?.id || user?._id || '';
+      if (previousUserId !== nextUserId) this.resetUserDashboardData();
       this.currentUser = user;
       if (user) {
         this.applyProfileUser(user);
@@ -385,9 +394,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public async loadProfileNotifications() {
     if (!this.currentUser) return;
     const userId = this.currentUser.id || this.currentUser._id || '';
+    if (!userId) return;
     try {
       const res = await this.apiService.getNotifications(userId);
-      if (this.profileDestroyed) return;
+      if (this.profileDestroyed || !this.isCurrentProfileUser(userId)) return;
       this.notificationsList = res;
       this.cdr.detectChanges();
     } catch (e) {
@@ -427,11 +437,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private applyProfileUser(user: User) {
     this.currentUser = user;
     this.profileUser = {
-      ...this.profileUser,
       ...user,
-      fullname: user.fullname || user.username || this.profileUser.fullname,
-      email: user.email || this.profileUser.email,
-      role: user.role || this.profileUser.role
+      username: user.username || '',
+      fullname: user.fullname || user.username || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      dob: user.dob || '',
+      gender: user.gender || '',
+      address: user.address || '',
+      role: user.role || 'traveler'
     };
     this.detFullname = this.profileUser.fullname;
     this.detPhone = this.profileUser.phone || '';
@@ -446,48 +460,85 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  private resetUserDashboardData() {
+    this.walletRegistered = false;
+    this.walletBalance = 0;
+    this.transactions = [];
+    this.savedItinerariesCount = null;
+    this.bookedToursCount = null;
+    this.userGreenPoints = null;
+    this.carbonSummary = profileCarbonSummary([]);
+    this.userTickets = [];
+    this.upcomingTrip = null;
+    this.tripImageFailed = false;
+    this.destinationWeather = null;
+    this.weatherLoading = false;
+    this.weatherError = false;
+    this.weatherDestinationKey = '';
+    this.notificationsList = [];
+  }
+
+  private isCurrentProfileUser(userId: string): boolean {
+    const currentUserId = this.currentUser?.id || this.currentUser?._id || '';
+    return currentUserId === userId;
+  }
+
   private async loadWalletAndTransactions() {
     if (!this.currentUser) return;
     const userId = this.currentUser.id || this.currentUser._id || '';
+    if (!userId) return;
     try {
       const wallet = await this.apiService.getWalletInfo(userId);
-      if (this.profileDestroyed) return;
+      if (this.profileDestroyed || !this.isCurrentProfileUser(userId)) return;
       this.walletRegistered = wallet.registered;
       this.walletBalance = wallet.balance;
-      this.userGreenPoints = wallet.green_points || 0;
+      this.userGreenPoints = wallet.registered && wallet.green_points !== undefined
+        ? wallet.green_points
+        : null;
     } catch (e) {
+      if (this.profileDestroyed || !this.isCurrentProfileUser(userId)) return;
+      this.walletRegistered = false;
       this.walletBalance = 0;
-      this.userGreenPoints = 0;
+      this.userGreenPoints = null;
     }
 
     try {
-      this.transactions = await this.apiService.getTransactions(userId);
+      const transactions = await this.apiService.getTransactions(userId);
+      if (this.profileDestroyed || !this.isCurrentProfileUser(userId)) return;
+      this.transactions = transactions;
     } catch (e) {
+      if (this.profileDestroyed || !this.isCurrentProfileUser(userId)) return;
       this.transactions = [];
     }
 
     await this.loadUpcomingTripData(userId);
-    if (!this.profileDestroyed) this.cdr.detectChanges();
+    if (!this.profileDestroyed && this.isCurrentProfileUser(userId)) this.cdr.detectChanges();
   }
 
   private async loadUpcomingTripData(userId: string) {
     let userBookings: any[] = [];
     let userItineraries: any[] = [];
+    if (!userId) return;
+    this.tripImageFailed = false;
 
     try {
       userBookings = await this.apiService.getBookings(undefined, userId);
+      if (!this.isCurrentProfileUser(userId)) return;
       const activeBookings = (userBookings || []).filter(b => b.status !== 'rejected' && b.status !== 'cancelled');
-      this.bookedToursCount = activeBookings.length;
+      this.bookedToursCount = activeBookings.length || null;
     } catch (e) {
-      this.bookedToursCount = 0;
+      if (!this.isCurrentProfileUser(userId)) return;
+      this.bookedToursCount = null;
     }
 
     try {
       userItineraries = await this.apiService.getItineraries(userId);
-      this.savedItinerariesCount = (userItineraries || []).length;
+      if (!this.isCurrentProfileUser(userId)) return;
+      this.savedItinerariesCount = userItineraries.length || null;
       this.carbonSummary = profileCarbonSummary(userItineraries || []);
     } catch (e) {
-      this.savedItinerariesCount = 0;
+      if (!this.isCurrentProfileUser(userId)) return;
+      this.savedItinerariesCount = null;
       this.carbonSummary = profileCarbonSummary([]);
     }
 
@@ -497,34 +548,24 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Map userTickets for Tickets section
     this.userTickets = validBookings.map(b => {
       const bDate = b.booking_date || b.date || '';
-      const tourTitle = b.tour_name || b.service || b.title || (b.type === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái');
-      let statusText = 'Đang chuẩn bị';
+      const tourTitle = b.tour_name || b.name_service || b.service_name || b.service || b.title || 'Tour đã đặt';
+      let statusText = 'Chưa cập nhật';
       if (b.status === 'confirmed') statusText = 'Sắp khởi hành';
       else if (b.status === 'deposit') statusText = 'Đã đặt cọc';
       else if (b.status === 'completed') statusText = 'Đã hoàn thành';
       else if (b.status === 'pending') statusText = 'Đang chuẩn bị';
 
-      let tripImg = b.image || b.image_url || this.tripImage;
-      if (tripImg && tripImg.startsWith('/images/')) {
-        tripImg = 'http://localhost:5055' + tripImg;
-      } else if (!tripImg || tripImg === this.tripImage) {
-        const dest = (tourTitle + ' ' + (b.destination || '')).toLowerCase();
-        if (dest.includes('hội an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
-        else if (dest.includes('phú yên')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
-        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
-      }
-
       return {
         id: b.id || b._id,
         title: tourTitle,
-        destination: b.destination || (tourTitle.includes('Đà Lạt') || tourTitle.includes('Tuyền Lâm') ? 'Đà Lạt' : (tourTitle.includes('Hội An') ? 'Hội An' : 'Việt Nam')),
-        dates: bDate ? `Khởi hành: ${this.formatDisplayDate(bDate)}` : 'Lịch trình sắp xếp',
-        guests: b.guests || 2,
-        cost: b.value || 0,
+        destination: b.destination || '',
+        dates: bDate ? `Khởi hành: ${this.formatDisplayDate(bDate)}` : '',
+        guests: b.guests,
+        cost: b.value,
         status: b.status,
         statusText,
-        image: tripImg,
-        evoucher: b.evoucher || b.evoucher_code || ('GS-' + (b.id || '24411').replace(/\D/g, '').slice(-8))
+        image: b.image || b.image_url || '',
+        evoucher: b.evoucher || b.evoucher_code || b.booking_code || ''
       };
     });
 
@@ -541,7 +582,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         dateDisplay = `Khởi hành: ${this.formatDisplayDate(bookingDate)}`;
       }
 
-      let daysLeftText = 'Sắp khởi hành';
+      let daysLeftText = 'Chưa có ngày khởi hành';
       if (bookingDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -557,69 +598,104 @@ export class ProfileComponent implements OnInit, OnDestroy {
         }
       }
 
-      let statusText = 'Sắp khởi hành';
+      let statusText = 'Chưa cập nhật';
       if (b.status === 'confirmed') statusText = 'Sắp khởi hành';
       else if (b.status === 'deposit') statusText = 'Đã đặt cọc';
       else if (b.status === 'completed') statusText = 'Đã hoàn thành';
       else statusText = 'Đang chuẩn bị';
 
-      const tourTitle = b.tour_name || b.service || b.title || (b.type === 'tour' ? 'Tour Du Lịch Xanh' : 'Dịch Vụ Sinh Thái');
-      const tourDest = b.destination || (tourTitle.includes('Đà Lạt') || tourTitle.includes('Tuyền Lâm') ? 'Đà Lạt' : (tourTitle.includes('Hội An') ? 'Hội An' : 'Việt Nam'));
-
-      let tripImg = b.image || b.image_url || this.tripImage;
-      if (tripImg && tripImg.startsWith('/images/')) {
-        tripImg = 'http://localhost:5055' + tripImg;
-      } else if (!tripImg || tripImg === this.tripImage) {
-        const dest = (tourTitle + ' ' + tourDest).toLowerCase();
-        if (dest.includes('hội an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
-        else if (dest.includes('phú yên')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
-        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
-      }
+      const tourTitle = b.tour_name || b.name_service || b.service_name || b.service || b.title || 'Tour đã đặt';
+      const tourDest = b.destination || '';
 
       this.upcomingTrip = {
         id: b.id || b._id,
         title: tourTitle,
         destination: tourDest,
-        dates: dateDisplay || 'Lịch trình sắp xếp',
-        guests: b.guests || 2,
-        cost: b.value || 0,
+        dates: dateDisplay,
+        guests: b.guests,
+        cost: b.value,
+        evoucher: b.evoucher || b.evoucher_code || b.booking_code || '',
         daysLeftText,
         statusText,
-        image: tripImg,
+        image: b.image || b.image_url || '',
         type: 'booking',
-        link: `/booking/confirm?bookingId=${encodeURIComponent(b.id || b.evoucher_code || '')}`
+        link: `/booking/confirm?bookingId=${encodeURIComponent(b.id || b._id || b.evoucher_code || '')}`
       };
     } else if (userItineraries.length > 0) {
       // 2. Custom itinerary
       const iti = userItineraries[0];
       let dateDisplay = iti.start_date
-        ? `${this.formatDisplayDate(iti.start_date)} - ${this.formatDisplayDate(iti.end_date)}`
-        : `${iti.days || 1} ngày trải nghiệm`;
-
-      let tripImg = iti.imageUrl;
-      if (!tripImg) {
-        const dest = (iti.destination || '').toLowerCase();
-        if (dest.includes('hội an') || dest.includes('hoi an')) tripImg = 'http://localhost:5055/images/tours/hoian1.jpg';
-        else if (dest.includes('phú yên') || dest.includes('phu yen')) tripImg = 'http://localhost:5055/images/tours/phuyen1.jpg';
-        else tripImg = 'http://localhost:5055/images/tours/dalat1.jpg';
-      }
+        ? `${this.formatDisplayDate(iti.start_date)}${iti.end_date ? ` - ${this.formatDisplayDate(iti.end_date)}` : ''}`
+        : (iti.days ? `${iti.days} ngày trải nghiệm` : '');
 
       this.upcomingTrip = {
         id: iti.id || iti._id,
-        title: iti.name || `Lịch trình sinh thái ${iti.destination}`,
-        destination: iti.destination || 'Việt Nam',
+        title: iti.name || (iti.destination ? `Lịch trình tại ${iti.destination}` : 'Lịch trình đã lưu'),
+        destination: iti.destination || '',
         dates: dateDisplay,
-        guests: 2,
-        cost: iti.totalCost || 0,
+        cost: iti.totalCost,
         daysLeftText: 'Lịch trình đã lưu',
         statusText: 'Đang lên kế hoạch',
-        image: tripImg,
+        image: iti.imageUrl || '',
         type: 'itinerary',
         link: `/schedule?id=${iti.id || iti._id}`
       };
     } else {
       this.upcomingTrip = null;
     }
+    await this.loadDestinationWeather();
+  }
+
+  private async loadDestinationWeather() {
+    const destination = this.upcomingTrip?.destination?.trim() || '';
+    if (!destination) {
+      this.weatherDestinationKey = '';
+      this.destinationWeather = null;
+      this.weatherLoading = false;
+      this.weatherError = false;
+      return;
+    }
+    if (this.weatherDestinationKey === destination) return;
+
+    this.weatherDestinationKey = destination;
+    this.weatherLoading = true;
+    this.weatherError = false;
+    this.destinationWeather = null;
+    try {
+      const weather = await this.weatherService.getDestinationForecast(destination);
+      if (this.profileDestroyed || this.upcomingTrip?.destination?.trim() !== destination) return;
+      this.destinationWeather = weather;
+    } catch (error) {
+      if (this.profileDestroyed || this.upcomingTrip?.destination?.trim() !== destination) return;
+      this.weatherError = true;
+      console.warn('Failed to load destination weather:', error);
+    } finally {
+      if (!this.profileDestroyed && this.upcomingTrip?.destination?.trim() === destination) {
+        this.weatherLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public weatherIcon(weatherCode: number): string {
+    if (weatherCode === 0) return 'bi-sun-fill';
+    if ([1, 2, 3].includes(weatherCode)) return 'bi-cloud-sun-fill';
+    if ([45, 48].includes(weatherCode)) return 'bi-cloud-fog2-fill';
+    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) return 'bi-cloud-rain-fill';
+    if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return 'bi-snow';
+    if ([95, 96, 99].includes(weatherCode)) return 'bi-cloud-lightning-rain-fill';
+    return 'bi-cloud-fill';
+  }
+
+  public weatherDescription(weatherCode: number): string {
+    if (weatherCode === 0) return 'Trời quang';
+    if ([1, 2, 3].includes(weatherCode)) return 'Có mây';
+    if ([45, 48].includes(weatherCode)) return 'Sương mù';
+    if ([51, 53, 55, 56, 57].includes(weatherCode)) return 'Mưa phùn';
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) return 'Có mưa';
+    if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return 'Có tuyết';
+    if ([95, 96, 99].includes(weatherCode)) return 'Dông';
+    return 'Nhiều mây';
   }
 
   public carbonSegment(value: number): string {
@@ -643,6 +719,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  public searchDashboardTours() {
+    const query = this.dashboardSearchQuery.trim();
+    if (query) this.router.navigate(['/tours'], { queryParams: { search: query } });
+  }
+
   private formatDisplayDate(dateStr: string): string {
     if (!dateStr) return '';
     try {
@@ -659,10 +740,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  public onTripImageError(event: any) {
-    if (event && event.target) {
-      event.target.src = this.tripImage;
-    }
+  public onTripImageError(event: Event) {
+    if (event.target instanceof HTMLImageElement) this.tripImageFailed = true;
   }
 
   public handleSidebarItem(item: ProfileSidebarItem) {

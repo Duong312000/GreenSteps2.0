@@ -1,10 +1,15 @@
-<main class="profile-dashboard" *ngIf="currentUser">
-    <aside class="profile-dashboard__sidebar">
-        <nav class="profile-sidebar-nav" aria-label="Profile navigation">
+<main class="profile-dashboard" [class.profile-dashboard--overview]="activeSection === 'overview'" *ngIf="currentUser">
+    <button type="button" class="profile-mobile-nav-toggle" [attr.aria-expanded]="isMobileNavOpen"
+        aria-controls="profile-sidebar-navigation" (click)="isMobileNavOpen = !isMobileNavOpen">
+        <i class="bi" [ngClass]="isMobileNavOpen ? 'bi-x-lg' : 'bi-list'"></i>
+        {{ isMobileNavOpen ? 'Đóng menu' : 'Danh mục' }}
+    </button>
+    <aside class="profile-dashboard__sidebar" [class.mobile-open]="isMobileNavOpen">
+        <nav id="profile-sidebar-navigation" class="profile-sidebar-nav" aria-label="Profile navigation">
             <section class="profile-nav-group" *ngFor="let group of sidebarGroups">
                 <h2>{{ group.heading }}</h2>
                 <button type="button" *ngFor="let item of group.items" class="profile-nav-item"
-                    [class.active]="isSidebarItemActive(item)" (click)="handleSidebarItem(item)">
+                    [class.active]="isSidebarItemActive(item)" (click)="handleSidebarItem(item); isMobileNavOpen = false">
                     <i class="bi" [ngClass]="item.icon"></i>
                     <span>{{ item.label }}</span>
                     <small *ngIf="item.badge">{{ item.badge }}</small>
@@ -23,67 +28,20 @@
     <section class="profile-dashboard__content overview-dashboard" *ngIf="activeSection === 'overview'">
         <div class="overview-page">
             <div class="overview-layout profile-overview-grid">
-                <aside class="profile-column left-column">
-                    <article class="profile-summary-card overview-profile-card">
-                        <div class="profile-summary-cover profile-cover"><img [src]="coverImage"
-                                alt="GreenSteps nature cover"></div>
-                        <div class="profile-summary-body profile-body">
-                            <div class="profile-avatar-wrap profile-avatar-wrapper">
-                                <div class="profile-avatar-large" style="overflow: hidden; border-radius: 50%;">
-                                    <img *ngIf="profileUser.avatarUrl" [src]="profileUser.avatarUrl"
-                                        style="width: 100%; height: 100%; object-fit: cover;">
-                                    <span *ngIf="!profileUser.avatarUrl">{{ getFirstLetter(profileUser.fullname)
-                                        }}</span>
-                                </div>
-                                <button type="button" (click)="openAvatarModal()" class="profile-avatar-camera"
-                                    aria-label="Cập nhật ảnh đại diện"><i class="bi bi-camera"></i></button>
-                            </div>
-                            <h2>{{ profileUser.fullname || profileUser.username }}</h2>
-                            <span class="profile-role-pill">{{ profileUser.role === 'provider' ? 'Nhà cung cấp' : 'Khách
-                                du lịch' }}</span>
-                            <div class="profile-summary-meta">
-                                <span><i class="bi bi-envelope"></i>{{ profileUser.email }}<i
-                                        class="bi bi-patch-check-fill verified"></i></span>
-                                <span><i class="bi bi-calendar2"></i>Thành viên GreenSteps</span>
-                            </div>
-                            <p class="profile-quote">"Travel far, live green, leave only footprints."</p>
-                            <div class="overview-social-links" aria-label="Liên kết mạng xã hội">
-                                <h3>Liên kết mạng xã hội</h3>
-                                <div class="overview-social-grid">
-                                    <button type="button" class="overview-social-item instagram"><i
-                                            class="bi bi-instagram"></i><span><strong>Instagram</strong><small>Đã liên
-                                                kết</small></span></button>
-                                    <button type="button" class="overview-social-item facebook"><i
-                                            class="bi bi-facebook"></i><span><strong>Facebook</strong><small>Chưa liên
-                                                kết</small></span></button>
-                                    <button type="button" class="overview-social-item tiktok"><i
-                                            class="bi bi-tiktok"></i><span><strong>TikTok</strong><small>Chưa liên
-                                                kết</small></span></button>
-                                    <button type="button" class="overview-social-item gmail">
-                                        <span class="gmail-logo" aria-hidden="true">
-                                            <svg viewBox="0 0 48 48" role="img">
-                                                <path fill="#4285F4"
-                                                    d="M6 10.5 3 13v25c0 1.1.9 2 2 2h6V18.4L6 14.7v-4.2Z" />
-                                                <path fill="#34A853"
-                                                    d="M42 10.5 45 13v25c0 1.1-.9 2-2 2h-6V18.4l5-3.7v-4.2Z" />
-                                                <path fill="#EA4335"
-                                                    d="M6 10.5C6 8.6 8.2 7.5 9.7 8.6L24 19.3 38.3 8.6c1.5-1.1 3.7 0 3.7 1.9v4.2L24 28.2 6 14.7v-4.2Z" />
-                                                <path fill="#FBBC04" d="M6 14.7 11 18.4V40H6V14.7Z" />
-                                                <path fill="#C5221F" d="M42 14.7 37 18.4V40h5V14.7Z" />
-                                            </svg>
-                                        </span>
-                                        <span><strong>Gmail</strong><small>{{ profileUser.email || 'Chưa liên kết'
-                                                }}</small></span>
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" class="profile-outline-button" (click)="showPersonalInfo()"><i
-                                    class="bi bi-pencil"></i> Chỉnh sửa hồ sơ</button>
-                        </div>
-                    </article>
-                </aside>
-
                 <section class="main-column">
+                    <header class="overview-welcome">
+                        <span class="overview-welcome-wave" aria-hidden="true">👋</span>
+                        <div>
+                            <p>Chào mừng trở lại</p>
+                            <h1>{{ profileUser.fullname || profileUser.username || 'bạn' }}</h1>
+                        </div>
+                        <form class="overview-search" (ngSubmit)="searchDashboardTours()">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input type="search" name="dashboardSearchQuery" [(ngModel)]="dashboardSearchQuery"
+                                placeholder="Tìm tour, điểm đến..." aria-label="Tìm tour hoặc điểm đến">
+                            <button type="submit" aria-label="Tìm kiếm"><i class="bi bi-arrow-right"></i></button>
+                        </form>
+                    </header>
                     <article class="profile-card dashboard-card overview-stats-card">
                         <header class="profile-card-header stats-header">
                             <div class="overview-stats-title">
@@ -98,29 +56,36 @@
                         <section class="profile-stats-grid stats-grid" aria-label="GreenSteps stats">
                             <article class="profile-stat-card stat-item stat-item--trips">
                                 <div class="profile-stat-icon"><i class="bi bi-luggage"></i></div>
-                                <strong class="stat-number">{{ savedItinerariesCount }}</strong>
-                                <span class="stat-label">Lịch trình<br>đã lưu</span>
-                                <span class="stat-trend trend-neutral">Tổng lịch trình trong tài khoản</span>
-                                <a href="#" (click)="activeSection = 'tickets'; $event.preventDefault()">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                                <strong class="stat-number">{{ savedItinerariesCount ?? '—' }}</strong>
+                                <span class="stat-label">Lịch trình đã lưu</span>
+                                <span class="stat-trend trend-neutral">{{ savedItinerariesCount === null ? 'Chưa có dữ liệu' : 'Lịch trình trong tài khoản' }}</span>
                             </article>
                             <article class="profile-stat-card stat-item stat-item--tours">
                                 <div class="profile-stat-icon"><i class="bi bi-ticket-perforated"></i></div>
-                                <strong class="stat-number">{{ bookedToursCount }}</strong>
+                                <strong class="stat-number">{{ bookedToursCount ?? '—' }}</strong>
                                 <span class="stat-label">Tour đã đặt</span>
-                                <span class="stat-trend trend-neutral">Đơn chưa hủy hoặc từ chối</span>
-                                <a href="#" (click)="activeSection = 'tickets'; $event.preventDefault()">Xem chi tiết <i class="bi bi-arrow-right"></i></a>
+                                <span class="stat-trend trend-neutral">{{ bookedToursCount === null ? 'Chưa có dữ liệu' : 'Đơn chưa hủy hoặc từ chối' }}</span>
                             </article>
                             <article class="profile-stat-card stat-item stat-item--points">
                                 <div class="profile-stat-icon"><i class="bi bi-tree-fill"></i></div>
-                                <strong class="stat-number">{{ userGreenPoints }}</strong>
+                                <strong class="stat-number">{{ userGreenPoints ?? '—' }}</strong>
                                 <span class="stat-label">Điểm xanh</span>
-                                <span class="stat-trend trend-neutral">Điểm hiện có trong ví</span>
-                                <a href="#" (click)="activeSection = 'wallet'; $event.preventDefault()">Chi tiết <i
-                                        class="bi bi-arrow-right"></i></a>
+                                <span class="stat-trend trend-neutral">{{ userGreenPoints === null ? 'Chưa có dữ liệu' : 'Điểm hiện có trong ví' }}</span>
                             </article>
                         </section>
                     </article>
 
+                    <article class="overview-feature-card">
+                        <div class="overview-feature-visual">
+                            <span class="overview-feature-eyebrow">GREENSTEPS TRAVEL</span>
+                            <img src="/profile-airplane.png" alt="">
+                            <p>Khám phá hành trình của bạn</p>
+                            <div class="overview-feature-visual-actions" *ngIf="!upcomingTrip">
+                                <a routerLink="/tours"><i class="bi bi-compass"></i> Khám phá tour xanh</a>
+                                <a routerLink="/schedule"><i class="bi bi-robot"></i> Thiết kế lịch trình AI</a>
+                            </div>
+                        </div>
+                        <div class="overview-feature-content">
                     <article id="upcoming-trip-card" class="profile-card dashboard-card profile-upcoming-card upcoming-trip-card">
                         <header class="profile-card-header">
                             <h2>Lịch trình sắp tới</h2>
@@ -129,16 +94,24 @@
 
                         <!-- Đã có lịch trình hoặc đơn đặt trong database -->
                         <div class="profile-trip-row upcoming-trip-content" *ngIf="upcomingTrip; else noUpcomingTrip">
-                            <div class="profile-trip-image">
+                            <div class="profile-trip-image"
+                                *ngIf="upcomingTrip.image && !tripImageFailed; else tripImagePlaceholder">
                                 <img [src]="upcomingTrip.image" [alt]="upcomingTrip.title"
                                     (error)="onTripImageError($event)">
                                 <span>{{ upcomingTrip.statusText }}</span>
                             </div>
+                            <ng-template #tripImagePlaceholder>
+                                <div class="profile-trip-image trip-image-placeholder" aria-hidden="true">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span>{{ upcomingTrip.statusText }}</span>
+                                </div>
+                            </ng-template>
                             <div class="profile-trip-info">
                                 <h3>{{ upcomingTrip.title }}</h3>
-                                <p><i class="bi bi-calendar2-week"></i>{{ upcomingTrip.dates }}</p>
-                                <p><i class="bi bi-people"></i>{{ upcomingTrip.guests }} người lớn</p>
-                                <p>Tổng chi phí dự kiến: <strong>{{ upcomingTrip.cost | number:'1.0-0' }}đ</strong></p>
+                                <p *ngIf="upcomingTrip.destination"><i class="bi bi-geo-alt"></i>{{ upcomingTrip.destination }}</p>
+                                <p *ngIf="upcomingTrip.dates"><i class="bi bi-calendar2-week"></i>{{ upcomingTrip.dates }}</p>
+                                <p *ngIf="upcomingTrip.guests != null"><i class="bi bi-people"></i>{{ upcomingTrip.guests }} khách</p>
+                                <p *ngIf="upcomingTrip.cost != null">Tổng chi phí: <strong>{{ upcomingTrip.cost | number:'1.0-0' }}đ</strong></p>
                             </div>
                             <div class="profile-trip-action">
                                 <span>{{ upcomingTrip.daysLeftText }}</span>
@@ -148,37 +121,158 @@
 
                         <!-- Chưa có lịch trình hoặc đơn đặt nào trong database -->
                         <ng-template #noUpcomingTrip>
-                            <div class="empty-upcoming-trip"
-                                style="padding: 24px 16px; text-align: center; background: #f8fafc; border-radius: 14px; border: 1px dashed #cbd5e1; margin: 12px 0;">
-                                <div style="font-size: 32px; color: #10b981; margin-bottom: 8px;">
-                                    <i class="bi bi-calendar2-x"></i>
-                                </div>
-                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">Chưa
-                                    có lịch trình nào được tạo</h4>
-                                <p
-                                    style="font-size: 13px; color: #64748b; margin-bottom: 16px; max-width: 420px; margin-left: auto; margin-right: auto;">
+                            <div class="empty-upcoming-trip">
+                                <h4>Chưa có lịch trình nào được tạo</h4>
+                                <p>
                                     Bạn chưa có chuyến đi nào được đặt hoặc lưu trong hệ thống. Hãy khám phá các tour
                                     sinh thái hoặc tự thiết kế lịch trình xanh ngay hôm nay!
                                 </p>
-                                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                                    <a routerLink="/tours"
-                                        style="background: #059669; color: #fff; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                                        <i class="bi bi-compass"></i> Khám phá tour xanh
-                                    </a>
-                                    <a routerLink="/schedule"
-                                        style="background: #fff; color: #059669; border: 1px solid #059669; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                                        <i class="bi bi-robot"></i> Thiết kế lịch trình AI
-                                    </a>
-                                </div>
                             </div>
                         </ng-template>
                     </article>
 
+                    <article class="profile-card dashboard-card overview-weather-card">
+                        <header class="profile-card-header">
+                            <div>
+                                <h2>Thời tiết điểm đến</h2>
+                                <span *ngIf="destinationWeather">{{ destinationWeather.destination }}</span>
+                            </div>
+                            <i class="bi bi-cloud-sun overview-weather-header-icon" aria-hidden="true"></i>
+                        </header>
+                        <p class="weather-state" *ngIf="weatherLoading">Đang tải dự báo thời tiết...</p>
+                        <ng-container *ngIf="!weatherLoading && destinationWeather as weather">
+                            <div class="weather-current">
+                                <i class="bi" [ngClass]="weatherIcon(weather.current.weatherCode)" aria-hidden="true"></i>
+                                <div>
+                                    <strong>{{ weather.current.temperature }}°C</strong>
+                                    <span>{{ weatherDescription(weather.current.weatherCode) }}</span>
+                                </div>
+                            </div>
+                            <div class="weather-days">
+                                <div *ngFor="let day of weather.days">
+                                    <span>{{ day.date | date:'dd/MM' }}</span>
+                                    <i class="bi" [ngClass]="weatherIcon(day.weatherCode)" aria-hidden="true"></i>
+                                    <strong>{{ day.temperatureMax }}° / {{ day.temperatureMin }}°</strong>
+                                    <small *ngIf="day.precipitationProbability != null">Mưa {{ day.precipitationProbability }}%</small>
+                                </div>
+                            </div>
+                        </ng-container>
+                        <p class="weather-state" *ngIf="!weatherLoading && !destinationWeather && !weatherError">
+                            {{ upcomingTrip?.destination ? 'Chưa có dữ liệu thời tiết cho điểm đến này.' : 'Chưa có dữ liệu điểm đến từ lịch trình của bạn.' }}
+                        </p>
+                        <div class="weather-state" *ngIf="!weatherLoading && weatherError">
+                            Không thể tải dự báo thời tiết.
+                            <button type="button" class="weather-retry" (click)="retryDestinationWeather()">Thử lại</button>
+                        </div>
+                        <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Nguồn dự báo: Open-Meteo</a>
+                    </article>
+                        </div>
+                    </article>
+
+                    <div class="overview-main-lower-widgets">
+                        <article class="profile-provider-card overview-provider-widget side-widget provider-card"
+                            *ngIf="profileUser.role !== 'provider'">
+                            <i class="bi bi-buildings"></i>
+                            <div>
+                                <h3>Trở thành Nhà cung cấp</h3>
+                                <p>Chia sẻ dịch vụ của bạn đến hàng ngàn du khách yêu du lịch xanh.</p>
+                                <button type="button" (click)="navigateToProviderRegistration()">Đăng ký ngay <i
+                                        class="bi bi-arrow-right"></i></button>
+                            </div>
+                        </article>
+                        <article class="profile-provider-card active overview-provider-widget side-widget provider-card"
+                            *ngIf="profileUser.role === 'provider'">
+                            <i class="bi bi-shop"></i>
+                            <div>
+                                <h3>Kênh Nhà cung cấp đã kích hoạt</h3>
+                                <p>Quản lý dịch vụ, đơn đặt và quảng cáo cho khách du lịch xanh.</p>
+                                <button type="button" routerLink="/partner-dashboard">Vào kênh đối tác <i
+                                        class="bi bi-arrow-right"></i></button>
+                            </div>
+                        </article>
+
+                        <article class="profile-card profile-carbon-card side-widget carbon-card">
+                            <header class="profile-card-header">
+                                <h2>CO₂ trong lịch trình đã lưu</h2>
+                                <span class="carbon-period-label">Tổng cộng</span>
+                            </header>
+                            <div class="profile-carbon-chart" *ngIf="carbonSummary.available; else noCarbonData"
+                                role="img"
+                                [attr.aria-label]="'Tổng CO₂ ghi nhận ' + (carbonSummary.total | number:'1.0-1') + ' kg'">
+                                <svg viewBox="0 0 120 120" aria-hidden="true">
+                                    <circle class="carbon-track" cx="60" cy="60" r="42" pathLength="100"></circle>
+                                    <circle class="carbon-segment carbon-transport" cx="60" cy="60" r="42" pathLength="100"
+                                        [attr.stroke-dasharray]="carbonSegment(carbonSummary.transport)"
+                                        [attr.stroke-dashoffset]="carbonSegmentOffset(0)">
+                                    </circle>
+                                    <circle class="carbon-segment carbon-stay" cx="60" cy="60" r="42" pathLength="100"
+                                        [attr.stroke-dasharray]="carbonSegment(carbonSummary.stay)"
+                                        [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport)">
+                                    </circle>
+                                    <circle class="carbon-segment carbon-activity" cx="60" cy="60" r="42" pathLength="100"
+                                        [attr.stroke-dasharray]="carbonSegment(carbonSummary.activity)"
+                                        [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport + carbonSummary.stay)">
+                                    </circle>
+                                </svg>
+                                <div class="profile-carbon-total"><strong>{{ carbonSummary.total | number:'1.0-1' }}</strong><span>kg CO₂</span></div>
+                            </div>
+                            <ng-template #noCarbonData>
+                                <div class="carbon-empty-state">Chưa có dữ liệu CO₂ từ lịch trình đã lưu.</div>
+                            </ng-template>
+                            <div class="profile-carbon-kpi" *ngIf="carbonSummary.available">
+                                <span *ngIf="carbonSummary.breakdownAvailable">Ước tính từ các hoạt động trong lịch trình, không phải chuyến đi đã thực hiện.</span>
+                                <span *ngIf="!carbonSummary.breakdownAvailable">Tổng carbon đã lưu; chưa có dữ liệu phân bổ theo hoạt động.</span>
+                            </div>
+                            <div class="profile-carbon-list" *ngIf="carbonSummary.breakdownAvailable">
+                                <div class="carbon-breakdown-transport"><span><i class="bi bi-bus-front"></i>Phương
+                                        tiện</span><strong>{{ carbonSummary.transport | number:'1.0-1' }} kg</strong></div>
+                                <div class="carbon-breakdown-stay"><span><i class="bi bi-house-heart"></i>Lưu
+                                        trú</span><strong>{{ carbonSummary.stay | number:'1.0-1' }} kg</strong></div>
+                                <div class="carbon-breakdown-activity"><span><i class="bi bi-bicycle"></i>Hoạt
+                                        động</span><strong>{{ carbonSummary.activity | number:'1.0-1' }} kg</strong></div>
+                            </div>
+                            <div class="carbon-breakdown-empty" *ngIf="carbonSummary.available && !carbonSummary.breakdownAvailable">
+                                Phân bổ theo phương tiện, lưu trú và hoạt động chưa có dữ liệu.
+                            </div>
+                        </article>
+                    </div>
+
+                </section>
+
+                <aside class="right-column overview-right-panel">
+                    <article class="profile-summary-card overview-profile-card">
+                        <header class="overview-profile-heading">
+                            <h2>Hồ sơ của bạn</h2>
+                            <button type="button" (click)="showPersonalInfo()" aria-label="Chỉnh sửa hồ sơ">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </header>
+                        <div class="profile-summary-body profile-body">
+                            <div class="profile-avatar-wrap profile-avatar-wrapper">
+                                <div class="profile-avatar-large" style="overflow: hidden; border-radius: 50%;">
+                                    <img *ngIf="profileUser.avatarUrl" [src]="profileUser.avatarUrl"
+                                        style="width: 100%; height: 100%; object-fit: cover;">
+                                    <span *ngIf="!profileUser.avatarUrl">{{ getFirstLetter(profileUser.fullname) }}</span>
+                                </div>
+                                <button type="button" (click)="openAvatarModal()" class="profile-avatar-camera"
+                                    aria-label="Cập nhật ảnh đại diện"><i class="bi bi-camera"></i></button>
+                            </div>
+                            <h2>{{ profileUser.fullname || profileUser.username }}</h2>
+                            <span class="profile-role-pill">{{ profileUser.role === 'provider' ? 'Nhà cung cấp' : 'Khách du lịch' }}</span>
+                            <div class="profile-summary-meta overview-account-facts">
+                                <span *ngIf="profileUser.phone"><i class="bi bi-telephone"></i>{{ profileUser.phone }}</span>
+                            </div>
+                            <div class="overview-profile-fields">
+                                <div><span>Location</span><strong>{{ profileUser.address || 'Chưa cập nhật' }}</strong></div>
+                                <div><span>Email</span><strong>{{ profileUser.email || 'Chưa cập nhật' }}</strong></div>
+                                <div><span>D.O.B</span><strong>{{ profileUser.dob || 'Chưa cập nhật' }}</strong></div>
+                            </div>
+                        </div>
+                    </article>
                     <article class="profile-card dashboard-card overview-activity-card recent-activity-card">
                         <header class="profile-card-header">
                             <h2>Hoạt động gần đây</h2>
-                            <a href="#" (click)="$event.preventDefault(); activeSection = 'notifications'">Xem tất cả <i
-                                    class="bi bi-arrow-right"></i></a>
+                            <a href="#" (click)="$event.preventDefault(); activeSection = 'notifications'">Xem tất cả <i class="bi bi-arrow-right"></i></a>
                         </header>
                         <div class="overview-activity-list recent-list" *ngIf="notificationsList.length > 0">
                             <div class="recent-item" *ngFor="let notif of notificationsList.slice(0, 3)">
@@ -194,15 +288,10 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="overview-activity-list recent-list" *ngIf="notificationsList.length === 0"
-                            style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
-                            Chưa có hoạt động gần đây nào.
+                        <div class="overview-activity-list recent-list" *ngIf="notificationsList.length === 0">
+                            <p class="weather-state">Chưa có hoạt động gần đây nào.</p>
                         </div>
                     </article>
-                </section>
-
-
-                <aside class="right-column">
                     <article class="profile-wallet-card overview-wallet-card side-widget wallet-card">
                         <div class="profile-wallet-icon"><i class="bi bi-wallet2"></i></div>
                         <div class="profile-wallet-copy">
@@ -222,7 +311,7 @@
                         </div>
                         <div class="profile-wallet-action">
                             <button type="button" class="wallet-button" *ngIf="!walletRegistered"
-                                (click)="handleWalletActivation()">Kích hoạt ví & nhận 5.000.000đ</button>
+                                (click)="handleWalletActivation()">Kích hoạt ví GreenSteps</button>
                             <button type="button" class="wallet-button active-wallet-btn" *ngIf="walletRegistered"
                                 (click)="activeSection = 'wallet'"
                                 style="background-color: var(--primary-green); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.2);">
@@ -231,72 +320,6 @@
                         </div>
                     </article>
 
-
-                    <article class="profile-provider-card overview-provider-widget side-widget provider-card"
-                        *ngIf="profileUser.role !== 'provider'">
-                        <i class="bi bi-buildings"></i>
-                        <div>
-                            <h3>Trở thành Nhà cung cấp</h3>
-                            <p>Chia sẻ dịch vụ của bạn đến hàng ngàn du khách yêu du lịch xanh.</p>
-                            <button type="button" (click)="navigateToProviderRegistration()">Đăng ký ngay <i
-                                    class="bi bi-arrow-right"></i></button>
-                        </div>
-                    </article>
-                    <article class="profile-provider-card active overview-provider-widget side-widget provider-card"
-                        *ngIf="profileUser.role === 'provider'">
-                        <i class="bi bi-shop"></i>
-                        <div>
-                            <h3>Kênh Nhà cung cấp đã kích hoạt</h3>
-                            <p>Quản lý dịch vụ, đơn đặt và quảng cáo cho khách du lịch xanh.</p>
-                            <button type="button" routerLink="/partner-dashboard">Vào kênh đối tác <i
-                                    class="bi bi-arrow-right"></i></button>
-                        </div>
-                    </article>
-
-                    <article class="profile-card profile-carbon-card side-widget carbon-card">
-                        <header class="profile-card-header">
-                            <h2>CO₂ trong lịch trình đã lưu</h2>
-                            <span class="carbon-period-label">Tổng cộng</span>
-                        </header>
-                        <div class="profile-carbon-chart" *ngIf="carbonSummary.available; else noCarbonData"
-                            role="img"
-                            [attr.aria-label]="'Tổng CO₂ ghi nhận ' + (carbonSummary.total | number:'1.0-1') + ' kg'">
-                            <svg viewBox="0 0 120 120" aria-hidden="true">
-                                <circle class="carbon-track" cx="60" cy="60" r="42" pathLength="100"></circle>
-                                <circle class="carbon-segment carbon-transport" cx="60" cy="60" r="42" pathLength="100"
-                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.transport)"
-                                    [attr.stroke-dashoffset]="carbonSegmentOffset(0)">
-                                </circle>
-                                <circle class="carbon-segment carbon-stay" cx="60" cy="60" r="42" pathLength="100"
-                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.stay)"
-                                    [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport)">
-                                </circle>
-                                <circle class="carbon-segment carbon-activity" cx="60" cy="60" r="42" pathLength="100"
-                                    [attr.stroke-dasharray]="carbonSegment(carbonSummary.activity)"
-                                    [attr.stroke-dashoffset]="carbonSegmentOffset(carbonSummary.transport + carbonSummary.stay)">
-                                </circle>
-                            </svg>
-                            <div class="profile-carbon-total"><strong>{{ carbonSummary.total | number:'1.0-1' }}</strong><span>kg CO₂</span></div>
-                        </div>
-                        <ng-template #noCarbonData>
-                            <div class="carbon-empty-state">Chưa có dữ liệu CO₂ từ lịch trình đã lưu.</div>
-                        </ng-template>
-                        <div class="profile-carbon-kpi" *ngIf="carbonSummary.available">
-                            <span *ngIf="carbonSummary.breakdownAvailable">Ước tính từ các hoạt động trong lịch trình, không phải chuyến đi đã thực hiện.</span>
-                            <span *ngIf="!carbonSummary.breakdownAvailable">Tổng carbon đã lưu; chưa có dữ liệu phân bổ theo hoạt động.</span>
-                        </div>
-                        <div class="profile-carbon-list" *ngIf="carbonSummary.breakdownAvailable">
-                            <div class="carbon-breakdown-transport"><span><i class="bi bi-bus-front"></i>Phương
-                                    tiện</span><strong>{{ carbonSummary.transport | number:'1.0-1' }} kg</strong></div>
-                            <div class="carbon-breakdown-stay"><span><i class="bi bi-house-heart"></i>Lưu
-                                    trú</span><strong>{{ carbonSummary.stay | number:'1.0-1' }} kg</strong></div>
-                            <div class="carbon-breakdown-activity"><span><i class="bi bi-bicycle"></i>Hoạt
-                                    động</span><strong>{{ carbonSummary.activity | number:'1.0-1' }} kg</strong></div>
-                        </div>
-                        <div class="carbon-breakdown-empty" *ngIf="carbonSummary.available && !carbonSummary.breakdownAvailable">
-                            Phân bổ theo phương tiện, lưu trú và hoạt động chưa có dữ liệu.
-                        </div>
-                    </article>
 
                 </aside>
             </div>
@@ -676,7 +699,7 @@
                         </div><a href="#" (click)="$event.preventDefault()">Quản lý</a>
                     </header>
                     <div class="recovery-list">
-                        <span><small>Email khôi phục</small><strong>kienldvk24411@st.uel.edu.vn</strong><i
+                        <span><small>Email khôi phục</small><strong>{{ profileUser.email || 'Chưa có dữ liệu' }}</strong><i
                                 class="bi bi-check-circle"></i></span>
                         <span><small>Số điện thoại khôi phục</small><strong>•••• •••• 7890</strong><i
                                 class="bi bi-check-circle"></i></span>
@@ -850,24 +873,24 @@
                     <div>
                         <span style="background: #e8f5ee; color: #0f6b45; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px;">{{ ticket.statusText }}</span>
                         <h3 style="font-size: 20px; font-weight: 800; color: #1e293b; margin: 10px 0 4px;">{{ ticket.title }}</h3>
-                        <p style="color: #64748b; font-size: 13px; margin: 0;"><i class="bi bi-geo-alt"></i> {{ ticket.destination }}</p>
+                        <p *ngIf="ticket.destination" style="color: #64748b; font-size: 13px; margin: 0;"><i class="bi bi-geo-alt"></i> {{ ticket.destination }}</p>
                     </div>
-                    <div style="text-align: right;">
+                    <div *ngIf="ticket.evoucher" style="text-align: right;">
                         <span style="font-size: 12px; color: #94a3b8; display: block;">Mã vé điện tử</span>
                         <strong style="font-size: 18px; font-family: monospace; color: #0f6b45; letter-spacing: 2px;">{{ ticket.evoucher }}</strong>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;">
-                    <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                    <div *ngIf="ticket.dates" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                         <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">NGÀY KHỞI HÀNH</span>
                         <strong style="font-size: 14px; color: #1e293b; margin-top: 4px; display: block;">{{ ticket.dates }}</strong>
                     </div>
-                    <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                    <div *ngIf="ticket.guests != null" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                         <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">SỐ LƯỢNG KHÁCH</span>
                         <strong style="font-size: 14px; color: #1e293b; margin-top: 4px; display: block;">{{ ticket.guests }} người</strong>
                     </div>
-                    <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                    <div *ngIf="ticket.cost != null" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                         <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">TỔNG THANH TOÁN</span>
                         <strong style="font-size: 14px; color: #0f6b45; margin-top: 4px; display: block;">{{ ticket.cost | number:'1.0-0' }}đ</strong>
                     </div>
@@ -890,21 +913,21 @@
                             <h3 style="font-size: 20px; font-weight: 800; color: #1e293b; margin: 10px 0 4px;">{{ upcomingTrip.title }}</h3>
                             <p style="color: #64748b; font-size: 13px; margin: 0;"><i class="bi bi-geo-alt"></i> {{ upcomingTrip.destination }}</p>
                         </div>
-                        <div style="text-align: right;">
+                        <div *ngIf="upcomingTrip.evoucher" style="text-align: right;">
                             <span style="font-size: 12px; color: #94a3b8; display: block;">Mã vé điện tử</span>
-                            <strong style="font-size: 18px; font-family: monospace; color: #0f6b45; letter-spacing: 2px;">GS-{{ (upcomingTrip.id || '24411').substring(0, 6) | uppercase }}</strong>
+                            <strong style="font-size: 18px; font-family: monospace; color: #0f6b45; letter-spacing: 2px;">{{ upcomingTrip.evoucher }}</strong>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;">
-                        <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                        <div *ngIf="upcomingTrip.dates" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                             <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">NGÀY KHỞI HÀNH</span>
                             <strong style="font-size: 14px; color: #1e293b; margin-top: 4px; display: block;">{{ upcomingTrip.dates }}</strong>
                         </div>
-                        <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                        <div *ngIf="upcomingTrip.guests != null" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                             <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">SỐ LƯỢNG KHÁCH</span>
                             <strong style="font-size: 14px; color: #1e293b; margin-top: 4px; display: block;">{{ upcomingTrip.guests }} người</strong>
                         </div>
-                        <div style="background: #f8fafc; padding: 14px; border-radius: 12px;">
+                        <div *ngIf="upcomingTrip.cost != null" style="background: #f8fafc; padding: 14px; border-radius: 12px;">
                             <span style="font-size: 11px; color: #64748b; display: block; font-weight: 700;">TỔNG THANH TOÁN</span>
                             <strong style="font-size: 14px; color: #0f6b45; margin-top: 4px; display: block;">{{ upcomingTrip.cost | number:'1.0-0' }}đ</strong>
                         </div>

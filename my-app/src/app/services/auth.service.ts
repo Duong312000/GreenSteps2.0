@@ -47,6 +47,9 @@ export class AuthService {
         return;
       }
       const user = JSON.parse(userStr);
+      if (user.avatarUrl) {
+        user.avatarUrl = this.apiService.resolveCommunityMediaUrl(user.avatarUrl);
+      }
       this.currentUserSubject.next(user);
       this.apiService.setAdminUserCacheScope(user?.id || user?._id || null);
     } catch {
@@ -92,7 +95,7 @@ export class AuthService {
       address: raw.address,
       role: raw.role || 'traveler',
       companyName: raw.companyName || raw.company_name,
-      avatarUrl: raw.avatarUrl || raw.avatar_url,
+      avatarUrl: this.apiService.resolveCommunityMediaUrl(raw.avatarUrl || raw.avatar_url),
       is_verified: raw.is_verified
     };
   }

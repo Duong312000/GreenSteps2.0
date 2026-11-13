@@ -15,6 +15,7 @@ export class App implements OnInit {
   isAdminRoute = false;
   isScheduleRoute = false;
   isPlannerRoute = false;
+  isProfileRoute = false;
   isStandalonePolicyRoute = false;
   isStandaloneMaintenanceRoute = false;
 
@@ -38,6 +39,7 @@ export class App implements OnInit {
     this.isAdminRoute = cleanUrl === '/admin';
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
+    this.isProfileRoute = cleanUrl === '/profile';
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
     this.isStandaloneMaintenanceRoute = cleanUrl === '/maintenance';
   }
