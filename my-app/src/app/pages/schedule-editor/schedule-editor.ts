@@ -2409,7 +2409,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
 
   // =========================================================================
-  // UNIVERSAL MAP INITIALIZER (Prefers Google Maps JS API with POI & Places)
+  // UNIVERSAL MAP INITIALIZER (High-Performance Leaflet with Google Maps Styling)
   // =========================================================================
   public async initUniversalMap() {
     if (!this.activeItinerary) return;
@@ -2417,24 +2417,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Ensure activities have coordinates
     this.ensureItineraryCoordinates();
 
-    // Instant bypass to Leaflet if Google auth failed or is blocked
-    if ((window as any).__gm_auth_failed) {
-      this.isGoogleMaps = false;
-      this.initLeafletMap();
-      return;
-    }
-
-    // Wait up to 3s for Google Maps JS API (1.4MB) to be ready in window
-    const isGoogleReady = await this.waitForGoogleMapsReady(3000);
-
-    if (isGoogleReady && !(window as any).__gm_auth_failed) {
-      console.log('🌟 Launching official Google Maps SDK with interactive POIs & Places!');
-      this.initGoogleMap();
-    } else {
-      console.log('⚡ Fallback to Leaflet map engine');
-      this.isGoogleMaps = false;
-      this.initLeafletMap();
-    }
+    // Directly initialize fast, reliable Leaflet engine with Google Maps raster tiles
+    this.isGoogleMaps = false;
+    this.initLeafletMap();
   }
 
   private waitForGoogleMapsReady(timeoutMs: number = 4000): Promise<boolean> {
@@ -3129,9 +3114,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private plotMapMarkers(shouldFit: boolean = false) {
-    if (!this.activeItinerary) return;
+    if (!this.activeItinerary || !this.activeItinerary.days || this.activeItinerary.days.length === 0) return;
+    if (this.activeDayIdx < 0 || this.activeDayIdx >= this.activeItinerary.days.length) {
+      this.activeDayIdx = 0;
+    }
 
     const activeDay = this.activeItinerary.days[this.activeDayIdx];
+    if (!activeDay) return;
+    if (!Array.isArray(activeDay.activities)) {
+      activeDay.activities = [];
+    }
     const coordinates: any[] = [];
 
     // =========================================================================
