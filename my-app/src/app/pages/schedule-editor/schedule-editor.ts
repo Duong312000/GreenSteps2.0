@@ -1191,19 +1191,41 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
-    // 2. If Authenticated User: Save to backend database under currentUser.id
-    const apiIti = this.convertEditorToApiItinerary(this.activeItinerary);
+    // 2. Authenticated: serialize saves so parallel transactions never collide (MongoDB WriteConflict)
+    this.lastLocalEditAt = Date.now();
+    if (this.saveInFlight) {
+      this.savePending = true;
+      return;
+    }
+    this.saveInFlight = true;
     try {
-      await this.apiService.saveItinerary(apiIti);
+      do {
+        this.savePending = false;
+        const apiIti = this.convertEditorToApiItinerary(this.activeItinerary);
+        try {
+          await this.apiService.saveItinerary(apiIti);
+        } catch (e) {
+          console.warn('Save failed, will retry with latest state:', e);
+          await new Promise(r => setTimeout(r, 400));
+          this.savePending = true;
+          if (++this.saveRetryCount > 3) { this.savePending = false; }
+        }
+      } while (this.savePending);
+      this.saveRetryCount = 0;
+    } finally {
+      this.saveInFlight = false;
+      this.lastLocalEditAt = Date.now();
       setTimeout(() => {
         this.isAutoSaving = false;
         this.cdr.detectChanges();
-      }, 600);
-    } catch (e) {
-      this.isAutoSaving = false;
-      this.cdr.detectChanges();
+      }, 400);
     }
   }
+
+  private saveInFlight = false;
+  private savePending = false;
+  private saveRetryCount = 0;
+  private lastLocalEditAt = 0;
 
   // Helper: Normalize carbon format to prevent double minus (--0.8 kg)
   public formatCarbon(carbon: any): string {
@@ -2417,9 +2439,20 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Ensure activities have coordinates
     this.ensureItineraryCoordinates();
 
-    // Directly initialize fast, reliable Leaflet engine with Google Maps raster tiles
-    this.isGoogleMaps = false;
-    this.initLeafletMap();
+    // Google key rejected -> Leaflet immediately
+    if ((window as any).__gm_auth_failed) {
+      this.isGoogleMaps = false;
+      this.initLeafletMap();
+      return;
+    }
+
+    const isGoogleReady = await this.waitForGoogleMapsReady(4000);
+    if (isGoogleReady && !(window as any).__gm_auth_failed) {
+      this.initGoogleMap();
+    } else {
+      this.isGoogleMaps = false;
+      this.initLeafletMap();
+    }
   }
 
   private waitForGoogleMapsReady(timeoutMs: number = 4000): Promise<boolean> {
@@ -5153,6 +5186,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.stopBackgroundSync();
     this.backgroundSyncInterval = setInterval(async () => {
       if (!this.activeItinerary || this.isAutoSaving || this.isCheckoutModalOpen || this.isSampleItinerary || !this.currentUser) return;
+      // Do not pull server state while local edits are still being persisted
+      if (this.saveInFlight || this.savePending || Date.now() - this.lastLocalEditAt < 6000) return;
 
       try {
         const fresh = await this.apiService.getItinerary(this.activeItinerary.id, true);
