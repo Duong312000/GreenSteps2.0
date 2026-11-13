@@ -177,8 +177,27 @@
           </button>
         </div>
 
+        <!-- Loading Skeleton Grid (Hiệu ứng skeleton khi đang tải trang) -->
+        <div *ngIf="isPageLoading" class="shopco-products-grid" aria-label="Đang tải danh sách tour...">
+          <div *ngFor="let s of [1, 2, 3, 4, 5, 6]" class="shopco-product-card" style="pointer-events: none;">
+            <div class="card-img-container" style="background: transparent;">
+              <div class="skeleton" style="width: 100%; height: 100%; border-radius: 16px;"></div>
+            </div>
+            <div class="card-body">
+              <div class="skeleton skeleton-text" style="width: 45%; height: 14px; margin-bottom: 8px;"></div>
+              <div class="skeleton skeleton-title" style="width: 85%; height: 20px; margin-bottom: 12px;"></div>
+              <div class="skeleton skeleton-text" style="width: 35%; height: 14px; margin-bottom: 12px;"></div>
+              <div class="skeleton skeleton-text" style="width: 70%; height: 14px; margin-bottom: 16px;"></div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px;">
+                <div class="skeleton skeleton-text" style="width: 40%; height: 22px; margin-bottom: 0;"></div>
+                <div class="skeleton skeleton-button" style="width: 90px; height: 36px; border-radius: 8px; margin-bottom: 0;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Product Cards Grid (Shop.co 3-column Grid) -->
-        <div *ngIf="paginatedTours.length > 0; else noResults" class="shopco-products-grid">
+        <div *ngIf="!isPageLoading && paginatedTours.length > 0" class="shopco-products-grid">
           <div *ngFor="let tour of paginatedTours" class="shopco-product-card" [routerLink]="['/tour-detail', tour.id]" style="cursor: pointer;">
             <!-- Image Container -->
             <div class="card-img-container">
@@ -266,22 +285,32 @@
           </div>
         </div>
 
-        <!-- No Results Fallback -->
-        <ng-template #noResults>
-          <div class="no-results-box">
-            <i class="bi bi-search no-results-icon"></i>
-            <h3>Không tìm thấy tour phù hợp</h3>
-            <p>Vui lòng thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
-            <button (click)="resetFilters()" class="btn-reset-large">
+        <!-- No Results Fallback (Chỉ hiển thị khi đã tải xong mà không tìm thấy tour) -->
+        <div *ngIf="!isPageLoading && paginatedTours.length === 0" class="no-results-box">
+          <i class="bi" [ngClass]="loadError ? 'bi-wifi-off text-amber-600' : 'bi-search no-results-icon'"></i>
+          <h3>{{ loadError ? 'Không thể kết nối đến máy chủ' : 'Không tìm thấy tour phù hợp' }}</h3>
+          <p>
+            <ng-container *ngIf="loadError">
+              Đã xảy ra lỗi khi tải danh sách chuyến đi. Vui lòng kiểm tra kết nối internet của bạn và thử lại.
+            </ng-container>
+            <ng-container *ngIf="!loadError">
+              Không tìm thấy tour nào khớp với yêu cầu. Vui lòng thử điều chỉnh lại bộ lọc, từ khóa tìm kiếm hoặc kiểm tra kết nối internet của bạn.
+            </ng-container>
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button *ngIf="loadError" (click)="loadTours()" class="btn-reset-large" style="background: #184A37; color: white;">
+              <i class="bi bi-arrow-clockwise"></i> Thử tải lại
+            </button>
+            <button (click)="resetFilters()" class="btn-reset-large" [style.background]="loadError ? '#e5e7eb' : '#184A37'" [style.color]="loadError ? '#1f2937' : '#ffffff'">
               Khôi phục tất cả bộ lọc
             </button>
           </div>
-        </ng-template>
+        </div>
 
-        <hr class="shopco-divider mt-8" />
+        <hr class="shopco-divider mt-8" *ngIf="!isPageLoading && totalPages > 1" />
 
         <!-- Pagination (Shop.co Pagination Style) -->
-        <div class="shopco-pagination" *ngIf="totalPages > 1">
+        <div class="shopco-pagination" *ngIf="!isPageLoading && totalPages > 1">
           <button (click)="prevPage()" [disabled]="currentPage === 1" class="pagination-btn pagination-prev">
             <i class="bi bi-arrow-left"></i>
             <span>Trước</span>

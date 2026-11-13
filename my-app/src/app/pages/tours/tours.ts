@@ -18,6 +18,7 @@ export class ToursComponent implements OnInit {
   public paginatedTours: Tour[] = [];
   public recommendedTours: Tour[] = [];
   public isPageLoading: boolean = true;
+  public loadError: boolean = false;
   public isMobileFilterOpen: boolean = false;
 
   // Filter bindings
@@ -100,27 +101,7 @@ export class ToursComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    try {
-      const allTours = await this.apiService.getPresetTours();
-      this.toursData = allTours || [];
-    } catch (e) {
-      console.warn('Unable to load tours:', e);
-      this.toursData = [];
-    }
-
-    // Enrich missing fields
-    this.toursData.forEach(t => {
-      if (!t.oldCost) {
-        t.oldCost = Math.round(t.cost * 1.2 / 10000) * 10000;
-      }
-      if (!t.discountPercent) {
-        t.discountPercent = Math.round(((t.oldCost - t.cost) / t.oldCost) * 100);
-      }
-    });
-
-    this.filteredTours = [...this.toursData];
-    this.isPageLoading = false;
-    this.cdr.detectChanges();
+    await this.loadTours();
 
     // Query params filtering
     this.route.queryParams.subscribe(params => {
@@ -153,6 +134,41 @@ export class ToursComponent implements OnInit {
         }
       }).catch(() => {});
     }
+  }
+
+  public async loadTours() {
+    this.isPageLoading = true;
+    this.loadError = false;
+    this.cdr.detectChanges();
+
+    try {
+      const allTours = await this.apiService.getPresetTours();
+      this.toursData = allTours || [];
+      if (!allTours || (Array.isArray(allTours) && allTours.length === 0)) {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          this.loadError = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Unable to load tours:', e);
+      this.toursData = [];
+      this.loadError = true;
+    }
+
+    // Enrich missing fields
+    this.toursData.forEach(t => {
+      if (!t.oldCost) {
+        t.oldCost = Math.round(t.cost * 1.2 / 10000) * 10000;
+      }
+      if (!t.discountPercent) {
+        t.discountPercent = Math.round(((t.oldCost - t.cost) / t.oldCost) * 100);
+      }
+    });
+
+    this.filteredTours = [...this.toursData];
+    this.filterTours();
+    this.isPageLoading = false;
+    this.cdr.detectChanges();
   }
 
   public filterTours() {
