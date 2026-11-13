@@ -10315,7 +10315,10 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
 div[style*="z-index: 10000002"],
 div[style*="z-index: 10000001"],
 div[style*="z-index: 10000000"],
-.pac-container ~ div[style*="position: absolute; left: 0px; top: 0px;"] {
+.pac-container ~ div,
+.pac-container + div,
+div:has(> .gm-err-container),
+div[style*="position: absolute"][style*="background-color: white"][style*="z-index"] {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;

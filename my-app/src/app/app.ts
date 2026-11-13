@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './services/auth.service';
 
@@ -16,14 +16,31 @@ export class App implements OnInit {
   isScheduleRoute = false;
   isPlannerRoute = false;
   isStandalonePolicyRoute = false;
+  isNavigating = false;
 
   constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(event => {
-      this.updateAdminShell(event.urlAfterRedirects);
+
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.isNavigating = true;
+      } else if (
+        event instanceof NavigationEnd ||
+        event instanceof NavigationCancel ||
+        event instanceof NavigationError
+      ) {
+        if (event instanceof NavigationEnd) {
+          this.updateAdminShell(event.urlAfterRedirects);
+        }
+        // Small graceful delay to smoothly complete progress animation
+        setTimeout(() => {
+          this.isNavigating = false;
+        }, 180);
+      }
     });
+
     this.route.queryParamMap.subscribe(params => {
       const token = params.get('token');
       if (token) {
