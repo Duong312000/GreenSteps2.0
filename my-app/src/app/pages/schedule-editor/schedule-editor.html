@@ -359,11 +359,11 @@
                 <h3 id="activeDayTitle" style="margin: 0;">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
                 <div class="timeline-view-modes-segmented">
                     <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'timeline'"
-                        (click)="activeTimelineViewMode = 'timeline'" title="Chế độ xem Danh sách">
+                        (click)="switchTimelineViewMode('timeline')" title="Chế độ xem Danh sách">
                         <i class="bi bi-list-ul"></i> <span>Danh sách</span>
                     </button>
                     <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'pipeline'"
-                        (click)="activeTimelineViewMode = 'pipeline'" title="Chế độ xem Sơ đồ tuyến">
+                        (click)="switchTimelineViewMode('pipeline')" title="Chế độ xem Sơ đồ tuyến">
                         <i class="bi bi-diagram-3"></i> <span>Sơ đồ tuyến</span>
                     </button>
                 </div>
@@ -380,7 +380,7 @@
         <!-- Timeline Activities List (Mode 1: Danh sách) -->
         <div class="timeline-list-container" id="timelineList" *ngIf="activeTimelineViewMode === 'timeline'">
             <!-- Empty state -->
-            <div *ngIf="activeItinerary.days[activeDayIdx]?.activities.length === 0"
+            <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0"
                 style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-size:14px; position:relative; z-index:2;">
                 <i class="bi bi-calendar-event"
                     style="font-size: 32px; margin-bottom:12px; color:var(--primary-green); display:block;"></i>
@@ -575,7 +575,7 @@
             <div class="pipeline-canvas-viewport">
                 <div class="pipeline-track" [style.transform]="'scale(' + pipelineZoomScale + ')'">
                     <!-- Empty State in Pipeline -->
-                    <div *ngIf="activeItinerary.days[activeDayIdx]?.activities.length === 0" class="pipeline-empty-state">
+                    <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0" class="pipeline-empty-state">
                         <i class="bi bi-calendar-event"></i>
                         <p>Chưa có điểm dừng nào trong ngày này</p>
                     </div>
@@ -636,7 +636,7 @@
                         </div>
 
                         <!-- Connector between Station idx and idx + 1 -->
-                        <div class="pipeline-connector-leg" *ngIf="idx < activeItinerary.days[activeDayIdx]?.activities.length - 1"
+                        <div class="pipeline-connector-leg" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
                              (click)="openLegDirections(idx)"
                              [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
                              title="Bấm để xem đường đi và chọn phương tiện cho chặng này">

@@ -1780,23 +1780,115 @@ export class ApiService {
 
   
   // ==========================================
-  // OFFICIAL GOOGLE MAPS PLATFORM API METHODS
+  // OFFICIAL GOOGLE MAPS PLATFORM & PERSISTENT CLIENT CACHE
+  // Reduces Google Maps API quota usage & enables instant zero-lag loading
   // ==========================================
+  private getMapLocalCache(key: string): any | null {
+    try {
+      const raw = localStorage.getItem('gs_map_cache_' + key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.expiry && Date.now() < parsed.expiry) {
+        return parsed.data;
+      }
+      localStorage.removeItem('gs_map_cache_' + key);
+    } catch (e) {}
+    return null;
+  }
+
+  private setMapLocalCache(key: string, data: any, ttlDays = 30) {
+    try {
+      const record = {
+        data,
+        expiry: Date.now() + (ttlDays * 24 * 60 * 60 * 1000)
+      };
+      localStorage.setItem('gs_map_cache_' + key, JSON.stringify(record));
+    } catch (e) {
+      // If localStorage is full, ignore or clear oldest keys
+    }
+  }
+
   searchGooglePlaces(query: string): Promise<any[]> {
+    const cleanQ = (query || '').toLowerCase().trim();
+    if (!cleanQ) return Promise.resolve([]);
+
+    const cacheKey = 'search_' + encodeURIComponent(cleanQ);
+    const cached = this.getMapLocalCache(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+
     return firstValueFrom(
-      this.http.get<any>(this.BACKEND_URL + '/maps/places/search?query=' + encodeURIComponent(query))
-    ).then((res: any) => res && res.success ? res.places : []).catch(() => []);
+      this.http.get<any>(this.BACKEND_URL + '/maps/places/search?query=' + encodeURIComponent(cleanQ))
+    ).then((res: any) => {
+      const places = res && res.success ? res.places : [];
+      if (places && places.length > 0) {
+        this.setMapLocalCache(cacheKey, places, 30);
+      }
+      return places;
+    }).catch(() => []);
   }
 
   getGooglePlaceDetails(placeId: string): Promise<any | null> {
+    if (!placeId) return Promise.resolve(null);
+
+    const cacheKey = 'place_' + encodeURIComponent(placeId);
+    const cached = this.getMapLocalCache(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+
     return firstValueFrom(
       this.http.get<any>(this.BACKEND_URL + '/maps/places/details/' + encodeURIComponent(placeId))
-    ).then((res: any) => res && res.success ? res.place : null).catch(() => null);
+    ).then((res: any) => {
+      const place = res && res.success ? res.place : null;
+      if (place) {
+        this.setMapLocalCache(cacheKey, place, 30);
+      }
+      return place;
+    }).catch(() => null);
   }
 
   computeGoogleRoute(origin: { lat: number; lng: number }, destination: { lat: number; lng: number }, waypoints?: { lat: number; lng: number }[], travelMode?: string): Promise<any | null> {
+    const mode = travelMode || 'DRIVE';
+    const wpKey = (waypoints || []).map(w => `${w.lat.toFixed(4)},${w.lng.toFixed(4)}`).join('_');
+    const cacheKey = `route_${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}_${destination.lat.toFixed(4)},${destination.lng.toFixed(4)}_${mode}_${wpKey}`;
+
+    const cached = this.getMapLocalCache(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+
     return firstValueFrom(
-      this.http.post<any>(this.BACKEND_URL + '/maps/routes', { origin, destination, waypoints, travelMode: travelMode || 'DRIVE' })
-    ).then((res: any) => res && res.success ? res : null).catch(() => null);
+      this.http.post<any>(this.BACKEND_URL + '/maps/routes', { origin, destination, waypoints, travelMode: mode })
+    ).then((res: any) => {
+      if (res && res.success) {
+        this.setMapLocalCache(cacheKey, res, 30);
+        return res;
+      }
+      return null;
+    }).catch(() => null);
+  }
+
+  // Pre-warms map data & popular POIs into browser storage on session start
+  public preloadMapData() {
+    const defaultQueries = [
+      'Chợ Đêm Đà Lạt', 'Hồ Xuân Hương Đà Lạt', 'Quảng trường Lâm Viên',
+      'Phố cổ Hội An', 'Chùa Cầu Hội An', 'Bãi biển An Bàng',
+      'Ghềnh Đá Đĩa Phú Yên', 'Bãi Xép Phú Yên', 'Tháp Nhạn',
+      'Cầu Rồng Đà Nẵng', 'Bà Nà Hills', 'Bán đảo Sơn Trà'
+    ];
+
+    // Run non-blocking in background with slight stagger
+    setTimeout(() => {
+      defaultQueries.forEach((q, idx) => {
+        const cacheKey = 'search_' + encodeURIComponent(q.toLowerCase().trim());
+        if (!this.getMapLocalCache(cacheKey)) {
+          setTimeout(() => {
+            this.searchGooglePlaces(q);
+          }, idx * 400);
+        }
+      });
+    }, 1500);
   }
 }

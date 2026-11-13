@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './services/auth.service';
+import { ApiService } from './services/api.service';
 
 @Component({
   selector: 'app-root',
@@ -18,10 +19,17 @@ export class App implements OnInit {
   isStandalonePolicyRoute = false;
   isNavigating = false;
 
-  constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
+  constructor(
+    private route: ActivatedRoute, 
+    private router: Router, 
+    private authService: AuthService,
+    private apiService: ApiService
+  ) {}
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
+    // Pre-warm maps & local POI cache in background on session start
+    this.apiService.preloadMapData();
 
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {

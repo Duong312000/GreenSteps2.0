@@ -970,9 +970,70 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const destSlug = this.mapDestToSlug(apiIti.destination);
     const destLabel = apiIti.destination || this.mapSlugToDestLabel(destSlug);
 
+    // Case 1: apiIti already contains structured days array (e.g. from localStorage or active draft)
+    if (Array.isArray(apiIti.days) && apiIti.days.length > 0 && typeof apiIti.days[0] === 'object') {
+      const normalizedDays = apiIti.days.map((dayObj: any, dIdx: number) => {
+        const rawActs = Array.isArray(dayObj.activities) ? dayObj.activities : [];
+        const normalizedActs = rawActs.map((act: any) => {
+          let lat = act.lat;
+          let lng = act.lng;
+          if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng) || lat < 5 || lat > 30 || lng < 100 || lng > 115) {
+            const coords = this.getCoordinatesForPlace(act.name || act.title, destSlug);
+            lat = coords.lat;
+            lng = coords.lng;
+          }
+          if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng) || lat < 5 || lat > 30 || lng < 100 || lng > 115) {
+            lat = undefined;
+            lng = undefined;
+          }
+          const title = act.title || act.name || "Hoạt động";
+          let type = act.type || 'attraction';
+          const isShared = act.is_shared !== undefined ? (act.is_shared === true || act.isShared === true) : this.checkIfSharedByDefault(title, type);
+          return {
+            id: act.id || ('act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
+            time: this.normalizeTimeTo24h(act.time || "08:00"),
+            title: title,
+            type: type,
+            cost: Number(act.cost) || 0,
+            carbon: Number(act.carbon) || 0,
+            is_shared: isShared,
+            lat: lat,
+            lng: lng,
+            hasTimeConflict: !!act.hasTimeConflict,
+            conflictReason: act.conflictReason || ''
+          };
+        });
+
+        // Ensure chronological sorting
+        normalizedActs.sort((a: any, b: any) => {
+          return this.timeToMinutes(a.time || "00:00") - this.timeToMinutes(b.time || "00:00");
+        });
+
+        return {
+          dayNum: dayObj.dayNum || (dIdx + 1),
+          title: dayObj.title || `Ngày ${dIdx + 1}`,
+          activities: normalizedActs
+        };
+      });
+
+      return {
+        id: apiIti.id,
+        title: apiIti.title || apiIti.name || "Lịch trình tự thiết kế",
+        dest: destSlug,
+        destLabel: destLabel,
+        destination: destLabel,
+        days: normalizedDays,
+        status: apiIti.status || 'draft',
+        deposit_deadline: apiIti.deposit_deadline || null,
+        imageUrl: apiIti.imageUrl || apiIti.image_url || null,
+        collaborators: apiIti.collaborators || []
+      };
+    }
+
+    // Case 2: apiIti from backend with daysData / days_data
     const days: any[] = [];
     const rawDaysData = apiIti.daysData || apiIti.days_data || apiIti.data || [];
-    const daysCount = apiIti.days || rawDaysData.length || 1;
+    const daysCount = typeof apiIti.days === 'number' ? apiIti.days : (rawDaysData.length || 1);
 
     for (let i = 0; i < daysCount; i++) {
       const activities: any[] = [];
@@ -1034,9 +1095,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       });
     }
 
+    if (days.length === 0) {
+      days.push({
+        dayNum: 1,
+        title: 'Ngày 1',
+        activities: []
+      });
+    }
+
     return {
       id: apiIti.id,
-      title: apiIti.name || "Lịch trình tự thiết kế",
+      title: apiIti.name || apiIti.title || "Lịch trình tự thiết kế",
       dest: destSlug,
       destLabel: destLabel,
       destination: destLabel,
@@ -2348,10 +2417,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Ensure activities have coordinates
     this.ensureItineraryCoordinates();
 
-    // Wait up to 4s for Google Maps JS API (1.4MB) to be ready in window
-    const isGoogleReady = await this.waitForGoogleMapsReady(4000);
+    // Instant bypass to Leaflet if Google auth failed or is blocked
+    if ((window as any).__gm_auth_failed) {
+      this.isGoogleMaps = false;
+      this.initLeafletMap();
+      return;
+    }
 
-    if (isGoogleReady) {
+    // Wait up to 3s for Google Maps JS API (1.4MB) to be ready in window
+    const isGoogleReady = await this.waitForGoogleMapsReady(3000);
+
+    if (isGoogleReady && !(window as any).__gm_auth_failed) {
       console.log('🌟 Launching official Google Maps SDK with interactive POIs & Places!');
       this.initGoogleMap();
     } else {
@@ -3953,6 +4029,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   // View Mode & Pipeline Zoom Handlers
+  public switchTimelineViewMode(mode: 'timeline' | 'pipeline') {
+    this.activeTimelineViewMode = mode;
+    this.cdr.detectChanges();
+    if (mode === 'pipeline') {
+      setTimeout(() => {
+        const vp = document.querySelector('.pipeline-canvas-viewport');
+        if (vp) vp.scrollLeft = 0;
+      }, 50);
+    }
+  }
+
   public zoomPipeline(delta: number) {
     this.pipelineZoomScale = Math.min(1.5, Math.max(0.7, parseFloat((this.pipelineZoomScale + delta).toFixed(1))));
   }
