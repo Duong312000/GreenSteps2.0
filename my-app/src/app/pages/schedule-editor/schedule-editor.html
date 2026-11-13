@@ -538,7 +538,7 @@
                 </div>
 
                 <!-- Organic Travel Transit note in Timeline (Subtle, desaturated) -->
-                <div class="travel-gap-item" *ngIf="idx < activeItinerary.days[activeDayIdx].activities.length - 1"
+                <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
                     (click)="openLegDirections(idx)"
                     [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
                     title="Nhấp để xem đường đi và lộ trình chặng này">
@@ -556,7 +556,7 @@
             <div class="pipeline-header-bar">
                 <span class="pipeline-station-count">
                     <i class="bi bi-geo-alt"></i>
-                    {{ activeItinerary.days[activeDayIdx]?.activities.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
+                    {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
                 </span>
                 <div class="pipeline-zoom-controls">
                     <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">

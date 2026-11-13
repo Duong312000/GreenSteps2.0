@@ -5177,10 +5177,18 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             this.cdr.detectChanges();
           }
 
-          // 4. Update activities
+          // 4. Update activities with race-condition guard
           const freshEditor = this.convertApiToEditorItinerary(fresh);
           const localDaysStr = JSON.stringify(this.activeItinerary.days);
           const freshDaysStr = JSON.stringify(freshEditor.days);
+
+          const totalLocalActs = (this.activeItinerary.days || []).reduce((sum: number, d: any) => sum + (d.activities?.length || 0), 0);
+          const totalFreshActs = (freshEditor.days || []).reduce((sum: number, d: any) => sum + (d.activities?.length || 0), 0);
+
+          // Bulletproof protection: Never overwrite existing local activities with an empty backend snapshot
+          if (totalLocalActs > 0 && totalFreshActs === 0) {
+            return;
+          }
 
           if (localDaysStr !== freshDaysStr) {
             const currentDayIdx = this.activeDayIdx;
