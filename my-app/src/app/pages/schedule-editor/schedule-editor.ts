@@ -3557,7 +3557,62 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     try {
       const dest = this.activeItinerary?.destLabel || this.activeItinerary?.dest || 'Hội An';
       const fullQuery = `${query} ${dest}`;
-      const results = await this.apiService.searchGooglePlaces(fullQuery);
+
+      // 1. First check local catalog services
+      const localMatches = (this.localServices || []).filter(s =>
+        (s.name || s.name_service || '').toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (localMatches.length > 0) {
+        const topLocal = localMatches[0];
+        const placeObj = {
+          title: topLocal.name || topLocal.name_service,
+          type: topLocal.type || 'explore',
+          cost: topLocal.cost || 50000,
+          carbon: topLocal.carbon || 1.5,
+          lat: topLocal.lat || (topLocal.current_data && topLocal.current_data.lat) || undefined,
+          lng: topLocal.lng || (topLocal.current_data && topLocal.current_data.lng) || undefined,
+          address: topLocal.address || dest,
+          img: topLocal.img || this.getPlacePlaceholderImage(topLocal.name || topLocal.name_service)
+        };
+        this.isAutoSaving = false;
+        this.openGooglePlacePanel(placeObj);
+        if (placeObj.lat && placeObj.lng) {
+          if (this.isGoogleMaps && this.gmap) {
+            this.gmap.panTo({ lat: placeObj.lat, lng: placeObj.lng });
+            this.gmap.setZoom(16);
+          } else if (this.map) {
+            this.map.flyTo([placeObj.lat, placeObj.lng], 16);
+          }
+        }
+        this.cdr.detectChanges();
+        return;
+      }
+
+      // 2. Query Google Places backend proxy
+      let results = await this.apiService.searchGooglePlaces(fullQuery);
+
+      // 3. Fallback to OpenStreetMap Nominatim if Google Places returns empty
+      if (!results || results.length === 0) {
+        try {
+          const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query + ', ' + dest)}`;
+          const osmRes = await fetch(osmUrl, { headers: { 'User-Agent': 'GreenSteps/1.0' } });
+          const osmData = await osmRes.json();
+          if (osmData && osmData.length > 0) {
+            results = osmData.map((r: any) => ({
+              title: r.display_name ? r.display_name.split(',')[0] : query,
+              name: r.display_name ? r.display_name.split(',')[0] : query,
+              address: r.display_name,
+              lat: parseFloat(r.lat),
+              lng: parseFloat(r.lon),
+              type: (r.type === 'cafe' || r.type === 'restaurant') ? 'dining' : ((r.type === 'hotel') ? 'lodging' : 'explore')
+            }));
+          }
+        } catch (osmErr) {
+          console.warn('OSM search fallback error:', osmErr);
+        }
+      }
+
       this.isAutoSaving = false;
 
       if (results && results.length > 0) {
@@ -3571,7 +3626,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
               const marker = new google.maps.Marker({
                 position: pos,
                 map: this.gmap,
-                title: p.title,
+                title: p.title || p.name,
                 animation: google.maps.Animation.DROP
               });
               marker.addListener('click', () => {
@@ -3588,15 +3643,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             this.gmap.panTo({ lat: results[0].lat, lng: results[0].lng });
             this.gmap.setZoom(16);
           }
+        } else if (this.map) {
+          this.renderSearchPins(results);
         }
         // Open panel with the top match
         this.openGooglePlacePanel(results[0]);
       } else {
-        this.showAlert(`Không tìm thấy địa điểm "${query}" trên Google Maps`, 'warning');
+        this.showAlert(`Không tìm thấy địa điểm "${query}". Bạn có thể nhập chi tiết để thêm mới.`, 'warning');
       }
     } catch (e) {
       this.isAutoSaving = false;
-      console.error('Google search error:', e);
+      console.error('Search error:', e);
     }
     this.cdr.detectChanges();
   }
@@ -3746,6 +3803,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return total;
   }
 
+  public isDraggingCard: boolean = false;
+
   // Ergonomic Drag & Drop Handlers with Smooth Gap & Dashed Indicator
   public onGripMouseDown(idx: number) {
     this.canDragItem = true;
@@ -3753,11 +3812,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public onDragStart(event: DragEvent, idx: number) {
-    if (this.isItineraryLocked() || !this.canDragItem) {
+    if (this.isItineraryLocked()) {
       event.preventDefault();
       return;
     }
+    this.isDraggingCard = true;
     this.dragSrcIdx = idx;
+    this.canDragItem = true;
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', idx.toString());
@@ -3829,6 +3890,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.dragTargetIdx = null;
     this.dragDropPosition = null;
     this.canDragItem = false;
+    setTimeout(() => { this.isDraggingCard = false; }, 100);
   }
 
   public onDragEnd(event: DragEvent) {
@@ -3840,6 +3902,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.dragTargetIdx = null;
     this.dragDropPosition = null;
     this.canDragItem = false;
+    setTimeout(() => { this.isDraggingCard = false; }, 100);
   }
 
   // Cross-Day Drag & Drop Handlers
@@ -5236,6 +5299,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
 
   public async openGooglePlacePanel(item: any, event?: Event) {
+    if (this.isDraggingCard) return;
     if (event) event.stopPropagation();
     if (!item) return;
 

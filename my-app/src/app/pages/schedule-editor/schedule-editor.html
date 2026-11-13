@@ -344,7 +344,7 @@
                     [class.highlighted-when-routing]="activeLegDirections && (idx === activeLegDirections.fromIdx || idx === activeLegDirections.toIdx)"
                     [class.is-drag-source]="dragSrcIdx === idx"
                     [attr.data-type]="act.type" 
-                    [draggable]="canDragItem && dragSrcIdx === idx && !isItineraryLocked()"
+                    [draggable]="!isItineraryLocked()"
                     (dragstart)="onDragStart($event, idx)" 
                     (dragover)="onDragOver($event, idx)"
                     (dragleave)="onDragLeave($event, idx)"
@@ -356,8 +356,7 @@
                     <!-- Ergonomic Grip Handle -->
                     <div class="drag-handle-grip" 
                         *ngIf="!isItineraryLocked()"
-                        (mousedown)="onGripMouseDown(idx)"
-                        title="Nhấp giữ và kéo để sắp xếp lại vị trí">
+                        title="Kéo thả trực tiếp thẻ hoặc tay nắm này">
                         <i class="bi bi-grip-vertical"></i>
                     </div>
 
@@ -535,7 +534,7 @@
                              [class.has-conflict]="act.hasTimeConflict"
                              [class.active-station]="locatingActivityIdx === idx"
                              [class.is-drag-source]="dragSrcIdx === idx"
-                             [draggable]="canDragItem && dragSrcIdx === idx && !isItineraryLocked()"
+                             [draggable]="!isItineraryLocked()"
                              (dragstart)="onDragStart($event, idx)" 
                              (dragover)="onDragOver($event, idx)"
                              (dragleave)="onDragLeave($event, idx)"
@@ -546,9 +545,7 @@
                             <!-- Grip handle in pipeline node -->
                             <div class="pipeline-node-grip" 
                                  *ngIf="!isItineraryLocked()"
-                                 (mousedown)="onGripMouseDown(idx)"
-                                 (click)="$event.stopPropagation()"
-                                 title="Nhấp giữ để kéo sắp xếp">
+                                 title="Kéo thả trực tiếp thẻ hoặc tay nắm này">
                                 <i class="bi bi-grip-vertical"></i>
                             </div>
 

@@ -10308,8 +10308,17 @@ app-tour-detail{background:#f5f7f6}.tour-detail-page{width:min(1240px,calc(100% 
 }
 
 /* Suppress Google Maps key error popup in local development */
-.gm-err-container {
+.gm-err-container,
+.gm-err-content,
+.gm-err-message,
+.gm-err-autocomplete,
+div[style*="z-index: 10000002"],
+div[style*="z-index: 10000001"],
+div[style*="z-index: 10000000"],
+.pac-container ~ div[style*="position: absolute; left: 0px; top: 0px;"] {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 .gm-style-cc {
     display: none !important; /* Hide copyright/watermark controls */
