@@ -1,4 +1,63 @@
-<div class="schedule-editor-container" *ngIf="activeItinerary">
+<!-- Full-screen Editorial Skeleton Loading Screen for Schedule Editor -->
+<div class="editor-loading-screen" *ngIf="isLoadingEditor || (!activeItinerary && !isListMode)">
+    <div class="editor-skeleton-layout">
+        <!-- Sidebar Skeleton -->
+        <div class="editor-skel-sidebar">
+            <div class="skel-bone skel-btn mb-6" style="width: 100px; height: 32px;"></div>
+            <div class="skel-bone skel-card mb-4" style="height: 48px; border-radius: 12px;"></div>
+            <div class="skel-bone skel-line mb-3" style="width: 60%; height: 14px;"></div>
+            <div class="space-y-3 mt-4">
+                <div class="skel-bone skel-card" style="height: 52px; border-radius: 10px;" *ngFor="let i of [1,2,3,4]"></div>
+            </div>
+            <div class="mt-auto pt-6">
+                <div class="skel-bone skel-card" style="height: 90px; border-radius: 12px;"></div>
+            </div>
+        </div>
+
+        <!-- Center Timeline Skeleton -->
+        <div class="editor-skel-timeline">
+            <!-- Cover image placeholder -->
+            <div class="skel-bone skel-cover mb-6">
+                <div class="skel-cover-shimmer-content">
+                    <div class="skel-bone" style="width: 240px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.25);"></div>
+                    <div class="skel-bone mt-2" style="width: 140px; height: 16px; border-radius: 4px; background: rgba(255,255,255,0.2);"></div>
+                </div>
+            </div>
+
+            <!-- Day Header & Controls placeholder -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="skel-bone" style="width: 180px; height: 28px; border-radius: 6px;"></div>
+                <div class="skel-bone" style="width: 220px; height: 36px; border-radius: 8px;"></div>
+            </div>
+
+            <!-- Timeline items skeleton -->
+            <div class="space-y-4">
+                <div class="skel-timeline-item" *ngFor="let item of [1,2,3]">
+                    <div class="skel-bone" style="width: 65px; height: 32px; border-radius: 6px; flex-shrink: 0;"></div>
+                    <div class="skel-bone" style="width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0;"></div>
+                    <div class="flex-grow space-y-2">
+                        <div class="skel-bone" style="width: 50%; height: 18px; border-radius: 4px;"></div>
+                        <div class="skel-bone" style="width: 30%; height: 13px; border-radius: 4px;"></div>
+                        <div class="skel-bone" style="width: 70%; height: 12px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Map Skeleton -->
+        <div class="editor-skel-map">
+            <div class="skel-map-radar">
+                <div class="skel-radar-pulse"></div>
+                <div class="skel-radar-badge">
+                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
+                    <span>Đang khởi tạo bản đồ & tối ưu tuyến đường...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="schedule-editor-container" *ngIf="activeItinerary && !isLoadingEditor">
 
 
 

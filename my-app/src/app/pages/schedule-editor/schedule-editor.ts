@@ -185,6 +185,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // Smart Scheduling & Conflict Detection
   public isSampleItinerary: boolean = false;
   public hasAnyTimeConflict: boolean = false;
+  public isLoadingEditor: boolean = false;
 
   // Dual View Mode & Route Pipeline Canvas
   public activeTimelineViewMode: 'timeline' | 'pipeline' = 'timeline';
@@ -279,6 +280,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const id = params.get('id');
       if (id) {
         this.isListMode = false;
+        this.isLoadingEditor = true;
+        this.cdr.detectChanges();
         this.loadItineraryToEditor(id);
         localStorage.setItem('greensteps_working_itinerary_id', id);
       } else {
@@ -567,6 +570,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
     this.router.navigate(['/schedule', id]);
+    this.isLoadingEditor = true;
+    this.cdr.detectChanges();
   }
 
   public openCreateNewModal() {
@@ -1496,7 +1501,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Defer Map initialization to let DOM render
     setTimeout(() => {
       this.initUniversalMap();
-    }, 100);
+      this.isLoadingEditor = false;
+      this.cdr.detectChanges();
+    }, 150);
 
     // Start silent background synchronization polling
     this.startBackgroundSync();
