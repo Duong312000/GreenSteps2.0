@@ -1,4 +1,13 @@
 const { store, Wallet, Voucher } = require('../models/index');
+const saved = require('../services/saved-promotions.service');
+
+exports.claimPromotion = async (req, res, next) => {
+  try { res.json({ success: true, ...await saved.claimPromotion(req.user.id, req.params.campaignId) }); }
+  catch (error) { if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message }); next(error); }
+};
+exports.getSavedPromotions = async (req, res, next) => {
+  try { res.json({ success: true, vouchers: await saved.myPromotions(req.user.id) }); } catch (error) { next(error); }
+};
 
 exports.validateVoucher = async (req, res, next) => {
   const { code } = req.body;
@@ -10,6 +19,9 @@ exports.validateVoucher = async (req, res, next) => {
     });
 
     if (!voucher) {
+      const item = (await saved.myPromotions(userId)).find(item => item.campaign_id && item.code === code);
+      if (item?.status === 'active') return res.json({ success: true, message: 'Mã đã lưu hợp lệ. Điều kiện đơn và dịch vụ sẽ được kiểm tra khi đặt.',
+        discount: item.discount_type === 'percent' ? item.discount_value : 0, discount_amount: item.discount_type === 'fixed' ? item.discount_value : 0 });
       return res.status(404).json({ success: false, message: 'Mã Voucher không tồn tại!' });
     }
 

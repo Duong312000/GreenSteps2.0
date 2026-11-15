@@ -1,4 +1,5 @@
-<main class="shopco-main pb-20">
+<app-local-food *ngIf="serviceType === 'food'"></app-local-food>
+<main class="shopco-main pb-20" *ngIf="serviceType !== 'food'">
   <div class="shopco-container">
     <!-- Breadcrumb (Shop.co style) -->
     <div class="shopco-breadcrumb">

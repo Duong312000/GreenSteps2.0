@@ -1,0 +1,32 @@
+[
+  {
+    "key": "ana-mandara-nearby-2026-11-12",
+    "serviceIds": ["srv_demo_detail_dalat_garden", "srv_demo_detail_dalat_farm_table"],
+    "namePattern": "Ana Mandara",
+    "checkedAt": "2026-11-12",
+    "origin": "Ana Mandara Villas Dalat Resort & Spa, đường Lê Lai, Đà Lạt",
+    "sources": [
+      { "name": "Hotels.com – Khu vực và đi lại", "url": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+      { "name": "Ana Mandara – Địa chỉ cơ sở", "url": "https://anamandara-resort.com/contact-us/" }
+    ],
+    "groups": [
+      {
+        "name": "Điểm tham quan nổi bật",
+        "items": [
+          { "name": "Nhà thờ Mai Anh (Domaine de Marie)", "distance": "1,6 km", "distanceKm": 1.6, "travelMinutes": 18, "travelMode": "walking", "distanceBasis": "source_reported", "mapQuery": "Nhà thờ Domaine de Marie, Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+          { "name": "Crazy House (Biệt thự Hằng Nga)", "distance": "1,6 km", "distanceKm": 1.6, "travelMinutes": 19, "travelMode": "walking", "distanceBasis": "source_reported", "mapQuery": "Crazy House, Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+          { "name": "Hồ Xuân Hương", "distance": "1,9 km", "distanceKm": 1.9, "travelMinutes": 5, "travelMode": "driving", "distanceBasis": "source_reported", "mapQuery": "Hồ Xuân Hương, Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+          { "name": "Chợ Đà Lạt", "distance": "2,3 km", "distanceKm": 2.3, "travelMinutes": 6, "travelMode": "driving", "distanceBasis": "source_reported", "mapQuery": "Chợ Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+          { "name": "Dinh Bảo Đại", "distance": "3 km", "distanceKm": 3, "travelMinutes": 8, "travelMode": "driving", "distanceBasis": "source_reported", "mapQuery": "Dinh III Bảo Đại, Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" }
+        ]
+      },
+      {
+        "name": "Ga & sân bay",
+        "items": [
+          { "name": "Ga Đà Lạt", "distance": "4,4 km", "distanceKm": 4.4, "travelMinutes": 15, "travelMode": "driving", "distanceBasis": "source_reported", "mapQuery": "Ga Đà Lạt", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" },
+          { "name": "Sân bay Liên Khương", "distance": "30,9 km", "distanceKm": 30.9, "travelMinutes": 40, "travelMode": "driving", "distanceBasis": "source_reported", "mapQuery": "Sân bay Liên Khương", "sourceUrl": "https://vi.hotels.com/ho325613/ana-mandara-villas-dalat-resort-spa-a-lat-viet-nam/" }
+        ]
+      }
+    ]
+  }
+]

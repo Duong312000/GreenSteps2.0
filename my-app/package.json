@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:chat:e2e": "node e2e/greensteps-chat.e2e.cjs",
+    "test:food:e2e": "node e2e/food.e2e.cjs",
     "benchmark:chat": "node e2e/benchmark-greensteps-chat.cjs",
     "test:partner:unit": "vitest run src/app/pages/partner/partner-dashboard/partner-dashboard.analytics.spec.ts",
     "test:partner:e2e": "node e2e/partner-dashboard.e2e.cjs"

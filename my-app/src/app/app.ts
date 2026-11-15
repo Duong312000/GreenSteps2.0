@@ -35,7 +35,7 @@ export class App implements OnInit {
 
   private updateAdminShell(url: string) {
     const cleanUrl = (url || '').split('?')[0].split('#')[0];
-    this.isAdminRoute = cleanUrl === '/admin';
+    this.isAdminRoute = cleanUrl === '/admin' || cleanUrl === '/admin/food';
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';

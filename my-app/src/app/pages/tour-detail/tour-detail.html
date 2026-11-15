@@ -102,16 +102,19 @@
                 <a href="#" (click)="$event.preventDefault(); $event.stopPropagation(); scrollToReviews()">{{ totalReviewsCount }} đánh giá</a>
             </div>
 
-            <div class="price-block" *ngIf="bookingAvailable; else publicListingPrice">
-                <span>{{ isLodging ? (selectedRoom ? stayNights + ' đêm · ' + (roomQuantities[selectedRoom.id] || 1) + ' phòng' : 'Chọn phòng để xem tổng tiền') : 'Tổng tiền · ' + totalGuests + ' khách' }}</span>
-                <div>
-                    <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
-                    <del *ngIf="!isLodging">{{ displayOldCost * totalGuests | number:'1.0-0':'vi-VN' }}đ</del>
+            <div class="price-block" [class.has-sale]="hasDisplayedSale" *ngIf="bookingAvailable; else publicListingPrice">
+                <span>{{ isLodging ? (selectedRoom ? stayNights + ' đêm · ' + (roomQuantities[selectedRoom.id] || 1) + ' phòng' : 'Giá từ / phòng / đêm') : 'Tổng tiền · ' + totalGuests + ' khách' }}</span>
+                <div class="detail-price-line">
+                    <strong aria-live="polite">{{ displayedPrice | number:'1.0-0':'vi-VN' }}đ</strong>
+                    <del *ngIf="hasDisplayedSale; else normalOldPrice">{{ displayedOriginalPrice | number:'1.0-0':'vi-VN' }}đ</del><ng-template #normalOldPrice><del *ngIf="!isLodging && !activeTour.flashSale">{{ displayOldCost * totalGuests | number:'1.0-0':'vi-VN' }}đ</del></ng-template>
+                    <span class="price-sale-label" *ngIf="hasDisplayedSale && activeTour.flashSale">{{ activeTour.flashSale.discount_type==='percent' ? 'Giảm ' + activeTour.flashSale.discount_value + '%' : 'Giảm ' + (activeTour.flashSale.discount_value | number:'1.0-0':'vi-VN') + 'đ' }}</span>
                 </div>
+                <small class="detail-price-note" *ngIf="isLodging && !selectedRoom">Chọn phòng để xem tổng tiền.</small>
+                <small class="detail-price-note" *ngIf="activeTour.flashSale">Ưu đãi đến {{ activeTour.flashSale.end_at | date:'dd/MM/yyyy HH:mm' }}<ng-container *ngIf="activeTour.flashSale.min_order"> · Đơn từ {{ activeTour.flashSale.min_order | number:'1.0-0':'vi-VN' }}đ</ng-container></small>
             </div>
 
             <ng-template #publicListingPrice>
-                <div class="public-listing-price"><span>{{ activeTour.priceStatus === 'reference' ? 'Giá công khai · tham khảo' : 'Giá theo ngày và nhu cầu' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'; else priceOnRequest">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><ng-template #priceOnRequest><strong>Liên hệ báo giá</strong></ng-template><p>Liên hệ cơ sở để xác nhận giá và tình trạng chỗ trước khi đặt.</p><p *ngIf="activeTour.contactPhone"><i class="bi bi-telephone"></i> {{ activeTour.contactPhone }}</p><a *ngIf="activeTour.sourceUrls?.length" [href]="activeTour.sourceUrls![0]" target="_blank" rel="noopener noreferrer" class="official-contact-button">Website chính thức <i class="bi bi-arrow-up-right"></i></a></div>
+                <div class="public-listing-price"><span>{{ activeTour.priceStatus === 'reference' ? 'Giá công khai · tham khảo' : 'Giá theo ngày và nhu cầu' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'; else priceOnRequest">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><ng-template #priceOnRequest><strong>Chưa có giá</strong></ng-template><p>Dịch vụ chưa mở đặt chỗ trên GreenSteps. Vui lòng chọn dịch vụ khác hoặc thử lại sau.</p></div>
             </ng-template>
             <form *ngIf="bookingAvailable" class="booking-form" (submit)="submitBooking($event)">
                 <label class="form-field" for="bookingDate">
@@ -187,14 +190,23 @@
             </ul>
         </ng-template>
         <ng-template #greenDetails>
-            <section class="green-practices-block">
-                <div class="info-section-heading"><div><span class="section-kicker">GreenSteps · Dấu chân xanh</span><h2>Đặc điểm &amp; trải nghiệm xanh</h2></div><i class="bi bi-leaf" aria-hidden="true"></i></div>
-                <p class="info-muted">Các thực hành được cơ sở công bố, giúp bạn cân nhắc lựa chọn phù hợp.</p>
-                <div class="green-practices-grid" *ngIf="greenFeatures.length; else noGreenFeatures">
-                    <article *ngFor="let feature of greenFeatures"><i class="bi" [ngClass]="infoIcon(feature.title)" aria-hidden="true"></i><div><h3>{{ feature.title }}</h3><p *ngIf="feature.description">{{ feature.description }}</p></div></article>
+            <section class="gs-green-story" aria-label="Trải nghiệm xanh">
+                <header class="gs-green-intro">
+                    <svg class="gs-green-sprig" viewBox="0 0 120 100" fill="none" aria-hidden="true"><path d="M30 91C39 60 61 30 92 10M51 57C20 56 17 35 17 27C40 26 55 36 51 57ZM66 38C62 15 76 7 92 10C96 25 86 39 66 38ZM40 75C58 79 83 68 86 49C64 44 45 57 40 75Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <h2>Trải nghiệm xanh</h2><p>Một lựa chọn có ý thức, từ những điều nhỏ trong chuyến đi.</p>
+                    <span class="gs-green-origin"><i class="bi bi-info-circle" aria-hidden="true"></i> Theo thông tin cơ sở chia sẻ</span>
+                </header>
+                <div class="gs-green-content">
+                    <div class="gs-green-features" [class.single]="greenFeatures.length===1" *ngIf="greenFeatures.length; else noGreenFeatures">
+                        <article class="gs-green-feature" *ngFor="let feature of greenFeatures"><span class="gs-green-feature-icon"><i class="bi" [ngClass]="infoIcon(feature.title)" aria-hidden="true"></i></span><div><h3>{{ feature.title }}</h3><p *ngIf="feature.description">{{ feature.description }}</p></div></article>
+                    </div>
+                    <ng-template #noGreenFeatures><div class="gs-green-empty"><i class="bi bi-tree" aria-hidden="true"></i><h3>Thông tin xanh đang được bổ sung</h3><p>Cơ sở chưa cung cấp các thực hành cụ thể. Bạn vẫn có thể bắt đầu từ những thói quen bên dưới.</p></div></ng-template>
+                    <div class="gs-green-actions"><h3>Bạn cũng có thể góp phần</h3><ul>
+                        <li><i class="bi bi-droplet" aria-hidden="true"></i><div><strong>Mang bình nước riêng</strong><span>Hạn chế chai nhựa dùng một lần.</span></div></li>
+                        <li><i class="bi bi-lightbulb" aria-hidden="true"></i><div><strong>Dùng năng lượng vừa đủ</strong><span>Tắt đèn và điều hòa khi không sử dụng.</span></div></li>
+                        <li><i class="bi bi-bicycle" aria-hidden="true"></i><div><strong>Khám phá chậm hơn</strong><span>Đi bộ hoặc đạp xe khi tuyến đường phù hợp.</span></div></li>
+                    </ul></div>
                 </div>
-                <ng-template #noGreenFeatures><p class="info-muted">Đối tác chưa cung cấp thông tin về các thực hành xanh tại dịch vụ này.</p></ng-template>
-                <div class="green-travel-tip"><i class="bi bi-lightbulb" aria-hidden="true"></i><p><strong>Gợi ý cho chuyến đi xanh:</strong> mang bình nước cá nhân, tắt điện khi ra ngoài và ưu tiên đi bộ hoặc xe đạp khi phù hợp.</p></div>
             </section>
         </ng-template>
 
@@ -236,12 +248,12 @@
                         </div>
                         <div class="room-price">
                             <span>Giá mỗi phòng / đêm</span>
-                            <strong *ngIf="room.price_per_night != null; else noRoomPrice">{{ room.price_per_night | number:'1.0-0':'vi-VN' }}<small>đ</small></strong>
+                            <strong *ngIf="room.price_per_night != null; else noRoomPrice" [class.sale-price]="roomSalePrice(room) < (room.price_per_night || 0)">{{ roomSalePrice(room) | number:'1.0-0':'vi-VN' }}<small>đ</small></strong>
                             <ng-template #noRoomPrice><b>Giá đang cập nhật</b></ng-template>
                             <label *ngIf="roomOptions(room).length">Số lượng phòng<select [ngModel]="roomQuantities[room.id] || 1" (ngModelChange)="roomQuantities[room.id] = $event; selectRoom(room)"><option *ngFor="let count of roomOptions(room)" [ngValue]="count">{{ count }} phòng</option></select></label>
                             <p *ngIf="room.available_rooms === 0">Hiện chưa còn phòng</p>
                             <p *ngIf="room.available_rooms == null">Số lượng đang cập nhật</p>
-                            <p *ngIf="canBookRoom(room)" class="room-stay-total">{{ (room.price_per_night || 0) * (roomQuantities[room.id] || 1) * stayNights | number:'1.0-0':'vi-VN' }}đ / {{ stayNights }} đêm</p>
+                            <p *ngIf="canBookRoom(room)" class="room-stay-total">{{ roomSalePrice(room) * (roomQuantities[room.id] || 1) * stayNights | number:'1.0-0':'vi-VN' }}đ / {{ stayNights }} đêm</p>
                             <button type="button" class="room-book-button" [disabled]="!canBookRoom(room)" (click)="bookRoom(room, $event)"><i class="bi bi-house-door"></i> Đặt phòng</button>
                         </div>
                     </article>
@@ -251,18 +263,23 @@
                 <p class="detail-notice" *ngIf="rooms.length"><i class="bi bi-info-circle"></i> Giá tạm tính theo phòng và số đêm. Tình trạng phòng được kiểm tra lại khi gửi yêu cầu đặt.</p>
             </section>
 
-            <section id="detail-location" class="location-panel" role="tabpanel" aria-labelledby="tab-location" *ngIf="activeInfoTab === 'location'">
-                <span class="section-kicker">Khám phá khu vực</span><h2>Vị trí &amp; xung quanh</h2>
-                <div class="location-map-layout">
-                    <div class="location-copy"><h3><i class="bi bi-geo-alt"></i> {{ activeTour.title }}</h3><p>{{ activeTour.address || activeTour.destination }}</p><p *ngIf="activeTour.areaDescription">{{ activeTour.areaDescription }}</p><a *ngIf="locationQuery" [href]="mapLink" target="_blank" rel="noopener noreferrer" class="info-text-link">Xem trên bản đồ <i class="bi bi-arrow-up-right"></i></a></div>
-                    <iframe *ngIf="locationQuery; else noLocation" [src]="mapEmbedUrl" title="Bản đồ vị trí dịch vụ" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-                    <ng-template #noLocation><div class="detail-empty"><i class="bi bi-map"></i><h3>Vị trí chi tiết đang cập nhật</h3><p>Đối tác chưa cung cấp địa chỉ hoặc tọa độ chính xác.</p></div></ng-template>
+            <section id="detail-location" class="location-panel" role="tabpanel" aria-labelledby="tab-location" [hidden]="activeInfoTab !== 'location'">
+              <div class="gs-location-hub">
+                <header class="gs-location-heading"><span><i class="bi bi-geo-alt" aria-hidden="true"></i></span><div><h2>Vị trí &amp; điểm đến gần {{ activeTour.destination }}</h2><p>Ở đâu, đi đâu và cách bao xa — lên kế hoạch trước khi khởi hành.</p></div></header>
+                <div class="gs-location-top">
+                  <div class="gs-location-address"><span class="gs-location-city"><i class="bi bi-pin-map" aria-hidden="true"></i> {{ activeTour.destination }}</span><h3>{{ activeTour.title }}</h3><address>{{ activeTour.address || activeTour.destination }}</address><p *ngIf="activeTour.areaDescription">{{ activeTour.areaDescription }}</p><a *ngIf="locationQuery" [href]="mapLink" target="_blank" rel="noopener noreferrer" class="gs-location-map-link">Mở vị trí trên bản đồ <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a><div class="gs-location-origin" *ngIf="activeTour.nearbyOrigin"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Các khoảng cách bên dưới tính từ<br><strong>{{ activeTour.nearbyOrigin }}</strong></span></div></div>
+                  <div class="gs-location-map"><iframe *ngIf="locationQuery; else noLocation" [src]="mapEmbedUrl" [title]="'Bản đồ ' + activeTour.title + ' tại ' + activeTour.destination" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><ng-template #noLocation><div class="gs-location-empty"><i class="bi bi-map" aria-hidden="true"></i><h3>Vị trí chi tiết đang cập nhật</h3><p>Chưa có địa chỉ hoặc tọa độ chính xác để hiển thị bản đồ.</p></div></ng-template></div>
                 </div>
-                <div class="surroundings-groups" *ngIf="nearbyGroups.length; else noSurroundings">
-                    <section class="surroundings-group" *ngFor="let group of nearbyGroups"><h3><i class="bi" [ngClass]="infoIcon(group.name)" aria-hidden="true"></i> {{ group.name }}</h3><ul><li *ngFor="let place of group.items"><span>{{ place.name }}</span><span class="place-distance" *ngIf="place.distance">{{ place.distance }}</span></li></ul></section>
+                <div class="gs-nearby-heading"><div><h3>Từ đây, bạn có thể ghé</h3><p *ngIf="nearbyGroups.length">{{ nearbyPlaceCount }} điểm đến và đầu mối di chuyển để tham khảo.</p></div><span class="gs-nearby-date" *ngIf="activeTour.nearbyCheckedAt"><i class="bi bi-calendar-check" aria-hidden="true"></i> Đối chiếu {{ activeTour.nearbyCheckedAt | date:'dd/MM/yyyy' }}</span></div>
+                <nav class="gs-nearby-filters" *ngIf="nearbyGroups.length>1" aria-label="Lọc địa điểm xung quanh"><button type="button" [class.active]="locationCategory==='all'" [attr.aria-pressed]="locationCategory==='all'" (click)="locationCategory='all'">Tất cả</button><button type="button" *ngFor="let group of nearbyGroups" [class.active]="locationCategory===group.name" [attr.aria-pressed]="locationCategory===group.name" (click)="locationCategory=group.name">{{ group.name }}</button></nav>
+                <div class="gs-nearby-groups" *ngIf="nearbyGroups.length; else noSurroundings">
+                  <section class="gs-nearby-group" *ngFor="let group of nearbyGroups" [hidden]="locationCategory!=='all' && locationCategory!==group.name"><h4><i class="bi" [ngClass]="group.name.toLowerCase().includes('bay') ? 'bi-signpost-split' : 'bi-camera'" aria-hidden="true"></i>{{ group.name }}</h4><ul>
+                    <li class="gs-nearby-place" *ngFor="let place of group.items"><span class="gs-nearby-place-icon"><i class="bi" [ngClass]="place.travelMode==='walking' ? 'bi-person-walking' : 'bi-geo-alt'" aria-hidden="true"></i></span><div class="gs-nearby-place-copy"><h5>{{ place.name }}</h5><p *ngIf="place.travelMinutes">Khoảng {{ place.travelMinutes }} phút {{ travelModeLabel(place.travelMode) }}</p><small *ngIf="place.distanceBasis==='straight_line'">Khoảng cách đường thẳng</small></div><div class="gs-nearby-distance"><strong>{{ distanceLabel(place) }}</strong><span *ngIf="place.distanceKm">tham khảo</span></div><a [href]="directionsTo(place)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Chỉ đường từ ' + activeTour.title + ' đến ' + place.name" title="Xem tuyến đường trên Google Maps"><i class="bi bi-sign-turn-right" aria-hidden="true"></i></a></li>
+                  </ul></section>
                 </div>
-                <ng-template #noSurroundings><p class="info-muted">Thông tin giao thông và các điểm đến xung quanh đang được cập nhật.</p></ng-template>
-                <p class="location-disclaimer" *ngIf="nearbyGroups.length">Khoảng cách chỉ hiển thị khi đối tác cung cấp; thời gian di chuyển phụ thuộc tuyến đường và phương tiện.</p>
+                <ng-template #noSurroundings><div class="gs-location-empty"><i class="bi bi-signpost-split" aria-hidden="true"></i><h3>Đang bổ sung các điểm đến lân cận</h3><p>Bạn có thể mở bản đồ để xem các địa điểm quanh cơ sở.</p></div></ng-template>
+                <footer class="gs-location-sources"><p><i class="bi bi-info-circle" aria-hidden="true"></i> Khoảng cách và thời gian là số liệu tham khảo từ nguồn công bố, không phải dữ liệu giao thông trực tiếp. Điểm xuất phát, lối vào, tuyến đường và phương tiện có thể làm kết quả thực tế khác đi. Mở chỉ đường để xem tuyến hiện tại.</p><div *ngIf="activeTour.nearbySources?.length"><span>Nguồn tham khảo</span><a *ngFor="let source of activeTour.nearbySources" [href]="source.url" target="_blank" rel="noopener noreferrer">{{ source.name }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div></footer>
+              </div>
             </section>
 
             <section class="overview-panel" id="detail-overview" role="tabpanel" aria-labelledby="tab-overview" *ngIf="activeInfoTab === 'overview'">
@@ -470,12 +487,26 @@
             </section>
 
             <section class="policy-panel" id="detail-policy" role="tabpanel" aria-labelledby="tab-policy" *ngIf="activeInfoTab === 'policy'">
-                <div *ngIf="activeTour.isService" class="clear-service-policies">
-                    <div class="info-section-heading"><div><span class="section-kicker">Chuẩn bị cho trải nghiệm của bạn</span><h2>Chính sách &amp; thông tin cần biết</h2></div></div>
-                    <p class="info-muted">Điều kiện áp dụng theo thông tin cơ sở công bố. Vui lòng đọc thông tin của loại phòng hoặc dịch vụ trước khi đặt.</p>
-                    <div class="policy-detail-rows" *ngIf="policyGroups.length; else noServicePolicies"><section class="policy-detail-row" *ngFor="let group of policyGroups"><h3><i class="bi" [ngClass]="infoIcon(group.title)" aria-hidden="true"></i><span>{{ group.title }}</span></h3><div><p *ngFor="let line of group.lines">{{ line }}</p></div></section></div>
-                    <ng-template #noServicePolicies><div class="detail-empty"><i class="bi bi-journal-text"></i><h3>Chính sách đang được cập nhật</h3><p>Đối tác chưa cung cấp điều kiện cụ thể cho dịch vụ này.</p></div></ng-template>
-                    <div class="policy-confirm-note"><i class="bi bi-info-circle"></i><p><ng-container *ngIf="isLodging">Chính sách riêng của từng loại phòng được hiển thị tại tab Phòng. </ng-container>Giá và số lượng được kiểm tra lại khi bạn gửi yêu cầu đặt.</p></div>
+                <div *ngIf="activeTour.isService" class="gs-policy-guide">
+                    <header class="gs-policy-heading"><span class="gs-policy-heading-icon"><i class="bi bi-journal-check" aria-hidden="true"></i></span><div><h2>Để chuyến đi thật suôn sẻ</h2><p>Chính sách và những thông tin cần biết trước khi đặt.</p></div></header>
+                    <div class="gs-policy-times" *ngIf="isLodging && (policyTimes.checkIn || policyTimes.checkOut)">
+                        <div *ngIf="policyTimes.checkIn"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Nhận phòng<strong>Từ {{ policyTimes.checkIn }}</strong></span></div>
+                        <div *ngIf="policyTimes.checkOut"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Trả phòng<strong>Trước {{ policyTimes.checkOut }}</strong></span></div>
+                        <p>Đến sớm hoặc trả muộn? Xem điều kiện về thời gian bên dưới.</p>
+                    </div>
+                    <div class="gs-policy-layout">
+                        <div class="gs-policy-entries">
+                            <details class="gs-policy-entry" *ngFor="let group of policyGroups" open><summary><span class="gs-policy-entry-icon"><i class="bi" [ngClass]="infoIcon(group.title)" aria-hidden="true"></i></span><h3>{{ group.title }}</h3><i class="bi bi-chevron-down gs-policy-chevron" aria-hidden="true"></i></summary><div class="gs-policy-entry-copy"><p *ngFor="let line of group.lines">{{ line }}</p></div></details>
+                            <div class="gs-policy-empty" *ngIf="!policyGroups.length"><i class="bi bi-journal-text" aria-hidden="true"></i><h3>Chính sách đang được cập nhật</h3><p>Cơ sở chưa cung cấp điều kiện cụ thể cho dịch vụ này.</p></div>
+                            <div class="gs-policy-room" *ngIf="isLodging"><i class="bi bi-door-open" aria-hidden="true"></i><div><h3>Điều kiện của từng loại phòng</h3><ng-container *ngIf="selectedRoom; else chooseRoomPolicy"><p>{{ selectedRoom.name }}</p><ul *ngIf="selectedRoom.policies?.length"><li *ngFor="let line of selectedRoom.policies">{{ line }}</li></ul></ng-container><ng-template #chooseRoomPolicy><p>Sức chứa, tiện nghi và quy định riêng có thể khác nhau theo phòng.</p></ng-template><button type="button" (click)="setInfoTab('rooms')">Xem phòng &amp; điều kiện áp dụng <i class="bi bi-arrow-up-right" aria-hidden="true"></i></button></div></div>
+                        </div>
+                        <aside class="gs-policy-checklist" aria-label="Cần kiểm tra trước khi đặt"><h3>Trước khi xác nhận</h3><ul>
+                            <li><i class="bi bi-calendar-check" aria-hidden="true"></i><div><strong>Kiểm tra lịch sử dụng</strong><p>Chọn đúng ngày{{ isLodging ? ' nhận, trả phòng' : ' sử dụng dịch vụ' }} và số khách.</p></div></li>
+                            <li><i class="bi bi-credit-card" aria-hidden="true"></i><div><strong>Xem chi tiết thanh toán</strong><p>Giá, ưu đãi, phí và số tiền cần thanh toán hiển thị tại bước đặt.</p></div></li>
+                            <li><i class="bi bi-arrow-repeat" aria-hidden="true"></i><div><strong>Đọc điều kiện hủy &amp; hoàn</strong><p>{{ hasCancellationPolicy ? 'Xem kỹ thời hạn và điều kiện trong chính sách của cơ sở.' : 'Thông tin hiện tại chưa nêu rõ điều kiện hủy và hoàn tiền. Kiểm tra lại trước khi xác nhận.' }}</p></div></li>
+                        </ul><p class="gs-policy-checklist-note"><i class="bi bi-info-circle" aria-hidden="true"></i> Giá và số lượng được kiểm tra lại khi gửi yêu cầu đặt.</p></aside>
+                    </div>
+                    <footer class="gs-policy-source"><i class="bi bi-info-circle" aria-hidden="true"></i> Chính sách theo thông tin cơ sở cung cấp; điều kiện cụ thể của phòng hoặc gói dịch vụ được ưu tiên áp dụng.</footer>
                 </div>
                 <ng-container *ngIf="!activeTour.isService">
                 <div class="policy-hero-card">

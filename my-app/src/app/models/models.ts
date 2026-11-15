@@ -49,10 +49,12 @@ export interface ServiceAmenityGroup {
 
 export type ServiceAmenity = string | { name: string; fee?: 'free' | 'paid'; available?: boolean; note?: string };
 export interface ServicePolicyGroup { title: string; lines: string[]; }
-export interface ServiceNearbyGroup { name: string; items: { name: string; distance?: string }[]; }
+export interface ServiceNearbyPlace { name: string; distance?: string; distanceKm?: number; travelMinutes?: number; travelMode?: 'walking' | 'driving' | 'bicycling'; distanceBasis?: 'source_reported' | 'straight_line' | 'route'; mapQuery?: string; sourceUrl?: string; }
+export interface ServiceNearbyGroup { name: string; items: ServiceNearbyPlace[]; }
 export interface ServiceGreenFeature { title: string; description?: string; }
 
 export interface CatalogMetadata {
+  flashSale?: { id: string; name: string; discount_type: 'percent' | 'fixed'; discount_value: number; start_at: string; end_at: string; min_order: number; remaining: number; sale_price: number } | null;
   priceStatus?: 'reference' | 'on_request';
   bookingEnabled?: boolean;
   sourceUrls?: string[];
@@ -101,6 +103,9 @@ export interface Tour extends CatalogMetadata {
   popularAmenities?: ServiceAmenity[];
   policyGroups?: ServicePolicyGroup[];
   nearbyGroups?: ServiceNearbyGroup[];
+  nearbySources?: { name: string; url: string }[];
+  nearbyCheckedAt?: string;
+  nearbyOrigin?: string;
   greenFeatures?: ServiceGreenFeature[];
   isDemo?: boolean;
   contactPhone?: string;

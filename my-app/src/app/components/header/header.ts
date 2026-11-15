@@ -463,7 +463,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public isServicesActive(): boolean {
-    return this.router.url.startsWith('/services');
+    return this.router.url.startsWith('/services') || this.router.url.startsWith('/transport');
   }
 
   public selectSearchDest(dest: string) {

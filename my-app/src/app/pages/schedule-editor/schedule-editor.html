@@ -1,3 +1,8 @@
+<aside class="food-schedule-handoff" *ngIf="pendingFood as food" role="region" aria-label="Thêm quán vào lịch trình">
+    <div><strong>{{ food.name }}</strong><p>{{ activeItinerary ? ('Thêm quán vào ngày ' + (activeDayIdx + 1) + ' đang chọn') : 'Mở hoặc tạo lịch trình, sau đó chọn ngày để thêm quán.' }}</p></div>
+    <button *ngIf="activeItinerary" type="button" [disabled]="addingFood || isItineraryLocked()" (click)="addPendingFood()">{{ addingFood ? 'Đang thêm…' : 'Thêm vào ngày này' }}</button>
+    <button type="button" [disabled]="addingFood" (click)="dismissPendingFood()" aria-label="Bỏ thêm quán">×</button>
+</aside>
 <div class="schedule-editor-container" *ngIf="activeItinerary">
 
 

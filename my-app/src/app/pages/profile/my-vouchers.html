@@ -1,0 +1,15 @@
+<header class="my-vouchers-heading"><div><h1>Mã giảm giá của tôi</h1><p>Các mã bạn đã nhận và ưu đãi đổi điểm xanh.</p></div><a routerLink="/promotions/for-you">Nhận thêm mã</a></header>
+<nav class="my-vouchers-filters" aria-label="Lọc mã giảm giá"><button *ngFor="let item of filters" type="button" [class.active]="filter===item.id" [attr.aria-pressed]="filter===item.id" (click)="filter=item.id">{{ item.label }}</button></nav>
+<p *ngIf="loading" role="status">Đang tải mã giảm giá…</p>
+<div class="voucher-state error" *ngIf="error" role="alert"><p>{{ error }}</p><button type="button" (click)="load()">Thử lại</button></div>
+<p class="copy-error" *ngIf="copyError" role="alert">{{ copyError }}</p>
+<div class="voucher-state" *ngIf="!loading && !error && !filtered.length"><i class="bi bi-ticket-perforated" aria-hidden="true"></i><h2>Chưa có mã trong mục này</h2><p>Khám phá khuyến mãi và bấm “Nhận ngay” để lưu mã vào tài khoản.</p><a routerLink="/promotions/for-you">Khám phá khuyến mãi</a></div>
+<div class="my-vouchers-grid" *ngIf="!loading">
+  <article class="saved-voucher" *ngFor="let v of filtered" [class.inactive]="v.status!=='active'">
+    <header><strong>{{ v.discount_type==='fixed' ? 'Giảm ' + money(v.discount_value) : 'Giảm ' + v.discount_value + '%' }}</strong><span class="voucher-status">{{ statusLabel(v.status) }}</span></header>
+    <h2>{{ v.name }}</h2><p>{{ v.min_order > 0 ? 'Đơn từ ' + money(v.min_order) : 'Không yêu cầu đơn tối thiểu' }}</p><p class="voucher-scope">{{ v.scope }}</p>
+    <div class="saved-voucher-code"><span>Mã giảm giá</span><b>{{ v.code }}</b></div>
+    <div class="saved-voucher-meta"><span><i class="bi bi-ticket-perforated" aria-hidden="true"></i> Số lượng: {{ v.quantity }} mã · Còn {{ v.remaining }} lượt dùng</span><span><i class="bi bi-clock" aria-hidden="true"></i> {{ v.end_at ? 'Hạn dùng: ' + (v.end_at | date:'dd/MM/yyyy HH:mm') : 'Không giới hạn thời gian' }}</span><span *ngIf="v.status==='scheduled'">Dùng từ {{ v.start_at | date:'dd/MM/yyyy HH:mm' }}</span></div>
+    <footer><button type="button" [disabled]="v.status!=='active'" (click)="copy(v)">{{ copied===v.id ? 'Đã sao chép' : 'Sao chép mã' }}</button><details *ngIf="v.services?.length && v.status==='active'"><summary>Xem dịch vụ áp dụng</summary><a *ngFor="let service of v.services" [routerLink]="['/services', service.type==='stay' ? 'stay' : service.type==='transport' ? 'transport' : 'attraction', service.id]">{{ service.name }}</a></details></footer>
+  </article>
+</div>

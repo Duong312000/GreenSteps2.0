@@ -11,8 +11,10 @@ function prepare(item) {
   assert.ok(data.sourceUrls?.length && data.sourceUrls.every(url => new URL(url).protocol === 'https:'));
   data.sourceCheckedAt = '2026-11-05';
   data.catalogSource = importTag;
+  const nearby = require('../data/service-nearby-landmarks.json').find(row => row.serviceIds.includes(item.id));
+  if (nearby) Object.assign(data, { nearbyGroups: nearby.groups, nearbySources: nearby.sources, nearbyCheckedAt: nearby.checkedAt, nearbyOrigin: nearby.origin, nearbySeedKey: nearby.key });
   data.verificationStatus = 'public_source';
-  data.bookingEnabled = false;
+  data.bookingEnabled = item.type !== 'stay' && item.cost > 0;
   data.priceStatus = item.cost > 0 ? 'reference' : 'on_request';
   data.carbonStatus = 'unconfirmed';
   data.capacityStatus = 'unconfirmed';
@@ -56,7 +58,7 @@ async function main() {
     const saved = await GreenService.findByPk(prepared[index].id);
     assert.equal(saved.current_data.catalogSource, importTag);
     assert.equal(saved.current_data.isDemo, undefined);
-    assert.equal(saved.current_data.bookingEnabled, false);
+    assert.equal(saved.current_data.bookingEnabled, prepared[index].current_data.bookingEnabled);
   }
   // Keep legacy sample records for their owners/history, but remove them from the public catalog.
   const all = await GreenService.findAll();

@@ -1,5 +1,6 @@
 import { TransportBookingsComponent } from './pages/transport/transport-bookings';
 import { GreenWalletComponent } from './pages/profile/green-wallet';
+import { MyVouchersComponent } from './pages/profile/my-vouchers';
 import { FavoriteButtonComponent } from './components/favorites/favorite-button';
 import { FavoriteCollectionComponent } from './components/favorites/favorite-collection';
 import { ErrorHandler, NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
@@ -49,6 +50,7 @@ import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
 import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
 import { NetworkErrorComponent } from './pages/network-error/network-error';
 import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
+import { LocalFoodComponent } from './pages/local-food/local-food';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
@@ -102,10 +104,12 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     NetworkErrorComponent,
   ],
   imports: [
+    LocalFoodComponent,
     FavoriteButtonComponent,
     FavoriteCollectionComponent,
     TransportBookingsComponent,
     GreenWalletComponent,
+    MyVouchersComponent,
     BrowserModule,
     CommonModule,
     FormsModule,

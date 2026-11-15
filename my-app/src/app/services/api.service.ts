@@ -767,6 +767,7 @@ export class ApiService {
         checkOutDate: bookingData.checkOutDate ?? bookingData.check_out_date,
         roomId: bookingData.roomId,
         roomCount: bookingData.roomCount,
+        flashSaleId: bookingData.flashSaleId,
         guests: bookingData.guests,
         addonIds: bookingData.addonIds ?? bookingData.addon_ids ?? [],
         idempotencyKey: bookingData.idempotencyKey ?? bookingData.idempotency_key,
@@ -856,7 +857,7 @@ export class ApiService {
       localStorage.setItem(key, JSON.stringify(rows.slice(0, 50)));
     } catch { /* The server notification remains the durable source. */ }
   }
-  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string; roomId?: string; roomCount?: number; bookingDate?: string; checkOutDate?: string }): Promise<any> {
+  public async getBookingQuote(quoteData: { type: string; targetId: string; guests: number; addonIds: string[]; paymentMethod: string; roomId?: string; roomCount?: number; bookingDate?: string; checkOutDate?: string; flashSaleId?: string }): Promise<any> {
     return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/bookings/quote`, quoteData));
   }
 
@@ -1126,6 +1127,14 @@ export class ApiService {
     }
   }
 
+  public async getSavedPromotions(): Promise<any[]> {
+    const result = await firstValueFrom(this.http.get<{ vouchers: any[] }>(`${this.BACKEND_URL}/vouchers/saved`, { withCredentials: true }));
+    return result.vouchers;
+  }
+  public claimPromotion(campaignId: string): Promise<any> {
+    return firstValueFrom(this.http.post(`${this.BACKEND_URL}/vouchers/campaigns/${encodeURIComponent(campaignId)}/claim`, {}, { withCredentials: true }));
+  }
+
   public async validateVoucher(code: string): Promise<{ success: boolean; message: string; discount?: number }> {
     try {
       return await firstValueFrom(
@@ -1207,6 +1216,9 @@ export class ApiService {
   }
   public getAdminCatalog(kind: 'services' | 'tours' | 'promotions' | 'allBookings' | 'refunds'): Promise<AdminQueueResult<any>> {
     return this.getAdminQueue(`/admin/catalog/${kind}`);
+  }
+  public updateAdminFlashSale(id: string, body: any): Promise<any> {
+    return firstValueFrom(this.http.patch(`${this.BACKEND_URL}/admin/promotions/${encodeURIComponent(id)}`, body, { withCredentials: true }));
   }
   private adminUserQuery(query: AdminUserQuery): string {
     const params = new URLSearchParams();
@@ -1485,9 +1497,9 @@ export class ApiService {
   }
 
   // Cải tiến Quản trị Đối tác (Partner Dashboard Upgrades)
-  public async getServiceDetails(id: string): Promise<any> {
+  public async getServiceDetails(id: string, flashSaleId?: string): Promise<any> {
     try {
-      const res = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/services/${id}`, { withCredentials: true }));
+      const res = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/services/${encodeURIComponent(id)}${flashSaleId ? '?flashSale=' + encodeURIComponent(flashSaleId) : ''}`, { withCredentials: true }));
       if (res) return res;
     } catch (e) {
       // ignore
@@ -1495,13 +1507,10 @@ export class ApiService {
     return null;
   }
 
-  public async getServiceAsTour(id: string): Promise<Tour | null> {
-    const cacheKey = `service_detail_tour_${id}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+  public async getServiceAsTour(id: string, flashSaleId?: string): Promise<Tour | null> {
 
     try {
-      const s = await this.getServiceDetails(id);
+      const s = await this.getServiceDetails(id, flashSaleId);
       if (!s) return null;
 
       const serviceType = s.type || 'attraction';
@@ -1516,6 +1525,7 @@ export class ApiService {
         days: 1,
         type: mappedType,
         cost: Number(s.cost || 0),
+        flashSale: s.flashSale || null,
         oldCost: Number((s.cost || 0) * 1.12),
         image: s.image_url || s.image || s.current_data?.img || 'image/Viet Nam.png',
         description: s.current_data?.shortDesc || s.current_data?.description || s.description,
@@ -1549,6 +1559,9 @@ export class ApiService {
         popularAmenities: Array.isArray(s.current_data?.popularAmenities) ? s.current_data.popularAmenities : [],
         policyGroups: Array.isArray(s.current_data?.policyGroups) ? s.current_data.policyGroups : [],
         nearbyGroups: Array.isArray(s.current_data?.nearbyGroups) ? s.current_data.nearbyGroups : [],
+        nearbySources: s.current_data?.nearbySources || [],
+        nearbyCheckedAt: s.current_data?.nearbyCheckedAt,
+        nearbyOrigin: s.current_data?.nearbyOrigin,
         greenFeatures: Array.isArray(s.current_data?.greenFeatures) ? s.current_data.greenFeatures : [],
         isDemo: s.current_data?.isDemo === true,
         priceStatus: s.current_data?.priceStatus,
@@ -1568,7 +1581,6 @@ export class ApiService {
         maxCapacity: s.current_data?.capacityStatus === 'unconfirmed' ? undefined : (s.max_capacity ?? s.maxCapacity)
       };
 
-      this.setCachedData(cacheKey, tour);
       return tour;
     } catch (e) {
       console.warn('Failed to load service detail:', e);

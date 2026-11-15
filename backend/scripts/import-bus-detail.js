@@ -54,7 +54,7 @@ async function migrate(apply = false) {
    }
    changes.push({ trip, stops: validateStops(stops, trip.departure_time, trip.arrival_time) });
   }
-  const pendingVehicles = vehicles.filter(v => v.gallery_version !== 'commons-bus-v1');
+  const pendingVehicles = vehicles.filter(v => !['commons-bus-v1', 'curated-bus-base64-v2'].includes(v.gallery_version));
   if (apply && (pendingVehicles.length || changes.length)) {
    const backup = path.join(cache, `atlas-before-${Date.now()}.json`);
    fs.writeFileSync(backup, EJSON.stringify({ database: db.databaseName, vehicles: pendingVehicles, trips: changes.map(c => c.trip) }, null, 2));

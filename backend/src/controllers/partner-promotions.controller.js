@@ -17,14 +17,7 @@ function fail(message, statusCode = 400) {
   throw Object.assign(new Error(message), { statusCode });
 }
 
-function state(row, now = Date.now()) {
-  if (row.status === 'cancelled') return 'cancelled';
-  if (new Date(row.end_at).getTime() <= now) return 'expired';
-  if (row.type !== 'promotion' && row.used_count >= row.usage_limit)
-    return 'exhausted';
-  if (row.status === 'paused') return 'paused';
-  return new Date(row.start_at).getTime() > now ? 'scheduled' : 'active';
-}
+const { campaignState: state } = require('../services/campaign-state.service');
 
 function dto(row, services = []) {
   const { _id, _rev, ...data } = row;
@@ -193,7 +186,7 @@ async function validate(body, userId, existing) {
     data.usage_limit = number(
       body.usage_limit,
       'Giới hạn sử dụng',
-      Math.max(1, existing?.used_count || 0),
+      Math.max(1, existing?.used_count || 0, existing?.claimed_count || 0),
       1000000000,
       true,
     );
@@ -207,7 +200,7 @@ async function validate(body, userId, existing) {
   }
   if (
     existing &&
-    (existing.used_count > 0 || existing.bookings > 0 || existing.spent > 0)
+    (existing.used_count > 0 || existing.claimed_count > 0 || existing.bookings > 0 || existing.spent > 0)
   ) {
     for (const key of [
       'service_id',
@@ -393,7 +386,7 @@ exports.publicList = wrap(async (req, res) => {
     end_at: { $gt: now },
     type: { $in: ['flash_sale', 'voucher'] },
     discount_value: { $gt: 0 },
-    $expr: { $lt: ['$used_count', '$usage_limit'] },
+    $expr: { $lt: [{ $cond: [{ $eq: ['$type', 'voucher'] }, { $max: [{ $ifNull: ['$used_count', 0] }, { $ifNull: ['$claimed_count', 0] }] }, { $ifNull: ['$used_count', 0] }] }, '$usage_limit'] },
   }).sort({ bookings: -1, clicks: -1, createdAt: -1 }).toArray();
   const serviceIds = rows.map((row) => row.service_id).filter(Boolean);
   const venderIds = rows

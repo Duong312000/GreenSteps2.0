@@ -223,7 +223,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         { icon: 'bi-shield-lock', label: 'Bảo mật tài khoản', section: 'security' },
         { icon: 'bi-bell', label: 'Thông báo', section: 'notifications', badge: '3' },
         { icon: 'bi-wallet2', label: 'Ví GreenSteps', section: 'wallet' },
-        { icon: 'bi-gift', label: 'Chương trình ưu đãi', section: 'promotions' },
+        { icon: 'bi-ticket-perforated', label: 'Mã giảm giá của tôi', section: 'promotions' },
         { icon: 'bi-gear', label: 'Cài đặt', section: 'settings' },
         { icon: 'bi-box-arrow-right', label: 'Đăng xuất', action: 'logout' }
       ]

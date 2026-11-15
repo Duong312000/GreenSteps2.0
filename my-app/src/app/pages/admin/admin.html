@@ -1,4 +1,24 @@
 ﻿<div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
+  <div class="flash-editor-backdrop" *ngIf="flashEdit" (click)="closeFlashEdit()">
+    <section class="flash-editor" role="dialog" aria-modal="true" aria-labelledby="flash-editor-title" (click)="$event.stopPropagation()" (keydown)="trapFlashFocus($event)">
+      <header><div><span>Quản lý khuyến mãi</span><h2 id="flash-editor-title">Chỉnh sửa Flash Sale</h2></div><button type="button" aria-label="Đóng" [disabled]="flashSaving" (click)="closeFlashEdit()">×</button></header>
+      <p class="flash-editor-name">{{ flashEdit.name }}</p>
+      <div class="flash-editor-inventory"><span>Đã sử dụng <b>{{ flashEdit.used_count }}</b></span><span>Còn lại sau khi lưu <b>{{ flashEdit.usage_limit - flashEdit.used_count }}</b></span></div>
+      <form (submit)="saveFlashEdit($event)">
+        <label>Tổng số suất<input id="flash-edit-limit" type="number" name="flashLimit" [(ngModel)]="flashEdit.usage_limit" [min]="flashEdit.used_count || 1" max="1000000000" step="1" required><small>Không được thấp hơn số suất đã sử dụng.</small></label>
+        <div class="flash-editor-grid">
+          <label>Loại giảm<select name="flashDiscountType" [(ngModel)]="flashEdit.discount_type" [disabled]="flashEdit.used_count > 0"><option value="percent">Phần trăm (%)</option><option value="fixed">Số tiền (đ)</option></select></label>
+          <label>Mức giảm<input type="number" name="flashDiscountValue" [(ngModel)]="flashEdit.discount_value" min="1" [max]="flashEdit.discount_type === 'percent' ? 100 : 1000000000000" step="1" [disabled]="flashEdit.used_count > 0" required></label>
+          <label>Bắt đầu<input type="datetime-local" step="1" name="flashStart" [(ngModel)]="flashEdit.start_at" required></label>
+          <label>Kết thúc<input type="datetime-local" step="1" name="flashEnd" [(ngModel)]="flashEdit.end_at" required></label>
+        </div>
+        <label>Trạng thái<select name="flashStatus" [(ngModel)]="flashEdit.status"><option value="active">Hoạt động theo lịch</option><option value="paused">Tạm dừng</option><option value="cancelled">Hủy chương trình</option></select></label>
+        <p class="flash-editor-note">Thời gian theo múi giờ trên máy bạn. Số suất đã dùng được đọc từ hệ thống và không chỉnh sửa tại đây.</p>
+        <p class="flash-editor-error" *ngIf="flashError" role="alert">{{ flashError }}</p>
+        <footer><button type="button" [disabled]="flashSaving" (click)="closeFlashEdit()">Đóng</button><button type="submit" class="save" [disabled]="flashSaving">{{ flashSaving ? 'Đang lưu…' : 'Lưu Flash Sale' }}</button></footer>
+      </form>
+    </section>
+  </div>
   <header class="admin-topbar">
     <div class="admin-brand">
       <button type="button" class="admin-mobile-menu" aria-label="Mở menu" (click)="mobileMenuOpen = !mobileMenuOpen">
@@ -67,6 +87,7 @@
 
     <aside class="admin-sidebar" [class.mobile-open]="mobileMenuOpen" aria-label="Điều hướng quản trị">
       <div class="sidebar-nav">
+        <a routerLink="/admin/food" class="sidebar-item"><i class="bi bi-egg-fried"></i><span class="sidebar-label">Ẩm thực địa phương</span></a>
         <a routerLink="/admin/transport" class="sidebar-item"><i class="bi bi-bus-front"></i><span class="sidebar-label">Di chuyển xanh</span></a>
         <button type="button" class="sidebar-item" *ngFor="let item of navigationItems"
           [class.active]="activeSection === item.id" [attr.title]="item.label"
@@ -223,7 +244,7 @@
 
               <app-admin-table *ngIf="currentQueueState === 'ready' && filteredRows.length > 0"><div class="table-scroll" [class.polished-table-scroll]="isPolishedAdminTable" [class.provider-table-scroll]="activeTab === 'providers'">
                 <table class="admin-data-table" [class.provider-table]="activeTab === 'providers'" [class.service-table]="activeTab === 'services'" [class.catalog-table]="isCatalogTab && activeTab !== 'refunds' && activeTab !== 'services'" [class.refund-table]="activeTab === 'refunds'">
-                  <thead><tr><th class="checkbox-column" [style.width]="isPolishedAdminTable ? '48px' : null"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns" [class]="column.key + '-column'" [style.width]="column.width || null" [style.min-width]="column.minWidth || null" [class.text-right]="column.align === 'right'" [class.text-center]="column.align === 'center'">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab || activeTab === 'refunds'">Thao tác</th></tr></thead>
+                  <thead><tr><th class="checkbox-column" [style.width]="isPolishedAdminTable ? '48px' : null"><input type="checkbox" aria-label="Chọn tất cả hàng đang hiển thị" [disabled]="isPreviewMode" /></th><th *ngFor="let column of activeTableColumns" [class]="column.key + '-column'" [style.width]="column.width || null" [style.min-width]="column.minWidth || null" [class.text-right]="column.align === 'right'" [class.text-center]="column.align === 'center'">{{ column.label }}</th><th class="actions-column" *ngIf="!isCatalogTab || activeTab === 'refunds' || activeTab === 'promotions'">Thao tác</th></tr></thead>
                   <tbody>
                     <tr *ngFor="let row of pageRows" [class.provider-clickable-row]="activeTab === 'providers' && !isPreviewMode" [attr.tabindex]="activeTab === 'providers' && !isPreviewMode ? 0 : null" (click)="activeTab === 'providers' && openProviderDetail(row)" (keydown.enter)="$event.target === $event.currentTarget && activeTab === 'providers' && openProviderDetail(row)">
                       <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
@@ -234,6 +255,7 @@
                         <app-copyable-id *ngIf="!(activeTab === 'providers' && column.key === 'name') && column.key !== 'status' && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && (column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key))" [value]="cellValue(row, column.key)"></app-copyable-id>
                         <span *ngIf="column.key !== 'status' && !(activeTab === 'providers' && column.key === 'name') && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && !((column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key)) )" [class.detail-cell]="column.key === 'detail'" [class.service-name-cell]="activeTab === 'services' && column.key === 'name'">{{ cellValue(row, column.key) }}</span>
                       </td>
+                      <td *ngIf="activeTab === 'promotions'" class="row-actions"><button type="button" class="small-outline-button" *ngIf="row.raw.type === 'flash_sale'" [disabled]="isPreviewMode || row.raw.status === 'expired' || row.raw.status === 'cancelled'" (click)="openFlashEdit(row,$event)">Chỉnh sửa</button><span *ngIf="row.raw.type !== 'flash_sale'">—</span></td>
                       <td class="row-actions" (click)="$event.stopPropagation()" *ngIf="!isCatalogTab">
                         <div class="provider-actions" *ngIf="activeTab === 'providers'">
                           <button type="button" class="small-outline-button" [disabled]="isPreviewMode" (click)="openProviderDetail(row)">Chi tiết</button>

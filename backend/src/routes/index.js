@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+router.use('/food', require('../food/routes'));
 
 const authRoutes = require('./auth.routes');
 const bookingRoutes = require('./booking.routes');

@@ -139,7 +139,7 @@
                     }}{{ row.discount_type === 'percent' ? '%' : ' đ' }}</strong
                   >
                   <p class="muted">
-                    {{ row.used_count }} / {{ row.usage_limit }} lượt
+                    Đã dùng {{ row.used_count }} / {{ row.usage_limit }} suất · Còn {{ row.usage_limit - row.used_count }} suất
                   </p></ng-container
                 ><ng-template #metrics
                   ><div class="metrics">

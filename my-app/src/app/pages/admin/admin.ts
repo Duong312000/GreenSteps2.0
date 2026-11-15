@@ -117,6 +117,54 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
   public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [], refunds: [] };
   public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading', refunds: 'loading' };
+  public flashEdit: any = null;
+  public flashSaving = false;
+  public flashError = '';
+  private flashEditTrigger?: HTMLElement;
+  public openFlashEdit(row: AdminTableRow, event: Event) {
+    if (this.isPreviewMode || row.raw.type !== 'flash_sale') return;
+    this.flashEditTrigger = event.currentTarget as HTMLElement;
+    const localDate = (value: string) => {
+      const date = new Date(value);
+      return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+    };
+    this.flashEdit = { ...row.raw, start_at_original: row.raw.start_at, initial_start_at: localDate(row.raw.start_at), start_at: localDate(row.raw.start_at), end_at: localDate(row.raw.end_at), status: row.raw.configured_status };
+    this.flashError = '';
+    setTimeout(() => document.getElementById('flash-edit-limit')?.focus());
+  }
+  public closeFlashEdit() {
+    if (this.flashSaving) return;
+    this.flashEdit = null;
+    this.flashEditTrigger?.focus();
+  }
+  public trapFlashFocus(event: KeyboardEvent) {
+    if (event.key === 'Escape') { event.preventDefault(); this.closeFlashEdit(); }
+    if (event.key !== 'Tab') return;
+    const elements = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled)'));
+    const first = elements[0], last = elements[elements.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+  public async saveFlashEdit(event: Event) {
+    event.preventDefault();
+    if (!this.flashEdit || this.flashSaving || this.isPreviewMode) return;
+    this.flashSaving = true; this.flashError = '';
+    try {
+      const form = this.flashEdit;
+      await this.apiService.updateAdminFlashSale(form.id, {
+        version: form.version, usage_limit: form.usage_limit, discount_type: form.discount_type,
+        discount_value: form.discount_value, status: form.status,
+        start_at: form.start_at_original && form.start_at === form.initial_start_at ? form.start_at_original : new Date(form.start_at).toISOString(), end_at: new Date(form.end_at).toISOString(),
+      });
+      await this.loadCatalog('promotions');
+      this.flashSaving = false;
+      this.closeFlashEdit();
+    } catch (error: any) {
+      this.flashError = error?.error?.message || 'Không lưu được Flash Sale. Kiểm tra thông tin và thử lại.';
+      if (error?.status === 409) await this.loadCatalog('promotions');
+    }
+    finally { this.flashSaving = false; this.cdr.detectChanges(); }
+  }
   private refreshTimer?: ReturnType<typeof setInterval>;
   private refreshing = false;
   private destroyed = false;
@@ -541,12 +589,18 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   public get activeTableColumns(): AdminTableColumn[] {
+    if (this.activeTab === 'promotions') return [
+      { key: 'name', label: 'Chương trình', minWidth: '230px' }, { key: 'detail', label: 'Loại' },
+      { key: 'amount', label: 'Mức giảm' }, { key: 'quantity', label: 'Tổng suất' },
+      { key: 'claimed', label: 'Đã nhận' }, { key: 'used', label: 'Đã dùng' }, { key: 'remaining', label: 'Còn lại' },
+      { key: 'period', label: 'Thời gian', minWidth: '180px' }, { key: 'status', label: 'Trạng thái' },
+    ];
     if (this.activeTab === 'reports') return [{ key: 'name', label: 'Tác giả' }, { key: 'serviceType', label: 'Nội dung' }, { key: 'detail', label: 'Lý do và nội dung báo cáo' }, { key: 'date', label: 'Ngày báo cáo' }, { key: 'status', label: 'Trạng thái' }];
     if (this.activeTab === 'refunds') return [{ key: 'id', label: 'Mã' }, { key: 'name', label: 'Khách hàng' }, { key: 'detail', label: 'Dịch vụ' }, { key: 'documents', label: 'Lý do & STK' }, { key: 'amount', label: 'Tiền cọc' }, { key: 'status', label: 'Trạng thái' }];
     if (this.activeTab === 'services') return this.serviceTableColumns.filter(column => this.serviceVisibleColumns[column.key]);
     if (this.isCatalogTab) return [
       { key: 'id', label: 'Mã' }, { key: 'name', label: 'Tên' }, { key: 'detail', label: 'Thông tin' },
-      { key: 'amount', label: this.activeTab === 'promotions' ? 'Mức giảm' : 'Giá trị' },
+      { key: 'amount', label: 'Giá trị' },
       { key: 'date', label: 'Ngày tạo' }, { key: 'status', label: 'Trạng thái' }
     ];
     if (this.activeTab === 'providers') {
@@ -622,6 +676,14 @@ export class AdminComponent implements OnInit, OnDestroy {
   public get pageEnd(): number { return Math.min(this.currentPage * this.pageSize, this.filteredRows.length); }
 
   public cellValue(row: AdminTableRow, key: string): string {
+    if (this.activeTab === 'promotions') {
+      const item = row.raw;
+      if (key === 'quantity') return item.type === 'promotion' ? '—' : String(item.usage_limit ?? 0);
+      if (key === 'used') return item.type === 'promotion' ? '—' : String(item.used_count ?? 0);
+      if (key === 'claimed') return item.type === 'voucher' ? String(item.claimed_count ?? 0) : '—';
+      if (key === 'remaining') return item.type === 'promotion' ? '—' : String(item.remaining ?? 0);
+      if (key === 'period') return `${this.formatDate(item.start_at)} – ${this.formatDate(item.end_at)}`;
+    }
     return (row as any)[key] ?? '—';
   }
 
@@ -1161,8 +1223,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       status: item.status || 'Chờ xử lý', serviceType: '—', documents: '—', revenue: '—', cancellationRate: '—', rating: '—', priority: '—', amount: this.formatMoney(item.amount ?? item.value), raw: item
     };
     if (this.activeTab === 'reports') return { ...common, name: item.author, serviceType: item.targetType === 'post' ? 'Bài viết / video' : 'Bình luận', detail: `${item.reasonLabel}: ${item.details || ''} · ${item.text || ''}`, status: ({ pending: 'Chờ kiểm duyệt', hidden: 'Đã ẩn', dismissed: 'Giữ nội dung', restored: 'Đã khôi phục' } as Record<string, string>)[item.status] || item.status };
-    if (this.isCatalogTab) return { ...common, name: item.name || '—', detail: item.detail || '—',
-      status: item.status || '—', amount: this.activeTab === 'promotions'
+    if (this.isCatalogTab) return { ...common, name: item.name || '—', detail: this.activeTab === 'promotions' ? ({ flash_sale: 'Flash Sale', voucher: 'Mã giảm giá', promotion: 'Quảng bá' } as Record<string, string>)[item.type] || item.detail : item.detail || '—',
+      status: this.activeTab === 'promotions' ? ({ active: 'Đang chạy', scheduled: 'Sắp diễn ra', paused: 'Tạm dừng', expired: 'Đã kết thúc', exhausted: 'Hết suất', cancelled: 'Đã hủy' } as Record<string, string>)[item.status] || item.status : item.status || '—', amount: this.activeTab === 'promotions'
         ? (item.discount_type === 'percent' ? `${item.discount_value}%` : this.formatMoney(item.discount_value))
         : this.formatMoney(item.value) };
     switch (this.activeTab) {
