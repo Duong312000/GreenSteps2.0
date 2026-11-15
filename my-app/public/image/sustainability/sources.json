@@ -1,0 +1,18 @@
+﻿{
+    "publisher":  "Vietnam Tourism",
+    "pages":  [
+                  "https://vietnam.travel/things-to-do/7-essential-things-do-mai-chau/",
+                  "https://vietnam.travel/things-to-do/how-travel-responsibly-vietnam/"
+              ],
+    "images":  {
+                   "mai-chau-valley":  "https://images.vietnam.travel/styles/top_banner/s3/2019-09/Mai%20Chau%20Travel%20Guide%20Vietnam%20tourism-7.jpg?itok=P9rOJJYF",
+                   "mai-chau-fields":  "https://images.vietnam.travel/inline-images/things%20to%20do%20in%20Mai%20Chau-4.jpg",
+                   "mai-chau-weaving":  "https://images.vietnam.travel/inline-images/things%20to%20do%20in%20Mai%20Chau-3.jpg",
+                   "mai-chau-cycling":  "https://images.vietnam.travel/inline-images/Mai%20Chau%20travel%20guide%20Vietnam%20tourism-16.jpg",
+                   "mai-chau-food":  "https://images.vietnam.travel/inline-images/Mai%20Chau%20travel%20guide%20Vietnam%20tourism-17.jpg",
+                   "mai-chau-stay":  "https://images.vietnam.travel/inline-images/things%20to%20do%20in%20Mai%20Chau-6_0.jpg",
+                   "local-host":  "https://images.vietnam.travel/inline-images/responsible%20vietnam%20travel-8.jpg",
+                   "vietnam-nature":  "https://images.vietnam.travel/inline-images/responsible%20travel%20vietnam-4.jpg",
+                   "local-culture":  "https://images.vietnam.travel/inline-images/responsible%20vietnam%20travel-7.jpg"
+               }
+}

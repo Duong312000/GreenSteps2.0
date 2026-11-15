@@ -1,11 +1,7 @@
-<main class="partner-legal-page">
-  <nav class="partner-legal-breadcrumb" aria-label="Điều hướng"><a routerLink="/home">Trang chủ</a><span aria-hidden="true">/</span><a routerLink="/become-a-partner">Trở thành đối tác</a><span aria-hidden="true">/</span><span aria-current="page">{{ pageTitle }}</span></nav>
-  <article class="partner-legal-card">
-    <p class="partner-legal-eyebrow">Thông tin dành cho đối tác</p>
-    <h1>{{ pageTitle }}</h1>
-    <p class="partner-legal-description">{{ pageDescription }}</p>
-    <p class="partner-legal-draft" role="note"><i class="bi bi-info-circle" aria-hidden="true"></i> Bản nháp – cần pháp chế xác nhận</p>
-    <section *ngFor="let section of sections"><h2>{{ section.heading }}</h2><p>{{ section.body }}</p></section>
-    <a class="partner-legal-back" routerLink="/become-a-partner">Quay lại trang đăng ký đối tác</a>
-  </article>
-</main>
+<app-legal-page-layout
+  [title]="pageTitle"
+  [description]="pageDescription"
+  [updatedAt]="updatedAt"
+  [sections]="sections"
+  [finalCta]="finalCta">
+</app-legal-page-layout>

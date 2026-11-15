@@ -5,6 +5,17 @@ import { of, throwError } from 'rxjs';
 import { ApiService } from './api.service';
 
 describe('ApiService admin queues', () => {
+  it('resolves uploaded media paths against the backend origin', () => {
+    const api = new ApiService({} as any);
+
+    expect(api.resolveCommunityMediaUrl('/uploads/avatars/profile.jpg'))
+      .toBe('http://localhost:5055/uploads/avatars/profile.jpg');
+    expect(api.resolveCommunityMediaUrl('https://images.example.test/profile.jpg'))
+      .toBe('https://images.example.test/profile.jpg');
+    expect(api.resolveCommunityMediaUrl('data:image/jpeg;base64,abc'))
+      .toBe('data:image/jpeg;base64,abc');
+  });
+
   it('loads the admin catalog through the authenticated API', async () => {
     const rows = [{ id: 'service-1', status: 'active' }];
     const http = { get: vi.fn(() => of(rows)) };
@@ -22,7 +33,7 @@ describe('ApiService admin queues', () => {
     api.setCachedData('community_posts_1', [{ id: 'post-1' }]);
     expect(api.getCachedData('community_posts_1')).toBeNull();
   });
-  beforeEach(() => vi.stubGlobal('window', { location: { hostname: 'localhost' } }));
+  beforeEach(() => vi.stubGlobal('window', { location: { hostname: 'localhost', protocol: 'http:' } }));
   afterEach(() => vi.unstubAllGlobals());
 
   it('calls the admin users API with server-side filters and returns its response', async () => {

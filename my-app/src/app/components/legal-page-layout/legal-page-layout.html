@@ -1,0 +1,63 @@
+<main class="legal-page" aria-labelledby="legal-title">
+  <nav class="legal-breadcrumb" aria-label="Điều hướng">
+    <a routerLink="/home">Trang chủ</a><span aria-hidden="true">/</span>
+    <a routerLink="/become-a-partner">Dành cho đối tác</a><span aria-hidden="true">/</span>
+    <span aria-current="page">{{ title }}</span>
+  </nav>
+
+  <header class="legal-header">
+    <div>
+      <p class="legal-eyebrow">Thông tin dành cho đối tác</p>
+      <h1 id="legal-title">{{ title }}</h1>
+      <p class="legal-description">{{ description }}</p>
+      <p class="legal-updated">Cập nhật lần cuối: <time>{{ updatedAt }}</time></p>
+    </div>
+    <button class="legal-print" type="button" (click)="printPage()" aria-label="In trang chính sách">
+      <i class="bi bi-printer" aria-hidden="true"></i><span>In trang</span>
+    </button>
+  </header>
+
+  <p class="legal-draft" role="note"><i class="bi bi-info-circle" aria-hidden="true"></i>{{ draftNotice }}</p>
+
+  <details class="legal-toc-mobile" [open]="isTocOpen">
+    <summary (click)="$event.preventDefault(); isTocOpen = !isTocOpen" [attr.aria-expanded]="isTocOpen">
+      <span><i class="bi bi-list-ul" aria-hidden="true"></i> Mục lục</span><i class="bi bi-chevron-down" aria-hidden="true"></i>
+    </summary>
+    <nav aria-label="Mục lục chính sách">
+      <a *ngFor="let section of sections" [href]="'#' + section.id" [class.active]="activeSectionId === section.id" (click)="scrollToSection($event, section.id)">{{ section.heading }}</a>
+    </nav>
+  </details>
+
+  <div class="legal-layout">
+    <aside class="legal-toc-desktop" aria-label="Mục lục chính sách">
+      <p>Mục lục</p>
+      <nav>
+        <a *ngFor="let section of sections" [href]="'#' + section.id" [class.active]="activeSectionId === section.id" (click)="scrollToSection($event, section.id)">{{ section.heading }}</a>
+      </nav>
+    </aside>
+
+    <article class="legal-content">
+      <section *ngFor="let section of sections" #legalSection [id]="section.id" class="legal-section" [attr.aria-labelledby]="section.id + '-title'">
+        <h2 [id]="section.id + '-title'">{{ section.heading }}</h2>
+        <p *ngFor="let paragraph of section.paragraphs">{{ paragraph }}</p>
+        <aside *ngIf="section.callout" class="legal-callout" role="note">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i><div><strong>{{ section.callout.label }}</strong><p>{{ section.callout.text }}</p></div>
+        </aside>
+        <div *ngIf="section.methods?.length" class="legal-table-wrap" tabindex="0" aria-label="Bảng phương thức thanh toán, có thể cuộn ngang">
+          <table>
+            <thead><tr><th scope="col">Phương thức</th><th scope="col">Mô tả</th><th scope="col">Lưu ý</th></tr></thead>
+            <tbody><tr *ngFor="let method of section.methods"><th scope="row">{{ method.name }}</th><td>{{ method.description }}</td><td>{{ method.note }}</td></tr></tbody>
+          </table>
+        </div>
+        <div *ngIf="section.links?.length" class="legal-inline-links">
+          <a *ngFor="let link of section.links" [routerLink]="link.route">{{ link.label }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        </div>
+      </section>
+      <aside *ngIf="finalCta" class="legal-final-cta">
+        <div><h2>{{ finalCta.heading }}</h2><p>{{ finalCta.description }}</p></div>
+        <a class="legal-cta-button" [routerLink]="finalCta.route">{{ finalCta.label }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </aside>
+      <button class="legal-back-top" type="button" (click)="scrollToTop()"><i class="bi bi-arrow-up" aria-hidden="true"></i> Lên đầu trang</button>
+    </article>
+  </div>
+</main>

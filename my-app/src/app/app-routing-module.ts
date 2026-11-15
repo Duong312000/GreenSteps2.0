@@ -14,6 +14,9 @@ import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
 import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
 import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
 import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
+import { ServerErrorComponent } from './pages/server-error/server-error';
+import { MaintenanceComponent } from './pages/maintenance/maintenance';
+import { maintenanceChildGuard, maintenanceGuard } from './guards/maintenance.guard';
 import { BookingComponent } from './pages/booking/booking';
 import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 import { AdminComponent } from './pages/admin/admin';
@@ -25,8 +28,13 @@ import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
 import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
 import { NetworkErrorComponent } from './pages/network-error/network-error';
+import { foodAdminGuard } from './pages/local-food/food-admin.guard';
 
 const routes: Routes = [
+  { path: 'about', loadComponent: () => import('./pages/about/about').then(m => m.AboutComponent) },
+  { path: 'sustainability', loadComponent: () => import('./pages/sustainability/sustainability').then(m => m.SustainabilityComponent) },
+  { path: 'local-food', loadComponent: () => import('./pages/local-food/local-food').then(m => m.LocalFoodComponent) },
+  { path: 'admin/food', loadComponent: () => import('./pages/local-food/food-admin').then(m => m.FoodAdminComponent), canActivate: [foodAdminGuard] },
   { path: 'ai-planner', loadComponent: () => import('./pages/ai-planner/ai-planner').then(m => m.AiPlannerComponent) },
   { path:'transport', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
   { path:'transport/:kind/:id', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },
@@ -48,6 +56,8 @@ const routes: Routes = [
   { path: 'cancellation-policy', component: CancellationPolicyComponent },
   { path: 'transparency', component: CancellationPolicyComponent },
   { path: 'network-error', component: NetworkErrorComponent },
+  { path: '500', component: ServerErrorComponent },
+  { path: 'maintenance', component: MaintenanceComponent },
   { path: 'help-center', component: HelpCenterComponent },
   { path: 'help-center/:slug', component: HelpCenterComponent },
   { path: 'contact', component: HelpCenterContactComponent },
@@ -75,6 +85,16 @@ const routes: Routes = [
   { path: 'admin', component: AdminComponent },
   { path: '**', redirectTo: 'home' }
 ];
+
+// Maintenance is checked on public navigation; admin and the maintenance screen remain reachable.
+for (const route of routes) {
+  if (route.path === 'maintenance' || route.path === 'admin' || route.redirectTo || !route.path && !route.children) continue;
+  if (route.children) {
+    route.canActivateChild = [...(route.canActivateChild || []), maintenanceChildGuard];
+  } else {
+    route.canActivate = [...(route.canActivate || []), maintenanceGuard];
+  }
+}
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],

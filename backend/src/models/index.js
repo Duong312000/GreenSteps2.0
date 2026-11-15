@@ -480,6 +480,7 @@ const PartnerCampaign = store.define('PartnerCampaign', {
   discount_value: { type: FieldTypes.DOUBLE, defaultValue: 0 },
   min_order: { type: FieldTypes.DOUBLE, defaultValue: 0 },
   usage_limit: { type: FieldTypes.INTEGER, defaultValue: 1 },
+  claimed_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   used_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   views: { type: FieldTypes.INTEGER, defaultValue: 0 },
   clicks: { type: FieldTypes.INTEGER, defaultValue: 0 },
@@ -593,6 +594,15 @@ const CPSS = store.define('CPSS', {}, { timestamps: true });
 
 // 26. CPGS Junction
 const CPGS = store.define('CPGS', {}, { tableName: 'CPGs', timestamps: true });
+
+const SavedPromotion = store.define('SavedPromotion', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  campaign_id: { type: FieldTypes.STRING, allowNull: false },
+  status: { type: FieldTypes.ENUM('active', 'used'), defaultValue: 'active' },
+  snapshot: { type: FieldTypes.JSONB },
+  used_at: { type: FieldTypes.DATE },
+}, { timestamps: true });
 
 // 27. Voucher Model
 const Voucher = store.define('Voucher', {
@@ -909,6 +919,7 @@ module.exports = {
   CPSS,
   CPGS,
   Voucher,
+  SavedPromotion,
   FAQ,
   Notification,
   ChangeRequest,

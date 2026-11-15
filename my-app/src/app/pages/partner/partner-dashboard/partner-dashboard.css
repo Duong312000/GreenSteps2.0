@@ -804,6 +804,339 @@ svg [tabindex]:focus-visible {
     transition: none !important;
   }
 }
+
+.provider-hero {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 112px;
+  margin-bottom: 18px;
+  padding: 18px 22px;
+  overflow: hidden;
+  border: 1px solid var(--pw-border-soft);
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, var(--pw-surface-card) 0%, color-mix(in srgb, var(--pw-surface-card) 94%, transparent) 48%, color-mix(in srgb, var(--pw-surface-card) 24%, transparent) 100%),
+    url('/image/greensteps_wallet_mountain_bg.png') center 53% / cover;
+  box-shadow: var(--pw-shadow-card);
+}
+.provider-hero-icon {
+  display: grid;
+  width: 58px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 4px solid color-mix(in srgb, var(--pw-surface-card) 78%, transparent);
+  border-radius: 50%;
+  background: var(--pw-surface-card);
+  color: var(--primary-green);
+}
+.provider-hero-icon app-partner-icon {
+  width: 30px;
+  height: 30px;
+}
+.provider-hero-copy {
+  min-width: 0;
+}
+.provider-hero-copy h2 {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 19px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.provider-hero-copy p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.provider-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  font-weight: 650;
+}
+.provider-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.hero-rating {
+  color: var(--text-secondary);
+}
+.provider-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--pw-border-soft);
+  border-radius: 8px;
+  background: var(--pw-surface-card);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.provider-edit:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}
+.provider-edit app-partner-icon {
+  width: 16px;
+  height: 16px;
+}
+.kpi-card.revenue-card .revenue-value {
+  font-size: 19px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.dashboard-heading {
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 2px;
+}
+.dashboard-heading:before {
+  display: none;
+}
+.dashboard-heading h1 {
+  margin: 4px 0 2px;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+.dashboard-heading p {
+  margin: 0;
+}
+.kpi-grid {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.kpi-card {
+  gap: 11px;
+  border-radius: 10px;
+  padding: 16px 14px;
+}
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.kpi-value,
+.revenue-value {
+  font-size: 25px;
+  letter-spacing: 0;
+}
+.chart-grid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.dashboard-card,
+.partner-chart-card {
+  border-radius: 10px;
+  padding: 16px;
+}
+.partner-chart-card .card-heading {
+  margin-bottom: 8px;
+}
+.chart-container {
+  min-height: 196px;
+}
+.booking-mix {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.9fr) minmax(125px, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 196px;
+}
+.allocation-donut {
+  display: grid;
+  width: 148px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  justify-self: center;
+  border-radius: 50%;
+}
+.allocation-donut > div {
+  display: flex;
+  width: 70%;
+  aspect-ratio: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--pw-surface-card);
+}
+.allocation-donut strong {
+  color: var(--text-primary);
+  font-size: 25px;
+  line-height: 1.25;
+}
+.allocation-donut span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.donut-legend {
+  display: grid;
+  gap: 14px;
+}
+.donut-legend > div {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.donut-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #087f5b;
+}
+.donut-legend i[data-category='stay'] {
+  background: #69c991;
+}
+.donut-legend i[data-category='other'] {
+  background: #f1b84b;
+}
+.donut-legend strong {
+  color: var(--text-primary);
+  font-size: 12px;
+}
+.operations-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(290px, 0.9fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.money-cell {
+  white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.customer-request-list {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--pw-border-soft);
+}
+.customer-request-list h3 {
+  margin: 0 0 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+.customer-request-list > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--pw-border-soft);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.customer-request-list > a:last-child {
+  border-bottom: 0;
+}
+.customer-request-list > a > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.customer-request-list strong {
+  font-size: 12px;
+}
+.customer-request-list small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.customer-request-list .request-meta {
+  justify-items: end;
+  flex-shrink: 0;
+}
+.request-meta i {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 12%, var(--pw-surface-card));
+  color: var(--warning);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.request-meta i[data-status='completed'],
+.request-meta i[data-status='accepted'] {
+  background: color-mix(in srgb, var(--success) 12%, var(--pw-surface-card));
+  color: var(--success);
+}
+.request-meta i[data-status='rejected'] {
+  background: color-mix(in srgb, var(--danger) 10%, var(--pw-surface-card));
+  color: var(--danger);
+}
+.quick-access {
+  border-radius: 10px;
+}
+@media (max-width: 767px) {
+  .provider-hero {
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 11px;
+    padding: 14px;
+  }
+  .provider-hero-icon {
+    width: 46px;
+  }
+  .provider-hero-icon app-partner-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .provider-hero-copy h2 {
+    font-size: 16px;
+  }
+  .provider-hero-copy p {
+    gap: 4px 8px;
+    font-size: 10px;
+  }
+  .provider-edit {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .dashboard-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dashboard-heading h1 {
+    font-size: 20px;
+  }
+  .chart-grid,
+  .operations-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .booking-mix {
+    grid-template-columns: 1fr 1fr;
+  }
+  .allocation-donut {
+    width: 132px;
+  }
+}
+:host-context([data-theme='dark']) .provider-hero {
+  background:
+    linear-gradient(90deg, var(--pw-surface-card) 0%, color-mix(in srgb, var(--pw-surface-card) 94%, transparent) 48%, color-mix(in srgb, var(--pw-surface-card) 34%, transparent) 100%),
+    url('/image/greensteps_wallet_mountain_bg.png') center 53% / cover;
+}
 :host-context([data-theme='dark']) .dashboard-heading:before {
   background:
     linear-gradient(90deg, #101b15, #101b1599),

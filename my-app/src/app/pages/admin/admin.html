@@ -1,4 +1,25 @@
 <div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
+  <div class="flash-editor-backdrop" *ngIf="flashEdit" (click)="closeFlashEdit()">
+    <section class="flash-editor" role="dialog" aria-modal="true" aria-labelledby="flash-editor-title" (click)="$event.stopPropagation()" (keydown)="trapFlashFocus($event)">
+      <header><div><span>Quản lý khuyến mãi</span><h2 id="flash-editor-title">Chỉnh sửa Flash Sale</h2></div><button type="button" aria-label="Đóng" [disabled]="flashSaving" (click)="closeFlashEdit()">×</button></header>
+      <p class="flash-editor-name">{{ flashEdit.name }}</p>
+      <div class="flash-editor-inventory"><span>Đã sử dụng <b>{{ flashEdit.used_count }}</b></span><span>Còn lại sau khi lưu <b>{{ flashEdit.usage_limit - flashEdit.used_count }}</b></span></div>
+      <form (submit)="saveFlashEdit($event)">
+        <label>Tổng số suất<input id="flash-edit-limit" type="number" name="flashLimit" [(ngModel)]="flashEdit.usage_limit" [min]="flashEdit.used_count || 1" max="1000000000" step="1" required><small>Không được thấp hơn số suất đã sử dụng.</small></label>
+        <div class="flash-editor-grid">
+          <label>Loại giảm<select name="flashDiscountType" [(ngModel)]="flashEdit.discount_type" [disabled]="flashEdit.used_count > 0"><option value="percent">Phần trăm (%)</option><option value="fixed">Số tiền (đ)</option></select></label>
+          <label>Mức giảm<input type="number" name="flashDiscountValue" [(ngModel)]="flashEdit.discount_value" min="1" [max]="flashEdit.discount_type === 'percent' ? 100 : 1000000000000" step="1" [disabled]="flashEdit.used_count > 0" required></label>
+          <label>Bắt đầu<input type="datetime-local" step="1" name="flashStart" [(ngModel)]="flashEdit.start_at" required></label>
+          <label>Kết thúc<input type="datetime-local" step="1" name="flashEnd" [(ngModel)]="flashEdit.end_at" required></label>
+        </div>
+        <label>Trạng thái<select name="flashStatus" [(ngModel)]="flashEdit.status"><option value="active">Hoạt động theo lịch</option><option value="paused">Tạm dừng</option><option value="cancelled">Hủy chương trình</option></select></label>
+        <p class="flash-editor-note">Thời gian theo múi giờ trên máy bạn. Số suất đã dùng được đọc từ hệ thống và không chỉnh sửa tại đây.</p>
+        <p class="flash-editor-error" *ngIf="flashError" role="alert">{{ flashError }}</p>
+        <footer><button type="button" [disabled]="flashSaving" (click)="closeFlashEdit()">Đóng</button><button type="submit" class="save" [disabled]="flashSaving">{{ flashSaving ? 'Đang lưu…' : 'Lưu Flash Sale' }}</button></footer>
+      </form>
+    </section>
+  </div>
+
   <header class="admin-topbar">
     <div class="admin-brand">
       <button type="button" class="admin-mobile-menu" aria-label="Mở menu" (click)="mobileMenuOpen = !mobileMenuOpen">

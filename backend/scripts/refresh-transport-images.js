@@ -11,10 +11,11 @@ async function refreshImages(apply = false) {
   }).toArray();
   let changed = 0, skipped = 0;
   for (const vehicle of vehicles) {
-    if (vehicle.gallery_version === 'commons-bus-v1') { skipped++; continue; }
+    if (['commons-bus-v1', 'curated-bus-base64-v2'].includes(vehicle.gallery_version)) { skipped++; continue; }
     const [, type, index] = vehicle.seed_key.match(/:(shared|bus|rental)-vehicle-(\d+)$/);
     const images = vehicleImages(type, Number(index));
     for (const image of images) {
+      if (image.startsWith('data:image/jpeg;base64,')) continue;
       const localPath = path.resolve(__dirname, '../../my-app/public', image.slice(1));
       if (!fs.existsSync(localPath)) throw new Error(`Missing transport image: ${image}`);
     }

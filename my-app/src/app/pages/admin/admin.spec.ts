@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AdminComponent } from './admin';
+const route = { queryParamMap: { subscribe: vi.fn() } } as any;
 
 describe('AdminComponent dashboard interactions', () => {
   it('computes moderation metrics from real report states and paginates ten rows', () => {
-    const component = new AdminComponent({} as any, {} as any, {} as any, {} as any);
+    const component = new AdminComponent({} as any, {} as any, {} as any, {} as any, route);
     component.activeTab = 'reports';
     component.reportsState = 'ready';
     component.communityReports = Array.from({ length: 13 }, (_, i) => ({
@@ -24,7 +25,7 @@ describe('AdminComponent dashboard interactions', () => {
   });
 
   it('selects and clears only the reports on the current page', () => {
-    const component = new AdminComponent({} as any, {} as any, {} as any, {} as any);
+    const component = new AdminComponent({} as any, {} as any, {} as any, {} as any, route);
     component.activeTab = 'reports';
     component.communityReports = [{ id: 'r-1', author: 'A', status: 'pending' }, { id: 'r-2', author: 'B', status: 'hidden' }];
     component.togglePageReportSelection();
@@ -35,7 +36,7 @@ describe('AdminComponent dashboard interactions', () => {
   });
   it('displays persisted catalog records without enabling queue approval actions', async () => {
     const rows = [{ id: 'service-1', name: 'Homestay', detail: 'Đà Lạt', value: 500000, status: 'active' }];
-    const component = new AdminComponent({ getAdminCatalog: vi.fn().mockResolvedValue({ data: rows, available: true }) } as any, {} as any, {} as any, { detectChanges: vi.fn() } as any);
+    const component = new AdminComponent({ getAdminCatalog: vi.fn().mockResolvedValue({ data: rows, available: true }) } as any, {} as any, {} as any, { detectChanges: vi.fn() } as any, route);
     component.activeTab = 'services';
     await component.loadCatalog('services');
     expect(component.currentQueueState).toBe('ready');
@@ -52,6 +53,26 @@ describe('AdminComponent dashboard interactions', () => {
 
     expect(component.isUserManagement).toBe(true);
     expect(component.unsupportedSection).toBe(false);
+  });
+
+  it('shows persisted campaign stock and sends versioned edits without usage counters', async () => {
+    const api = { updateAdminFlashSale: vi.fn().mockResolvedValue({ success: true }),
+      getAdminCatalog: vi.fn().mockResolvedValue({ available: true, data: [] }) };
+    const component = new AdminComponent(api as any, {} as any, {} as any, { detectChanges: vi.fn() } as any, route);
+    component.isPreviewMode = false;
+    component.activeTab = 'promotions';
+    const campaign = { id: 'pc1', name: 'Sale', type: 'flash_sale', usage_limit: 10, used_count: 6,
+      remaining: 4, version: 2, status: 'active', discount_type: 'percent', discount_value: 20,
+      start_at: '2026-11-12T08:00:00', end_at: '2026-11-14T08:00:00' };
+    component.catalog.promotions = [campaign];
+    expect(component.cellValue(component.filteredRows[0], 'remaining')).toBe('4');
+    expect(component.activeTableColumns.some(column => column.key === 'quantity')).toBe(true);
+    component.flashEdit = { ...campaign, usage_limit: 30, start_at_original: '2026-11-12T01:00:00.123Z', initial_start_at: campaign.start_at };
+    await component.saveFlashEdit({ preventDefault() {} } as Event);
+    expect(api.updateAdminFlashSale).toHaveBeenCalledWith('pc1', expect.objectContaining({ version: 2, usage_limit: 30 }));
+    expect(api.updateAdminFlashSale.mock.calls[0][1]).not.toHaveProperty('used_count');
+    expect(api.updateAdminFlashSale.mock.calls[0][1].start_at).toBe('2026-11-12T01:00:00.123Z');
+    expect(component.flashEdit).toBeNull();
   });
 
 

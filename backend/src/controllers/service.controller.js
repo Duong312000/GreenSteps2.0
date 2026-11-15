@@ -528,7 +528,10 @@ exports.getServiceDetails = async (req, res, next) => {
     if (!service) {
       return res.status(404).json({ success: false, message: 'Dịch vụ không tồn tại!' });
     }
-    res.json(service);
+    const flashSale = await require('../services/flash-sale-pricing.service').flashSaleFor(service, {
+      campaignId: typeof req.query.flashSale === 'string' ? req.query.flashSale : undefined, preview: true,
+    });
+    res.json({ ...service.toJSON(), flashSale });
   } catch (error) {
     next(error);
   }

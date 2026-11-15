@@ -3898,3 +3898,12 @@
 
 
 
+
+/* Local food handoff is visible only when a place was selected in discovery. */
+.food-schedule-handoff { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:900; display:flex; align-items:center; gap:16px; max-width:90vw; width:680px; padding:18px; border:1px solid #a7b79d; border-radius:12px; background:#fffdf7; color:#285937; box-shadow:0 8px 35px #17201725; }
+.food-schedule-handoff p { margin:5px 0 0; font-size:13px; }
+.food-schedule-handoff button { flex-shrink:0; padding:9px 12px; background:#376c43; border:0; border-radius:6px; color:white; cursor:pointer; }
+.food-schedule-handoff button:disabled { opacity:.5; cursor:default; }
+.food-schedule-handoff button:last-child { background:none; color:#376c43; font-size:24px; padding:3px 8px; }
+@media(max-width:600px) { .food-schedule-handoff { bottom:12px; flex-wrap:wrap; gap:10px; padding:14px; } .food-schedule-handoff div { flex:1 1 75%; } }
+

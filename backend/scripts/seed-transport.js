@@ -1,7 +1,7 @@
 ﻿require('../src/config/env');
 const { col,init,store } = require('../src/transport/models');
 const { ObjectId } = require('mongodb');
-const { vehicleImages } = require('../src/transport/seed-images');
+const { vehicleImages, busDemoCover, BUS_DEMO_INDICES, BUS_GALLERY_VERSION } = require('../src/transport/seed-images');
 async function seed() {
  await init();
  const inserted={};
@@ -20,9 +20,11 @@ async function seed() {
  for (const [i,r] of [['Đà Nẵng','Hội An',30,55],['Hội An','Đà Nẵng',30,55],['Đà Nẵng','Huế',95,130],['Đà Lạt','Nha Trang',135,180],['TP.HCM','Vũng Tàu',100,145]].entries()) routes.push(await put('routes',`route-${i}`,{ origin:r[0],destination:r[1],distance_km:r[2],estimated_duration:r[3],status:'active' }));
  const today=new Date(new Date().toLocaleDateString('en-CA',{ timeZone:'Asia/Ho_Chi_Minh' })+'T00:00:00+07:00');
  for (const type of ['shared','bus']) for (let i=0;i<20;i++) {
+  if (type === 'bus' && !BUS_DEMO_INDICES.includes(i)) continue;
   const partner=partners[i%8],route=routes[i%5],capacity=type === 'shared' ? [7,9,16][i%3]:[16,29,34,45][i%4];
   const vehicle=await put('vehicles',`${type}-vehicle-${i}`,{ partner_id:partner._id,name:`${type === 'bus' ? 'Xe khách':'Xe chia sẻ'} ${capacity} chỗ ${i+1}`,vehicle_type:type === 'bus' ? 'coach':'minibus',transport_type:type,capacity,fuel_type:i%3 === 0 ? 'electric':type === 'bus' ? 'diesel':'petrol',amenities:['Điều hòa','Cổng sạc USB','Khoang hành lý'],images:vehicleImages(type,i),status:'active' });
-  for (let day=1;day<=5;day++) {
+  if (type === 'bus') await col('vehicles').updateOne({ _id:vehicle._id, is_seed_data:true, gallery_version:{ $ne:BUS_GALLERY_VERSION } }, { $set:{ images:vehicleImages(type,i), image_sources:[busDemoCover(i).source], gallery_version:BUS_GALLERY_VERSION, updatedAt:new Date() } });
+  for (let day=1;day<=(type === 'bus' ? 1 : 5);day++) {
    const departure=new Date(+today+day*86400000+(6+(Math.floor(i/5)*4))*3600000);
    await put('trips',`${type}-trip-${i}-${departure.toISOString().slice(0,10)}`,{ partner_id:partner._id,vehicle_id:vehicle._id,route_id:route._id,transport_type:type,departure_time:departure,arrival_time:new Date(+departure+route.estimated_duration*60000),total_seats:capacity,available_seats:i === 18 ? 0:Math.max(1,capacity-(i%5)),price_per_person:70000+(i%6)*25000,currency:'VND',allocated_passengers:type === 'bus' ? 12:4,status:i === 19 ? 'suspended':'active',pickup_point:`Điểm đón trung tâm ${route.origin}`,dropoff_point:`Điểm trả trung tâm ${route.destination}`,baggage_policy:'Một kiện hành lý tối đa 15 kg và một túi xách tay.',cancellation_hours:2 });
   }

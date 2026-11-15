@@ -1,0 +1,322 @@
+<main class="food-page">
+  <nav class="food-breadcrumb" aria-label="Đường dẫn">
+    <a routerLink="/home"><i aria-hidden="true" class="bi bi-house"></i> Trang chủ</a><span>/</span
+    ><a routerLink="/services">Dịch vụ Xanh</a><span>/</span><strong>Ẩm thực địa phương</strong>
+  </nav>
+  <button
+    *ngIf="isMobileFilterOpen"
+    class="food-filter-backdrop"
+    aria-label="Đóng bộ lọc"
+    (click)="isMobileFilterOpen = false"
+  ></button>
+  <div class="food-content">
+    <aside class="food-filters" [class.mobile-open]="isMobileFilterOpen">
+      <header>
+        <h2><i aria-hidden="true" class="bi bi-sliders"></i> Bộ lọc</h2>
+        <button (click)="reset()">Đặt lại</button>
+        <button
+          class="food-filter-close"
+          aria-label="Đóng bộ lọc"
+          (click)="isMobileFilterOpen = false"
+        >
+          ×
+        </button>
+      </header>
+      <fieldset>
+        <legend>Điểm đến</legend>
+        <div class="food-filter-options">
+          <button
+            type="button"
+            (click)="destination = ''; filterChanged()"
+            [class.active]="!destination"
+          >
+            Tất cả
+          </button>
+          <button
+            type="button"
+            *ngFor="let d of destinations"
+            (click)="destination = d; filterChanged()"
+            [class.active]="destination === d"
+          >
+            {{ d }}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Loại địa điểm</legend>
+        <div class="food-filter-options food-type-options">
+          <button type="button" (click)="category = ''; filterChanged()" [class.active]="!category">
+            Tất cả
+          </button>
+          <button
+            type="button"
+            *ngFor="let c of categories"
+            (click)="category = c; filterChanged()"
+            [class.active]="category === c"
+          >
+            {{ c }}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Ngân sách mỗi người</legend>
+        <label
+          *ngFor="
+            let b of [
+              { id: '', label: 'Tất cả mức giá' },
+              { id: 'low', label: 'Dưới 100.000đ' },
+              { id: 'mid', label: '100.000 – 200.000đ' },
+              { id: 'high', label: 'Trên 200.000đ' },
+            ]
+          "
+          ><input
+            type="radio"
+            name="budget"
+            [value]="b.id"
+            [(ngModel)]="budget"
+            (change)="filterChanged()"
+          />{{ b.label }}</label
+        ><small>Lọc theo giá khởi điểm; set áp dụng giá cho cả set.</small>
+      </fieldset>
+      <fieldset>
+        <legend>Số khách</legend>
+        <select name="guests" [(ngModel)]="guests" (change)="filterChanged()" aria-label="Số khách">
+          <option *ngFor="let n of [1, 2, 3, 4, 5, 6, 8, 10, 15, 20]" [ngValue]="n">
+            {{ n }} người
+          </option>
+        </select>
+      </fieldset>
+      <fieldset
+        *ngFor="
+          let group of [
+            { title: 'Chế độ ăn', items: features.slice(0, 2) },
+            { title: 'Tiện ích', items: features.slice(2, 4) },
+            { title: 'Thực hành xanh', items: features.slice(4) },
+          ]
+        "
+      >
+        <legend>{{ group.title }}</legend>
+        <label *ngFor="let f of group.items"
+          ><input
+            type="checkbox"
+            [checked]="selectedFeatures.includes(f)"
+            (change)="toggleFeature(f)"
+          />{{ f }}</label
+        >
+      </fieldset>
+    </aside>
+    <section
+      class="food-results"
+      aria-labelledby="food-results-title"
+      [attr.aria-busy]="loading || isFiltering"
+    >
+      <header class="food-toolbar">
+        <div>
+          <h1 id="food-results-title">Ẩm thực địa phương</h1>
+          <p aria-live="polite">
+            Hiển thị {{ visible.length }} trên {{ filtered.length }} địa điểm
+          </p>
+        </div>
+        <div class="food-toolbar-controls">
+          <button
+            class="food-toolbar-filter"
+            (click)="toggleMobileFilters()"
+            [attr.aria-expanded]="isMobileFilterOpen"
+          >
+            <i aria-hidden="true" class="bi bi-sliders"></i> Bộ lọc
+          </button>
+          <span>Sắp xếp theo:</span>
+          <select [(ngModel)]="sort" (change)="filterChanged()" aria-label="Sắp xếp địa điểm">
+            <option value="recommended">Phổ biến nhất</option>
+            <option value="rating">Đánh giá cao nhất</option>
+            <option value="price">Giá thấp đến cao</option>
+          </select>
+        </div>
+      </header>
+      <label class="food-name-search"
+        ><i aria-hidden="true" class="bi bi-search"></i
+        ><input
+          type="search"
+          placeholder="Tìm kiếm tên quán, điểm đến hoặc món ăn…"
+          aria-label="Tìm tên quán hoặc món ăn"
+          [(ngModel)]="query"
+          (input)="filterChanged()"
+        />
+        <button
+          type="button"
+          *ngIf="query"
+          aria-label="Xóa tìm kiếm"
+          (click)="query = ''; filterChanged()"
+        >
+          ×
+        </button></label
+      >
+      <p *ngIf="notice" class="food-notice" role="status">{{ notice }}</p>
+      <div class="food-state" *ngIf="loading">Đang tìm những hương vị địa phương…</div>
+      <div class="food-state error" *ngIf="error" role="alert">
+        {{ error }} <button (click)="load()">Thử lại</button>
+      </div>
+      <div class="food-grid" *ngIf="!loading" [class.filtering]="isFiltering">
+        <article class="food-card" *ngFor="let p of visible">
+          <div class="food-photo">
+            <img [src]="p.image" [alt]="p.name" loading="lazy" (error)="imageError($event)" /><span
+              class="food-category"
+              >{{ p.category }}</span
+            ><button
+              class="food-heart"
+              [class.saved]="saved.includes(p.id)"
+              [attr.aria-label]="(saved.includes(p.id) ? 'Bỏ lưu ' : 'Lưu ') + p.name"
+              [attr.aria-pressed]="saved.includes(p.id)"
+              (click)="toggleSave(p)"
+            >
+              <i
+                aria-hidden="true"
+                class="bi"
+                [ngClass]="saved.includes(p.id) ? 'bi-heart-fill' : 'bi-heart'"
+              ></i>
+            </button>
+          </div>
+          <div class="food-card-body">
+            <h3>{{ p.name }}</h3>
+            <p class="food-location">
+              <i aria-hidden="true" class="bi bi-geo-alt"></i> {{ p.destination }} ·
+              {{ p.category }}
+            </p>
+            <p class="food-rating">
+              <i aria-hidden="true" class="bi bi-star-fill"></i>
+              <b>{{ p.rating | number: '1.1-1' : 'vi' }}</b>
+              <span>({{ p.reviewCount }} đánh giá)</span>
+            </p>
+            <p class="food-price">
+              {{ p.priceMin | number: '1.0-0' : 'vi'
+              }}<span *ngIf="p.priceMax !== p.priceMin">
+                – {{ p.priceMax | number: '1.0-0' : 'vi' }}</span
+              >đ/{{ p.priceUnit }}
+            </p>
+            <small>Chi tiêu tham khảo</small>
+            <div class="food-eco">
+              <i aria-hidden="true" class="bi bi-flower2"></i>
+              {{
+                p.features.includes('Nguyên liệu địa phương')
+                  ? 'Nguyên liệu địa phương'
+                  : p.features[0] || 'Trải nghiệm địa phương'
+              }}
+            </div>
+            <div class="food-actions">
+              <button (click)="open(p, false, $event)">
+                {{ p.category === 'Cà phê & trà' ? 'Xem quán' : 'Xem thực đơn' }}</button
+              ><button class="primary" (click)="open(p, true, $event)">
+                {{ p.priceUnit === 'set 2 người' ? 'Đặt set' : 'Đặt bàn' }}
+              </button>
+            </div>
+            <button class="food-schedule" (click)="addToSchedule(p)">
+              <i aria-hidden="true" class="bi bi-plus-lg"></i> Thêm vào lịch trình
+            </button>
+          </div>
+        </article>
+      </div>
+      <div class="food-state" *ngIf="!loading && !error && !filtered.length">
+        <h3>Chưa tìm thấy quán phù hợp</h3>
+        <p>Thử đổi điểm đến, số khách hoặc giảm bộ lọc.</p>
+        <button (click)="reset(); destination = ''">Xem tất cả địa điểm</button>
+      </div>
+      <nav class="food-pagination" *ngIf="!loading && filtered.length" aria-label="Phân trang">
+        <button [disabled]="page === 1" (click)="page = page - 1" aria-label="Trang trước">
+          <i aria-hidden="true" class="bi bi-chevron-left"></i></button
+        ><button
+          *ngFor="let n of pages"
+          [class.active]="page === n"
+          [attr.aria-current]="page === n ? 'page' : null"
+          (click)="page = n"
+        >
+          {{ n }}</button
+        ><button [disabled]="page === totalPages" (click)="page = page + 1" aria-label="Trang sau">
+          <i aria-hidden="true" class="bi bi-chevron-right"></i>
+        </button>
+      </nav>
+    </section>
+  </div>
+</main>
+<div class="food-backdrop" *ngIf="selected as p" (click)="close()">
+  <section
+    class="food-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="food-dialog-title"
+    (click)="$event.stopPropagation()"
+    (keydown)="trap($event)"
+  >
+    <button
+      id="food-dialog-close"
+      class="food-close"
+      aria-label="Đóng"
+      [disabled]="saving"
+      (click)="close()"
+    >
+      ×
+    </button>
+    <p class="food-dialog-category">{{ p.category }}</p>
+    <h2 id="food-dialog-title">{{ p.name }}</h2>
+    <p>{{ p.description }}</p>
+    <p>
+      <i aria-hidden="true" class="bi bi-geo-alt"></i> {{ p.address }}<br /><i
+        aria-hidden="true"
+        class="bi bi-clock"
+      ></i>
+      {{ p.hours }}
+    </p>
+    <p class="food-demo" *ngIf="p.isDemo">Địa điểm demo · Thông tin và đánh giá minh họa</p>
+    <ng-container *ngIf="!booking"
+      ><h3>Thực đơn tham khảo</h3>
+      <ul class="food-menu">
+        <li *ngFor="let item of p.menu">
+          <span>{{ item.name }}</span
+          ><b>{{ item.price | number: '1.0-0' : 'vi' }}đ</b>
+        </li>
+      </ul>
+      <p class="food-tags">{{ p.features.join(' · ') }}</p>
+      <button class="primary" (click)="booking = true">Gửi yêu cầu đặt bàn</button></ng-container
+    >
+    <form *ngIf="booking" (ngSubmit)="reserve()">
+      <p>Yêu cầu sẽ được quản trị viên xác nhận. Chưa thu phí trực tuyến.</p>
+      <div class="food-form-grid">
+        <label
+          >Ngày đến<input
+            name="reserveDate"
+            type="date"
+            [(ngModel)]="date"
+            [min]="today"
+            required /></label
+        ><label>Giờ đến<input name="reserveTime" type="time" [(ngModel)]="time" required /></label
+        ><label
+          >Số khách<input
+            name="reserveGuests"
+            type="number"
+            [(ngModel)]="guests"
+            min="1"
+            [max]="p.capacity"
+            required /></label
+        ><label
+          >Họ tên<input
+            name="fullname"
+            [(ngModel)]="fullname"
+            maxlength="100"
+            autocomplete="name"
+            required /></label
+        ><label
+          >Số điện thoại<input
+            name="phone"
+            type="tel"
+            [(ngModel)]="phone"
+            pattern="(\+84|0)[0-9]{9,10}"
+            autocomplete="tel"
+            required
+        /></label>
+      </div>
+      <p *ngIf="bookingError" class="error" role="alert">{{ bookingError }}</p>
+      <button class="primary" [disabled]="saving" type="submit">
+        {{ saving ? 'Đang gửi…' : 'Gửi yêu cầu đặt bàn' }}
+      </button>
+    </form>
+  </section>
+</div>

@@ -2,11 +2,15 @@ import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild 
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { ApiService } from '../../services/api.service';
+import { LoginModalService } from '../../services/login-modal.service';
 
 interface Offer {
   id: string; offer_id?: string; campaign_id?: string; applies_to_all?: boolean; services?: OfferService[]; name: string; type: string; code?: string; discount_type: string;
   discount_value: number; min_order: number; start_at: string; end_at: string;
-  used_count: number; usage_limit: number; bookings?: number; clicks?: number;
+  used_count: number; usage_limit: number; claimed_count?: number; bookings?: number; clicks?: number;
   service: OfferService;
   discountPercent: number; salePrice: number; category: string;
 }
@@ -19,6 +23,9 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   selectedCategory = 'all'; selectedDestination = 'all'; selectedOfferType = 'all'; mobileFilters = false;
   query = ''; sort = 'popular';
   private refreshTimer?: number;
+  private countdownTimer?: number;
+  now = Date.now();
+  flashExpanded = false;
   private refreshInFlight = false;
   @ViewChild('results') private results?: ElementRef<HTMLElement>;
   private pendingScroll = '';
@@ -29,20 +36,30 @@ export class PromotionsComponent implements OnInit, OnDestroy {
     { id: 'all', route: 'for-you', label: 'Dành cho bạn', icon: 'bi-gift' },
     { id: 'trip', route: 'trip', label: 'Chuyến đi', icon: 'bi-map' },
     { id: 'stay', route: 'stay', label: 'Lưu trú', icon: 'bi-house-door' },
-    { id: 'transport', route: 'transport', label: 'Di chuyển', icon: 'bi-bus-front' },
-    { id: 'eco', route: 'eco', label: 'Ưu đãi xanh', icon: 'bi-leaf' }
+    { id: 'transport', route: 'transport', label: 'Di chuyển', icon: 'bi-bus-front' }
   ];
   destinations = ['Đà Lạt', 'Phú Yên', 'Hội An', 'Đà Nẵng'];
   offerGroups = [
     { id: 'flash', label: 'Flash Sale', icon: 'bi-lightning-fill' },
     { id: 'coupon', label: 'Mã giảm giá', icon: 'bi-ticket-perforated' },
-    { id: 'eco', label: 'Ưu đãi xanh', icon: 'bi-leaf' },
     { id: 'early', label: 'Đặt sớm', icon: 'bi-clock' },
   ];
   get activeTabInfo() { return this.tabs.find((tab) => tab.id === this.activeTab) || this.tabs[0]; }
-  constructor(private http: HttpClient, private route: ActivatedRoute, private router: Router, private cdr: ChangeDetectorRef) {}
+  savedCampaigns = new Set<string>();
+  claiming = new Set<string>();
+  claimError = '';
+  claimSuccess = '';
+  private authSubscription?: Subscription;
+  private savedUserId = '';
+  constructor(private http: HttpClient, private route: ActivatedRoute, private router: Router, private cdr: ChangeDetectorRef,
+    private auth: AuthService, private api: ApiService, private loginModal: LoginModalService) {}
 
   ngOnInit() {
+    this.authSubscription = this.auth.currentUser$.subscribe(user => {
+      this.savedUserId = user?.id || user?._id || '';
+      this.savedCampaigns.clear();
+      if (user) void this.loadSavedPromotions();
+    });
     let previousTab: string | null = null;
     this.route.paramMap.subscribe((params) => {
       const section = params.get('section') || 'for-you';
@@ -59,11 +76,18 @@ export class PromotionsComponent implements OnInit, OnDestroy {
     });
     void this.loadOffers(true);
     this.refreshTimer = window.setInterval(() => void this.loadOffers(), 30000);
+    this.countdownTimer = window.setInterval(() => {
+      this.now = Date.now();
+      this.applyFilters();
+      this.cdr.detectChanges();
+    }, 1000);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   ngOnDestroy() {
+    this.authSubscription?.unsubscribe();
     if (this.refreshTimer) window.clearInterval(this.refreshTimer);
+    if (this.countdownTimer) window.clearInterval(this.countdownTimer);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
@@ -149,14 +173,13 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   applyFilters() {
     const q = this.norm(this.query);
     this.filtered = this.offers.filter(o => {
+      if (Date.parse(o.end_at) <= this.now || this.remaining(o) <= 0) return false;
       const relatedServices = o.services?.length ? o.services : [o.service];
       const text = this.norm([o.name, o.code, ...relatedServices.flatMap(s => [s.name, s.destination])].join(' '));
       const categories: string[] = relatedServices.map((service) => this.serviceCategory(service.type));
-      const pageMatches = this.activeTab === 'all' ||
-        (this.activeTab === 'eco' ? this.isEco(o) : categories.includes(this.activeTab));
+      const pageMatches = this.activeTab === 'all' || categories.includes(this.activeTab);
       if (!pageMatches || (q && !text.includes(q))) return false;
-      if (this.selectedCategory !== 'all' &&
-          !(this.selectedCategory === 'eco' ? this.isEco(o) : categories.includes(this.selectedCategory))) return false;
+      if (this.selectedCategory !== 'all' && !categories.includes(this.selectedCategory)) return false;
       if (this.selectedDestination !== 'all' && !relatedServices.some((service) => this.norm(service.destination).includes(this.norm(this.selectedDestination)))) return false;
       return true;
     });
@@ -170,9 +193,42 @@ export class PromotionsComponent implements OnInit, OnDestroy {
     return this.filtered.filter((offer) => {
       if (groupId === 'flash') return offer.type === 'flash_sale';
       if (groupId === 'coupon') return offer.type === 'voucher';
-      if (groupId === 'eco') return this.isEco(offer);
-      return this.isEarly(offer);
+      return groupId === 'early' && this.isEarly(offer);
     });
+  }
+  get flashOffers(): Offer[] { return this.sectionOffers('flash'); }
+  get flashCountdown(): { value: string; label: string }[] {
+    const ends = this.flashOffers.map(offer => Date.parse(offer.end_at)).filter(Number.isFinite);
+    let seconds = ends.length ? Math.max(0, Math.floor((Math.min(...ends) - this.now) / 1000)) : 0;
+    return [{ seconds: 86400, label: 'Ngày' }, { seconds: 3600, label: 'Giờ' },
+      { seconds: 60, label: 'Phút' }, { seconds: 1, label: 'Giây' }].map(unit => {
+      const value = Math.floor(seconds / unit.seconds);
+      seconds %= unit.seconds;
+      return { value: String(value).padStart(2, '0'), label: unit.label };
+    });
+  }
+  remaining(offer: Offer): number { return Math.max(0, Number(offer.usage_limit || 0) - Math.max(Number(offer.used_count || 0), offer.type === 'voucher' ? Number(offer.claimed_count || 0) : 0)); }
+  soldPercent(offer: Offer): number {
+    return Math.min(100, Math.max(0, Number(offer.used_count || 0) / Math.max(1, Number(offer.usage_limit || 0)) * 100));
+  }
+  flashStatus(offer: Offer): string {
+    if (this.remaining(offer) <= 5) return `Chỉ còn ${this.remaining(offer)}`;
+    if (Date.parse(offer.end_at) - this.now <= 86400000) return 'Sắp hết hạn';
+    if (this.soldPercent(offer) >= 50) return 'Đang bán chạy';
+    return 'Ưu đãi hot';
+  }
+  flashIcon(offer: Offer): string {
+    return this.remaining(offer) <= 5 || this.soldPercent(offer) >= 50 ? 'bi-fire'
+      : Date.parse(offer.end_at) - this.now <= 86400000 ? 'bi-clock-history' : 'bi-lightning-fill';
+  }
+  flashCategory(offer: Offer): string {
+    const type = String(offer.service.type || '').toLowerCase();
+    return /stay|lodg/.test(type) ? 'Nghỉ dưỡng & Spa' : type === 'food' ? 'Ẩm thực & Trải nghiệm'
+      : /transport|vehicle/.test(type) ? 'Trải nghiệm' : 'Tour trải nghiệm';
+  }
+  scrollFlash(track: HTMLElement, direction: number) {
+    track.scrollBy({ left: direction * track.clientWidth * .85,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }
   get sectionHasOffers(): boolean {
     return this.offerGroups.some((group) => this.sectionOffers(group.id).length > 0);
@@ -180,7 +236,6 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   offerKey(offer: Offer) { return offer.offer_id || offer.id; }
   open(offer: Offer) { this.router.navigate(['/services', offer.category === 'stay' ? 'stay' : offer.category === 'transport' ? 'transport' : 'attraction', offer.service.id]); }
   categoryOf(o: Offer) { return o.category; }
-  isEco(o: Offer) { return /xanh|eco|green|net.zero/i.test(o.name + ' ' + (o.services || [o.service]).map(s => `${s.name} ${s.type || ''}`).join(' ')); }
   isEarly(o: Offer) { return /early|đặt sớm|dat som|booking sớm|booking som/i.test(o.name); }
   serviceCategory(type: string | undefined) {
     const value = String(type || '').toLowerCase();
@@ -188,14 +243,34 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   }
   discountLabel(o: Offer) { return o.discount_type === 'fixed' ? `Giảm ${this.money(o.discount_value)}` : `Giảm ${o.discount_value}%`; }
   minOrderLabel(o: Offer) { return o.min_order > 0 ? `Đặt từ ${this.money(o.min_order)}` : 'Không yêu cầu giá trị tối thiểu'; }
-  scopeLabel(o: Offer) { return o.applies_to_all ? 'Áp dụng cho tất cả dịch vụ' : `Áp dụng: ${o.service.name}`; }
+  scopeLabel(o: Offer) { return o.applies_to_all ? 'Áp dụng cho các dịch vụ của nhà cung cấp' : `Áp dụng: ${o.service.name}`; }
   isEndingSoon(o: Offer) { const remaining = new Date(o.end_at).getTime() - Date.now(); return remaining > 0 && remaining <= 3 * 24 * 60 * 60 * 1000; }
-  copiedOfferId = '';
-  async copyOfferCode(o: Offer, event: Event) {
+  async loadSavedPromotions() {
+    const userId = this.savedUserId;
+    try {
+      const items = await this.api.getSavedPromotions();
+      if (userId !== this.savedUserId) return;
+      this.savedCampaigns = new Set(items.map(item => item.campaign_id).filter(Boolean));
+      this.claimError = '';
+    } catch { this.claimError = 'Chưa tải được mã đã lưu. Bạn vẫn có thể bấm nhận lại; hệ thống không nhận trùng.'; }
+    this.cdr.detectChanges();
+  }
+  campaignKey(o: Offer) { return o.campaign_id || o.id; }
+  async claimOffer(o: Offer, event: Event) {
     event.stopPropagation();
-    if (!o.code) return;
-    try { await navigator.clipboard.writeText(o.code); this.copiedOfferId = this.offerKey(o); }
-    catch { this.copiedOfferId = ''; }
+    if (!this.auth.getCurrentUser()) { this.loginModal.open(); return; }
+    const id = this.campaignKey(o);
+    if (this.claiming.has(id) || this.savedCampaigns.has(id)) return;
+    this.claiming.add(id); this.claimError = ''; this.claimSuccess = '';
+    try {
+      await this.api.claimPromotion(id);
+      this.savedCampaigns.add(id);
+      this.claimSuccess = `Đã lưu mã ${o.code} vào tài khoản của bạn.`;
+      await this.loadOffers();
+    } catch (error: any) {
+      if (error?.status === 401) this.loginModal.open();
+      this.claimError = error?.error?.message || 'Chưa lưu được mã giảm giá. Vui lòng thử lại.';
+    } finally { this.claiming.delete(id); this.cdr.detectChanges(); }
   }
   money(value: number) { return new Intl.NumberFormat('vi-VN').format(Math.round(value)) + '₫'; }
   private norm(value: any) { return String(value || '').toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d'); }

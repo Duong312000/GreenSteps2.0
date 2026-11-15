@@ -1,5 +1,15 @@
 import type { Booking, Service } from '../../../models/models';
 
+export interface PartnerChangeRequest {
+  id?: string;
+  booking_id?: string;
+  type: string;
+  status: string;
+  createdAt?: string;
+  created_at?: string;
+  booking?: Pick<Booking, 'id' | 'value' | 'date' | 'booking_date'> | null;
+}
+
 export function bookingDate(booking: Booking): string | null {
   const raw = booking.date || booking.booking_date || '';
   let year: number, month: number, day: number;
@@ -18,6 +28,10 @@ export function bookingDate(booking: Booking): string | null {
 export function periodLabel(key: string): string {
   return `Tháng ${Number(key.slice(5, 7))}/${key.slice(0, 4)}`;
 }
+export function changeRequestDate(request: PartnerChangeRequest): string | null {
+  const raw = request.createdAt || request.created_at || request.booking?.date || request.booking?.booking_date || '';
+  return bookingDate({ date: raw } as Booking);
+}
 export function bookingCategory(booking: Booking): 'tour' | 'stay' | 'other' {
   // Retain the existing dashboard's name-based grouping; the API has no type field.
   const name = (booking.service || booking.service_name || '').toLowerCase();
@@ -29,9 +43,17 @@ export function bookingCategory(booking: Booking): 'tour' | 'stay' | 'other' {
 }
 const value = (number: unknown): number => (Number.isFinite(Number(number)) ? Number(number) : 0);
 
-export function dashboardAnalytics(bookings: Booking[], services: Service[]) {
+export function dashboardAnalytics(
+  bookings: Booking[],
+  services: Service[],
+  changeRequests: PartnerChangeRequest[] = [],
+) {
   const totalRevenue = bookings
-    .filter((b) => ['completed', 'deposit', 'pending'].includes(b.status))
+    .filter(
+      (b) =>
+        ['completed', 'deposit', 'pending'].includes(b.status) &&
+        b.payment_status !== 'refunded',
+    )
     .reduce((sum, b) => sum + value(b.value), 0);
   const months = [
     ...new Set(
@@ -52,6 +74,13 @@ export function dashboardAnalytics(bookings: Booking[], services: Service[]) {
       label: `Thg ${Number(key.slice(5))}`,
       year: key.slice(0, 4),
       bookings: rows.length,
+      revenue: rows
+        .filter(
+          (booking) =>
+            ['completed', 'deposit', 'pending'].includes(booking.status) &&
+            booking.payment_status !== 'refunded',
+        )
+        .reduce((sum, booking) => sum + value(booking.value), 0),
       tour: rows
         .filter((b) => bookingCategory(b) !== 'stay')
         .reduce((sum, b) => sum + value(b.value), 0),
@@ -62,10 +91,12 @@ export function dashboardAnalytics(bookings: Booking[], services: Service[]) {
   });
   const maxBookings = Math.max(1, ...monthly.map((row) => row.bookings));
   const maxRevenue = Math.max(1, ...monthly.flatMap((row) => [row.tour, row.stay]));
+  const maxMonthlyRevenue = Math.max(1, ...monthly.map((row) => row.revenue));
   const points = monthly.map((row, index) => ({
     ...row,
     x: monthly.length === 1 ? 300 : 76 + index * (464 / (monthly.length - 1)),
     y: 175 - (row.bookings / maxBookings) * 135,
+    revenueY: 175 - (row.revenue / maxMonthlyRevenue) * 135,
     tourHeight: (row.tour / maxRevenue) * 140,
     stayHeight: (row.stay / maxRevenue) * 140,
   }));
@@ -84,18 +115,37 @@ export function dashboardAnalytics(bookings: Booking[], services: Service[]) {
   const customerKeys = bookings
     .map((b) => b.customer_id || b.customer || b.customer_name)
     .filter((name): name is string => !!name);
+  const refundRequests = changeRequests.filter(
+    (request) => request.type === 'refund' || request.type === 'cancel_booking',
+  );
+  const pendingRefundRequests = refundRequests.filter((request) =>
+    ['pending', 'checking', 'pending_refund'].includes(request.status),
+  );
   return {
     totalRevenue,
     monthly: points,
     maxBookings,
     maxRevenue,
+    maxMonthlyRevenue,
     allocation,
     bookingPath: points
       .map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`)
       .join(' '),
+    revenuePath: points
+      .map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.revenueY}`)
+      .join(' '),
     activeServices: services.filter((s) => s.status === 'active').length,
     pendingServices: services.filter((s) => s.status === 'pending').length,
     pendingBookings: bookings.filter((b) => b.status === 'pending').length,
+    refundRequests: refundRequests.length,
+    pendingRefundRequests: pendingRefundRequests.length,
+    recentRefundRequests: [...refundRequests]
+      .sort((a, b) =>
+        (b.createdAt || b.created_at || b.booking?.date || '').localeCompare(
+          a.createdAt || a.created_at || a.booking?.date || '',
+        ),
+      )
+      .slice(0, 4),
     rating: ratings.length
       ? Math.round((ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 10) / 10
       : null,

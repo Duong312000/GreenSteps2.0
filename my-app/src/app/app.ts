@@ -15,7 +15,9 @@ export class App implements OnInit {
   isAdminRoute = false;
   isScheduleRoute = false;
   isPlannerRoute = false;
+  isProfileRoute = false;
   isStandalonePolicyRoute = false;
+  isStandaloneMaintenanceRoute = false;
 
   constructor(private route: ActivatedRoute, private router: Router, private authService: AuthService) {}
 
@@ -34,9 +36,11 @@ export class App implements OnInit {
 
   private updateAdminShell(url: string) {
     const cleanUrl = (url || '').split('?')[0].split('#')[0];
-    this.isAdminRoute = cleanUrl === '/admin';
+    this.isAdminRoute = cleanUrl === '/admin' || cleanUrl === '/admin/food';
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
+    this.isProfileRoute = cleanUrl === '/profile';
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
+    this.isStandaloneMaintenanceRoute = cleanUrl === '/maintenance';
   }
 }

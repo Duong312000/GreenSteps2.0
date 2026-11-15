@@ -8,5 +8,7 @@ router.use(authMiddleware);
 router.post('/redeem', (req, res, next) => { req.body.points ??= 1000; next(); }, wallet.redeem);
 router.post('/validate', voucherController.validateVoucher);
 router.get('/my', voucherController.getMyVouchers);
+router.get('/saved', voucherController.getSavedPromotions);
+router.post('/campaigns/:campaignId/claim', voucherController.claimPromotion);
 
 module.exports = router;

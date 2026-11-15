@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { Tour, User } from '../../models/models';
 import { bookingDate } from '../../utils/booking-date';
+import { flashSaleTotal } from '../../utils/flash-sale-price';
 import { TransportService } from '../../services/transport.service';
 
 type BookingFor = 'self' | 'other';
@@ -34,6 +35,7 @@ interface BookingContext {
   roomId: string;
   tourId?: string;
   serviceId?: string;
+  flashSaleId?: string;
   checkIn: string;
   checkOut: string;
   guestCount: number;
@@ -232,7 +234,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     });
 
     await this.loadActiveTour();
-    if (this.selectedLodgingRoom && !this.isCompleteStep) await this.loadRoomPricing();
+    if (this.usesServiceQuote && !this.isCompleteStep) await this.loadRoomPricing();
     if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
       await this.resumePendingPayment();
     }
@@ -383,7 +385,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       }
     } else {
       if (this.bookingContext.serviceId) {
-        this.activeTour = await this.apiService.getServiceAsTour(this.bookingContext.serviceId);
+        this.activeTour = await this.apiService.getServiceAsTour(this.bookingContext.serviceId, this.bookingContext.flashSaleId);
       } else if (this.bookingContext.tourId) {
         this.activeTour = await this.apiService.getPresetTour(this.bookingContext.tourId);
       }
@@ -662,7 +664,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public async completeDeposit() {
     if (this.isTransportBooking) { await this.completeTransportPayment(); return; }
-    if (this.selectedLodgingRoom && !await this.loadRoomPricing()) return;
+    if (this.usesServiceQuote && !await this.loadRoomPricing()) return;
     const user = this.authService.getCurrentUser();
     if (this.paymentMethod === 'wallet' && !user) {
       this.showAlert("Yêu cầu đăng nhập", "Vui lòng đăng nhập để thanh toán bằng ví điện tử!", "warning");
@@ -689,6 +691,8 @@ export class BookingComponent implements OnInit, OnDestroy {
       check_out_date: this.bookingContext.checkOut,
       roomId: this.selectedLodgingRoom?.id,
       roomCount: this.selectedLodgingRoom ? this.bookingContext.roomCount : undefined,
+      flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id,
+      addonIds: this.addOns,
       guests: this.bookingContext.guestCount,
       value: this.depositAmount,
       customer: {
@@ -1212,22 +1216,33 @@ export class BookingComponent implements OnInit, OnDestroy {
   public get selectedLodgingRoom() {
     return this.activeTour?.isService ? this.activeTour.rooms?.find(room => room.id === this.bookingContext.roomId) : undefined;
   }
+  public get usesServiceQuote(): boolean { return !!this.selectedLodgingRoom || !!this.activeTour?.flashSale || !!this.bookingContext.flashSaleId; }
 
   public lodgingPricing: any = null;
   private async loadRoomPricing(): Promise<boolean> {
     try {
       const quote = await this.apiService.getBookingQuote({
         type: 'service', targetId: this.bookingContext.serviceId!, guests: this.bookingContext.guestCount,
-        addonIds: [], paymentMethod: 'bank_transfer', roomId: this.bookingContext.roomId,
+        addonIds: this.addOns, paymentMethod: 'bank_transfer', roomId: this.selectedLodgingRoom?.id,
+        flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id,
         roomCount: this.bookingContext.roomCount, bookingDate: this.bookingContext.checkIn,
         checkOutDate: this.bookingContext.checkOut
       });
       if (!quote?.success || !quote.pricing) throw new Error('Chưa nhận được báo giá phòng.');
+      const oldSale = this.activeTour?.flashSale;
+      const newSale = quote.pricing.flashSale;
+      const changed = !!this.lodgingPricing && !!oldSale && !!newSale &&
+        (oldSale.discount_type !== newSale.discount_type || oldSale.discount_value !== newSale.discount_value);
+      if (this.activeTour && newSale) this.activeTour.flashSale = newSale;
       this.lodgingPricing = quote.pricing;
+      if (changed) {
+        this.showAlert('Giá Flash Sale đã thay đổi', 'Giá mới đã được cập nhật. Vui lòng kiểm tra lại trước khi tiếp tục thanh toán.', 'warning');
+        return false;
+      }
       return true;
     } catch (error: any) {
       this.lodgingPricing = null;
-      this.showAlert('Chưa thể xác nhận phòng', error?.error?.message || error?.message || 'Vui lòng quay lại chọn phòng.', 'error');
+      this.showAlert('Chưa thể xác nhận giá', error?.error?.message || error?.message || 'Vui lòng quay lại kiểm tra dịch vụ và ưu đãi.', 'error');
       return false;
     }
   }
@@ -1285,6 +1300,12 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get discountAmount() {
     if (this.isTransportBooking) return 0;
+    if (this.activeTour?.flashSale) {
+      const room = this.selectedLodgingRoom;
+      const units = room ? this.bookingContext.roomCount * this.nights : Math.max(this.bookingContext.guestCount, 1);
+      const stockUnits = room ? this.bookingContext.roomCount : units;
+      return this.basePrice - flashSaleTotal(room ? Number(room.price_per_night || 0) : this.activeTour.cost, units, this.activeTour.flashSale, stockUnits);
+    }
     if (this.selectedLodgingRoom) return Math.floor(this.basePrice * Number(this.lodgingPricing?.discountPercent || 0) / 100);
     if (this.isItineraryBooking()) return 0;
     return Math.round(this.basePrice * 0.08);
@@ -1303,7 +1324,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get depositAmount() {
     if (this.isTransportBooking) return this.basePrice;
-    if (this.selectedLodgingRoom) return Math.ceil(this.totalAmount * Number(this.lodgingPricing?.depositPercent || 0) / 100);
+    if (this.usesServiceQuote) return Math.ceil(this.totalAmount * Number(this.lodgingPricing?.depositPercent || 30) / 100);
     return Math.round(this.totalAmount * 0.3);
   }
 
@@ -1510,6 +1531,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       ...this.bookingContext,
       tourId: serviceId ? undefined : tourId,
       serviceId,
+      flashSaleId: query.get('flashSaleId') || (!queryHasTarget ? this.bookingContext.flashSaleId : undefined),
       roomId: query.get('roomId') || (!queryHasTarget ? this.bookingContext.roomId : ''),
       checkIn: query.get('checkIn') || this.bookingContext.checkIn,
       checkOut: query.get('checkOut') || this.bookingContext.checkOut,
@@ -1570,6 +1592,8 @@ export class BookingComponent implements OnInit, OnDestroy {
     const draft = {
       hotelId: this.bookingContext.hotelId,
       roomId: this.bookingContext.roomId,
+      serviceId: this.bookingContext.serviceId,
+      flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id,
       tourId: this.activeTour?.id || this.bookingContext.tourId,
       checkIn: this.bookingContext.checkIn,
       checkOut: this.bookingContext.checkOut,

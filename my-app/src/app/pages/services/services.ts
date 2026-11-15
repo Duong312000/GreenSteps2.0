@@ -88,6 +88,7 @@ export class ServicesComponent implements OnInit {
     this.route.queryParams.subscribe(async params => {
       this.isPageLoading = true;
       this.serviceType = params['type'] || 'stay';
+      if (this.serviceType === 'food' || this.serviceType === 'dining') { this.serviceType = 'food'; this.isPageLoading = false; this.cdr.detectChanges(); return; }
       if(this.serviceType === 'transport') { this.router.navigate(['/transport']); return; }
       
       try {

@@ -181,7 +181,7 @@
               </span>
               <b>{{ basePrice | number:'1.0-0':'vi-VN' }}đ</b>
             </p>
-            <p><span>Ưu đãi GreenSteps</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+            <p><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi GreenSteps' }}</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
             <p><span>Phí dịch vụ/thuế</span><b>{{ serviceFee | number:'1.0-0':'vi-VN' }}đ</b></p>
             <p><span>Dịch vụ thêm đã chọn</span><b>{{ addOnsTotal | number:'1.0-0':'vi-VN' }}đ</b></p>
             <div class="choice-total">
@@ -371,7 +371,7 @@
         </div>
         <div class="price-lines">
           <p><span>Tổng chi phí</span><b>{{ totalAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
-          <p><span>Ưu đãi GreenSteps</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+          <p><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi GreenSteps' }}</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
           <div class="choice-total">
             <span>{{ isTransportBooking ? 'Tổng tiền thanh toán' : 'Đặt cọc cần thanh toán' }}</span>
             <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
@@ -539,7 +539,7 @@
         </span>
         <b>{{ basePrice | number:'1.0-0':'vi-VN' }}đ</b>
       </p>
-      <p><span>Ưu đãi GreenSteps</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+      <p><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi GreenSteps' }}</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
       <p><span>Phí dịch vụ/thuế</span><b>{{ serviceFee | number:'1.0-0':'vi-VN' }}đ</b></p>
       <p *ngIf="addOnsTotal > 0"><span>Dịch vụ thêm</span><b>{{ addOnsTotal | number:'1.0-0':'vi-VN' }}đ</b></p>
       <div class="deposit-highlight">

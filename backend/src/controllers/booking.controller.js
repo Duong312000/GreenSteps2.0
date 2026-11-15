@@ -1,4 +1,13 @@
 const loyalty = require('../services/wallet.service');
+const savedPromotions = require('../services/saved-promotions.service');
+const { consumeFlashSale } = require('../services/flash-sale-pricing.service');
+async function consumeBookingVoucher(userId, code, context, transaction) {
+  if (await savedPromotions.consumeSavedPromotion(userId, code, context)) return;
+  const [used] = await require('../models').Voucher.update({ status: 'used' }, {
+    where: { code, user_id: userId, status: 'active' }, transaction,
+  });
+  if (used !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
+}
 const { Op } = require('../db/mongo-store');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 const {
@@ -138,15 +147,15 @@ exports.sendBookingConfirmationIfNeeded = sendBookingConfirmationIfNeeded;
 
 exports.quoteBooking = async (req, res, next) => {
   try {
-    const { type, targetId, guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate } = req.body;
+    const { type, targetId, guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate, flashSaleId } = req.body;
     const { calculatePricing } = require('../services/booking-pricing.service');
-    const pricing = await calculatePricing({ type, targetId, guestCount: guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate });
+    const pricing = await calculatePricing({ type, targetId, guestCount: guests, addonIds, paymentMethod, roomId, roomCount, bookingDate, checkOutDate, flashSaleId });
     res.json({ success: true, pricing });
   } catch (error) { next(error); }
 };
 
 exports.createBooking = async (req, res, next) => {
-  const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail, roomId, roomCount, checkOutDate } = req.body;
+  const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail, roomId, roomCount, checkOutDate, flashSaleId, addonIds = [] } = req.body;
   let userId = req.user ? req.user.id : req.body.customerId;
   const fullname = (req.user && req.user.fullname) ? req.user.fullname : (req.body.customerName || 'Khách hàng');
   const email = customerEmail || (req.user ? req.user.email : null);
@@ -244,7 +253,7 @@ exports.createBooking = async (req, res, next) => {
         }
       }) || 0;
 
-      if (service.max_capacity - bookedGuests < guests) {
+      if (service.max_capacity > 0 && service.max_capacity - bookedGuests < guests) {
         return res.status(400).json({
           success: false,
           message: `Dịch vụ chỉ còn ${service.max_capacity - bookedGuests} chỗ trống cho ngày ${bookingDate}.`
@@ -253,13 +262,17 @@ exports.createBooking = async (req, res, next) => {
 
       if (roomId) {
         const { calculatePricing } = require('../services/booking-pricing.service');
-        lodgingSnapshot = await calculatePricing({ type, targetId, guestCount: guests, roomId, roomCount, bookingDate, checkOutDate, paymentMethod });
+        lodgingSnapshot = await calculatePricing({ type, targetId, guestCount: guests, roomId, roomCount, bookingDate, checkOutDate, paymentMethod, flashSaleId, addonIds });
         totalValue = lodgingSnapshot.amountDueNow;
       } else {
         if (['stay', 'lodging'].includes(service.type) && service.current_data?.rooms?.length) {
           throw loyalty.error('Vui lòng chọn phòng trước khi đặt dịch vụ lưu trú.');
         }
         totalValue = service.cost * guests;
+        const quote = await require('../services/booking-pricing.service').calculatePricing({
+          type, targetId, guestCount: guests, paymentMethod, flashSaleId, addonIds,
+        });
+        if (quote.flashSale) { lodgingSnapshot = quote; totalValue = quote.amountDueNow; }
       }
       tourNameOrServiceName = service.name_service;
       bookingId = 'BKS-' + Date.now();
@@ -294,12 +307,17 @@ exports.createBooking = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Loại đặt chỗ không hợp lệ (yêu cầu service hoặc tour/itinerary)!' });
     }
 
+    const voucherContext = { type, targetId, total: totalValue, orderTotal: lodgingSnapshot?.tourSubtotal || totalValue };
     // 2. Validate voucher if applied
     if (voucherCode) {
       const voucher = await Voucher.findOne({
         where: { code: voucherCode, user_id: userId, status: 'active' }
       });
-      if (voucher) {
+      const saved = await savedPromotions.savedDiscount(userId, voucherCode, voucherContext);
+      if (saved) {
+        discount = saved.discount;
+        totalValue -= discount;
+      } else if (voucher) {
         discount = Math.min(totalValue, voucher.discount_amount || totalValue * (voucher.discount_percent / 100));
         totalValue -= discount;
       }
@@ -316,6 +334,7 @@ exports.createBooking = async (req, res, next) => {
 
       // Start transaction to execute payment and book
       await store.transaction(async (t) => {
+        await consumeFlashSale(lodgingSnapshot?.flashSale);
         const lockedWallet = await Wallet.findOne({
           where: { user_id: userId },
           transaction: t,
@@ -336,6 +355,7 @@ exports.createBooking = async (req, res, next) => {
             user_id: userId,
             service_id: targetId,
             ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
+            ...(lodgingSnapshot ? { pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -372,11 +392,7 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          const [usedVouchers] = await Voucher.update(
-            { status: 'used' },
-            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
-          );
-          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
+          await consumeBookingVoucher(userId, voucherCode, voucherContext, t);
         }
 
         // Save wallet transaction as pending escrow hold
@@ -412,6 +428,7 @@ exports.createBooking = async (req, res, next) => {
     } else if (paymentMethod === 'card') {
       // Direct Credit Card payment (success without OTP simulator)
       await store.transaction(async (t) => {
+        await consumeFlashSale(lodgingSnapshot?.flashSale);
         const wallet = await Wallet.findOne({ where: { user_id: userId }, transaction: t });
         const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
 
@@ -421,6 +438,7 @@ exports.createBooking = async (req, res, next) => {
             user_id: userId,
             service_id: targetId,
             ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
+            ...(lodgingSnapshot ? { pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -457,11 +475,7 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          const [usedVouchers] = await Voucher.update(
-            { status: 'used' },
-            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
-          );
-          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
+          await consumeBookingVoucher(userId, voucherCode, voucherContext, t);
         }
 
         // Record successful transaction in wallet if it exists
@@ -480,6 +494,7 @@ exports.createBooking = async (req, res, next) => {
     } else if (paymentMethod === 'bank_transfer') {
       // Direct QR transfer (Pending admin verification, no terminal block)
       await store.transaction(async (t) => {
+        await consumeFlashSale(lodgingSnapshot?.flashSale);
         const wallet = await Wallet.findOne({ where: { user_id: userId }, transaction: t });
         const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
 
@@ -489,6 +504,7 @@ exports.createBooking = async (req, res, next) => {
             user_id: userId,
             service_id: targetId,
             ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
+            ...(lodgingSnapshot ? { pricing_snapshot: lodgingSnapshot } : {}),
             fullname: fullname,
             name_service: tourNameOrServiceName,
             booking_date: bookingDate,
@@ -524,11 +540,7 @@ exports.createBooking = async (req, res, next) => {
 
         // Set voucher status to used
         if (voucherCode) {
-          const [usedVouchers] = await Voucher.update(
-            { status: 'used' },
-            { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t }
-          );
-          if (usedVouchers !== 1) throw loyalty.error('Ưu đãi đã được sử dụng.', 409);
+          await consumeBookingVoucher(userId, voucherCode, voucherContext, t);
         }
 
         // Record pending transaction in wallet if it exists
@@ -558,6 +570,7 @@ exports.createBooking = async (req, res, next) => {
       });
     } else {
       await store.transaction(async (t) => {
+        await consumeFlashSale(lodgingSnapshot?.flashSale);
       // Just save booking as pending/unpaid
       const evoucherCode = 'EV-' + Math.floor(1000000000 + Math.random() * 9000000000);
       if (type === 'service') {
@@ -566,6 +579,7 @@ exports.createBooking = async (req, res, next) => {
           user_id: userId,
           service_id: targetId,
           ...(roomId ? { room_id: roomId, room_count: roomCount, check_out_date: checkOutDate, pricing_snapshot: lodgingSnapshot } : {}),
+            ...(lodgingSnapshot ? { pricing_snapshot: lodgingSnapshot } : {}),
           fullname: fullname,
           name_service: tourNameOrServiceName,
           booking_date: bookingDate,
@@ -599,8 +613,7 @@ exports.createBooking = async (req, res, next) => {
         }, { transaction: t });
       }
       if (voucherCode) {
-        const [used] = await Voucher.update({ status: 'used' }, { where: { code: voucherCode, user_id: userId, status: 'active' }, transaction: t });
-        if (used !== 1) throw loyalty.error('Voucher already used.', 409);
+        await consumeBookingVoucher(userId, voucherCode, voucherContext, t);
       }
       });
     }

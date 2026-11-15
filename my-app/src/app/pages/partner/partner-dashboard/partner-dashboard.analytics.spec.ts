@@ -80,6 +80,27 @@ describe('partner analytics from existing API fields', () => {
     expect(data.allocation).toEqual({ tour: 1, stay: 1, other: 1 });
     expect(data.customers).toBe(2);
   });
+  it('counts only customer cancellation/refund requests and excludes refunded booking value', () => {
+    const data = dashboardAnalytics(
+      [
+        booking({ value: 2500000 }),
+        booking({ id: 'refunded', status: 'refunded', payment_status: 'refunded', value: 9000000 }),
+      ],
+      [],
+      [
+        { id: 'refund-open', type: 'refund', status: 'pending', createdAt: '2026-10-22T10:00:00Z' },
+        { id: 'cancel-done', type: 'cancel_booking', status: 'completed', createdAt: '2026-10-20T10:00:00Z' },
+        { id: 'date-change', type: 'date_change', status: 'pending', createdAt: '2026-10-23T10:00:00Z' },
+      ],
+    );
+    expect(data.totalRevenue).toBe(2500000);
+    expect(data.refundRequests).toBe(2);
+    expect(data.pendingRefundRequests).toBe(1);
+    expect(data.recentRefundRequests.map((request) => request.id)).toEqual([
+      'refund-open',
+      'cancel-done',
+    ]);
+  });
   it('sorts booking dates across years and leaves input arrays intact', () => {
     const rows = [
       booking({ id: 'old', date: '31/12/2025' }),

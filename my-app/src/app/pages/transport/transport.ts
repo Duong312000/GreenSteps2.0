@@ -22,6 +22,11 @@ export class TransportComponent implements OnInit,OnDestroy {
  get isDetail() { return !!this.route.snapshot.paramMap.get('id'); }
  get pages() { return Math.max(1,Math.ceil(this.total/12)); }
  get today() { return new Date().toLocaleDateString('en-CA',{ timeZone:'Asia/Ho_Chi_Minh' }); }
+ get priceRangeMax() { return this.rental ? 5000000 : 500000; }
+ get priceMinValue() { return Math.min(Number(this.q['minPrice']) || 0,this.priceRangeMax); }
+ get priceMaxValue() { return this.q['maxPrice']==='' || this.q['maxPrice']==null ? this.priceRangeMax : Math.min(Number(this.q['maxPrice']),this.priceRangeMax); }
+ get priceRangeStart() { return this.priceMinValue / this.priceRangeMax * 100; }
+ get priceRangeWidth() { return Math.max(0,(this.priceMaxValue-this.priceMinValue) / this.priceRangeMax * 100); }
  ngOnInit() {
   this.api.request('GET','/filters').then(r=>{this.metadata=r.data;this.cdr.markForCheck();}).catch(()=>{});
   this.subscriptions.add(combineLatest([this.route.queryParams,this.route.paramMap]).subscribe(([p])=>{
@@ -45,6 +50,8 @@ export class TransportComponent implements OnInit,OnDestroy {
   finally{if(version===this.version){this.loading=false;this.cdr.markForCheck();}}
  }
  search(page=1){ const query={...this.q,...(this.rental?this.dates():{}),page};this.router.navigate([], {relativeTo:this.route,queryParams:query}); }
+ updateMinPrice(value:string){ const next=Number(value)||0;this.q['minPrice']=Math.min(next,this.priceMaxValue); }
+ updateMaxPrice(value:string){ const next=Number(value)||0;this.q['maxPrice']=next>=this.priceRangeMax?'':Math.max(next,this.priceMinValue); }
  tab(type:string){ this.pickupDate='';this.returnDate='';this.router.navigate(['/transport'],{queryParams:{type,passengers:1,sortBy:type==='rental'?'price':'departure'}}); }
  reset(){this.tab(this.q['type']);}
  open(item:any){this.router.navigate(['/transport',this.rental?'rentals':'trips',item._id],{queryParams:{...this.q,...(this.rental?this.dates():{})}});}
