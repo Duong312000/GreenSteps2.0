@@ -4,7 +4,13 @@ import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoginModalService } from '../../../services/login-modal.service';
 import { User, Booking, Service } from '../../../models/models';
-import { bookingDate, dashboardAnalytics, periodLabel } from './partner-dashboard.analytics';
+import {
+  bookingDate,
+  changeRequestDate,
+  dashboardAnalytics,
+  PartnerChangeRequest,
+  periodLabel,
+} from './partner-dashboard.analytics';
 
 @Component({
   selector: 'app-partner-dashboard',
@@ -17,6 +23,7 @@ export class PartnerDashboardComponent {
   public currentUser: User | null = null;
   public bookings: Booking[] = [];
   public services: Service[] = [];
+  public changeRequests: PartnerChangeRequest[] = [];
   public selectedPeriod = 'all';
   public isLoading = true;
   public loadError = false;
@@ -53,8 +60,10 @@ export class PartnerDashboardComponent {
   get periods(): { key: string; label: string }[] {
     return [
       ...new Set(
-        this.bookings
-          .map(bookingDate)
+        [
+          ...this.bookings.map(bookingDate),
+          ...this.changeRequests.map(changeRequestDate),
+        ]
           .filter((date): date is string => !!date)
           .map((date) => date.slice(0, 7)),
       ),
@@ -71,8 +80,19 @@ export class PartnerDashboardComponent {
       ? this.bookings
       : this.bookings.filter((b) => bookingDate(b)?.startsWith(this.selectedPeriod));
   }
+  get filteredChangeRequests(): PartnerChangeRequest[] {
+    return this.selectedPeriod === 'all'
+      ? this.changeRequests
+      : this.changeRequests.filter(
+          (request) => changeRequestDate(request)?.startsWith(this.selectedPeriod),
+        );
+  }
   get taskCount(): number {
-    return Number(this.analytics.pendingBookings > 0) + Number(this.analytics.pendingServices > 0);
+    return (
+      this.analytics.pendingBookings +
+      this.analytics.pendingRefundRequests +
+      this.analytics.pendingServices
+    );
   }
   get allocationRows() {
     return [
@@ -83,6 +103,12 @@ export class PartnerDashboardComponent {
   }
   get totalAllocation(): number {
     return this.filteredBookings.length;
+  }
+  get allocationChartBackground(): string {
+    if (!this.totalAllocation) return 'conic-gradient(#e8efeb 0 100%)';
+    const tour = (this.analytics.allocation.tour / this.totalAllocation) * 100;
+    const stayEnd = tour + (this.analytics.allocation.stay / this.totalAllocation) * 100;
+    return `conic-gradient(#087f5b 0 ${tour}%, #69c991 ${tour}% ${stayEnd}%, #f1b84b ${stayEnd}% 100%)`;
   }
   formatNumber(value: number): string {
     return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value);
@@ -101,8 +127,31 @@ export class PartnerDashboardComponent {
   bookingStatus(booking: Booking): string {
     return this.statusLabels[booking.status] || booking.status || 'Chưa có trạng thái';
   }
+  changeRequestType(request: PartnerChangeRequest): string {
+    return request.type === 'refund' ? 'Hoàn tiền' : 'Hủy đơn';
+  }
+  changeRequestStatus(request: PartnerChangeRequest): string {
+    const labels: Record<string, string> = {
+      pending: 'Chờ xử lý',
+      checking: 'Đang kiểm tra',
+      pending_refund: 'Chờ hoàn tiền',
+      pending_customer_confirm: 'Chờ khách xác nhận',
+      completed: 'Đã xử lý',
+      accepted: 'Đã chấp nhận',
+      rejected: 'Đã từ chối',
+    };
+    return labels[request.status] || request.status || 'Chưa có trạng thái';
+  }
+  changeRequestDateLabel(request: PartnerChangeRequest): string {
+    const date = changeRequestDate(request);
+    return date ? `${date.slice(8)}/${date.slice(5, 7)}/${date.slice(0, 4)}` : 'Chưa có ngày';
+  }
   recalculate(): void {
-    this.analytics = dashboardAnalytics(this.filteredBookings, this.services);
+    this.analytics = dashboardAnalytics(
+      this.filteredBookings,
+      this.services,
+      this.filteredChangeRequests,
+    );
   }
   public async loadDashboardData(): Promise<void> {
     const providerId = this.currentUser?.id || this.currentUser?._id;
@@ -115,13 +164,15 @@ export class PartnerDashboardComponent {
     this.isLoading = true;
     this.loadError = false;
     try {
-      const [bookings, services] = await Promise.all([
+      const [bookings, services, changeRequests] = await Promise.all([
         this.apiService.getBookings(providerId),
         this.apiService.getMyServices(providerId),
+        this.apiService.getChangeRequests(providerId),
       ]);
       if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
       this.bookings = bookings;
       this.services = services;
+      this.changeRequests = changeRequests;
       this.recalculate();
     } catch {
       if (!this.destroyRef.destroyed) this.loadError = true;
