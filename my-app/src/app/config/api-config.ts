@@ -1,8 +1,9 @@
-const PRODUCTION_BACKEND_URL = 'https://greensteps-6swn.onrender.com';
+const PRODUCTION_BACKEND_URL = 'https://greensteps2-0-backend.onrender.com';
 const LOCAL_BACKEND_PORT = 5055;
 
 export function isProductionHost(hostname: string): boolean {
-  return hostname === 'greensteps-6swn.onrender.com'
+  return hostname === 'greensteps2-0-backend.onrender.com'
+    || hostname === 'greensteps-6swn.onrender.com'
     || hostname.endsWith('.vercel.app')
     || hostname.endsWith('.netlify.app');
 }
