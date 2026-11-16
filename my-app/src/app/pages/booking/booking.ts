@@ -58,7 +58,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.isTransportBooking) return this.paymentMethods;
     // Keep object identities stable: recreating NgModel radio controls on every
     // change detection pass schedules another model update and can loop.
-    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet','card','bank'].includes(method.id)).map(method => ({
+    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet', 'card', 'bank'].includes(method.id)).map(method => ({
       ...method, desc: 'Xác nhận vé điện tử và giữ chỗ trực tiếp trên hệ thống GreenSteps.'
     }));
     return this.transportMethodsCache;
@@ -76,7 +76,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   public walletRegistered = false;
   public walletBalance = 0;
   public voucherCode = '';
-  
+
   public isNewUserCreated = false;
   public newUsername = '';
   public newPassword = '';
@@ -195,7 +195,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private transportApi?: TransportService
-  ) {}
+  ) { }
 
   async ngOnInit() {
     if (this.isTransportBooking) { this.initializeTransportCheckout(); return; }
@@ -288,19 +288,19 @@ export class BookingComponent implements OnInit, OnDestroy {
       if (version !== this.transportLoadVersion) return;
       const b = result.data;
       this.transportBooking = b;
-      this.bookingContext = { hotelId:'',roomId:'',checkIn:b.service_start,checkOut:b.rental_end || b.service_end || b.service_start,guestCount:b.passenger_count || 1,roomCount:1 };
-      this.paymentStatus = b.payment_status === 'SIMULATED_PAID' ? 'paid' : ['CANCELLED','FAILED'].includes(b.booking_status) ? 'failed' : 'pending';
+      this.bookingContext = { hotelId: '', roomId: '', checkIn: b.service_start, checkOut: b.rental_end || b.service_end || b.service_start, guestCount: b.passenger_count || 1, roomCount: 1 };
+      this.paymentStatus = b.payment_status === 'SIMULATED_PAID' ? 'paid' : ['CANCELLED', 'FAILED'].includes(b.booking_status) ? 'failed' : 'pending';
       this.confirmationBooking = {
-        ...b,id:b._id,status:b.booking_status.toLowerCase(),evoucher_code:b.booking_code,
-        value:b.payment_status === 'SIMULATED_PAID' ? b.payment_amount : 0,
-        payment_method:b.payment_method === 'bank' ? 'bank_transfer' : b.payment_method,
-        booking_date:b.service_start,check_out_date:b.rental_end || b.service_end,
-        guests:b.passenger_count || 1,fullname:this.currentUser?.fullname || this.currentUser?.username,
-        order_details_snapshot:{ name:b.vehicle?.name,image:b.vehicle?.images?.[0],destination:this.hotelAddress },
-        pricing_snapshot:{ subtotal:b.total_price,total:b.total_price,remaining:b.payment_status === 'SIMULATED_PAID' ? 0:b.total_price }
+        ...b, id: b._id, status: b.booking_status.toLowerCase(), evoucher_code: b.booking_code,
+        value: b.payment_status === 'SIMULATED_PAID' ? b.payment_amount : 0,
+        payment_method: b.payment_method === 'bank' ? 'bank_transfer' : b.payment_method,
+        booking_date: b.service_start, check_out_date: b.rental_end || b.service_end,
+        guests: b.passenger_count || 1, fullname: this.currentUser?.fullname || this.currentUser?.username,
+        order_details_snapshot: { name: b.vehicle?.name, image: b.vehicle?.images?.[0], destination: this.hotelAddress },
+        pricing_snapshot: { subtotal: b.total_price, total: b.total_price, remaining: b.payment_status === 'SIMULATED_PAID' ? 0 : b.total_price }
       };
       if (this.isPaymentStep && b.payment_status === 'SIMULATED_PAID') {
-        await this.router.navigate(['/booking/confirm'], {queryParams:{transportBookingId:b._id},replaceUrl:true});
+        await this.router.navigate(['/booking/confirm'], { queryParams: { transportBookingId: b._id }, replaceUrl: true });
       }
     } catch (error: any) {
       if (version !== this.transportLoadVersion) return;
@@ -326,9 +326,9 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.isBookingLoading = true;
     try {
       await this.transportApi!.request('POST', `/bookings/${this.currentBookingId}/payment`, {
-        payment_method:this.paymentMethod,accepted_terms:this.acceptedTerms
+        payment_method: this.paymentMethod, accepted_terms: this.acceptedTerms
       });
-      await this.router.navigate(['/booking/confirm'], {queryParams:{transportBookingId:this.currentBookingId}});
+      await this.router.navigate(['/booking/confirm'], { queryParams: { transportBookingId: this.currentBookingId } });
     } catch (error: any) {
       this.showAlert('Chưa hoàn tất thanh toán', this.transportApi!.message(error), 'error');
     } finally {
@@ -339,19 +339,19 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   private async loadActiveTour() {
     const query = this.route.snapshot.queryParamMap;
-    const isItinerary = query.get('bookingType') === 'itinerary' || 
-                        (this.bookingContext.tourId && (this.bookingContext.tourId.startsWith('iti_') || this.bookingContext.tourId.startsWith('SCH')));
+    const isItinerary = query.get('bookingType') === 'itinerary' ||
+      (this.bookingContext.tourId && (this.bookingContext.tourId.startsWith('iti_') || this.bookingContext.tourId.startsWith('SCH')));
 
     if (isItinerary && this.bookingContext.tourId) {
       try {
         let itinerary = null;
         try {
           itinerary = await this.apiService.getItinerary(this.bookingContext.tourId);
-        } catch (e) {}
+        } catch (e) { }
 
         if (!itinerary) {
           const raw = localStorage.getItem('greensteps_active_itinerary_checkout')
-                   || localStorage.getItem(`greensteps_guest_draft_${this.bookingContext.tourId}`);
+            || localStorage.getItem(`greensteps_guest_draft_${this.bookingContext.tourId}`);
           if (raw) {
             const parsed = JSON.parse(raw);
             itinerary = {
@@ -785,7 +785,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       const dlInfo = this.getTempBookingDeadline();
       this.paymentMethod = 'counter';
       bookingData.payment_method = 'counter';
-      
+
       this.isBookingLoading = true;
       try {
         const res = await this.apiService.createBooking(bookingData);
@@ -1057,7 +1057,7 @@ export class BookingComponent implements OnInit, OnDestroy {
               this.showAlert('Thanh toán chưa được xác nhận', 'Đơn đặt chỗ đã bị từ chối hoặc hết hạn. Bạn có thể quay lại và thử lại.', 'error');
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       }, 2500);
 
       setTimeout(() => {
@@ -1107,7 +1107,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.alertMessage = message;
     this.alertType = type;
     this.alertActionUrl = actionUrl;
-    
+
     if (type === 'warning') this.alertIllustration = '/image/payment/payment-notice.svg';
     else if (type === 'info') this.alertIllustration = '/image/payment/payment-pending.svg';
     else this.alertIllustration = '/image/payment/payment-error.svg';
@@ -1171,7 +1171,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       this.stopPaymentPolling();
       return;
     }
-    
+
     this.isBookingLoading = true;
     try {
       const res = await this.apiService.cancelBooking(this.currentBookingId);
@@ -1268,7 +1268,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     // Silently trigger booking cancellation on backend
     this.cancelPendingBookingSilently();
     this.showAlert(
-      "Giao dịch hết hạn", 
+      "Giao dịch hết hạn",
       "Phiên thanh toán đã hết hạn sau 10 phút. Đơn đặt cọc của bạn đã được hủy tự động.",
       "warning"
     );
@@ -1340,9 +1340,9 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public isItineraryBooking(): boolean {
-    return this.activeTour?.id?.startsWith('iti_') || 
-           this.bookingContext.tourId?.startsWith('iti_') || 
-           this.route.snapshot.queryParamMap.get('bookingType') === 'itinerary';
+    return this.activeTour?.id?.startsWith('iti_') ||
+      this.bookingContext.tourId?.startsWith('iti_') ||
+      this.route.snapshot.queryParamMap.get('bookingType') === 'itinerary';
   }
 
   public get itineraryPerPersonCost() {
@@ -1463,7 +1463,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationIsFailed(): boolean {
-    if (this.isTransportBooking) return ['CANCELLED','FAILED'].includes(this.transportBooking?.booking_status);
+    if (this.isTransportBooking) return ['CANCELLED', 'FAILED'].includes(this.transportBooking?.booking_status);
     const booking = this.confirmationBooking;
     const status = String(booking?.status || '').toLowerCase();
     const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
@@ -1620,7 +1620,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get paymentReady() {
-    if (this.isTransportBooking) return !!this.transportBooking?.can_pay && this.acceptedTerms && ['wallet','card','bank'].includes(this.paymentMethod) && !this.isBookingLoading;
+    if (this.isTransportBooking) return !!this.transportBooking?.can_pay && this.acceptedTerms && ['wallet', 'card', 'bank'].includes(this.paymentMethod) && !this.isBookingLoading;
     return Object.keys(this.validatePayment(true)).length === 0;
   }
 

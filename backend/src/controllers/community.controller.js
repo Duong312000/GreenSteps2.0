@@ -346,7 +346,12 @@ async function getLeaderboardRows(limit) {
 
 exports.getTrendingHashtags = async (req, res, next) => {
   try {
-    const posts = await CommunityPost.findAll({ where: { moderation_status: { [Op.ne]: 'hidden' } }, order: [['createdAt', 'DESC']], limit: 200 });
+    const posts = await CommunityPost.findAll({
+      where: { moderation_status: { [Op.ne]: 'hidden' } },
+      attributes: ['id', 'hashtags', 'text'],
+      order: [['createdAt', 'DESC']],
+      limit: 200
+    });
     const counts = new Map();
     for (const post of posts) for (const tag of cleanHashtags([...(post.hashtags || []), ...cleanHashtags(post.text)])) counts.set(tag, (counts.get(tag) || 0) + 1);
     res.json([...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag)).slice(0, 12));
