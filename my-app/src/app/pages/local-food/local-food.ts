@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { FoodApi, FoodPlace, FOOD_CATEGORIES, FOOD_FEATURES } from './food-api';
+import { AuthService } from '../../services/auth.service';
 
 
 @Component({
