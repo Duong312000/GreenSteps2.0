@@ -3615,66 +3615,122 @@ input[type="radio"] {
 
 
 /* ==========================================================================
-   EDITORIAL LUXURY BOOKING & RESERVATION TICKET SYSTEM (Step 1)
+   EDITORIAL LUXURY CHECKOUT & RESERVATION SYSTEM (Product Design Excellence)
    ========================================================================== */
 
+/* 1. Minimal Navigational Breadcrumb */
+.checkout-breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 0 4px;
+}
+
+.breadcrumb-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #4b5c51;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.18s ease;
+  font-family: inherit;
+}
+
+.breadcrumb-back-btn:hover {
+  color: #047857;
+}
+
+.breadcrumb-back-btn i {
+  font-size: 15px;
+  transition: transform 0.18s ease;
+}
+
+.breadcrumb-back-btn:hover i {
+  transform: translateX(-3px);
+}
+
+.breadcrumb-flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.flow-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8b9b91;
+  font-weight: 500;
+}
+
+.flow-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #eef2ef;
+  color: #60746b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.flow-item.is-done {
+  color: #34443a;
+}
+
+.flow-item.is-done .flow-num {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.flow-item.is-current {
+  color: #047857;
+  font-weight: 700;
+}
+
+.flow-item.is-current .flow-num {
+  background: #047857;
+  color: #ffffff;
+}
+
+.flow-divider {
+  color: #c7d5cd;
+  font-size: 13px;
+  user-select: none;
+}
+
+/* 2. Main Two-Column Editorial Grid */
 .editorial-booking-layout {
   display: grid !important;
-  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 420px) !important;
-  gap: 32px !important;
+  grid-template-columns: minmax(0, 1.4fr) minmax(360px, 420px) !important;
+  gap: 36px !important;
   align-items: start !important;
 }
 
-/* Notice Cards */
-.editorial-booking-layout .notice-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px 20px;
-  border-radius: 14px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  box-shadow: 0 1px 3px rgba(16, 35, 28, 0.04);
-}
-
-.editorial-booking-layout .notice-card i {
-  font-size: 20px;
-  color: #047857;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.editorial-booking-layout .notice-card p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #166534;
-}
-
-.editorial-booking-layout .notice-card .text-link {
-  margin-top: 6px;
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #047857;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-/* Main Editorial Form Surface */
+/* 3. Main Form Surface (Single Unified Container, No Card Clutter) */
 .editorial-form-surface {
   background: #ffffff;
-  border: 1px solid #dce7df;
+  border: 1px solid #e2e8e4;
   border-radius: 20px;
-  padding: 32px 36px;
-  box-shadow: 0 4px 24px rgba(16, 35, 28, 0.04);
+  padding: 36px 40px;
+  box-shadow: 0 2px 14px rgba(16, 35, 28, 0.03);
   display: flex !important;
   flex-direction: column !important;
-  gap: 28px !important;
+  gap: 32px !important;
 }
 
-/* Chapters (01, 02, 03) */
 .editorial-chapter {
   display: flex;
   flex-direction: column;
@@ -3683,144 +3739,165 @@ input[type="radio"] {
 
 .chapter-header {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.chapter-index {
+.chapter-title-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #ecfdf5;
-  color: #047857;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-  border: 1px solid rgba(4, 120, 87, 0.18);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .chapter-header h2 {
-  font-size: 18px !important;
+  font-size: 19px !important;
   font-weight: 800 !important;
   color: #10231c !important;
-  margin: 0 0 4px !important;
+  margin: 0 !important;
   letter-spacing: -0.015em;
   line-height: 1.35;
 }
 
 .chapter-header p {
-  font-size: 13px;
+  font-size: 13.5px;
   color: #60746b;
   margin: 0;
   line-height: 1.5;
 }
 
+.member-indicator-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(4, 120, 87, 0.15);
+}
+
+.member-indicator-chip i {
+  font-size: 13px;
+}
+
+.signin-hint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #047857;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.signin-hint-btn:hover {
+  color: #065f46;
+}
+
 .chapter-divider {
   border: 0;
   height: 1px;
-  background: #eef4f0;
-  margin: 4px 0;
+  background: #edf3ef;
+  margin: 0;
 }
 
-/* Fast OTP toggle styling */
-.fast-otp-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  color: #30443c;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Traveler type pills (Self vs Other) */
-.traveler-type-pills {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.traveler-pill {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1.5px solid #dce7df;
-  border-radius: 14px;
-  background: #fbfdfc;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
-  position: relative;
-  user-select: none;
-}
-
-.traveler-pill input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.traveler-pill i {
-  font-size: 22px;
-  color: #60746b;
-  transition: color 0.18s ease;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.traveler-pill div {
+/* 4. Form Controls & Anatomy */
+.form-checkbox-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-.traveler-pill b {
-  font-size: 14px;
-  font-weight: 750;
-  color: #10231c;
-  line-height: 1.3;
+.clean-checkbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #34443a;
+  cursor: pointer;
+  line-height: 1.45;
+  user-select: none;
 }
 
-.traveler-pill small {
-  font-size: 12px;
+.clean-checkbox input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #047857;
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Segmented Control for Who is traveling */
+.traveler-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #f1f6f3;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #e1e9e3;
+}
+
+.traveler-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: #55685d;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.traveler-toggle-btn i {
+  font-size: 16px;
   color: #60746b;
-  line-height: 1.4;
+  transition: color 0.18s ease;
 }
 
-.traveler-pill:hover {
-  border-color: #047857;
+.traveler-toggle-btn:hover {
+  color: #10231c;
+}
+
+.traveler-toggle-btn.is-active {
   background: #ffffff;
+  color: #10231c;
+  font-weight: 750;
+  box-shadow: 0 2px 8px rgba(16, 35, 28, 0.06);
 }
 
-.traveler-pill.active {
-  border-color: #047857;
-  background: #f0fdf4;
-  box-shadow: 0 0 0 1px #047857;
-}
-
-.traveler-pill.active i {
+.traveler-toggle-btn.is-active i {
   color: #047857;
 }
 
-/* Other guest panel */
-.other-guest-panel {
-  padding: 20px;
-  background: #f8faf9;
-  border: 1px solid #e1ebe5;
-  border-radius: 14px;
-  animation: guestFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.other-guest-inline-fields {
+  animation: fadeInDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes guestFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Special requests section */
+/* Special Requests */
 .special-requests-block {
   display: flex;
   flex-direction: column;
@@ -3843,22 +3920,22 @@ input[type="radio"] {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 7px 13px;
   border-radius: 9999px;
-  border: 1px solid #dce7df;
+  border: 1px solid #dce5df;
   background: #ffffff;
   color: #4b5c51;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.16s ease;
   font-family: inherit;
   user-select: none;
 }
 
 .request-chip i {
-  font-size: 14px;
-  transition: transform 0.18s ease;
+  font-size: 13px;
+  color: #60746b;
 }
 
 .request-chip:hover {
@@ -3874,6 +3951,10 @@ input[type="radio"] {
   font-weight: 700;
 }
 
+.request-chip.active i {
+  color: #047857;
+}
+
 .special-request-textarea {
   width: 100%;
   padding: 12px 14px;
@@ -3884,7 +3965,7 @@ input[type="radio"] {
   color: #10231c;
   background: #ffffff;
   resize: vertical;
-  min-height: 72px;
+  min-height: 68px;
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
   box-sizing: border-box;
@@ -3895,27 +3976,14 @@ input[type="radio"] {
   box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
 }
 
-/* Add-ons selection */
-.addon-item.is-selected {
-  border-color: #047857;
-  background: #f0fdf4;
-}
-
-.addon-item-price {
-  font-weight: 750;
-  color: #047857;
-  font-size: 13.5px;
-  white-space: nowrap;
-}
-
-/* Submit footer & reassurance */
+/* 5. Clean Submit Footer */
 .editorial-submit-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #eef4f0;
+  padding-top: 14px;
+  border-top: 1px solid #edf3ef;
 }
 
 .submit-reassurance {
@@ -3928,7 +3996,7 @@ input[type="radio"] {
 }
 
 .submit-reassurance i {
-  font-size: 20px;
+  font-size: 19px;
   color: #047857;
   flex-shrink: 0;
 }
@@ -3942,8 +4010,8 @@ input[type="radio"] {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 50px;
-  padding: 0 30px;
+  min-height: 48px;
+  padding: 0 28px;
   border-radius: 12px;
   background: #047857;
   color: #ffffff;
@@ -3951,27 +4019,26 @@ input[type="radio"] {
   font-weight: 750;
   border: none;
   cursor: pointer;
-  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.22);
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2);
 }
 
 .editorial-submit-footer .booking-submit:hover {
   background: #065f46;
-  box-shadow: 0 6px 18px rgba(4, 120, 87, 0.32);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(4, 120, 87, 0.28);
 }
 
 /* ==========================================================================
-   EDITORIAL RESERVATION TICKET (Single cohesive summary)
+   RESERVATION TICKET (Single Surface, De-boxed, Editorial Authority)
    ========================================================================== */
 
 .editorial-reservation-ticket {
   background: #ffffff;
-  border: 1px solid #dce7df;
+  border: 1px solid #e2e8e4;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 32px rgba(16, 35, 28, 0.06);
+  box-shadow: 0 8px 30px rgba(16, 35, 28, 0.05);
   position: sticky;
   top: 104px;
 }
@@ -3979,9 +4046,9 @@ input[type="radio"] {
 .ticket-hero {
   position: relative;
   width: 100%;
-  height: 195px;
+  height: 190px;
   overflow: hidden;
-  background: #eef4f0;
+  background: #edf2ef;
 }
 
 .ticket-hero img {
@@ -4005,7 +4072,7 @@ input[type="radio"] {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   color: #047857;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .ticket-hero-badges .co2-badge {
@@ -4015,7 +4082,7 @@ input[type="radio"] {
 }
 
 .ticket-body {
-  padding: 22px 24px 24px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -4024,13 +4091,13 @@ input[type="radio"] {
 .ticket-title-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .ticket-eyebrow {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: #047857;
   text-transform: uppercase;
 }
@@ -4043,194 +4110,141 @@ input[type="radio"] {
   margin: 0 !important;
 }
 
-.ticket-title-block .muted {
+.ticket-location {
   font-size: 13px;
   color: #60746b;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
 .ticket-divider {
   border: 0;
   height: 1px;
-  background: #eef4f0;
+  background: #edf3ef;
   margin: 0;
 }
 
-/* Schedule & Guest interactive controls */
-.ticket-schedule-box {
+/* 6. Clean Specification Rows (No nested cards!) */
+.ticket-spec-rows {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  background: #f9fbf9;
-  border-radius: 14px;
-  border: 1px solid #e7efe9;
+  gap: 0;
 }
 
-.ticket-date-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.ticket-date-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: #ffffff;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #dce7df;
-}
-
-.ticket-date-cell span {
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #60746b;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.ticket-date-cell input[type="date"] {
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 750;
-  color: #10231c;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-  width: 100%;
-}
-
-.ticket-date-cell.is-readonly b {
-  font-size: 13.5px;
-  font-weight: 750;
-  color: #10231c;
-}
-
-.ticket-date-cell.is-readonly small {
-  font-size: 11px;
-  color: #047857;
-  font-weight: 600;
-}
-
-.ticket-guest-row {
+.spec-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #eef4f0;
+  padding: 9px 0;
+  border-bottom: 1px solid #f2f6f3;
 }
 
-.ticket-guest-row span {
-  font-size: 10.5px;
-  font-weight: 800;
+.spec-item:last-child {
+  border-bottom: none;
+}
+
+.spec-label {
+  font-size: 11px;
+  font-weight: 750;
   color: #60746b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  display: block;
 }
 
-.ticket-guest-row b {
+.spec-value {
   font-size: 13.5px;
   color: #10231c;
-  font-weight: 750;
+  text-align: right;
 }
 
-.guest-stepper {
+.spec-value strong {
+  color: #047857;
+  font-weight: 700;
+}
+
+.spec-value.package-name {
+  color: #047857;
+  font-weight: 700;
+}
+
+.spec-date-input-wrap input[type="date"] {
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #10231c;
+  background: #fbfdfc;
+  outline: none;
+  cursor: pointer;
+}
+
+.spec-date-input-wrap input[type="date"]:focus {
+  border-color: #047857;
+}
+
+.guest-stepper-clean {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #dce7df;
-  border-radius: 8px;
-  background: #ffffff;
-  overflow: hidden;
+  gap: 6px;
 }
 
-.guest-stepper button {
-  width: 32px;
-  height: 32px;
+.guest-stepper-clean button {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f6faf7;
-  border: none;
-  font-size: 16px;
-  font-weight: 700;
+  border: 1px solid #dce5df;
+  border-radius: 6px;
+  background: #ffffff;
   color: #10231c;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
-.guest-stepper button:hover:not(:disabled) {
-  background: #e2ece5;
+.guest-stepper-clean button:hover:not(:disabled) {
+  border-color: #047857;
+  color: #047857;
+  background: #f0fdf4;
 }
 
-.guest-stepper button:disabled {
+.guest-stepper-clean button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.guest-stepper span {
-  min-width: 32px;
-  text-align: center;
+.stepper-val {
   font-size: 13.5px;
   font-weight: 750;
   color: #10231c;
+  min-width: 60px;
+  text-align: center;
 }
 
-.ticket-package-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eef4f0;
-}
-
-.ticket-package-row span {
-  font-size: 12.5px;
-  color: #60746b;
-}
-
-.ticket-package-row b {
-  font-size: 13px;
-  color: #047857;
-  font-weight: 700;
-  text-align: right;
-}
-
-/* What's included checklist */
-.ticket-included-box {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ticket-sub-heading {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #60746b;
-  text-transform: uppercase;
-}
-
-.included-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* 7. What's Included List */
+.ticket-included-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.included-list li {
+.ticket-perks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticket-perks-list li {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -4239,170 +4253,267 @@ input[type="radio"] {
   line-height: 1.4;
 }
 
-.included-list i {
+.ticket-perks-list i {
   color: #047857;
-  font-size: 15px;
+  font-size: 14px;
   margin-top: 1px;
   flex-shrink: 0;
 }
 
-/* Pricing breakdown */
-.ticket-pricing-box {
+/* 8. Price Table & Milestones */
+.ticket-finance-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-.ticket-price-rows {
+.ticket-price-table {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.ticket-price-rows p {
+.price-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0;
   font-size: 13px;
   color: #60746b;
 }
 
-.ticket-price-rows p b {
+.price-row span:last-child {
   color: #10231c;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-.ticket-price-rows p.is-discount {
+.price-row.is-savings {
   color: #047857;
 }
 
-.ticket-price-rows p.is-discount b {
+.price-row.is-savings span:last-child {
   color: #047857;
   font-weight: 750;
 }
 
-.ticket-grand-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-top: 12px;
-  border-top: 1px dashed #dce7df;
+.price-row.total-line {
+  padding-top: 10px;
+  border-top: 1px dashed #dce5df;
   margin-top: 4px;
 }
 
-.ticket-grand-total span {
+.price-row.total-line span:first-child {
   font-size: 14px;
   font-weight: 750;
   color: #10231c;
 }
 
-.ticket-grand-total strong {
-  font-size: 22px;
+.price-row.total-line strong {
+  font-size: 21px;
   font-weight: 800;
   color: #10231c;
   font-variant-numeric: tabular-nums;
 }
 
-/* 2-stage payment schedule timeline */
-.payment-timeline-card {
+/* Milestones Flow (Clean Typographic Milestone, No Box!) */
+.ticket-milestone-flow {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: #f6faf7;
-  border-radius: 14px;
-  border: 1px solid #dce7df;
-  padding: 12px 16px;
-  margin-top: 6px;
+  gap: 8px;
+  padding-top: 6px;
 }
 
-.timeline-step {
+.milestone-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
   position: relative;
-  padding: 8px 0;
 }
 
-.timeline-step:first-child::after {
+.milestone-row:first-child::after {
   content: '';
   position: absolute;
-  left: 6px;
-  top: 26px;
+  left: 5px;
+  top: 16px;
   bottom: -6px;
   width: 2px;
-  background: #dce7df;
+  background: #dce5df;
 }
 
-.timeline-dot {
-  width: 14px;
-  height: 14px;
+.milestone-dot {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid #047857;
-  background: #ffffff;
+  margin-top: 3px;
   flex-shrink: 0;
   z-index: 1;
 }
 
-.timeline-step.is-due-now .timeline-dot {
+.milestone-row.is-deposit .milestone-dot {
   background: #047857;
 }
 
-.timeline-step.is-later .timeline-dot {
-  border-color: #9cb5a5;
+.milestone-row.is-remaining .milestone-dot {
   background: #ffffff;
+  border: 2px solid #8b9b91;
 }
 
-.timeline-info {
+.milestone-desc {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   flex: 1;
 }
 
-.timeline-info span {
+.milestone-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.milestone-top span {
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   color: #10231c;
 }
 
-.timeline-info small {
-  font-size: 11.5px;
-  color: #60746b;
-  line-height: 1.35;
-}
-
-.timeline-step strong {
-  font-size: 15px;
+.milestone-top strong {
+  font-size: 14.5px;
   font-weight: 800;
   color: #047857;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
-.timeline-step b {
-  font-size: 14px;
+.milestone-top b {
+  font-size: 13.5px;
   font-weight: 700;
   color: #60746b;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+.milestone-desc small {
+  font-size: 11px;
+  color: #60746b;
+  line-height: 1.35;
 }
 
 .ticket-footer-actions {
   display: flex;
   justify-content: center;
-  padding-top: 4px;
+  padding-top: 2px;
 }
 
-.ticket-footer-actions .text-link {
+.back-tour-link {
+  background: transparent;
+  border: none;
+  font-family: inherit;
   font-size: 13px;
+  font-weight: 600;
+  color: #047857;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 4px 0;
 }
 
-/* Responsive adjustments */
+.back-tour-link:hover {
+  text-decoration: underline;
+}
+
+/* 9. Payment Step Refinements */
+.wallet-promo-bar {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wallet-promo-bar span {
+  font-size: 12px;
+  font-weight: 650;
+  color: #166534;
+  line-height: 1.3;
+}
+
+.wallet-activate-btn {
+  height: 28px;
+  padding: 0 12px;
+  background-color: #047857;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+  white-space: nowrap;
+}
+
+.wallet-activate-btn:hover {
+  background-color: #065f46;
+}
+
+.counter-notice-card {
+  margin-top: 14px;
+  background: #f9fbf9;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.counter-notice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #047857;
+  font-weight: 750;
+  font-size: 13.5px;
+}
+
+.counter-notice-card p {
+  font-size: 13px;
+  color: #4b5c51;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.later-reservation-card {
+  background: #fffdfa;
+  border: 1px solid #fed7aa !important;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.later-reservation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c2410c;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.later-deadline-text {
+  font-size: 13px;
+  color: #9a3412;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 10. Responsive Breakpoints */
 @media (max-width: 980px) {
   .editorial-booking-layout {
     grid-template-columns: 1fr !important;
@@ -4413,8 +4524,10 @@ input[type="radio"] {
     padding: 24px 20px;
   }
 
-  .traveler-type-pills {
-    grid-template-columns: 1fr;
+  .checkout-breadcrumb-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .editorial-submit-footer {
@@ -4430,3 +4543,4 @@ input[type="radio"] {
     position: static;
   }
 }
+
