@@ -59,7 +59,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     // Keep object identities stable: recreating NgModel radio controls on every
     // change detection pass schedules another model update and can loop.
     if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet','card','bank'].includes(method.id)).map(method => ({
-      ...method, desc: 'Xử lý trong GreenSteps; không trừ tiền thật hoặc yêu cầu thông tin ngân hàng.'
+      ...method, desc: 'Xác nhận vé điện tử và giữ chỗ trực tiếp trên hệ thống GreenSteps.'
     }));
     return this.transportMethodsCache;
   }
@@ -147,6 +147,15 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public addOns: string[] = [];
   public specialRequest = '';
+  public selectedSpecialTags: string[] = [];
+  public readonly specialRequestTags = [
+    'Thực đơn chay / Thuần chay',
+    'Đi cùng trẻ nhỏ / Người cao tuổi',
+    'Ưu tiên phòng yên tĩnh, tầng thấp',
+    'Hỗ trợ dị ứng thực phẩm',
+    'Kỷ niệm dịp đặc biệt'
+  ];
+  public readonly minCheckInDate = bookingDate();
   public arrivalTime = '';
   public payTiming: PayTiming = 'now';
   public paymentMethod: PaymentMethod = 'wallet';
@@ -162,19 +171,19 @@ export class BookingComponent implements OnInit, OnDestroy {
   public paymentErrors: Record<string, string> = {};
 
   public readonly countries = ['Việt Nam', 'Singapore', 'Thái Lan', 'Hàn Quốc', 'Nhật Bản', 'Khác'];
-  public readonly arrivalOptions = ['12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-18:00', '18:00-20:00', 'Sau 20:00'];
+  public readonly arrivalOptions = ['07:00 - 08:30 (Khởi hành sáng sớm)', '08:30 - 10:00 (Khung giờ tiêu chuẩn)', '12:00 - 14:00 (Nhận phòng buổi trưa)', '14:00 - 16:00 (Buổi chiều)', '18:00 - 20:00 (Buổi tối)', 'Linh hoạt theo điều phối viên'];
   public readonly paymentMethods = [
-    { id: 'wallet' as PaymentMethod, label: 'Ví điện tử', desc: 'Thanh toán nhanh qua ví liên kết.', icon: 'bi-wallet2' },
-    { id: 'card' as PaymentMethod, label: 'Thẻ tín dụng / ghi nợ', desc: 'Thử luồng thanh toán bằng thẻ mẫu, không thu tiền thật.', icon: 'bi-credit-card' },
-    { id: 'bank' as PaymentMethod, label: 'Chuyển khoản qua QR', desc: 'Quét VietQR trong ứng dụng ngân hàng của bạn.', icon: 'bi-bank' },
-    { id: 'sepay' as PaymentMethod, label: 'SePay — QR ngân hàng', desc: 'Quét mã QR chuyển khoản qua cổng SePay Sandbox.', icon: 'bi-bank' },
-    { id: 'counter' as PaymentMethod, label: 'Thanh toán tại quầy', desc: 'Giữ chỗ tạm thời và xác nhận tại quầy.', icon: 'bi-shop' }
+    { id: 'wallet' as PaymentMethod, label: 'Ví GreenSteps', desc: 'Thanh toán tức thì, hoàn tiền nhanh & tích điểm lá xanh.', icon: 'bi-wallet2' },
+    { id: 'bank' as PaymentMethod, label: 'Chuyển khoản ngân hàng (VietQR)', desc: 'Quét mã QR tự động điền số tiền và nội dung giữ chỗ.', icon: 'bi-qr-code-scan' },
+    { id: 'card' as PaymentMethod, label: 'Thẻ quốc tế (Visa / Mastercard / JCB)', desc: 'Bảo mật chuẩn mã hóa quốc tế, xác nhận giữ chỗ ngay.', icon: 'bi-credit-card' },
+    { id: 'sepay' as PaymentMethod, label: 'Cổng thanh toán trực tuyến SePay', desc: 'Quét mã QR chuyển khoản tự động qua SePay Gateway.', icon: 'bi-bank' },
+    { id: 'counter' as PaymentMethod, label: 'Giữ chỗ & Thanh toán tại văn phòng', desc: 'Giữ chỗ trước, thanh toán trực tiếp tại quầy GreenSteps.', icon: 'bi-shop' }
   ];
   public readonly addOnOptions = [
-    { id: 'airport', label: 'Tôi muốn đặt xe đưa đón sân bay', desc: 'Xe tiết kiệm nhiên liệu, tài xế địa phương.', price: 280000, icon: 'bi-car-front' },
-    { id: 'electric-bike', label: 'Tôi muốn thuê xe máy/xe điện', desc: 'Phù hợp di chuyển ngắn trong thành phố.', price: 180000, icon: 'bi-bicycle' },
-    { id: 'green-plan', label: 'Tôi muốn nhận gợi ý lịch trình xanh', desc: 'GreenSteps gợi ý điểm đến ít phát thải.', price: 0, icon: 'bi-leaf' },
-    { id: 'insurance', label: 'Tôi muốn thêm bảo hiểm du lịch', desc: 'Bảo vệ cơ bản cho hành trình tour.', price: 120000, icon: 'bi-shield-check' }
+    { id: 'airport', label: 'Xe điện đưa đón sân bay / bến xe', desc: 'Phương tiện giảm phát thải, tài xế bản địa đón tận nơi.', price: 280000, icon: 'bi-car-front' },
+    { id: 'electric-bike', label: 'Thuê xe đạp tre / xe máy điện', desc: 'Di chuyển tự do, thân thiện môi trường tại điểm đến.', price: 180000, icon: 'bi-bicycle' },
+    { id: 'green-plan', label: 'Bộ cẩm nang & Bản đồ ẩm thực bản địa', desc: 'Tổng hợp quán ăn địa phương & điểm check-in ít dấu chân carbon.', price: 0, icon: 'bi-compass' },
+    { id: 'insurance', label: 'Bảo hiểm du lịch & Hỗ trợ y tế 24/7', desc: 'Bảo vệ toàn diện cho toàn bộ thành viên trong suốt chuyến đi.', price: 120000, icon: 'bi-shield-check' }
   ];
 
   constructor(
@@ -433,6 +442,74 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public hasAddOn(id: string) {
     return this.addOns.includes(id);
+  }
+
+  public toggleSpecialTag(tag: string) {
+    if (this.selectedSpecialTags.includes(tag)) {
+      this.selectedSpecialTags = this.selectedSpecialTags.filter(t => t !== tag);
+    } else {
+      this.selectedSpecialTags = [...this.selectedSpecialTags, tag];
+    }
+    const manualParts = (this.specialRequest || '')
+      .split(' • ')
+      .map(s => s.trim())
+      .filter(s => s && !this.specialRequestTags.includes(s));
+    this.specialRequest = [...this.selectedSpecialTags, ...manualParts].join(' • ');
+  }
+
+  public hasSpecialTag(tag: string): boolean {
+    return this.selectedSpecialTags.includes(tag) || (this.specialRequest || '').includes(tag);
+  }
+
+  public updateGuestCount(delta: number) {
+    const maxGuests = this.activeTour?.maxCapacity || 20;
+    const next = Math.max(1, Math.min(maxGuests, (this.bookingContext.guestCount || 1) + delta));
+    if (next === this.bookingContext.guestCount) return;
+    this.bookingContext.guestCount = next;
+    localStorage.setItem('greensteps_booking_context', JSON.stringify(this.bookingContext));
+    if (this.usesServiceQuote) void this.loadRoomPricing();
+    this.cdr.detectChanges();
+  }
+
+  public onCheckInDateChange(newDate: string) {
+    if (!newDate) return;
+    const tripDays = Math.max(1, (this.activeTour?.days || 2) - 1);
+    const start = new Date(`${newDate}T12:00:00`);
+    if (isNaN(start.getTime())) return;
+    const end = new Date(start.getTime() + tripDays * 86400000);
+    this.bookingContext.checkIn = newDate;
+    this.bookingContext.checkOut = end.toISOString().slice(0, 10);
+    localStorage.setItem('greensteps_booking_context', JSON.stringify(this.bookingContext));
+    if (this.usesServiceQuote) void this.loadRoomPricing();
+    this.cdr.detectChanges();
+  }
+
+  public get tourCarbonSaved(): string {
+    const raw = Number(this.activeTour?.carbon);
+    if (Number.isFinite(raw) && raw !== 0) {
+      return `${Math.abs(raw).toFixed(1)} kg CO₂`;
+    }
+    return `${(Math.max(1, this.bookingContext.guestCount) * 2.4).toFixed(1)} kg CO₂`;
+  }
+
+  public get tourIncludedHighlights(): string[] {
+    if (Array.isArray(this.activeTour?.included) && this.activeTour!.included.length > 0) {
+      return this.activeTour!.included.slice(0, 4);
+    }
+    if (this.selectedLodgingRoom) {
+      return [
+        'Lưu trú sinh thái đạt chuẩn Net-Zero',
+        'Năng lượng sạch & vật phẩm tự phân hủy',
+        'Bữa sáng nông sản địa phương (Farm-to-Table)',
+        'Hỗ trợ điều phối hành trình 24/7'
+      ];
+    }
+    return [
+      'Phương tiện di chuyển xanh & vé tham quan trong lịch trình',
+      'Lưu trú homestay / ecolodge bản địa tiêu chuẩn xanh',
+      'Hướng dẫn viên & điều phối viên bản địa tận tâm',
+      'Bảo hiểm du lịch toàn diện & cam kết bù đắp Carbon'
+    ];
   }
 
   public async continueToPayment() {
@@ -808,10 +885,10 @@ export class BookingComponent implements OnInit, OnDestroy {
         if (res.success && res.bookingId) {
           this.openPendingPayment(res, 'card');
         } else {
-          this.showAlert('Không thể tạo giao dịch thẻ thử nghiệm', res.message || 'Vui lòng thử lại.', 'error');
+          this.showAlert('Không thể tạo giao dịch thẻ', res.message || 'Vui lòng kiểm tra lại thông tin thẻ.', 'error');
         }
       } catch (e) {
-        this.showAlert('Không thể tạo giao dịch thẻ thử nghiệm', 'Không kết nối được máy chủ thanh toán.', 'error');
+        this.showAlert('Không thể tạo giao dịch thẻ', 'Không kết nối được cổng thanh toán. Vui lòng thử lại sau.', 'error');
       } finally {
         this.isBookingLoading = false;
       }
@@ -871,8 +948,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     try {
       const config = await this.apiService.getSepayPaymentConfig();
       if (!config.configured) {
-        const missing = config.missing?.join(', ') || 'backend/.env';
-        this.showAlert('SePay chưa được cấu hình', `Còn thiếu: ${missing}. Kiểm tra cấu hình Sandbox và IPN rồi thử lại.`, 'warning');
+        this.showAlert('Cổng thanh toán tạm thời bảo trì', 'Cổng thanh toán trực tuyến hiện đang bảo trì kết nối. Quý khách vui lòng chọn chuyển khoản VietQR hoặc thanh toán tại quầy.', 'warning');
         return;
       }
 
@@ -1421,7 +1497,14 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get confirmationPaymentMethod(): string {
     const method = this.confirmationPaymentMethodCode;
-    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy', sepay: 'SePay (Sandbox)' } as Record<string, string>)[method] || this.selectedPaymentLabel;
+    return ({
+      wallet: 'Ví GreenSteps',
+      bank_transfer: 'Chuyển khoản ngân hàng (VietQR)',
+      card: 'Thẻ quốc tế (Visa / Mastercard)',
+      counter: 'Thanh toán tại văn phòng GreenSteps',
+      sepay: 'Thanh toán trực tuyến SePay',
+      momo: 'Ví điện tử MoMo'
+    } as Record<string, string>)[method] || this.selectedPaymentLabel;
   }
 
   public get confirmationPaymentMethodCode(): string {
@@ -1605,6 +1688,10 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.isEmail(this.guestInfo.email)) errors['email'] = 'Email không hợp lệ.';
     if (!this.guestInfo.country.trim()) errors['country'] = 'Vui lòng chọn vùng/quốc gia.';
     if (!this.isPhone(this.guestInfo.phone)) errors['phone'] = 'Số điện thoại không hợp lệ.';
+    if (this.bookingFor === 'other') {
+      if (!this.otherGuest.fullName.trim()) errors['otherFullName'] = 'Vui lòng nhập họ tên hành khách tham gia chính.';
+      if (!this.isPhone(this.otherGuest.phone)) errors['otherPhone'] = 'Vui lòng nhập số điện thoại liên lạc của hành khách.';
+    }
     return errors;
   }
 
@@ -1613,11 +1700,11 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.paymentMethod) errors['paymentMethod'] = 'Vui lòng chọn phương thức thanh toán.';
     if (this.paymentMethod === 'card' && includeCard) {
       const digits = this.cardForm.cardNumber.replace(/\s/g, '');
-      if (!this.cardForm.cardName.trim()) errors['cardName'] = 'Vui lòng nhập tên thử nghiệm.';
-      if (digits !== '4242424242424242') errors['cardNumber'] = 'Sandbox chỉ nhận thẻ thử 4242 4242 4242 4242.';
+      if (!this.cardForm.cardName.trim()) errors['cardName'] = 'Vui lòng nhập họ tên chủ thẻ.';
+      if (!/^\d{12,19}$/.test(digits)) errors['cardNumber'] = 'Vui lòng nhập số thẻ hợp lệ (16 chữ số).';
       const match = this.cardForm.expiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
-      if (!match || (match && new Date(2000 + Number(match[2]), Number(match[1]), 0, 23, 59, 59) < new Date())) errors['expiry'] = 'Nhập tháng/năm hết hạn trong tương lai (TT/NN).';
-      if (this.cardForm.cvc.trim() !== '123') errors['cvc'] = 'Sandbox sử dụng CVC thử nghiệm 123.';
+      if (!match || (match && new Date(2000 + Number(match[2]), Number(match[1]), 0, 23, 59, 59) < new Date())) errors['expiry'] = 'Nhập tháng/năm hết hạn hợp lệ (TT/NN).';
+      if (!/^\d{3,4}$/.test(this.cardForm.cvc.trim())) errors['cvc'] = 'Vui lòng nhập mã bảo mật CVC (3-4 chữ số).';
     }
     if (!this.acceptedTerms) errors['acceptedTerms'] = 'Bạn cần đồng ý với điều kiện thanh toán.';
     return errors;
