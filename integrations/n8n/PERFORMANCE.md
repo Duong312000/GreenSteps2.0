@@ -51,10 +51,7 @@ chủ động bấm. Việc backend ngắt kết nối không bảo đảm dừn
 
 ## Workflow n8n và Publish
 
-Workflow được quản lý trực tiếp trên máy chủ n8n; repo không lưu JSON workflow
-hoặc bản dự phòng. Backend đang cấu hình path `greensteps-web2-agent-v3-fast`.
-Khi đổi workflow hoặc webhook path, cập nhật `N8N_WEBHOOK_URL` trong `backend/.env`
-và khởi động lại backend. Không đưa credential vào Git.
+Workflow V3 được lưu trong repo tại `integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json` để import vào n8n. Backend `main` đang dùng path `greensteps-web2-agent-v3-fast`. File export không chứa secret; các credential cần được chọn lại trong n8n.
 
 V3 đặt maxIterations=3, bản mới tăng output lên 4096 token để hạn chế câu bị cụt,
 prompt ngắn hơn và đưa sẵn tối đa
@@ -76,11 +73,10 @@ Thinking Level và model tương thích, thử low rồi chạy lại benchmark.
 [mã node n8n chính thức](https://github.com/n8n-io/n8n/blob/master/packages/@n8n/nodes-langchain/nodes/llms/LmChatGoogleGemini/LmChatGoogleGemini.node.ts),
 [Google thinking](https://ai.google.dev/gemini-api/docs/thinking).
 
-1. Mở workflow đang dùng trên n8n.
-2. Webhook Chat: chọn Header Auth có Name/Value trùng backend/.env. Không điền
-   secret vào JSON hoặc frontend. Google Gemini Chat Model: chọn credential đang dùng.
-3. Save rồi Publish/Active. POST path phải trùng `N8N_WEBHOOK_URL` trong backend.
-4. Sau khi publish, đổi duy nhất URL trong `backend/.env`:
+1. Trong n8n chọn **Import from File** và import JSON workflow V3 ở đường dẫn trên.
+2. Webhook Chat: chọn Header Auth có Name/Value trùng `N8N_AUTH_HEADER_NAME` và `N8N_AUTH_HEADER_VALUE` trên Render backend. Không điền secret vào JSON hoặc frontend. Google Gemini Chat Model: chọn credential đang dùng.
+3. Save rồi Publish/Activate. POST path phải là `greensteps-web2-agent-v3-fast` và trùng `N8N_WEBHOOK_URL` trong Render backend.
+4. Trên Render backend, xác nhận URL và response field:
 
    ```dotenv
    N8N_WEBHOOK_URL=https://n8n.ba-ailab.com/webhook/greensteps-web2-agent-v3-fast
@@ -91,10 +87,7 @@ Thinking Level và model tương thích, thử low rồi chạy lại benchmark.
 5. Khởi động lại backend, chạy lại benchmark bên dưới. Nếu cần rollback, trả URL
    về `/webhook/greensteps-web2-agent-v2` rồi khởi động lại. V2 JSON không thay đổi.
 
-Bạn đã xác nhận publish V3 và chọn credentials. Backend đã chuyển sang URL
-production V3, khởi động lại và đo 15 request thật. Nhánh validation V3 trả
-400/INVALID_MESSAGE đúng hợp đồng, nhưng nhánh AI trả 500. Cần xem node lỗi trong
-Executions để xác định nguyên nhân; webhook key không cho phép đọc log quản trị.
+JSON export để trạng thái inactive. Đưa file vào Git không tự cài workflow trên máy chủ n8n: cần import file, chọn Header Auth và Gemini credentials, sau đó Publish/Activate. Xem Executions để xác nhận có request mới.
 
 ## Log hiệu năng
 
