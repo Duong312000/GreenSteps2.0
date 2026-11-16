@@ -1,0 +1,321 @@
+[
+  {
+    "id": "food-dalat-hoa-sen",
+    "replaces": "demo-food-bep-chay-la-phong",
+    "name": "Nhà hàng chay Hoa Sen",
+    "category": "Quán chay",
+    "address": "62 Phan Đình Phùng, Đà Lạt, Lâm Đồng",
+    "description": "Nhà hàng món chay Việt trên đường Phan Đình Phùng. Cổng du lịch Đà Lạt giới thiệu các món cơm chay, bún chay, phở chay và lẩu. Liên hệ nhà hàng để xác nhận thực đơn và giờ phục vụ trước khi đến.",
+    "hours": "10:00 – 22:00",
+    "phone": "02633567999",
+    "priceMin": 100000,
+    "priceMax": 200000,
+    "priceUnit": "người",
+    "priceNote": "Khoảng giá tham khảo do Cổng du lịch Đà Lạt công bố; xác nhận lại với quán.",
+    "features": [
+      "Chỗ đỗ xe"
+    ],
+    "menu": [
+      {
+        "name": "Cơm chay",
+        "price": null
+      },
+      {
+        "name": "Bún chay",
+        "price": null
+      },
+      {
+        "name": "Phở chay",
+        "price": null
+      },
+      {
+        "name": "Lẩu chay",
+        "price": null
+      }
+    ],
+    "website": "https://dalat.vn/vi/nhahanghoasen",
+    "mapsQuery": "Nhà hàng chay Hoa Sen 62 Phan Đình Phùng Đà Lạt",
+    "imageUrl": "https://dalat.net.vn/images/uploads/nha-hang-chay-hoa-sen-3.jpg",
+    "imagePage": "https://dalat.net.vn/bai-viet/nha-hang-chay-hoa-sen-17",
+    "sources": [
+      {
+        "label": "Cổng du lịch Đà Lạt: địa chỉ, giờ mở cửa và món ăn",
+        "url": "https://dalat.vn/vi/nhahanghoasen"
+      }
+    ]
+  },
+  {
+    "id": "food-dalat-nhu-ngoc",
+    "replaces": "demo-food-nha-hang-vuon-rau",
+    "name": "Cơm niêu Như Ngọc",
+    "category": "Đặc sản địa phương",
+    "address": "1/18 Hồ Tùng Mậu, Đà Lạt, Lâm Đồng",
+    "description": "Nhà hàng cơm niêu và ẩm thực truyền thống Việt Nam tại Đà Lạt. Địa chỉ và số điện thoại được đối chiếu trên website của nhà hàng; website cũng cung cấp thực đơn dạng ảnh và đường dẫn Google Maps.",
+    "hours": "06:00 – 22:00",
+    "phone": "02633833777",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "người",
+    "priceNote": "Chưa có bảng giá món dạng văn bản được xác minh. Xem thực đơn của nhà hàng hoặc gọi hỏi giá.",
+    "features": [],
+    "menu": [],
+    "menuUrl": "https://comnieunhungoc.com/vn/menu",
+    "website": "https://comnieunhungoc.com/vn",
+    "mapsUrl": "https://goo.gl/maps/4KsDtBhoieDG6ge38",
+    "imageUrl": "https://comnieunhungoc.com/storage/app/media/uploaded-files/1694681938783.png",
+    "imagePage": "https://comnieunhungoc.com/vn/post/com-nieu-nhu-ngoc-nhin-lai-chang-duong-40-nam-phat-trien",
+    "sources": [
+      {
+        "label": "Website Cơm niêu Như Ngọc: địa chỉ và liên hệ",
+        "url": "https://comnieunhungoc.com/vn"
+      },
+      {
+        "label": "Thực đơn do nhà hàng công bố",
+        "url": "https://comnieunhungoc.com/vn/menu"
+      }
+    ]
+  },
+  {
+    "id": "food-dalat-leguda",
+    "replaces": "demo-food-tra-chieu-cau-dat",
+    "name": "Léguda – Buffet rau Đà Lạt",
+    "category": "Set ăn & buffet",
+    "address": "Lầu 1 nhà ga cáp treo, đồi Robin, Đà Lạt, Lâm Đồng",
+    "description": "Nhà hàng buffet rau tại nhà ga cáp treo đồi Robin. Thực đơn tập trung vào rau Đà Lạt dùng với lẩu và các món rau. Nếu ăn chay, hãy hỏi rõ thành phần nước lẩu và món ăn kèm.",
+    "hours": "10:00 – 22:00",
+    "phone": "0981166088",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "người",
+    "priceNote": "Giá buffet và món gọi thêm cần được nhà hàng xác nhận; không dùng giá khuyến mãi cũ làm giá hiện tại.",
+    "features": [
+      "Nguyên liệu địa phương"
+    ],
+    "menu": [
+      {
+        "name": "Buffet rau nhúng lẩu",
+        "price": null
+      },
+      {
+        "name": "Salad rau tự chọn",
+        "price": null
+      },
+      {
+        "name": "Cơm chiên rau củ",
+        "price": null
+      }
+    ],
+    "website": "https://dalattourist.com.vn/nha-hang/buffet-rau-leguda",
+    "mapsQuery": "Léguda Buffet Rau nhà ga cáp treo đồi Robin Đà Lạt",
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0275/9091/8282/files/Leguda_buffet_rau_Da_Lat_6_600x600.jpg?v=1698076445",
+    "imagePage": "https://hdvlocal.com/blogs/du-lich/leguda-buffet-rau-da-lat",
+    "sources": [
+      {
+        "label": "Dalattourist: nhà hàng và thực đơn buffet rau",
+        "url": "https://dalattourist.com.vn/nha-hang/buffet-rau-leguda"
+      },
+      {
+        "label": "Cổng du lịch Lâm Đồng: địa chỉ, giờ mở cửa và liên hệ",
+        "url": "https://visitlamdong.vn/vi/leguda"
+      }
+    ]
+  },
+  {
+    "id": "food-dalat-an-cafe",
+    "replaces": "demo-food-an-nhien-vegan",
+    "name": "An CaFe Global",
+    "category": "Cà phê & trà",
+    "address": "63Bis Ba Tháng Hai, Đà Lạt, Lâm Đồng",
+    "description": "Quán cà phê trên dốc Ba Tháng Hai với không gian cây xanh và các khu ngồi theo bậc thềm. Website của quán công bố thực đơn cà phê, đồ uống và món ăn. Giá bên dưới được chép từ ảnh thực đơn công khai, cần xác nhận lại khi gọi món.",
+    "hours": "Xem giờ mở cửa hiện tại trên Google Maps",
+    "phone": null,
+    "priceMin": 35000,
+    "priceMax": 53000,
+    "priceUnit": "món",
+    "priceNote": "Khoảng giá của ba món cà phê được trích từ thực đơn công khai, không phải toàn bộ khoảng giá của quán.",
+    "features": [
+      "Không gian ngoài trời"
+    ],
+    "menu": [
+      {
+        "name": "Espresso",
+        "price": 35000
+      },
+      {
+        "name": "Cappuccino",
+        "price": 49000
+      },
+      {
+        "name": "Latte",
+        "price": 53000
+      }
+    ],
+    "menuUrl": "https://www.ancafeglobal.com/images/menu/menu_3.jpg",
+    "website": "https://www.ancafeglobal.com/",
+    "mapsQuery": "An CaFe Global 63Bis Ba Tháng Hai Đà Lạt",
+    "imageUrl": "https://www.ancafeglobal.com/images/about/about_7.jpeg",
+    "imagePage": "https://www.ancafeglobal.com/",
+    "sources": [
+      {
+        "label": "Website An CaFe: địa chỉ và không gian",
+        "url": "https://www.ancafeglobal.com/"
+      },
+      {
+        "label": "Ảnh thực đơn do An CaFe công bố",
+        "url": "https://www.ancafeglobal.com/images/menu/menu_3.jpg"
+      }
+    ]
+  },
+  {
+    "id": "food-dalat-la-viet",
+    "replaces": "demo-food-bep-nha-da-lat",
+    "name": "Là Việt Coffee – Nguyễn Công Trứ",
+    "category": "Cà phê & trà",
+    "address": "200 Nguyễn Công Trứ, Đà Lạt, Lâm Đồng",
+    "description": "Chi nhánh Là Việt Coffee tại 200 Nguyễn Công Trứ. Website thương hiệu xác nhận địa chỉ, số điện thoại và giờ mở cửa của chi nhánh; quán kết hợp không gian thưởng thức cà phê với hoạt động chế biến, rang xay.",
+    "hours": "07:00 – 22:00",
+    "phone": "02633981189",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "món",
+    "priceNote": "Chưa xác minh được giá đồ uống hiện tại. Liên hệ chi nhánh để hỏi thực đơn.",
+    "features": [
+      "Chỗ đỗ xe"
+    ],
+    "menu": [],
+    "website": "https://laviet.coffee/tu-chung-toi/",
+    "mapsQuery": "Là Việt Coffee 200 Nguyễn Công Trứ Đà Lạt",
+    "imageUrl": "https://dltm-cdn.vnptit3.vn/resources/portal/Images/LDG/Import/1499739363284-la-viet-coffee-3_636591455393301019.jpg",
+    "imagePage": "https://visitlamdong.vn/en/lavietcoffeedl",
+    "sources": [
+      {
+        "label": "Website Là Việt: chi nhánh Nguyễn Công Trứ",
+        "url": "https://laviet.coffee/tu-chung-toi/"
+      },
+      {
+        "label": "Cổng du lịch Lâm Đồng: thông tin quán",
+        "url": "https://visitlamdong.vn/en/lavietcoffeedl"
+      }
+    ]
+  },
+  {
+    "id": "food-dalat-langfarm-cho-dem",
+    "replaces": "demo-food-ca-phe-vuon-thong",
+    "name": "L’angfarm Buffet – Chợ Đêm",
+    "category": "Set ăn & buffet",
+    "address": "6 Nguyễn Thị Minh Khai, Đà Lạt, Lâm Đồng",
+    "description": "Chi nhánh buffet Chợ Đêm của L’angfarm với các loại trà, kem, mứt, trái cây sấy và món ăn nhẹ. Địa chỉ và giờ phục vụ được lấy từ trang địa chỉ buffet của thương hiệu.",
+    "hours": "07:30 – 22:30",
+    "phone": "02633510520",
+    "priceMin": 69000,
+    "priceMax": 79000,
+    "priceUnit": "người",
+    "priceNote": "Website thương hiệu niêm yết 69.000đ từ thứ Hai đến thứ Sáu và 79.000đ cuối tuần/ngày lễ cho người lớn và trẻ cao trên 1m. Cần xác nhận lại giá vé trước khi ghé.",
+    "features": [
+      "Nguyên liệu địa phương"
+    ],
+    "menu": [
+      {
+        "name": "Vé buffet người lớn, thứ Hai – thứ Sáu",
+        "price": 69000
+      },
+      {
+        "name": "Vé buffet người lớn, cuối tuần/ngày lễ",
+        "price": 79000
+      }
+    ],
+    "website": "https://www.old.langfarm.com/langfarm-buffet",
+    "mapsQuery": "L'angfarm Buffet Chợ Đêm 6 Nguyễn Thị Minh Khai Đà Lạt",
+    "imageUrl": "https://images.squarespace-cdn.com/content/v1/5b94a223506fbe722619b779/1616646190029-A63WN97QLHD8C1FVIJSO/LFM_Buffet%2C%2BDa%2BLat%2C%2BCho%2BDem%2B-%2B00021.jpg",
+    "imagePage": "https://www.old.langfarm.com/langfarm-buffet",
+    "sources": [
+      {
+        "label": "L’angfarm: địa chỉ chi nhánh Chợ Đêm",
+        "url": "https://www.old.langfarm.com/dia-chi/dia-chi-langfarm-buffet"
+      },
+      {
+        "label": "L’angfarm: buffet và giá vé công khai",
+        "url": "https://www.old.langfarm.com/langfarm-buffet"
+      }
+    ]
+  },
+  {
+    "category": "Đặc sản địa phương",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "người",
+    "priceNote": "Chưa có giá hiện tại được xác minh. Vui lòng liên hệ quán để biết giá.",
+    "menu": [],
+    "features": [],
+    "id": "food-danang-madame-lan",
+    "destination": "Đà Nẵng",
+    "name": "Nhà hàng Madame Lân",
+    "address": "04 Bạch Đằng, Hải Châu, Đà Nẵng",
+    "description": "Nhà hàng ẩm thực Việt bên sông Hàn, phục vụ các món ăn từ nhiều vùng miền trong không gian kết nối thiên nhiên. Địa chỉ, giờ mở cửa và thông tin liên hệ được đối chiếu trên website của nhà hàng.",
+    "hours": "06:30 – 21:30",
+    "phone": "0905697555",
+    "website": "https://madamelan.com/",
+    "menuUrl": "https://www.madamelan.com.vn/thuc-don/1",
+    "imageUrl": "https://madamelan.com/storage/222309-mdl-khong-gian-web.jpg",
+    "sources": [
+      {
+        "label": "Website Madame Lân: địa chỉ, giờ mở cửa và liên hệ",
+        "url": "https://madamelan.com/"
+      }
+    ],
+    "imagePage": "https://madamelan.com/ve-chung-toi",
+    "mapsQuery": "Nhà hàng Madame Lân 04 Bạch Đằng, Hải Châu, Đà Nẵng"
+  },
+  {
+    "category": "Đặc sản địa phương",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "người",
+    "priceNote": "Chưa có giá hiện tại được xác minh. Vui lòng liên hệ quán để biết giá.",
+    "menu": [],
+    "features": [],
+    "id": "food-hoian-morning-glory",
+    "destination": "Hội An",
+    "name": "Morning Glory Original",
+    "address": "106 Nguyễn Thái Học, Hội An",
+    "description": "Nhà hàng thuộc Taste Vietnam, giới thiệu ẩm thực miền Trung và các món ăn truyền thống Hội An. Quán nằm trên đường Nguyễn Thái Học, với khu bếp mở để thực khách quan sát việc chuẩn bị món ăn.",
+    "hours": "Xác nhận giờ phục vụ với quán trước khi đến",
+    "phone": "02352241555",
+    "website": "https://tastevietnam.maisonvy.com/morning-glory-restaurant-hoi-an",
+    "imageUrl": "https://tastevietnam.maisonvy.com/images/morning_glory/dsc_2554.jpg",
+    "sources": [
+      {
+        "label": "Taste Vietnam: nhà hàng Morning Glory Original, địa chỉ và liên hệ",
+        "url": "https://tastevietnam.maisonvy.com/morning-glory-restaurant-hoi-an"
+      }
+    ],
+    "imagePage": "https://tastevietnam.maisonvy.com/morning-glory-restaurant-hoi-an",
+    "mapsQuery": "Morning Glory Original 106 Nguyễn Thái Học, Hội An"
+  },
+  {
+    "category": "Đặc sản địa phương",
+    "priceMin": null,
+    "priceMax": null,
+    "priceUnit": "người",
+    "priceNote": "Chưa có giá hiện tại được xác minh. Vui lòng liên hệ quán để biết giá.",
+    "menu": [],
+    "features": [],
+    "id": "food-phuyen-nam-anh",
+    "destination": "Phú Yên",
+    "name": "Cơm niêu Năm Ánh Phú Yên",
+    "address": "394 Hùng Vương, Tuy Hòa, Phú Yên",
+    "description": "Nhà hàng cơm niêu và các món ăn Việt tại Tuy Hòa. Thông tin địa chỉ được đối chiếu trên Cơ sở dữ liệu ngành Du lịch Việt Nam. Vui lòng liên hệ trực tiếp để xác nhận thực đơn, giá và giờ mở cửa.",
+    "hours": "Xác nhận giờ phục vụ với quán trước khi đến",
+    "phone": "0935691377",
+    "website": "https://csdl.vietnamtourism.gov.vn/rest/?item=1767",
+    "imageUrl": "https://thodiaphuyen.com.vn/Media/Posts/com-nieu-phu-yen-5.jpg",
+    "sources": [
+      {
+        "label": "Cơ sở dữ liệu ngành Du lịch Việt Nam: Cơm niêu Năm Ánh Phú Yên",
+        "url": "https://csdl.vietnamtourism.gov.vn/rest/?item=1767"
+      }
+    ],
+    "imagePage": "https://thodiaphuyen.com.vn/com-nieu-phu-yen",
+    "mapsQuery": "Cơm niêu Năm Ánh Phú Yên 394 Hùng Vương, Tuy Hòa, Phú Yên"
+  }
+]

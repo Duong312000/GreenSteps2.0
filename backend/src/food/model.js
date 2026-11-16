@@ -49,16 +49,17 @@ function validate(input) {
     if (
       typeof value !== "string" ||
       !value.trim() ||
-      value.length > (key === "description" ? 3000 : 500)
+      value.length > (key === "description" ? 3000 : key === "image" ? 2000000 : 500)
     )
       throw fail(`Vui lòng kiểm tra trường ${key}.`);
     out[key] = value.trim();
   }
   if (
     !/^https:\/\/[^\s]+$/.test(out.image) &&
-    !/^\/image\/[\w./-]+$/.test(out.image)
+    !/^\/image\/[\w./-]+$/.test(out.image) &&
+    !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(out.image)
   )
-    throw fail("Ảnh phải là URL HTTPS hoặc đường dẫn /image/.");
+    throw fail("Ảnh phải là URL HTTPS, đường dẫn /image/ hoặc ảnh base64.");
   if (!categories.includes(input.category))
     throw fail("Loại quán không hợp lệ.");
   if (!["published", "hidden"].includes(input.status))
@@ -73,6 +74,7 @@ function validate(input) {
     ["capacity", 1000],
   ]) {
     const value = input[key];
+    if (value === null) { out[key] = null; continue; }
     if (
       typeof value !== "number" ||
       !Number.isFinite(value) ||
@@ -83,7 +85,9 @@ function validate(input) {
       throw fail(`Giá trị ${key} không hợp lệ.`);
     out[key] = value;
   }
-  if (out.capacity < 1 || out.priceMax < out.priceMin)
+  if ((out.capacity !== null && out.capacity < 1) ||
+    (out.priceMax !== null && out.priceMin !== null && out.priceMax < out.priceMin) ||
+    ((out.priceMin === null) !== (out.priceMax === null)))
     throw fail("Sức chứa hoặc khoảng giá không hợp lệ.");
   if (
     !Array.isArray(input.features) ||
@@ -93,19 +97,16 @@ function validate(input) {
   out.features = [...new Set(input.features)];
   if (
     !Array.isArray(input.menu) ||
-    !input.menu.length ||
     input.menu.length > 30
   )
-    throw fail("Thực đơn cần từ 1 đến 30 món.");
+    throw fail("Thực đơn không được vượt quá 30 món.");
   out.menu = input.menu.map((item) => {
     if (
       !item ||
       typeof item.name !== "string" ||
       !item.name.trim() ||
       item.name.length > 120 ||
-      !Number.isInteger(item.price) ||
-      item.price < 0 ||
-      item.price > 100000000
+      (item.price !== null && (!Number.isInteger(item.price) || item.price < 0 || item.price > 100000000))
     )
       throw fail("Món ăn hoặc giá món không hợp lệ.");
     return { name: item.name.trim(), price: item.price };
@@ -113,6 +114,7 @@ function validate(input) {
   return out;
 }
 function validateReservation(input, place, now = new Date()) {
+  if (place.bookingEnabled === false) throw fail("Vui lòng liên hệ trực tiếp với quán để đặt bàn.");
   const date = input?.date,
     time = input?.time;
   if (
@@ -130,7 +132,7 @@ function validateReservation(input, place, now = new Date()) {
   if (
     !Number.isInteger(input.guests) ||
     input.guests < 1 ||
-    input.guests > place.capacity
+    input.guests > (place.capacity ?? 1000)
   )
     throw fail(`Số khách từ 1 đến ${place.capacity}.`);
   if (

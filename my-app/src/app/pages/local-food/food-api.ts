@@ -14,18 +14,26 @@ export interface FoodPlace {
   address: string;
   description: string;
   image: string;
-  priceMin: number;
-  priceMax: number;
+  priceMin: number | null;
+  priceMax: number | null;
   priceUnit: string;
-  rating: number;
-  reviewCount: number;
+  rating: number | null;
+  reviewCount: number | null;
   features: string[];
   hours: string;
-  capacity: number;
-  menu: { name: string; price: number }[];
+  capacity: number | null;
+  menu: { name: string; price: number | null }[];
   status: string;
   version: number;
   isDemo?: boolean;
+  mapsUrl?: string;
+  website?: string;
+  phone?: string;
+  menuUrl?: string;
+  bookingEnabled?: boolean;
+  sourceCheckedAt?: string;
+  sources?: { label: string; url: string }[];
+  priceNote?: string;
 }
 export const FOOD_CATEGORIES = [
   'Quán chay',

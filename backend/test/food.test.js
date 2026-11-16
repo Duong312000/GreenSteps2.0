@@ -29,12 +29,24 @@ test("Food validation rejects unsafe images, invalid prices, categories and menu
     { category: "unknown" },
     { capacity: 1.5 },
     { rating: NaN },
-    { menu: [] },
+    { menu: Array.from({ length: 31 }, () => ({ name: 'Dish', price: 100 })) },
     { menu: [{ name: "", price: -1 }] },
     { features: ["fake"] },
     { status: "active" },
   ])
     assert.throws(() => m.validate({ ...valid(), ...patch }), { status: 400 });
+});
+test("Public-source places preserve unknown facts and reject unsupported bookings", () => {
+  const place = { ...valid(), priceMin: null, priceMax: null, rating: null, reviewCount: null, capacity: null, menu: [], bookingEnabled: false };
+  const checked = m.validate(place);
+  assert.equal(checked.priceMin, null);
+  assert.equal(checked.rating, null);
+  assert.deepEqual(checked.menu, []);
+  assert.equal(m.validate({ ...place, menu: [{ name: 'Dish', price: null }] }).menu[0].price, null);
+  assert.throws(() => m.validate({ ...place, priceMin: 100 }), { status: 400 });
+  assert.throws(() => m.validateReservation({}, place), { status: 400 });
+  assert.ok(m.validate({ ...place, image: 'data:image/jpeg;base64,/9j/AA==' }).image.startsWith('data:image/'));
+  assert.throws(() => m.validate({ ...place, image: 'data:image/svg+xml;base64,AAAA' }), { status: 400 });
 });
 test("Reservations validate real Vietnam dates, future times and party size", () => {
   const place = valid(),
