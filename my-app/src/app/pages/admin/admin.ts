@@ -127,7 +127,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
   public moderationMediaUrl(url: string): string {
     if (!url) return '';
-    return url.startsWith('/uploads/') ? (['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055' : 'https://greensteps-6swn.onrender.com') + url : url;
+    return url.startsWith('/uploads/') ? (['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055' : 'https://greensteps-backend.vercel.app') + url : url;
   }
   public catalog: Record<CatalogKey, any[]> = { services: [], tours: [], promotions: [], allBookings: [], refunds: [] };
   public catalogState: Record<CatalogKey, QueueState> = { services: 'loading', tours: 'loading', promotions: 'loading', allBookings: 'loading', refunds: 'loading' };

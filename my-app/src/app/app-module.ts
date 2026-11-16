@@ -44,7 +44,7 @@ import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
-  const allowedOrigins = new Set(['http://localhost:5055', 'http://127.0.0.1:5055', 'https://greensteps-6swn.onrender.com', 'https://greensteps2-0-backend.onrender.com', window.location.origin]);
+  const allowedOrigins = new Set(['http://localhost:5055', 'http://127.0.0.1:5055', 'https://greensteps-backend.vercel.app', 'https://greensteps-6swn.onrender.com', 'https://greensteps2-0-backend.onrender.com', window.location.origin]);
   if (!allowedOrigins.has(url.origin) || !url.pathname.startsWith('/api/')) return next(req);
 
   const token = localStorage.getItem('greensteps_token');

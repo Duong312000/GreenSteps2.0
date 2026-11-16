@@ -38,7 +38,7 @@ export class PartnerPromotionsService {
   private readonly base =
     (['localhost', '127.0.0.1'].includes(window.location.hostname)
       ? 'http://localhost:5055/api'
-      : 'https://greensteps-6swn.onrender.com/api') + '/partner/promotions';
+      : 'https://greensteps-backend.vercel.app/api') + '/partner/promotions';
   constructor(private http: HttpClient) {}
   private get options() {
     const token = localStorage.getItem('greensteps_token');

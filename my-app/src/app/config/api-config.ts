@@ -1,4 +1,4 @@
-const PRODUCTION_BACKEND_URL = 'https://greensteps2-0-backend.onrender.com';
+const PRODUCTION_BACKEND_URL = 'https://greensteps-backend.vercel.app';
 const LOCAL_BACKEND_PORT = 5055;
 
 export function isProductionHost(hostname: string): boolean {

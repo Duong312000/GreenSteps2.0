@@ -96,7 +96,7 @@ export class PromotionsComponent implements OnInit, OnDestroy {
     this.refreshInFlight = true;
     if (showLoading) this.loading = true;
     try {
-      const base = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055/api' : 'https://greensteps-6swn.onrender.com/api';
+      const base = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055/api' : 'https://greensteps-backend.vercel.app/api';
       const result = await firstValueFrom(this.http.get<{items: any[]}>(`${base}/partner/promotions/public`));
       this.offers = this.combineGlobalVouchers((result.items || []).map((row: any) => this.toOffer(row)).filter((o: Offer | null): o is Offer => !!o));
       this.loadError = false;
