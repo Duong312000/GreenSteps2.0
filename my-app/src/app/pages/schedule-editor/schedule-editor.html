@@ -369,11 +369,32 @@
                 </div>
             </div>
 
-            <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
-                <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput"
-                    placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
-                <button (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn-quick-sort-header" *ngIf="!isItineraryLocked() && (activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 1"
+                    (click)="sortCurrentDayByTime()" title="Sắp xếp toàn bộ hoạt động theo thứ tự giờ tăng dần">
+                    <i class="bi bi-sort-numeric-down"></i> <span>Xếp theo giờ</span>
+                </button>
+                <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
+                    <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput"
+                        placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
+                    <button (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
+                </div>
+            </div>
+        </div>
 
+        <!-- Smart Time Sequence & Conflict Banner (1-Click Optimization Toolbar) -->
+        <div class="day-conflict-smart-banner" *ngIf="hasAnyTimeConflict && !isItineraryLocked()">
+            <div class="conflict-banner-msg">
+                <i class="bi bi-clock-history"></i>
+                <span>Phát hiện mốc thời gian chưa hợp lý giữa các điểm dừng</span>
+            </div>
+            <div class="conflict-banner-actions">
+                <button type="button" class="btn-conflict-tool" (click)="sortCurrentDayByTime()" title="Sắp xếp lại thứ tự từ sáng đến tối theo mốc giờ đã nhập">
+                    <i class="bi bi-sort-numeric-down"></i> Sắp xếp theo giờ
+                </button>
+                <button type="button" class="btn-conflict-tool primary" (click)="autoAdjustIllogicalTimes()" title="Tự động tính lại mốc giờ chuẩn dựa trên thời gian tham quan và di chuyển">
+                    <i class="bi bi-magic"></i> Căn lại mốc giờ chuẩn
+                </button>
             </div>
         </div>
 
@@ -554,26 +575,47 @@
         <!-- Mode 2: Sequential Journey Pipeline / Sơ đồ Tuyến trình -->
         <div class="pipeline-canvas-container" *ngIf="activeTimelineViewMode === 'pipeline'">
             <div class="pipeline-header-bar">
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="pipeline-header-left">
                     <span class="pipeline-station-count">
                         <i class="bi bi-geo-alt"></i>
                         {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
                     </span>
-                    <span class="pipeline-scroll-hint">
-                        <i class="bi bi-arrow-left-right"></i> Cuộn ngang để xem toàn bộ
-                    </span>
+                    <!-- Quick station jump bar -->
+                    <div class="pipeline-quick-jumper" *ngIf="(activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 1">
+                        <button *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let sIdx = index"
+                                type="button"
+                                class="station-jump-pill"
+                                [class.has-conflict]="act.hasTimeConflict"
+                                (click)="scrollToPipelineStation(sIdx)"
+                                [title]="'Trạm ' + formatStationIndex(sIdx) + ': ' + act.title">
+                            {{ formatStationIndex(sIdx) }}
+                        </button>
+                    </div>
                 </div>
-                <div class="pipeline-zoom-controls">
-                    <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">
-                        <i class="bi bi-dash"></i>
-                    </button>
-                    <span class="pipeline-zoom-text">{{ (pipelineZoomScale * 100) | number:'1.0-0' }}%</span>
-                    <button type="button" (click)="zoomPipeline(0.1)" title="Phóng to (+10%)" class="pipeline-zoom-btn">
-                        <i class="bi bi-plus"></i>
-                    </button>
-                    <button type="button" (click)="resetPipelineZoom()" title="Vừa khung hình (100%)" class="pipeline-zoom-btn">
-                        100%
-                    </button>
+
+                <div class="pipeline-header-right">
+                    <!-- Smooth scroll arrows -->
+                    <div class="pipeline-nav-arrows" *ngIf="(activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 2">
+                        <button type="button" (click)="scrollPipelineStep(-1)" title="Lướt về trạm trước" class="pipeline-nav-btn">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button type="button" (click)="scrollPipelineStep(1)" title="Lướt sang trạm kế tiếp" class="pipeline-nav-btn">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="pipeline-zoom-controls">
+                        <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <span class="pipeline-zoom-text">{{ (pipelineZoomScale * 100) | number:'1.0-0' }}%</span>
+                        <button type="button" (click)="zoomPipeline(0.1)" title="Phóng to (+10%)" class="pipeline-zoom-btn">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                        <button type="button" (click)="resetPipelineZoom()" title="Vừa khung hình (100%)" class="pipeline-zoom-btn">
+                            100%
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -626,9 +668,13 @@
                                 <h4 class="pipeline-node-title" [title]="act.title">{{ act.title }}</h4>
                                 <div class="pipeline-node-meta">
                                     <span class="pipeline-node-type">{{ getActivityTypeLabel(act.type) }}</span>
-                                    <span *ngIf="act.hasTimeConflict" class="pipeline-conflict-tag" [title]="act.conflictReason">
-                                        Lỗi giờ
-                                    </span>
+                                    <button *ngIf="act.hasTimeConflict" 
+                                            type="button" 
+                                            class="pipeline-conflict-tag clickable" 
+                                            (click)="fixSingleActivityTime(idx, $event)"
+                                            [title]="act.conflictReason + ' - Nhấp để tự động căn lại giờ chuẩn'">
+                                        <i class="bi bi-magic"></i> Căn lại giờ
+                                    </button>
                                 </div>
                             </div>
                         </div>

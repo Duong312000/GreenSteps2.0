@@ -1402,9 +1402,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       }
     }
     this.checkTimeConflicts(dayIdx);
-    this.plotMapMarkers();
-    this.recalculateMetrics();
-    this.saveItineraryToDb();
+    this.scheduleDeferredUpdates();
+    this.showAlert('Đã tự động căn chỉnh lại mốc giờ chuẩn xác cho toàn bộ các điểm dừng!', 'success');
+    this.cdr.detectChanges();
+  }
+
+  public sortCurrentDayByTime() {
+    if (!this.activeItinerary || !this.activeItinerary.days || !this.activeItinerary.days[this.activeDayIdx]) return;
+    this.sortActivitiesByTime(this.activeDayIdx);
+    this.checkTimeConflicts(this.activeDayIdx);
+    this.scheduleDeferredUpdates();
+    this.showAlert('Đã sắp xếp lại thứ tự các điểm theo trình tự thời gian!', 'success');
     this.cdr.detectChanges();
   }
 
@@ -1778,7 +1786,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     await this.saveItineraryToDb();
   }
 
-  public async moveActivity(idx: number, direction: number) {
+  public moveActivity(idx: number, direction: number) {
     if (!this.activeItinerary) return;
     const activeDay = this.activeItinerary.days[this.activeDayIdx];
     const targetIdx = idx + direction;
@@ -1795,8 +1803,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     activeDay.activities[targetIdx].time = tempTime;
 
     this.checkTimeConflicts(this.activeDayIdx);
-    this.plotMapMarkers();
-    await this.saveItineraryToDb();
+    this.scheduleDeferredUpdates();
+    this.cdr.detectChanges();
   }
 
   public onCustomPlaceTyping() {
@@ -3931,6 +3939,18 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public isDraggingCard: boolean = false;
+  private deferredUpdateTimer: any = null;
+
+  public scheduleDeferredUpdates() {
+    if (this.deferredUpdateTimer) {
+      clearTimeout(this.deferredUpdateTimer);
+    }
+    this.deferredUpdateTimer = setTimeout(() => {
+      this.plotMapMarkers();
+      this.recalculateMetrics();
+      this.saveItineraryToDb();
+    }, 280);
+  }
 
   // Ergonomic Drag & Drop Handlers with Smooth Gap & Dashed Indicator
   public onGripMouseDown(idx: number) {
@@ -3966,14 +3986,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const targetEl = event.currentTarget as HTMLElement;
       if (targetEl) {
         const rect = targetEl.getBoundingClientRect();
+        let newPos: 'before' | 'after';
         if (this.activeTimelineViewMode === 'pipeline') {
           const relX = event.clientX - rect.left;
-          this.dragDropPosition = relX < rect.width / 2 ? 'before' : 'after';
+          newPos = relX < rect.width / 2 ? 'before' : 'after';
         } else {
           const relY = event.clientY - rect.top;
-          this.dragDropPosition = relY < rect.height / 2 ? 'before' : 'after';
+          newPos = relY < rect.height / 2 ? 'before' : 'after';
         }
-        this.dragTargetIdx = idx;
+        if (this.dragTargetIdx !== idx || this.dragDropPosition !== newPos) {
+          this.dragTargetIdx = idx;
+          this.dragDropPosition = newPos;
+          this.cdr.detectChanges();
+        }
       }
     }
   }
@@ -3982,6 +4007,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (this.dragTargetIdx === idx) {
       this.dragTargetIdx = null;
       this.dragDropPosition = null;
+      this.cdr.detectChanges();
     }
   }
 
@@ -4004,12 +4030,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           const [movedItem] = activeDay.activities.splice(srcIdx, 1);
           activeDay.activities.splice(insertIdx, 0, movedItem);
 
-          // DO NOT auto-change times! Keep original activity times intact as requested by user.
-          // Only re-check conflicts:
+          // Fast local recalculation:
           this.checkTimeConflicts(this.activeDayIdx);
-          this.plotMapMarkers();
-          this.recalculateMetrics();
-          this.saveItineraryToDb();
+          // Defer heavy Google Maps API & DB save so drop is 60 FPS zero-latency:
+          this.scheduleDeferredUpdates();
         }
       }
     }
@@ -4017,7 +4041,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.dragTargetIdx = null;
     this.dragDropPosition = null;
     this.canDragItem = false;
-    setTimeout(() => { this.isDraggingCard = false; }, 100);
+    this.isDraggingCard = false;
+    this.cdr.detectChanges();
   }
 
   public onDragEnd(event: DragEvent) {
@@ -4029,7 +4054,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.dragTargetIdx = null;
     this.dragDropPosition = null;
     this.canDragItem = false;
-    setTimeout(() => { this.isDraggingCard = false; }, 100);
+    this.isDraggingCard = false;
+    this.cdr.detectChanges();
   }
 
   // Cross-Day Drag & Drop Handlers
@@ -4037,12 +4063,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (this.dragSrcIdx === null || targetDayIdx === this.activeDayIdx || this.isItineraryLocked()) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    this.crossDayDropTargetIdx = targetDayIdx;
+    if (this.crossDayDropTargetIdx !== targetDayIdx) {
+      this.crossDayDropTargetIdx = targetDayIdx;
+      this.cdr.detectChanges();
+    }
   }
 
   public onDragLeaveDay(event: DragEvent, targetDayIdx: number) {
     if (this.crossDayDropTargetIdx === targetDayIdx) {
       this.crossDayDropTargetIdx = null;
+      this.cdr.detectChanges();
     }
   }
 
@@ -4063,13 +4093,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.checkTimeConflicts(this.activeDayIdx);
     this.checkTimeConflicts(targetDayIdx);
     this.switchActiveDay(targetDayIdx);
-    this.plotMapMarkers();
-    this.recalculateMetrics();
-    this.saveItineraryToDb();
+    this.scheduleDeferredUpdates();
 
     this.crossDayDropTargetIdx = null;
     this.dragSrcIdx = null;
     this.canDragItem = false;
+    this.isDraggingCard = false;
+    this.cdr.detectChanges();
   }
 
   // View Mode & Pipeline Zoom Handlers
@@ -4084,6 +4114,23 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         const vp = document.querySelector('.pipeline-canvas-viewport');
         if (vp) vp.scrollLeft = 0;
       }, 50);
+    }
+  }
+
+  public scrollToPipelineStation(sIdx: number) {
+    const viewport = document.querySelector('.pipeline-canvas-viewport');
+    const cards = document.querySelectorAll('.pipeline-node-card');
+    if (viewport && cards[sIdx]) {
+      const cardEl = cards[sIdx] as HTMLElement;
+      const targetLeft = cardEl.offsetLeft - (viewport.clientWidth / 2) + (cardEl.clientWidth / 2);
+      viewport.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    }
+  }
+
+  public scrollPipelineStep(direction: number) {
+    const viewport = document.querySelector('.pipeline-canvas-viewport');
+    if (viewport) {
+      viewport.scrollBy({ left: direction * 280, behavior: 'smooth' });
     }
   }
 
