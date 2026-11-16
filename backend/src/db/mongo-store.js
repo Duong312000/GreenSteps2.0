@@ -211,13 +211,14 @@ class Repository {
       return [{ dataValues: row || {} }];
     }
     const includeSpecs = options.include || this.defaultScope.include || [];
-    const hasIncludes = includeSpecs.length > 0;
+    const hasRequiredIncludes = includeSpecs.some(s => {
+      const sp = s instanceof Repository ? { model: s } : s;
+      return sp.required ?? Boolean(sp.where);
+    });
     const cursor = this.collection.find(query, this.readOptions(options));
     if (options.order) cursor.sort(Object.fromEntries(options.order.map(([key, direction]) => [key, String(direction).toUpperCase() === 'DESC' ? -1 : 1])));
-    // Queries without associations can be paged and projected by MongoDB itself.
-    // Association queries keep their previous order because required joins must
-    // filter parents before pagination.
-    if (!hasIncludes) {
+    // Queries without required joins can be paged and projected by MongoDB directly.
+    if (!hasRequiredIncludes) {
       if (options.offset) cursor.skip(options.offset);
       if (options.limit !== undefined) cursor.limit(options.limit);
       if (options.attributes?.exclude?.length) cursor.project(Object.fromEntries(options.attributes.exclude.map(key => [key, 0])));
@@ -234,8 +235,8 @@ class Repository {
     } else {
       for (const spec of includeSpecs) rows = await this.include(rows, spec, options);
     }
-    if (hasIncludes && options.offset) rows = rows.slice(options.offset);
-    if (hasIncludes && options.limit !== undefined) rows = rows.slice(0, options.limit);
+    if (hasRequiredIncludes && options.offset) rows = rows.slice(options.offset);
+    if (hasRequiredIncludes && options.limit !== undefined) rows = rows.slice(0, options.limit);
     if (Array.isArray(options.attributes)) {
       for (const row of rows) for (const key of Object.keys(row)) {
         const selected = options.attributes.some(attribute => attribute === key || attribute.startsWith(`${key}.`));
@@ -342,11 +343,12 @@ class MongoStore {
   constructor(uri, { prefix = 'app_' } = {}) {
     this.client = new MongoClient(uri, {
       serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 20000,
+      connectTimeoutMS: 30000,
       readPreference: 'primaryPreferred',
-      // Do not leave API requests waiting forever if an Atlas socket goes idle.
-      socketTimeoutMS: 15_000,
-      // Catalog documents contain large nested objects; compress DB wire traffic.
+      // Allow realistic query time on Atlas free tier & cold start
+      socketTimeoutMS: 45_000,
+      // Prune dead/idle sockets before AWS NAT drops them
+      maxIdleTimeMS: 30_000,
       compressors: ['zlib'],
       zlibCompressionLevel: 1,
       monitorCommands: process.env.MONGO_PERF_LOGS === 'true'
