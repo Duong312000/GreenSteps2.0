@@ -159,44 +159,43 @@ function pageInfo(rows, pageSize) {
 async function searchTours(models, query, signal) {
   signal?.throwIfAborted();
   const { Schedule, ScheduleSample, ScheduleActivity } = models;
-  if (!Schedule?.collection || !ScheduleSample?.collection || !ScheduleActivity) throw new Error('Tour catalog unavailable');
-  const match = {};
-  if (query.destination) match['schedule.destination'] = { $regex: destinationRegex(query.destination), $options: 'i' };
-  if (query.durationDays) match['schedule.days'] = query.durationDays;
-  if (query.maxBudget !== null) match.cost = { $lte: query.maxBudget };
+  if (!Schedule || !ScheduleSample?.findAll || !ScheduleActivity) throw new Error('Tour catalog unavailable');
+  const samples = await ScheduleSample.findAll({
+    where: {},
+    readPreference: 'secondaryPreferred',
+    include: [{
+      model: Schedule,
+      include: [{ model: ScheduleActivity, order: [['day_number', 'ASC'], ['time', 'ASC']] }]
+    }]
+  });
+  signal?.throwIfAborted();
+  const destination = normalizeText(query.destination);
+  const matched = samples.filter(sample => {
+    const schedule = sample.Schedule;
+    if (!schedule) return false;
+    if (destination && !normalizeText(schedule.destination).includes(destination)) return false;
+    if (query.durationDays && Number(schedule.days) !== query.durationDays) return false;
+    if (query.maxBudget !== null && safeNumber(sample.cost) > query.maxBudget) return false;
+    return true;
+  }).sort((a, b) => safeNumber(b.rating) - safeNumber(a.rating)
+    || safeNumber(b.votes_count) - safeNumber(a.votes_count)
+    || safeNumber(a.cost) - safeNumber(b.cost)
+    || String(a.id).localeCompare(String(b.id)));
   const offset = (query.page - 1) * query.pageSize;
-  const joined = await ScheduleSample.collection.aggregate([
-    { $lookup: { from: Schedule.collection.collectionName, localField: 'id', foreignField: 'id', as: 'schedule' } },
-    { $unwind: '$schedule' },
-    ...(Object.keys(match).length ? [{ $match: match }] : []),
-    { $sort: { rating: -1, votes_count: -1, cost: 1, id: 1 } },
-    { $skip: offset },
-    { $limit: query.pageSize + 1 },
-    { $project: {
-      id: 1, cost: 1, rating: 1, votes_count: 1,
-      'schedule.id': 1, 'schedule.tour_name': 1, 'schedule.destination': 1, 'schedule.days': 1,
-      'schedule.carbon': 1, 'schedule.image_url': 1, 'schedule.tour_description': 1,
-      'schedule.highlights': 1, 'schedule.tags': 1
-    } }
-  ], { maxTimeMS: 2500 }).toArray();
-  const page = pageInfo(joined, query.pageSize);
-  const ids = page.rows.map(row => row.id).filter(Boolean);
-  const activityRows = ids.length ? await ScheduleActivity.findAll({
-    where: { schedule_id: { [Op.in]: ids } },
-    order: [['day_number', 'ASC'], ['time', 'ASC']]
-  }) : [];
+  const page = pageInfo(matched.slice(offset, offset + query.pageSize + 1), query.pageSize);
   const activitiesBySchedule = new Map();
-  for (const activity of activityRows) {
-    const key = activity.schedule_id;
-    const days = activitiesBySchedule.get(key) || [];
-    const index = Math.max(0, Number(activity.day_number || 1) - 1);
-    days[index] ||= [];
-    days[index].push({ name: activity.activity_name, title: activity.activity_name });
-    activitiesBySchedule.set(key, days);
+  for (const sample of page.rows) {
+    const days = [];
+    for (const activity of sample.Schedule?.ScheduleActivities || []) {
+      const index = Math.max(0, Number(activity.day_number || 1) - 1);
+      days[index] ||= [];
+      days[index].push({ name: activity.activity_name, title: activity.activity_name });
+    }
+    activitiesBySchedule.set(sample.id, days);
   }
   return {
     rows: page.rows.map(row => {
-      const schedule = row.schedule || {};
+      const schedule = row.Schedule || {};
       return {
         id: short(row.id, 80), title: short(schedule.tour_name), destination: short(schedule.destination, 100),
         days: safeNumber(schedule.days), cost: safeNumber(row.cost), carbon: safeNumber(schedule.carbon),
