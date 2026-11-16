@@ -1,0 +1,28 @@
+# GreenSteps Vietnam demo tour audit
+
+Audit basis: checked-in pre-enrichment seed definitions and the preserved legacy itinerary baseline in `backend/src/data/demo-tours-legacy.seed.js`. Atlas was not queried; this report does not claim that the current remote database was inspected. The baseline declares all 12 records as demos and keeps the IDs below. Those IDs and their 36 associated activity IDs are preserved by the enrichment.
+
+| Tour ID / slug | Seed title | Province / destination | Previous seed itinerary stops (days 1–3) | Previous description and media | Confidence / status |
+|---|---|---|---|---|---|
+| `demo-vn-tour-dalat-1` / `dalat-1` | Đà Lạt chậm: rừng thông và nông nghiệp địa phương | Lâm Đồng / Đà Lạt | Đồi thông và nhịp sống cao nguyên; thăm không gian nông nghiệp địa phương; dạo khu trung tâm Đà Lạt | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-dalat-2` / `dalat-2` | Một ngày xanh quanh Đà Lạt | Lâm Đồng / Đà Lạt | Hồ và cảnh quan Đà Lạt; tìm hiểu vườn địa phương; ghé không gian văn hóa bản địa | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-phu-yen-1` / `phu-yen-1` | Phú Yên: theo dấu miền biển bình yên | Đắk Lắk (khu vực Phú Yên cũ) / Phú Yên | Bờ biển và làng chài địa phương; tìm hiểu hệ sinh thái ven biển; khám phá Tuy Hòa | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-phu-yen-2` / `phu-yen-2` | Sắc xanh ven biển Phú Yên | Đắk Lắk (khu vực Phú Yên cũ) / Phú Yên | Cảnh quan đá ven biển; gặp gỡ cộng đồng địa phương; ẩm thực miền biển (nội dung tham khảo) | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-da-nang-hoi-an-1` / `da-nang-hoi-an-1` | Đà Nẵng – Hội An: di sản và biển xanh | Thành phố Đà Nẵng / Đà Nẵng – Hội An | Phố cổ Hội An; làng nghề và sinh hoạt địa phương; không gian di sản miền Trung | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-da-nang-hoi-an-2` / `da-nang-hoi-an-2` | Miền Trung qua nhịp sống địa phương | Thành phố Đà Nẵng / Đà Nẵng – Hội An | Cảnh quan ven biển Đà Nẵng; tìm hiểu văn hóa Chăm; đi bộ phố cổ Hội An | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-sa-pa-1` / `sa-pa-1` | Sa Pa: đường núi và văn hóa bản địa | Lào Cai / Sa Pa | Cảnh quan thung lũng Sa Pa; tìm hiểu văn hóa cộng đồng vùng cao; đi bộ cung đường địa phương | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-sa-pa-2` / `sa-pa-2` | Tây Bắc xanh qua những lối nhỏ | Lào Cai / Sa Pa | Chợ và sinh hoạt bản địa; cảnh quan núi rừng Tây Bắc; trải nghiệm nông nghiệp vùng cao | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-ninh-binh-1` / `ninh-binh-1` | Ninh Bình: non nước và làng quê | Ninh Bình / Ninh Bình | Cảnh quan Tràng An; không gian đồng quê Ninh Bình; tìm hiểu di sản địa phương | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-ninh-binh-2` / `ninh-binh-2` | Một hành trình chậm giữa di sản Ninh Bình | Ninh Bình / Ninh Bình | Tam Cốc và cảnh quan sông nước; đạp xe đường làng (gợi ý); ẩm thực địa phương (cần biên tập) | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-phu-quoc-1` / `phu-quoc-1` | Phú Quốc: biển đảo và sinh thái | An Giang (khu vực Kiên Giang cũ) / Phú Quốc | Cảnh quan biển đảo Phú Quốc; tìm hiểu nghề truyền thống địa phương; bảo tồn hệ sinh thái đảo | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+| `demo-vn-tour-phu-quoc-2` / `phu-quoc-2` | Sống chậm giữa đảo ngọc | An Giang (khu vực Kiên Giang cũ) / Phú Quốc | Bờ biển và cộng đồng địa phương; không gian sinh thái Phú Quốc; ẩm thực đảo (nội dung tham khảo) | Generic demo paragraph; no image or gallery | ID/title/theme and itinerary from checked-in seed baseline; demo, non-bookable |
+
+## Enrichment status
+
+All twelve records now have destination-specific Vietnamese descriptions, highlights, practical notes, responsible-travel guidance, a clearly labeled proposed three-day editorial itinerary, and a three-photo licensed gallery. Commercial values, reviews, seats, supplier claims, and carbon figures remain absent or null. Photo files and their attributions are enumerated in `photo-manifest.json` and `attributions.md`.
+
+## Known verification limits
+
+- Database contents were not read. The inventory describes the checked-in seed baseline and is not an Atlas snapshot. Province labels follow the reorganization effective 1 July 2025 while retaining the destination names already present in the seed; former Phú Yên is in Đắk Lắk, former Kiên Giang is in An Giang, and Hội An/Quảng Nam is in Đà Nẵng.
+- Editorial itineraries are proposals, not verified operator offerings or schedules.
+- Destination facts are documented with source links in `sources.md`; source pages are for editorial fact checking, not tour availability.

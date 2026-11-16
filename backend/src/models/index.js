@@ -192,6 +192,47 @@ const Provider = store.define('Provider', {
   provider_status: { type: FieldTypes.ENUM('pending', 'active', 'rejected'), defaultValue: 'pending', allowNull: false }
 }, { timestamps: true });
 
+// National catalog collections are additive. Existing Schedule.destination strings and
+// booking references are intentionally left untouched while IDs are introduced.
+const AdminArea = store.define('AdminArea', {
+  id: { type: FieldTypes.STRING, primaryKey: true }, code: { type: FieldTypes.STRING, allowNull: false, unique: true },
+  name: { type: FieldTypes.STRING, allowNull: false }, type: { type: FieldTypes.ENUM('province', 'city'), allowNull: false },
+  aliases: { type: FieldTypes.JSONB, defaultValue: [] }, status: { type: FieldTypes.ENUM('draft', 'published', 'archived'), defaultValue: 'draft' },
+  source: { type: FieldTypes.JSONB, allowNull: false }, version: { type: FieldTypes.STRING, allowNull: false },
+  effectiveFrom: { type: FieldTypes.DATEONLY, allowNull: false }, effectiveTo: { type: FieldTypes.DATEONLY }
+}, { tableName: 'admin_areas', timestamps: true, indexes: [{ key: { name: 1 } }] });
+
+const Region = store.define('Region', {
+  id: { type: FieldTypes.STRING, primaryKey: true }, slug: { type: FieldTypes.STRING, allowNull: false, unique: true },
+  name: { type: FieldTypes.STRING, allowNull: false }, description: { type: FieldTypes.TEXT },
+  adminAreaIds: { type: FieldTypes.JSONB, defaultValue: [] }, status: { type: FieldTypes.ENUM('draft', 'published', 'archived'), defaultValue: 'draft' },
+  source: { type: FieldTypes.JSONB }, version: { type: FieldTypes.STRING, allowNull: false }
+}, { tableName: 'regions', timestamps: true, indexes: [{ key: { name: 1 } }] });
+
+const Destination = store.define('Destination', {
+  id: { type: FieldTypes.STRING, primaryKey: true }, slug: { type: FieldTypes.STRING, allowNull: false, unique: true },
+  name: { type: FieldTypes.STRING, allowNull: false }, aliases: { type: FieldTypes.JSONB, defaultValue: [] },
+  adminAreaIds: { type: FieldTypes.JSONB, defaultValue: [] }, regionId: { type: FieldTypes.STRING, allowNull: false },
+  coordinates: { type: FieldTypes.JSONB }, coordinateVerification: { type: FieldTypes.STRING, defaultValue: 'pending' },
+  description: { type: FieldTypes.TEXT }, image_url: { type: FieldTypes.STRING }, coverMediaAssetId: { type: FieldTypes.STRING }, coverMediaVariants: { type: FieldTypes.JSONB, defaultValue: [] },
+  coverMediaVerified: { type: FieldTypes.BOOLEAN, defaultValue: false }, mediaAssetIds: { type: FieldTypes.JSONB, defaultValue: [] },
+  gallery: { type: FieldTypes.JSONB, defaultValue: [] },
+  status: { type: FieldTypes.ENUM('draft', 'editorial', 'published', 'archived'), defaultValue: 'draft' },
+  source: { type: FieldTypes.JSONB }, version: { type: FieldTypes.STRING, allowNull: false }
+}, { tableName: 'destinations', timestamps: true, indexes: [{ key: { name: 1 } }, { key: { regionId: 1, status: 1 } }] });
+
+const MediaAsset = store.define('MediaAsset', {
+  id: { type: FieldTypes.STRING, primaryKey: true }, storageProvider: { type: FieldTypes.STRING, allowNull: false },
+  storageKey: { type: FieldTypes.STRING, allowNull: false }, publicUrl: { type: FieldTypes.STRING },
+  mimeType: { type: FieldTypes.STRING, allowNull: false }, byteSize: { type: FieldTypes.INTEGER, allowNull: false },
+  width: { type: FieldTypes.INTEGER }, height: { type: FieldTypes.INTEGER }, checksum: { type: FieldTypes.STRING },
+  variants: { type: FieldTypes.JSONB, defaultValue: [] }, sourceType: { type: FieldTypes.STRING, allowNull: false },
+  sourceUrl: { type: FieldTypes.STRING }, photographer: { type: FieldTypes.STRING }, licenseId: { type: FieldTypes.STRING },
+  attributionText: { type: FieldTypes.STRING }, rightsEvidence: { type: FieldTypes.STRING },
+  verificationStatus: { type: FieldTypes.ENUM('pending_review', 'verified', 'rejected'), defaultValue: 'pending_review' },
+  entityRefs: { type: FieldTypes.JSONB, defaultValue: [] }, ownerId: { type: FieldTypes.STRING }, deletedAt: { type: FieldTypes.DATE }
+}, { tableName: 'media_assets', timestamps: true, indexes: [{ key: { checksum: 1 } }, { key: { verificationStatus: 1 } }] });
+
 // 11. Schedule Model
 const Schedule = store.define('Schedule', {
   id: { type: FieldTypes.STRING, primaryKey: true },
@@ -202,18 +243,34 @@ const Schedule = store.define('Schedule', {
   carbon: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   image_url: { type: FieldTypes.STRING },
   tour_description: { type: FieldTypes.TEXT },
+  destination_ids: { type: FieldTypes.JSONB, defaultValue: [] },
+    coverMediaAssetId: { type: FieldTypes.STRING }, coverMediaVerified: { type: FieldTypes.BOOLEAN, defaultValue: false },
+    coverMediaVariants: { type: FieldTypes.JSONB, defaultValue: [] },
+    mediaAssetIds: { type: FieldTypes.JSONB, defaultValue: [] },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   gallery: { type: FieldTypes.JSONB },
+  photo_metadata: { type: FieldTypes.JSONB, defaultValue: [] },
+  responsible_travel: { type: FieldTypes.TEXT },
+  practical_notes: { type: FieldTypes.TEXT },
+  editorial_itinerary_notice: { type: FieldTypes.TEXT },
   highlights: { type: FieldTypes.JSONB },
   included: { type: FieldTypes.JSONB },
   excluded: { type: FieldTypes.JSONB },
   policy: { type: FieldTypes.JSONB },
   guarantees: { type: FieldTypes.JSONB },
   style: { type: FieldTypes.STRING },
+  style_explanation: { type: FieldTypes.TEXT },
   group_size: { type: FieldTypes.STRING },
   fitness_level: { type: FieldTypes.STRING },
-  max_capacity: { type: FieldTypes.INTEGER }
-}, { timestamps: true });
+  fitness_is_estimate: { type: FieldTypes.BOOLEAN },
+  fitness_explanation: { type: FieldTypes.TEXT },
+  max_capacity: { type: FieldTypes.INTEGER },
+  catalog_status: { type: FieldTypes.ENUM('draft', 'editorial', 'demo', 'verified', 'bookable', 'paused', 'personal'), defaultValue: 'editorial', allowNull: true },
+  catalog_source: { type: FieldTypes.JSONB }
+}, { timestamps: true, indexes: [
+  { key: { catalog_status: 1, tour_name: 1, id: 1 } },
+  { key: { destination_ids: 1, catalog_status: 1 } }
+] });
 
 // 12. BadgeSchedule Junction
 const BadgeSchedule = store.define('BadgeSchedule', {}, { timestamps: true });
@@ -350,6 +407,7 @@ const ScheduleActivity = store.define('ScheduleActivity', {
   day_number: { type: FieldTypes.INTEGER, allowNull: false },
   time: { type: FieldTypes.STRING, allowNull: false },
   activity_name: { type: FieldTypes.STRING, allowNull: false },
+  editorial_note: { type: FieldTypes.TEXT },
   activity_cost: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   carbon: { type: FieldTypes.DOUBLE, defaultValue: 0.0 },
   coordinates: { type: FieldTypes.STRING }, // "lat, lng"
@@ -823,6 +881,10 @@ module.exports = {
   Revenue,
   Contract,
   Provider,
+  AdminArea,
+  Region,
+  Destination,
+  MediaAsset,
   Schedule,
   BadgeSchedule,
   ScheduleSample,
