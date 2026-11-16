@@ -1,10 +1,150 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { ApiService } from './api.service';
 
 describe('ApiService admin queues', () => {
+  it('shares and briefly caches a compact public services page', async () => {
+    const response = new Subject<any>();
+    const http = { get: vi.fn(() => response) };
+    const api = new ApiService(http as any);
+
+    const first = api.getServices();
+    const second = api.getServices();
+    expect(http.get).toHaveBeenCalledTimes(1);
+
+    response.next({ success: true, items: [{ id: 'service-1', name_service: 'Eco Stay' }], total: 1 });
+    response.complete();
+    await Promise.all([first, second]);
+    expect((await api.getServices())[0].id).toBe('service-1');
+
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith('http://localhost:5055/api/services/search?page=1&pageSize=100&sort=bookings_count&order=desc&compact=1', undefined);
+    api.clearCache('services_');
+    await api.getServices();
+    expect(http.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('loads public preset tours through the compact paginated endpoint', async () => {
+    const http = { get: vi.fn(() => of({ success: true, items: [{ id: 'tour-1', title: 'Tour xanh', catalog_status: 'bookable' }], total: 1 })) };
+    const api = new ApiService(http as any);
+
+    const tours = await api.getPresetTours();
+
+    expect(tours[0].id).toBe('tour-1');
+    expect(http.get).toHaveBeenCalledWith('http://localhost:5055/api/tours/search?page=1&pageSize=100&sort=popular&compact=1', undefined);
+  });
+
+  it('keeps public catalog cache entries separate for different filters', async () => {
+    const http = { get: vi.fn((_url?: string) => of({ success: true, items: [], total: 0 })) };
+    const api = new ApiService(http as any);
+
+    await api.getServicesPage({ type: 'stay', page: 1 });
+    await api.getServicesPage({ type: 'food', page: 1 });
+
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get.mock.calls.map(call => call[0])).toEqual([
+      'http://localhost:5055/api/services/search?type=stay&page=1&compact=1',
+      'http://localhost:5055/api/services/search?type=food&page=1&compact=1'
+    ]);
+  });
+
+  it('does not share personalized community requests across concurrent callers', async () => {
+    const firstResponse = new Subject<any[]>();
+    const secondResponse = new Subject<any[]>();
+    const http = { get: vi.fn().mockReturnValueOnce(firstResponse).mockReturnValueOnce(secondResponse) };
+    const api = new ApiService(http as any);
+
+    const first = api.getCommunityPosts(0, 10, 'all', '', true);
+    const second = api.getCommunityPosts(0, 10, 'all', '', true);
+    expect(http.get).toHaveBeenCalledTimes(2);
+    firstResponse.next([{ id: 'saved-by-A' }]); firstResponse.complete();
+    secondResponse.next([{ id: 'saved-by-B' }]); secondResponse.complete();
+    await expect(Promise.all([first, second])).resolves.toEqual([[{ id: 'saved-by-A' }], [{ id: 'saved-by-B' }]]);
+  });
+
+  it('releases a timed out catalog request so a later retry can make a new request', async () => {
+    const teardown = vi.fn();
+    const never = new Observable<any>(() => teardown);
+    const http = { get: vi.fn().mockReturnValueOnce(never).mockReturnValueOnce(of({ success: true, items: [] })) };
+    const api = new ApiService(http as any) as any;
+    api.requestTimeoutMs = 5;
+
+    await api.getServices();
+    expect(teardown).toHaveBeenCalledTimes(1);
+    expect(await api.getServices()).toEqual([]);
+    expect(http.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('can propagate real HTTP failures to loading and retry states', async () => {
+    const http = { get: vi.fn(() => throwError(() => new Error('offline'))) };
+    const api = new ApiService(http as any);
+
+    await expect(api.getCommunityPosts(0, 10, 'all', '', true)).rejects.toThrow('offline');
+    await expect(api.getMyServices('provider', true)).rejects.toThrow('offline');
+    await expect(api.getBookings('provider', undefined, true)).rejects.toThrow('offline');
+  });
+
+  it('resolves uploaded media paths against the backend origin', () => {
+    const api = new ApiService({} as any);
+
+    expect(api.resolveCommunityMediaUrl('/uploads/avatars/profile.jpg'))
+      .toBe('http://localhost:5055/uploads/avatars/profile.jpg');
+    expect(api.resolveCommunityMediaUrl('https://images.example.test/profile.jpg'))
+      .toBe('https://images.example.test/profile.jpg');
+    expect(api.resolveCommunityMediaUrl('data:image/jpeg;base64,abc'))
+      .toBe('data:image/jpeg;base64,abc');
+  });
+  it('keeps verified local demo photos and their credits while hiding any demo price or carbon claims', () => {
+    const api = new ApiService({} as any) as any;
+    const photo = {
+      path: 'image/greensteps/tours/sa-pa/sa-pa-rice-terraces.jpg',
+      caption: 'Ruộng bậc thang ở Sa Pa.',
+      alt: 'Các thửa ruộng bậc thang uốn theo sườn núi Sa Pa',
+      sourcePage: 'https://commons.wikimedia.org/wiki/File:Rice_terraces_in_Sapa,_Vietnam.jpg',
+      author: 'Eerin25', licenseId: 'CC0 1.0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attribution: 'Eerin25, via Wikimedia Commons, CC0 1.0', subjectLocation: 'Sa Pa',
+      verificationStatus: 'verified', modifications: 'Resized proportionally; no crop.',
+      width: 1600, height: 1200, responsiveVariants: [
+        { path: 'image/greensteps/tours/sa-pa/sa-pa-rice-terraces-480w.jpg', width: 480, height: 360 },
+        { path: 'image/greensteps/tours/sa-pa/sa-pa-rice-terraces-960w.jpg', width: 960, height: 720 },
+        { path: 'image/greensteps/tours/sa-pa/sa-pa-rice-terraces.jpg', width: 1600, height: 1200 }
+      ]
+    };
+    const mapped = api.mapTourToFrontend({
+      id: 'test-demo-tour', title: 'Sa Pa', destination: 'Sa Pa', days: 3, catalog_status: 'demo',
+      image: photo.path, gallery: [photo.path], photoMetadata: [photo], cost: 1500000, carbon: 0,
+      responsibleTravel: 'Respect local communities.', practicalNotes: 'Check weather.', max_capacity: 12,
+      rating: 4.8, votes_count: 24, old_cost: 2000000,
+      editorialItineraryNotice: 'Proposed itinerary.'
+    });
+    expect(mapped.image).toBe(photo.path);
+    expect(mapped.gallery).toEqual([photo.path]);
+    expect(mapped.photoMetadata).toEqual([photo]);
+    expect(mapped.responsibleTravel).toBe('Respect local communities.');
+    expect(mapped.practicalNotes).toBe('Check weather.');
+    expect(mapped.editorialItineraryNotice).toBe('Proposed itinerary.');
+    expect(mapped.cost).toBeUndefined();
+    expect(mapped.oldCost).toBeUndefined();
+    expect(mapped.carbon).toBeUndefined();
+    expect(mapped.rating).toBeUndefined();
+    expect(mapped.votes).toBeUndefined();
+    expect(mapped.maxCapacity).toBeUndefined();
+    expect(mapped.is_demo).toBe(true);
+    expect(mapped.bookingEnabled).toBe(false);
+  });
+
+
+  it('sends the guest capability only in the MoMo payment header and retrieves server status', async () => {
+    const http = { post: vi.fn(() => of({ success: true })), get: vi.fn(() => of({ success: true, booking: { payment_status: 'pending' } })) };
+    const api = new ApiService(http as any);
+    await api.createMomoPayment('booking-1', 'capability-1');
+    await api.getMomoPaymentStatus('booking-1', 'capability-1');
+    expect(http.post).toHaveBeenCalledWith('http://localhost:5055/api/payments/momo/create', { bookingId: 'booking-1' }, { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
+    expect(http.get).toHaveBeenCalledWith('http://localhost:5055/api/payments/momo/status/booking-1', { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
+  });
+
   it('loads the admin catalog through the authenticated API', async () => {
     const rows = [{ id: 'service-1', status: 'active' }];
     const http = { get: vi.fn(() => of(rows)) };
@@ -22,7 +162,7 @@ describe('ApiService admin queues', () => {
     api.setCachedData('community_posts_1', [{ id: 'post-1' }]);
     expect(api.getCachedData('community_posts_1')).toBeNull();
   });
-  beforeEach(() => vi.stubGlobal('window', { location: { hostname: 'localhost' } }));
+  beforeEach(() => vi.stubGlobal('window', { location: { hostname: 'localhost', protocol: 'http:' } }));
   afterEach(() => vi.unstubAllGlobals());
 
   it('calls the admin users API with server-side filters and returns its response', async () => {

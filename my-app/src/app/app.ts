@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, isDevMode, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
@@ -16,8 +16,10 @@ export class App implements OnInit {
   isAdminRoute = false;
   isScheduleRoute = false;
   isPlannerRoute = false;
+  isProfileRoute = false;
   isStandalonePolicyRoute = false;
   isNavigating = false;
+  isStandaloneMaintenanceRoute = false;
 
   constructor(
     private route: ActivatedRoute, 
@@ -34,6 +36,13 @@ export class App implements OnInit {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
         this.isNavigating = true;
+        if (isDevMode()) {
+          console.debug('[ROUTER]', {
+            from: this.router.url.split(/[?#]/, 1)[0],
+            to: event.url.split(/[?#]/, 1)[0],
+            trigger: event.navigationTrigger
+          });
+        }
       } else if (
         event instanceof NavigationEnd ||
         event instanceof NavigationCancel ||
@@ -59,9 +68,11 @@ export class App implements OnInit {
 
   private updateAdminShell(url: string) {
     const cleanUrl = (url || '').split('?')[0].split('#')[0];
-    this.isAdminRoute = cleanUrl === '/admin';
+    this.isAdminRoute = cleanUrl === '/admin' || cleanUrl === '/admin/food';
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
+    this.isProfileRoute = cleanUrl === '/profile';
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
+    this.isStandaloneMaintenanceRoute = cleanUrl === '/maintenance';
   }
 }

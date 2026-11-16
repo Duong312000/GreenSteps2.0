@@ -1,0 +1,292 @@
+<main class="food-admin">
+  <nav>
+    <a routerLink="/admin">← Quản trị</a
+    ><a routerLink="/services" [queryParams]="{ type: 'food' }" target="_blank" rel="noopener"
+      >Xem trang khách ↗</a
+    >
+  </nav>
+  <header>
+    <div>
+      <p>Quản lý dịch vụ Xanh</p>
+      <h1>Ẩm thực địa phương</h1>
+      <span>{{ places.length }} địa điểm · {{ reservations.length }} yêu cầu đặt bàn gần nhất</span>
+    </div>
+    <button class="primary" (click)="edit()" [disabled]="busy || loading">+ Thêm địa điểm</button>
+  </header>
+  <p class="success" *ngIf="message" role="status">{{ message }}</p>
+  <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+  <div class="tools">
+    <input
+      type="search"
+      [(ngModel)]="search"
+      placeholder="Tìm tên quán, điểm đến…"
+      aria-label="Tìm địa điểm"
+    /><select [(ngModel)]="status" aria-label="Trạng thái">
+      <option value="">Tất cả trạng thái</option>
+      <option value="published">Đang hiển thị</option>
+      <option value="hidden">Đã ẩn</option></select
+    ><button (click)="load()" [disabled]="loading || busy">Tải lại</button>
+  </div>
+  <p *ngIf="loading" role="status">Đang tải dữ liệu…</p>
+  <div class="table-scroll">
+    <table *ngIf="!loading">
+      <thead>
+        <tr>
+          <th>Địa điểm</th>
+          <th>Loại quán</th>
+          <th>Khoảng giá</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of filtered">
+          <td>
+            <div class="place-cell">
+              <img [src]="p.image" [alt]="p.name" />
+              <div>
+                <strong>{{ p.name }}</strong
+                ><small>{{ p.destination }}{{ p.isDemo ? ' · Demo' : '' }}</small>
+              </div>
+            </div>
+          </td>
+          <td>{{ p.category }}</td>
+          <td>
+            {{ p.priceMin | number: '1.0-0' : 'vi' }} –
+            {{ p.priceMax | number: '1.0-0' : 'vi' }}đ<small>/{{ p.priceUnit }}</small>
+          </td>
+          <td>
+            <span class="badge" [class.published]="p.status === 'published'">{{
+              p.status === 'published' ? 'Đang hiển thị' : 'Đã ẩn'
+            }}</span>
+          </td>
+          <td>
+            <div class="actions">
+              <button (click)="edit(p)" [disabled]="busy">Sửa</button
+              ><button (click)="toggleStatus(p)" [disabled]="busy">
+                {{ p.status === 'published' ? 'Ẩn' : 'Hiện' }}</button
+              ><button class="danger" (click)="deleting = p; error = ''" [disabled]="busy">
+                Xóa
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="!filtered.length">
+          <td colspan="5">Chưa có địa điểm phù hợp. Thêm địa điểm hoặc đổi bộ lọc.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <h2>Yêu cầu đặt bàn</h2>
+  <p>Danh sách tối đa 200 yêu cầu gần nhất. Xác nhận sau khi kiểm tra chỗ trống với quán.</p>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Quán / Liên hệ</th>
+          <th>Thời gian (Việt Nam)</th>
+          <th>Số khách</th>
+          <th>Trạng thái</th>
+          <th>Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reservations">
+          <td>
+            <strong>{{ r.placeName }}</strong
+            ><small>{{ r.fullname }} · {{ r.phone }}</small>
+          </td>
+          <td>{{ r.date }} · {{ r.time }}</td>
+          <td>{{ r.guests }}</td>
+          <td>
+            {{
+              r.status === 'pending'
+                ? 'Chờ xác nhận'
+                : r.status === 'confirmed'
+                  ? 'Đã xác nhận'
+                  : 'Đã hủy'
+            }}
+          </td>
+          <td>
+            <div class="actions" *ngIf="r.status === 'pending'">
+              <button (click)="review(r.id, 'confirmed')" [disabled]="busy">Xác nhận</button
+              ><button class="danger" (click)="review(r.id, 'cancelled')" [disabled]="busy">
+                Từ chối
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="!reservations.length">
+          <td colspan="5">Chưa có yêu cầu đặt bàn.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<div class="backdrop" *ngIf="editing as p">
+  <section
+    class="editor"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="food-editor-title"
+    (keydown)="trap($event)"
+  >
+    <header>
+      <h2 id="food-editor-title">{{ p.id ? 'Chỉnh sửa địa điểm' : 'Thêm địa điểm' }}</h2>
+      <button aria-label="Đóng" [disabled]="busy" (click)="editing = null">×</button>
+    </header>
+    <form (ngSubmit)="save()">
+      <div class="form-grid">
+        <label
+          >Tên quán<input
+            id="food-admin-name"
+            name="name"
+            [(ngModel)]="p.name"
+            required
+            maxlength="150" /></label
+        ><label>Điểm đến<input name="destination" [(ngModel)]="p.destination" required /></label
+        ><label
+          >Loại quán<select name="category" [(ngModel)]="p.category">
+            <option *ngFor="let c of categories">{{ c }}</option>
+          </select></label
+        ><label
+          >Trạng thái<select name="status" [(ngModel)]="p.status">
+            <option value="hidden">Ẩn</option>
+            <option value="published">Hiển thị</option>
+          </select></label
+        ><label class="wide"
+          >Địa chỉ<input name="address" [(ngModel)]="p.address" required maxlength="500" /></label
+        ><label class="wide"
+          >Mô tả<textarea
+            name="description"
+            [(ngModel)]="p.description"
+            required
+            maxlength="3000"
+            rows="3"
+          ></textarea></label
+        ><label class="wide"
+          >Ảnh (URL HTTPS hoặc /image/…)<input
+            name="image"
+            [(ngModel)]="p.image"
+            required
+            maxlength="500" /></label
+        ><label
+          >Giá từ (đ)<input
+            type="number"
+            name="min"
+            [(ngModel)]="p.priceMin"
+            min="0"
+            max="100000000"
+            required /></label
+        ><label
+          >Giá đến (đ)<input
+            type="number"
+            name="max"
+            [(ngModel)]="p.priceMax"
+            [min]="p.priceMin"
+            max="100000000"
+            required /></label
+        ><label
+          >Đơn vị giá<select name="unit" [(ngModel)]="p.priceUnit">
+            <option>người</option>
+            <option>set 2 người</option>
+            <option>phần</option>
+          </select></label
+        ><label
+          >Sức chứa tối đa<input
+            name="capacity"
+            type="number"
+            [(ngModel)]="p.capacity"
+            min="1"
+            max="1000"
+            required /></label
+        ><label>Giờ mở cửa<input name="hours" [(ngModel)]="p.hours" required /></label
+        ><label
+          >Điểm đánh giá<input
+            name="rating"
+            type="number"
+            [(ngModel)]="p.rating"
+            min="0"
+            max="5"
+            step="0.1"
+            required /></label
+        ><label
+          >Số đánh giá<input
+            name="reviews"
+            type="number"
+            [(ngModel)]="p.reviewCount"
+            min="0"
+            max="1000000"
+            required
+        /></label>
+      </div>
+      <fieldset>
+        <legend>Chế độ ăn, tiện ích và thực hành xanh</legend>
+        <label class="check" *ngFor="let f of features"
+          ><input type="checkbox" [checked]="p.features.includes(f)" (change)="feature(f)" />{{
+            f
+          }}</label
+        >
+      </fieldset>
+      <h3>Thực đơn tham khảo</h3>
+      <div class="menu-row" *ngFor="let item of p.menu; let i = index">
+        <input
+          [name]="'dish' + i"
+          [(ngModel)]="item.name"
+          aria-label="Tên món"
+          placeholder="Tên món"
+          required
+          maxlength="120"
+        /><input
+          [name]="'price' + i"
+          type="number"
+          [(ngModel)]="item.price"
+          aria-label="Giá món"
+          min="0"
+          max="100000000"
+          required
+        /><button
+          type="button"
+          aria-label="Xóa món"
+          [disabled]="p.menu.length === 1"
+          (click)="p.menu.splice(i, 1)"
+        >
+          ×
+        </button>
+      </div>
+      <button
+        type="button"
+        [disabled]="p.menu.length >= 30"
+        (click)="p.menu.push({ name: '', price: 0 })"
+      >
+        + Thêm món
+      </button>
+      <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+      <footer>
+        <button type="button" [disabled]="busy" (click)="editing = null">Hủy</button
+        ><button class="primary" type="submit" [disabled]="busy">
+          {{ busy ? 'Đang lưu…' : 'Lưu địa điểm' }}
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+<div class="backdrop" *ngIf="deleting as p">
+  <section
+    class="editor confirm"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="food-delete-title"
+    (keydown)="trap($event)"
+  >
+    <h2 id="food-delete-title">Xóa {{ p.name }}?</h2>
+    <p>Quán sẽ bị gỡ khỏi trang khách. Lịch sử yêu cầu đặt bàn vẫn được giữ.</p>
+    <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+    <footer>
+      <button [disabled]="busy" (click)="deleting = null">Hủy</button
+      ><button class="danger" [disabled]="busy" (click)="remove()">
+        {{ busy ? 'Đang xóa…' : 'Xóa địa điểm' }}
+      </button>
+    </footer>
+  </section>
+</div>

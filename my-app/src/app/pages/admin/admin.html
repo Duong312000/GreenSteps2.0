@@ -1,4 +1,25 @@
 <div class="admin-app" [class.sidebar-collapsed]="sidebarCollapsed" [class.preview-mode]="isPreviewMode">
+  <div class="flash-editor-backdrop" *ngIf="flashEdit" (click)="closeFlashEdit()">
+    <section class="flash-editor" role="dialog" aria-modal="true" aria-labelledby="flash-editor-title" (click)="$event.stopPropagation()" (keydown)="trapFlashFocus($event)">
+      <header><div><span>Quản lý khuyến mãi</span><h2 id="flash-editor-title">Chỉnh sửa Flash Sale</h2></div><button type="button" aria-label="Đóng" [disabled]="flashSaving" (click)="closeFlashEdit()">×</button></header>
+      <p class="flash-editor-name">{{ flashEdit.name }}</p>
+      <div class="flash-editor-inventory"><span>Đã sử dụng <b>{{ flashEdit.used_count }}</b></span><span>Còn lại sau khi lưu <b>{{ flashEdit.usage_limit - flashEdit.used_count }}</b></span></div>
+      <form (submit)="saveFlashEdit($event)">
+        <label>Tổng số suất<input id="flash-edit-limit" type="number" name="flashLimit" [(ngModel)]="flashEdit.usage_limit" [min]="flashEdit.used_count || 1" max="1000000000" step="1" required><small>Không được thấp hơn số suất đã sử dụng.</small></label>
+        <div class="flash-editor-grid">
+          <label>Loại giảm<select name="flashDiscountType" [(ngModel)]="flashEdit.discount_type" [disabled]="flashEdit.used_count > 0"><option value="percent">Phần trăm (%)</option><option value="fixed">Số tiền (đ)</option></select></label>
+          <label>Mức giảm<input type="number" name="flashDiscountValue" [(ngModel)]="flashEdit.discount_value" min="1" [max]="flashEdit.discount_type === 'percent' ? 100 : 1000000000000" step="1" [disabled]="flashEdit.used_count > 0" required></label>
+          <label>Bắt đầu<input type="datetime-local" step="1" name="flashStart" [(ngModel)]="flashEdit.start_at" required></label>
+          <label>Kết thúc<input type="datetime-local" step="1" name="flashEnd" [(ngModel)]="flashEdit.end_at" required></label>
+        </div>
+        <label>Trạng thái<select name="flashStatus" [(ngModel)]="flashEdit.status"><option value="active">Hoạt động theo lịch</option><option value="paused">Tạm dừng</option><option value="cancelled">Hủy chương trình</option></select></label>
+        <p class="flash-editor-note">Thời gian theo múi giờ trên máy bạn. Số suất đã dùng được đọc từ hệ thống và không chỉnh sửa tại đây.</p>
+        <p class="flash-editor-error" *ngIf="flashError" role="alert">{{ flashError }}</p>
+        <footer><button type="button" [disabled]="flashSaving" (click)="closeFlashEdit()">Đóng</button><button type="submit" class="save" [disabled]="flashSaving">{{ flashSaving ? 'Đang lưu…' : 'Lưu Flash Sale' }}</button></footer>
+      </form>
+    </section>
+  </div>
+
   <header class="admin-topbar">
     <div class="admin-brand">
       <button type="button" class="admin-mobile-menu" aria-label="Mở menu" (click)="mobileMenuOpen = !mobileMenuOpen">
@@ -14,6 +35,7 @@
       <kbd>Ctrl K</kbd>
       <div class="global-search-note" *ngIf="globalSearch">Tìm kiếm toàn hệ thống chưa được kết nối API.</div>
     </div>
+    <a routerLink="/admin/catalog" class="admin-topbar-catalog-link">Danh mục điểm đến</a>
 
     <div class="admin-topbar-actions">
       <div class="topbar-popover-wrap date-wrap">
@@ -118,26 +140,30 @@
               <section class="urgent-panel panel-card">
                 <div class="panel-heading urgent-heading">
                   <h2><span class="urgent-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>Cảnh báo / Việc cần xử lý</h2>
-                  <span class="count-pill" *ngIf="isPreviewMode">5</span>
-                  <button type="button" class="text-action" (click)="setSection('support')">Xem tất cả <i class="bi bi-arrow-right"></i></button>
+                  <span class="count-pill" *ngIf="dashboardSummaryState === 'ready'">{{ dashboardSummary.alerts.items.length }}</span>
+                  <button type="button" class="text-action" (click)="setSection('community')">Xem tất cả <i class="bi bi-arrow-right"></i></button>
                 </div>
-                <div class="urgent-list" *ngIf="isPreviewMode; else noLiveAlerts">
-                  <div class="urgent-row" *ngFor="let item of [
-                    {level:'Cao',label:'Yêu cầu rút tiền cần đối soát',time:'2 giờ trước',icon:'bi-wallet2'},
-                    {level:'Cao',label:'Booking cần kiểm tra trạng thái thanh toán',time:'3 giờ trước',icon:'bi-calendar2-check'},
-                    {level:'Trung bình',label:'Nội dung được người dùng báo cáo',time:'5 giờ trước',icon:'bi-flag'},
-                    {level:'Trung bình',label:'Hồ sơ nhà cung cấp cần bổ sung giấy tờ',time:'1 ngày trước',icon:'bi-file-earmark-text'},
-                    {level:'Thấp',label:'Đối soát giao dịch đang chờ kiểm tra',time:'1 ngày trước',icon:'bi-arrow-left-right'}
-                  ]">
-                    <span class="severity-tag" [ngClass]="item.level === 'Cao' ? 'severity-high' : item.level === 'Trung bình' ? 'severity-medium' : 'severity-low'">{{ item.level }}</span>
-                    <i class="urgent-row-icon bi" [ngClass]="item.icon"></i>
-                    <span class="urgent-row-label">{{ item.label }}</span><time>{{ item.time }}</time>
-                    <button type="button" class="small-outline-button" disabled>Chi tiết</button>
+                <div class="panel-empty" *ngIf="isPreviewMode">
+                  <span class="empty-icon"><i class="bi bi-info-circle"></i></span>
+                  <div><strong>Chế độ xem trước không tải cảnh báo</strong><p>Chuyển sang phiên quản trị thật để xem các hàng đợi từ cơ sở dữ liệu.</p></div>
+                </div>
+                <div class="panel-empty" *ngIf="!isPreviewMode && dashboardSummaryState === 'loading'" role="status">
+                  <span class="empty-icon"><i class="bi bi-arrow-repeat"></i></span><div><strong>Đang tải hàng đợi quản trị</strong></div>
+                </div>
+                <div class="panel-empty" *ngIf="!isPreviewMode && dashboardSummaryState === 'unavailable'" role="alert">
+                  <span class="empty-icon"><i class="bi bi-cloud-slash"></i></span><div><strong>Không tải được dữ liệu cảnh báo</strong><p>API quản trị đang lỗi hoặc tạm thời không kết nối được.</p><button class="small-outline-button" type="button" (click)="loadDashboardSummary()">Thử lại</button></div>
+                </div>
+                <div class="urgent-list" *ngIf="!isPreviewMode && dashboardSummaryState === 'ready' && dashboardSummary.alerts.items.length">
+                  <div class="urgent-row" *ngFor="let item of dashboardSummary.alerts.items">
+                    <span class="severity-tag severity-medium">Cần xử lý</span>
+                    <i class="urgent-row-icon bi bi-inbox"></i>
+                    <span class="urgent-row-label">{{ item.label }} · {{ formatCount(item.count) }}</span>
+                    <button type="button" class="small-outline-button" (click)="openDashboardAlert(item.section)">Mở danh sách</button>
                   </div>
                 </div>
-                <ng-template #noLiveAlerts>
-                  <div class="panel-empty"><span class="empty-icon"><i class="bi bi-check2-circle"></i></span><div><strong>Chưa kết nối API tổng hợp cảnh báo</strong><p>Không hiển thị cảnh báo minh họa trong chế độ dữ liệu thật.</p></div></div>
-                </ng-template>
+                <div class="panel-empty" *ngIf="!isPreviewMode && dashboardSummaryState === 'ready' && !dashboardSummary.alerts.items.length">
+                  <span class="empty-icon"><i class="bi bi-check2-circle"></i></span><div><strong>Không có yêu cầu đang chờ trong các nguồn đã kết nối</strong><p>Không áp dụng quy tắc giả lập cảnh báo giao dịch.</p></div>
+                </div>
               </section>
             </section>
 
@@ -229,10 +255,22 @@
                       <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [attr.aria-label]="'Chọn ' + row.id" [disabled]="isPreviewMode" /></td>
                       <td *ngFor="let column of activeTableColumns" [class]="column.key + '-column'" [class.cell-strong]="column.primary || (column.key === 'name' && !isPolishedAdminTable)" [class.detail-cell]="column.key === 'detail'" [class.text-right]="column.align === 'right'" [class.text-center]="column.align === 'center'" [style.width]="column.width || null" [style.min-width]="column.minWidth || null" [title]="cellValue(row, column.key)">
                         <div class="provider-name-cell" *ngIf="activeTab === 'providers' && column.key === 'name'"><strong [title]="row.name">{{ row.name }}</strong><app-copyable-id [value]="row.raw.id" appearance="subtle"></app-copyable-id></div>
+                        <div class="admin-service-images" *ngIf="activeTab === 'services' && column.key === 'images'">
+                          <details *ngIf="row.raw.gallery?.length; else singleServiceImage">
+                            <summary><img [src]="row.raw.image_url" [alt]="row.raw.imageMetadata?.[0]?.alt || ('Ảnh về ' + row.name)" loading="lazy" decoding="async" /><span>{{ row.raw.gallery.length }} ảnh</span></summary>
+                            <div class="admin-service-gallery-grid">
+                              <figure *ngFor="let image of row.raw.gallery; let imageIndex = index">
+                                <img [src]="image" [alt]="row.raw.imageMetadata?.[imageIndex]?.alt || ('Ảnh về ' + row.name)" loading="lazy" decoding="async" />
+                                <figcaption><a *ngIf="row.raw.imageMetadata?.[imageIndex]?.sourcePage" [href]="row.raw.imageMetadata[imageIndex].sourcePage" target="_blank" rel="noopener noreferrer">Nguồn · {{ row.raw.imageMetadata[imageIndex].licenseId }}</a><span *ngIf="!row.raw.imageMetadata?.[imageIndex]?.sourcePage">Ảnh địa điểm</span></figcaption>
+                              </figure>
+                            </div>
+                          </details>
+                          <ng-template #singleServiceImage><img *ngIf="row.raw.image_url" [src]="row.raw.image_url" [alt]="'Ảnh về ' + row.name" loading="lazy" decoding="async" /></ng-template>
+                        </div>
                         <app-status-badge *ngIf="column.key === 'status'" [status]="row.status" [tone]="statusTone(row.status)" [withDot]="isPolishedAdminTable"></app-status-badge>
                         <app-status-badge *ngIf="activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu'" [status]="row.documents" tone="neutral" [withDot]="true"></app-status-badge>
                         <app-copyable-id *ngIf="!(activeTab === 'providers' && column.key === 'name') && column.key !== 'status' && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && (column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key))" [value]="cellValue(row, column.key)"></app-copyable-id>
-                        <span *ngIf="column.key !== 'status' && !(activeTab === 'providers' && column.key === 'name') && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && !((column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key)) )" [class.detail-cell]="column.key === 'detail'" [class.service-name-cell]="activeTab === 'services' && column.key === 'name'">{{ cellValue(row, column.key) }}</span>
+                        <span *ngIf="column.key !== 'images' && column.key !== 'status' && !(activeTab === 'providers' && column.key === 'name') && !(activeTab === 'providers' && column.key === 'documents' && row.documents === 'Chưa có dữ liệu') && !((column.key === 'id' || column.key === 'name' || column.key === 'account') && isLongIdentifier(cellValue(row, column.key)) )" [class.detail-cell]="column.key === 'detail'" [class.service-name-cell]="activeTab === 'services' && column.key === 'name'">{{ cellValue(row, column.key) }}</span>
                       </td>
                       <td class="row-actions" (click)="$event.stopPropagation()" *ngIf="!isCatalogTab">
                         <div class="provider-actions" *ngIf="activeTab === 'providers'">

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { User } from '../models/models';
@@ -28,30 +28,34 @@ export class AuthService {
 
   constructor(private http: HttpClient, private apiService: ApiService) {
     this.loadSession();
-    const user = this.getCurrentUser();
-    if (user) {
-      this.apiService.preloadAppData(user.id);
-    } else {
-      this.apiService.preloadAppData();
-    }
   }
 
   private loadSession() {
     const userStr = localStorage.getItem('greensteps_user');
-    if (!userStr) return;
+    if (!userStr) { this.authDebug('Session restore: no saved session'); return; }
     try {
       const token = localStorage.getItem('greensteps_token');
       const payload = token ? this.decodeToken(token) : null;
       if (!payload || !payload.exp || payload.exp * 1000 <= Date.now()) {
         this.setCurrentUser(null);
+        this.authDebug('Session restore: invalid or expired session cleared');
         return;
       }
       const user = JSON.parse(userStr);
+      if (user.avatarUrl) {
+        user.avatarUrl = this.apiService.resolveCommunityMediaUrl(user.avatarUrl);
+      }
       this.currentUserSubject.next(user);
       this.apiService.setAdminUserCacheScope(user?.id || user?._id || null);
+      this.authDebug('Session restore: saved session restored locally');
     } catch {
       localStorage.removeItem('greensteps_user');
+      this.authDebug('Session restore: malformed local profile removed');
     }
+  }
+
+  private authDebug(message: string): void {
+    if (isDevMode()) console.info('[AUTH]', message);
   }
 
   public getCurrentUser(): User | null {
@@ -66,7 +70,6 @@ export class AuthService {
       document.cookie = `role=${user.role}; path=/; max-age=86400`;
       document.cookie = `userId=${user.id || user._id}; path=/; max-age=86400`;
       document.cookie = `fullname=${encodeURIComponent(user.fullname || user.username)}; path=/; max-age=86400`;
-      this.apiService.preloadAppData(user.id || user._id);
     } else {
       this.apiService.setAdminUserCacheScope(null);
       localStorage.removeItem('greensteps_user');
@@ -92,7 +95,7 @@ export class AuthService {
       address: raw.address,
       role: raw.role || 'traveler',
       companyName: raw.companyName || raw.company_name,
-      avatarUrl: raw.avatarUrl || raw.avatar_url,
+      avatarUrl: this.apiService.resolveCommunityMediaUrl(raw.avatarUrl || raw.avatar_url),
       is_verified: raw.is_verified
     };
   }
@@ -310,8 +313,16 @@ export class AuthService {
         const freshUser = this.mapUser(res.user);
         this.setCurrentUser(freshUser);
       }
+      this.authDebug('Profile validation succeeded; session kept');
     } catch (error: any) {
-      if (error.status === 401 || error.status === 403) this.setCurrentUser(null);
+      if (error.status === 401) {
+        this.setCurrentUser(null);
+        this.authDebug('Profile validation returned 401; invalid session cleared');
+      } else if (error.status === 403) {
+        this.authDebug('Profile validation returned 403; session kept');
+      } else {
+        this.authDebug(`Profile validation unavailable (status ${Number(error?.status) || 0}); session kept`);
+      }
     }
   }
 

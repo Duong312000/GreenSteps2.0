@@ -10,7 +10,7 @@
     <!-- ════════════════════════════════════════════════════════
          MAIN HEADER ROW — 3 độc lập divs: Logo | Nav | Controls
     ════════════════════════════════════════════════════════ -->
-    <div #headerWrapper class="main-header-row mx-auto max-w-[1720px] items-center">
+    <div #headerWrapper class="main-header-row mx-auto max-w-[1720px] items-center" [class.navbar-search-open]="isNavbarSearchOpen">
 
         <!-- ── DIV 1: LOGO (flex-shrink-0) ── -->
         <div class="header-logo flex items-center flex-shrink-0">
@@ -92,7 +92,7 @@
                         <!-- Food -->
                         <a routerLink="/services" [queryParams]="{ type: 'food' }" class="mega-menu-item">
                             <div class="mega-menu-content">
-                                <span class="mega-menu-title">Ẩm Thực Hữu Cơ</span>
+                                <span class="mega-menu-title">Ẩm thực địa phương</span>
                                 <p class="mega-menu-desc">Thực dưỡng chay thanh tịnh, nông sản Farm-to-Table</p>
                             </div>
                         </a>
@@ -138,49 +138,20 @@
         </nav>
         </div>
 
-        <!-- ── DIV 3: SEARCH + ACCOUNT CONTROLS ── -->
+        <!-- ── DIV 3: ACCOUNT CONTROLS ── -->
         <div class="header-actions flex items-center justify-end gap-3">
-        <div class="header-search hidden xl:flex items-center shopco-header-search">
-            <div class="shopco-search-pill">
-                <i class="bi bi-search text-gray-400 text-sm"></i>
-                <input type="text"
-                       [(ngModel)]="smartSearchQuery"
-                       (focus)="isSearchDropdownActive = true"
-                       (keypress)="onSearchKeypress($event)"
-                       placeholder="Tìm tour, điểm đến...">
-                <button *ngIf="smartSearchQuery" (click)="smartSearchQuery = ''" class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0">
-                    <i class="bi bi-x-circle-fill text-xs"></i>
-                </button>
-            </div>
-
-            <!-- Search Suggestions -->
-            <div *ngIf="isSearchDropdownActive && smartSearchQuery"
-                 class="shopco-search-suggestions">
-                <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3 py-1">Gợi ý nhanh</div>
-                <div (click)="selectSearchDest('Đà Lạt')" class="search-suggestion-item">
-                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                    <span>Đà Lạt - Rừng thông Net-Zero</span>
-                </div>
-                <div (click)="selectSearchDest('Phú Yên')" class="search-suggestion-item">
-                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                    <span>Phú Yên - Hoa vàng cỏ xanh</span>
-                </div>
-                <div (click)="selectSearchDest('Hội An')" class="search-suggestion-item">
-                    <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                    <span>Hội An - Di sản không rác thải</span>
-                </div>
-                <div (click)="triggerSearch()" class="search-all-action">
-                    <i class="bi bi-search"></i>
-                    <span>Tìm kiếm cho "{{ smartSearchQuery }}"</span>
-                </div>
-            </div>
-        </div>
-
         <!-- ── DIV 4: CONTROLS (flex-shrink-0, Notifications + Profile / Login) ── -->
         <div class="header-controls flex items-center justify-end gap-3 flex-shrink-0">
 
+            <button type="button" class="navbar-search-trigger" [class.navbar-search-trigger-active]="isNavbarSearchOpen"
+                    [ngClass]="isHeaderTransparent ? 'navbar-search-on-hero' : ''"
+                    aria-label="Mở tìm kiếm" aria-controls="navbar-search-panel" [attr.aria-expanded]="isNavbarSearchOpen"
+                    (click)="openNavbarSearch($event)">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.5 4.5"></path></svg>
+            </button>
+
             <!-- Notifications -->
-            <div class="header-notifications relative">
+            <div *ngIf="currentUser" class="header-notifications relative">
                 <button (click)="toggleNotificationDropdown($event)"
                         class="relative h-11 w-11 flex items-center justify-center rounded-md border
                                transition-all duration-300 focus:outline-none cursor-pointer"
@@ -294,14 +265,14 @@
             <div *ngIf="!currentUser" class="header-auth-actions flex items-center gap-2">
                 <button type="button"
                    (click)="openLoginModal('register')"
-                   class="flex h-11 min-w-[90px] items-center justify-center whitespace-nowrap rounded-md
+                   class="flex h-11 min-w-[90px] items-center justify-center whitespace-nowrap rounded-full
                           px-3 text-sm font-bold transition-all duration-300 cursor-pointer"
                    [ngClass]="isHeaderTransparent ? 'bg-transparent text-white border border-white/75 hover:bg-white/10' : 'bg-white/70 text-[#0E9F6E] border border-[#0E9F6E] hover:bg-white'">Đăng ký</button>
                 <button type="button"
                    (click)="openLoginModal('login')"
-                   class="flex h-11 min-w-[88px] items-center justify-center whitespace-nowrap rounded-md
+                   class="flex h-11 min-w-[88px] items-center justify-center whitespace-nowrap rounded-full
                           px-3 text-sm font-bold transition-all duration-300 cursor-pointer"
-                   [ngClass]="isHeaderTransparent ? 'bg-transparent text-white border border-transparent hover:bg-white/10' : 'bg-[#184A37] text-white border-0 hover:bg-[#184A37]'">Đăng nhập</button>
+                   [ngClass]="'bg-[#184A37] text-white border border-[#184A37] hover:bg-[#0E9F6E] hover:border-[#0E9F6E]'">Đăng nhập</button>
             </div>
 
             <a *ngIf="!currentUser || currentUser.role === 'traveler'" routerLink="/become-a-partner" class="partner-entry-link hidden xl:inline-flex">Trở thành đối tác</a>
@@ -317,59 +288,37 @@
             </button>
         </div>
         </div>
-    </div>
 
-    <!-- ════════════════════════════════════════════════════════
-         OVERFLOW PANEL — trượt xuống khi hover vào header
-         Chứa các tabs bị cắt (không vừa hàng nav trên)
-    ════════════════════════════════════════════════════════ -->
-    <div class="header-overflow-panel" [class.open]="isOverflowOpen" *ngIf="overflowTabs.length > 0">
-        <div class="mx-auto flex max-w-[1720px] px-6 lg:px-12" style="height: 52px;">
-            <!-- Left Spacer matching Logo width -->
-            <div style="width: 300px; flex-shrink: 0;"></div>
-
-            <!-- Center Overflow Tabs container matching main Nav flex-1 -->
-            <div class="flex-1 flex items-center gap-5 overflow-hidden">
-                <ng-container *ngFor="let tab of overflowTabs">
-                    <a *ngIf="tab.link"
-                       [routerLink]="tab.link"
-                       routerLinkActive="active-nav-tab"
-                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
-                              text-[#184A37] relative transition-colors duration-300
-                              hover:text-[#0E9F6E]
-                              after:absolute after:-bottom-1 after:left-0
-                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
-                              after:transition-all after:duration-300 hover:after:w-full"
-                       style="text-decoration: none;">{{ tab.label }}</a>
-
-                    <a *ngIf="tab.action === 'green_handbook'"
-                       (click)="showGreenHandbookAlert()"
-                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
-                              text-[#184A37] relative cursor-pointer transition-colors duration-300
-                              hover:text-[#0E9F6E]
-                              after:absolute after:-bottom-1 after:left-0
-                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
-                              after:transition-all after:duration-300 hover:after:w-full">
-                        {{ tab.label }}
-                    </a>
-
-                    <a *ngIf="tab.action === 'ai_planner'"
-                       routerLink="/ai-planner"
-                       [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
-                       class="whitespace-nowrap flex-shrink-0 text-[18px] font-semibold
-                              text-[#184A37] relative cursor-pointer transition-colors duration-300
-                              hover:text-[#0E9F6E]
-                              after:absolute after:-bottom-1 after:left-0
-                              after:h-0.5 after:w-0 after:bg-[#0E9F6E]
-                              after:transition-all after:duration-300 hover:after:w-full">
-                        {{ tab.label }}
-                    </a>
-                </ng-container>
+        <section #navbarSearchPanel id="navbar-search-panel" class="navbar-search-panel" [class.navbar-search-panel-open]="isNavbarSearchOpen"
+                 role="search" [attr.aria-hidden]="!isNavbarSearchOpen" (click)="$event.stopPropagation()">
+            <div class="navbar-search-field">
+                <svg class="navbar-search-field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.5 4.5"></path></svg>
+                <input #navbarSearchInput type="search" autocomplete="off" [value]="navbarSearchQuery"
+                       placeholder="Tìm tour, địa điểm, dịch vụ..." aria-label="Tìm tour, địa điểm, dịch vụ"
+                       aria-autocomplete="list" aria-controls="navbar-search-results"
+                       [attr.aria-activedescendant]="activeNavbarSearchIndex >= 0 ? 'navbar-search-option-' + activeNavbarSearchIndex : null"
+                       (input)="onNavbarSearchChanged($any($event.target).value)" (keydown)="onNavbarSearchKeydown($event)" />
+                <button type="button" class="navbar-search-submit" aria-label="Tìm kiếm" (click)="submitNavbarSearch()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                </button>
+                <button type="button" class="navbar-search-close" aria-label="Đóng tìm kiếm" (click)="closeNavbarSearch()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+                </button>
             </div>
-
-            <!-- Right Spacer matching Controls width -->
-            <div style="width: 300px; flex-shrink: 0;"></div>
-        </div>
+            <div *ngIf="navbarSearchQuery.trim().length >= 2" class="navbar-search-results" id="navbar-search-results" role="listbox" aria-label="Gợi ý tìm kiếm">
+                <p *ngIf="isNavbarSearchLoading" class="navbar-search-state" role="status">Đang tìm kiếm...</p>
+                <p *ngIf="!isNavbarSearchLoading && navbarSearchError" class="navbar-search-state navbar-search-error" role="status">Chưa tải được gợi ý. Bạn vẫn có thể nhấn Enter để tìm kiếm.</p>
+                <p *ngIf="!isNavbarSearchLoading && !navbarSearchError && !navbarSearchSuggestions.length" class="navbar-search-state" role="status">Không tìm thấy gợi ý phù hợp.</p>
+                <button *ngFor="let suggestion of navbarSearchSuggestions; let i = index" type="button"
+                        class="navbar-search-option" role="option" [id]="'navbar-search-option-' + i"
+                        [attr.aria-selected]="activeNavbarSearchIndex === i" [class.navbar-search-option-active]="activeNavbarSearchIndex === i"
+                        (mouseenter)="activeNavbarSearchIndex = i" (click)="selectNavbarSearchSuggestion(suggestion)">
+                    <span class="navbar-search-option-icon" aria-hidden="true">{{ suggestion.kind === 'tour' ? '✦' : '⌖' }}</span>
+                    <span class="navbar-search-option-copy"><strong>{{ suggestion.label }}</strong><small>{{ suggestion.detail }}</small></span>
+                    <span class="navbar-search-option-kind">{{ suggestion.kind === 'tour' ? 'Tour' : 'Dịch vụ' }}</span>
+                </button>
+            </div>
+        </section>
     </div>
 
 </header>
@@ -396,23 +345,12 @@
                         (click)="toggleMobileMenu()">&times;</button>
             </div>
 
-            <div class="relative mb-6">
-                <input type="text"
-                       class="w-full h-11 pl-10 pr-4 rounded-full border border-[#184A37]/20
-                              bg-gray-50 text-[#184A37] placeholder-[#184A37]/50
-                              focus:outline-none focus:border-[#0E9F6E] focus:bg-white text-sm"
-                       placeholder="Tìm Phú Yên, cắm trại..."
-                       [(ngModel)]="smartSearchQuery"
-                       (keypress)="onSearchKeypress($event)">
-                <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[#184A37]/50 text-sm"></i>
-            </div>
-
             <div class="flex flex-col gap-5 text-[17px] font-semibold text-[#184A37]">
-                <ng-container *ngFor="let tab of filteredMobileTabs">
+                <ng-container *ngFor="let tab of allTabs">
                     <a *ngIf="tab.link"
                        [routerLink]="tab.link"
                        [queryParams]="tab.queryParams || null"
-                       (click)="smartSearchQuery = ''; toggleMobileMenu()"
+                       (click)="toggleMobileMenu()"
                        class="hover:text-[#0E9F6E] transition-colors"
                        style="text-decoration:none;">{{ tab.label }}</a>
                     <a *ngIf="tab.action === 'green_handbook'"
@@ -423,9 +361,6 @@
                        [class.text-\[#0E9F6E\]]="isAiPlannerActive()"
                        class="hover:text-[#0E9F6E] cursor-pointer transition-colors">{{ tab.label }}</a>
                 </ng-container>
-                <p *ngIf="filteredMobileTabs.length === 0" class="rounded-2xl bg-[#184A37]/5 px-4 py-3 text-sm font-semibold text-[#184A37]/60">
-                    Không tìm thấy danh mục phù hợp.
-                </p>
                 <a *ngIf="!currentUser || currentUser.role === 'traveler'" routerLink="/become-a-partner" (click)="toggleMobileMenu()" class="partner-mobile-entry"><i class="bi bi-briefcase" aria-hidden="true"></i> Trở thành đối tác</a>
             </div>
         </div>

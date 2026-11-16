@@ -132,7 +132,11 @@
                     </table>
                 </div>
                 
-                <div *ngIf="filteredBookings.length === 0" class="py-12 text-center text-gray-400">
+                <app-loading-indicator *ngIf="isLoading" [compact]="true" label="Đang tải đơn đặt..."></app-loading-indicator>
+                <div *ngIf="!isLoading && loadError" class="py-12 text-center text-rose-600" role="alert">
+                    <p>Chưa thể tải dữ liệu vận hành.</p><button type="button" (click)="retryLoad()">Thử lại</button>
+                </div>
+                <div *ngIf="!isLoading && !loadError && filteredBookings.length === 0" class="py-12 text-center text-gray-400">
                     <i class="bi bi-journal-x text-4xl block mb-2"></i>
                     <p class="font-bold">Không tìm thấy đơn đặt nào</p>
                 </div>

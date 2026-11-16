@@ -70,22 +70,18 @@ export class PartnerAdsComponent implements OnInit {
     try {
       const userId = String((user as any).id || (user as any)._id || '');
       this.loadReadReviewIds(userId);
-      const services = await this.apiService.getMyServices(userId);
-      const allReviews: any[] = [];
-
-      for (const service of services) {
-        const serviceReviews = await this.apiService.getServiceReviews(service.id);
-        serviceReviews.forEach((r: any) => {
-          allReviews.push({
-            ...r,
-            serviceName: (service as any).name_service || (service as any).name || 'Dịch vụ',
-            replied: false,
-            replyDraft: '',
-            replyText: ''
-          });
-        });
-      }
-
+      const [services, providerReviews] = await Promise.all([
+        this.apiService.getMyServices(userId, true, 8000, true),
+        this.apiService.getProviderReviews(userId, {}),
+      ]);
+      const serviceNames = new Map(services.map(service => [service.id, service.name]));
+      const allReviews = providerReviews.map((review: any) => ({
+        ...review,
+        serviceName: serviceNames.get(review.targetId) || review.target?.name || 'D?ch v?',
+        replied: Boolean(review.replied || review.providerReply),
+        replyDraft: '',
+        replyText: review.providerReply?.text || '',
+      }));
       this.reviews = allReviews.sort((a, b) =>
         new Date(b.createdAt || b.created_at || 0).getTime() -
         new Date(a.createdAt || a.created_at || 0).getTime()

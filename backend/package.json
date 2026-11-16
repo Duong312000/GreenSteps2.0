@@ -12,6 +12,8 @@
     "migrate:postgres": "node scripts/migrate-postgres.js",
     "seed": "node scripts/seed_mongo.js",
     "seed:community": "node scripts/seed-community-posts.js",
+    "seed:food": "node scripts/seed-food.js",
+    "test:food": "node --test test/food.test.js",
     "seed:detail-demo": "node scripts/seed-detail-demo.js --apply",
     "seed:national-catalog": "node scripts/seed-national-catalog.js",
     "seed:national-demo": "node scripts/seed-demo-tours.js",

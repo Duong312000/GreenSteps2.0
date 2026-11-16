@@ -1,0 +1,42 @@
+﻿<main class="sustainability-page">
+  <section class="sustainability-hero" aria-labelledby="sustainability-title">
+    <img class="hero-image" src="/image/sustainability/mai-chau-valley.jpg" alt="Ruộng lúa và những nếp nhà giữa thung lũng Mai Châu" fetchpriority="high" width="1920" height="1080">
+    <div class="hero-shade"></div>
+    <div class="hero-content">
+      <p class="page-label"><i class="bi bi-tree" aria-hidden="true"></i> Cam kết bền vững</p>
+      <h1 id="sustainability-title">Đi để yêu thêm.<br>Đi để gìn giữ.</h1>
+      <p class="hero-description">Để mỗi nơi ta đi qua vẫn đẹp cho người ở lại,<br class="desktop-break"> và cho cả những bước chân mai sau.</p>
+      <a class="hero-link" href="/sustainability#commitments" (click)="scrollTo($event, 'commitments')">Cùng khám phá cam kết <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
+    </div>
+    <div class="hero-caption"><i class="bi bi-geo-alt" aria-hidden="true"></i> Thung lũng Mai Châu, Việt Nam</div>
+    <div class="hero-signature">Travel with care</div>
+  </section>
+  <section class="intro content-width" aria-labelledby="intro-title">
+    <h2 id="intro-title">Một hành trình đẹp<br>bắt đầu từ sự quan tâm.</h2>
+    <div><p>Với GreenSteps, du lịch không chỉ là đến một nơi mới. Đó còn là cách chúng ta đối xử với thiên nhiên, gặp gỡ con người và trân trọng những giá trị bản địa.</p><p>Chúng tôi theo đuổi bốn cam kết để cùng bạn tạo nên những chuyến đi có trách nhiệm hơn, từ những lựa chọn nhỏ mỗi ngày.</p></div>
+  </section>
+  <nav class="commitment-nav content-width" aria-label="Khám phá các cam kết">
+    <a *ngFor="let item of commitments" [href]="'/sustainability#' + item.id" (click)="scrollTo($event, item.id)"><i [class]="'bi ' + item.icon" aria-hidden="true"></i>{{ item.theme }}</a>
+  </nav>
+  <section class="commitments content-width" id="commitments" aria-label="Các cam kết của GreenSteps">
+    <article class="commitment" *ngFor="let item of commitments; let i = index" [id]="item.id" [class.reverse-row]="i % 2 === 1">
+      <div class="photo-story">
+        <figure *ngFor="let photo of item.images; let photoIndex = index" [class.main-photo]="photoIndex === 0" [class.detail-photo]="photoIndex === 1">
+          <img [src]="'/image/sustainability/' + photo.file + '.jpg'" [alt]="photo.alt" loading="lazy" decoding="async" width="1000" height="750">
+          <figcaption>{{ photo.caption }}</figcaption>
+        </figure>
+      </div>
+      <div class="commitment-copy">
+        <span class="theme"><i [class]="'bi ' + item.icon" aria-hidden="true"></i>{{ item.theme }}</span>
+        <h2>{{ item.title }}</h2><p>{{ item.copy }}</p>
+        <ul><li *ngFor="let practice of item.practices"><i class="bi bi-check2" aria-hidden="true"></i><span>{{ practice }}</span></li></ul>
+      </div>
+    </article>
+  </section>
+  <section class="small-steps" aria-labelledby="steps-title"><div class="content-width">
+    <div class="steps-heading"><h2 id="steps-title">Hành trang nhỏ.<br>Thay đổi từ bạn.</h2><p>Không cần bắt đầu bằng điều lớn lao.<br>Một thói quen tốt cũng làm chuyến đi khác đi.</p></div>
+    <div class="steps-grid"><div class="step" *ngFor="let action of actions"><i [class]="'bi ' + action.icon" aria-hidden="true"></i><h3>{{ action.title }}</h3><p>{{ action.text }}</p></div></div>
+  </div></section>
+  <section class="journey-cta content-width" aria-labelledby="journey-title"><div><h2 id="journey-title">Chuyến đi tiếp theo,<br>mình cùng đi có ý thức.</h2><p>Khám phá những điểm đến và mang theo sự quan tâm của bạn.</p></div><a routerLink="/tours">Khám phá các hành trình <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></section>
+  <div class="photo-credit content-width">Ảnh minh họa cảnh quan và đời sống Việt Nam từ <a href="https://vietnam.travel/things-to-do/7-essential-things-do-mai-chau/" target="_blank" rel="noopener noreferrer">Vietnam Tourism: Mai Châu</a> và <a href="https://vietnam.travel/things-to-do/how-travel-responsibly-vietnam/" target="_blank" rel="noopener noreferrer">du lịch có trách nhiệm</a>.</div>
+</main>

@@ -27,7 +27,7 @@ async function ensureDefaultBookingAddons() {
   }
 }
 
-async function calculatePricing({ type, targetId, guestCount, addonIds = [], paymentMethod = 'bank_transfer', roomId, roomCount, bookingDate, checkOutDate }) {
+async function calculatePricing({ type, targetId, guestCount, addonIds = [], paymentMethod = 'bank_transfer', roomId, roomCount, bookingDate, checkOutDate, flashSaleId }) {
   const guests = Number(guestCount);
   if (!Number.isSafeInteger(guests) || guests < 1 || guests > 100) {
     throw invalidPricing('Số khách phải là số nguyên từ 1 đến 100.');
@@ -39,6 +39,7 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   const selectedIds = [...new Set(addonIds)];
   let unitTourPrice = 0;
   let tourSubtotal;
+  let flashSale = null;
   if (type === 'service') {
     const service = await GreenService.findByPk(targetId);
     if (!service) throw Object.assign(new Error('Dịch vụ không tồn tại.'), { statusCode: 404 });
@@ -46,8 +47,14 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     unitTourPrice = integerVnd(service.cost, 'Giá dịch vụ');
     if (roomId) {
       const { lodgingPrice } = require('./lodging-pricing.service');
-      tourSubtotal = (await lodgingPrice(service, { roomId, roomCount, bookingDate, checkOutDate, guests })).total;
+      const stay = await lodgingPrice(service, { roomId, roomCount, bookingDate, checkOutDate, guests });
+      tourSubtotal = stay.total;
+      flashSale = await require('./flash-sale-pricing.service').flashSaleFor(service, {
+        campaignId: flashSaleId, unitPrice: stay.room.price_per_night, units: stay.nights * roomCount, stockUnits: roomCount,
+      });
       unitTourPrice = null;
+    } else {
+      flashSale = await require('./flash-sale-pricing.service').flashSaleFor(service, { campaignId: flashSaleId, units: guests, stockUnits: guests });
     }
   } else if (type === 'tour' || type === 'itinerary') {
     const schedule = await Schedule.findByPk(targetId);
@@ -87,7 +94,7 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   const addonsTotal = addons.reduce((sum, addon) => sum + addon.total, 0);
   const tourPriceSubtotal = tourSubtotal ?? (integerVnd(unitTourPrice, 'Giá tour') * guests);
   const subtotal = tourPriceSubtotal + addonsTotal;
-  const discount = Number((BigInt(tourPriceSubtotal) * BigInt(pricingConfig.DISCOUNT_PERCENT)) / 100n);
+  const discount = flashSale ? flashSale.discount : Number((BigInt(tourPriceSubtotal) * BigInt(pricingConfig.DISCOUNT_PERCENT)) / 100n);
   const serviceFee = pricingConfig.SERVICE_FEE_VND * (pricingConfig.SERVICE_FEE_PER_GUEST ? guests : 1);
   const total = subtotal - discount + serviceFee;
   const deposit = Number((BigInt(total) * BigInt(pricingConfig.DEPOSIT_PERCENT) + 99n) / 100n);
@@ -107,7 +114,8 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     addons,
     addonsTotal,
     subtotal,
-    discountPercent: pricingConfig.DISCOUNT_PERCENT,
+    discountPercent: flashSale ? (flashSale.discount_type === 'percent' ? flashSale.discount_value : null) : pricingConfig.DISCOUNT_PERCENT,
+    flashSale,
     discount,
     serviceFee,
     total,

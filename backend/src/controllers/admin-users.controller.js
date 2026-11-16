@@ -6,6 +6,7 @@ const {
   CommentPost, Vender, VenderContract, GreenService, ScheduleSample
 } = require('../models');
 const otpService = require('../services/otp.service');
+const { providerForUser } = require('../services/provider-identity.service');
 
 const ACCOUNT_STATUSES = new Set(['active', 'suspended', 'deactivated']);
 const ROLES = new Set(['traveler', 'provider', 'admin']);
@@ -300,7 +301,7 @@ exports.getProvider = async (req, res, next) => {
     const user = await User.findByPk(req.params.userId, { attributes: { exclude: ['password_hash'] } });
     if (!user) return fail(res, 404, 'Không tìm thấy tài khoản nhà cung cấp.');
     const [provider, vender, contracts] = await Promise.all([
-      Provider.findOne({ where: { user_id: user.id } }),
+      providerForUser(user.id),
       Vender.findOne({ where: { user_id: user.id } }),
       VenderContract.findAll({ where: { user_id: user.id }, order: [['createdAt', 'DESC']] })
     ]);
@@ -350,7 +351,7 @@ exports.updateProvider = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.userId);
     if (!user) return fail(res, 404, 'Không tìm thấy tài khoản nhà cung cấp.');
-    const provider = await Provider.findOne({ where: { user_id: user.id } });
+    const provider = await providerForUser(user.id);
     if (!provider) return fail(res, 404, 'Không tìm thấy hồ sơ nhà cung cấp.');
     const reason = normalizeReason(req.body.reason);
     if (!reason) return fail(res, 400, 'Vui lòng nhập lý do cập nhật.');
@@ -379,7 +380,7 @@ async function changeProviderStatus(req, res, next, status) {
   try {
     const user = await User.findByPk(req.params.userId);
     if (!user || user.role === 'admin') return fail(res, 404, 'Không tìm thấy tài khoản nhà cung cấp.');
-    const provider = await Provider.findOne({ where: { user_id: user.id } });
+    const provider = await providerForUser(user.id);
     if (!provider) return fail(res, 404, 'Không tìm thấy hồ sơ nhà cung cấp.');
     if (user.id === req.user.id) return fail(res, 409, 'Không thể khóa tài khoản của chính mình.');
     const reason = normalizeReason(req.body.reason);
@@ -493,7 +494,7 @@ exports.changeRole = async (req, res, next) => {
     if (!user) return fail(res, 404, 'Không tìm thấy người dùng.');
     if (user.id === req.user.id || user.role === 'admin') return fail(res, 409, 'Không thể thay đổi vai trò tài khoản quản trị viên.');
     if (role === 'provider') {
-      const provider = await Provider.findOne({ where: { user_id: user.id } });
+      const provider = await providerForUser(user.id);
       if (!provider || provider.provider_status !== 'active') return fail(res, 409, 'Chỉ hồ sơ nhà cung cấp đã được duyệt mới có thể nhận vai trò này.');
     }
     const previousState = auditState(user);

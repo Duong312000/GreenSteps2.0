@@ -1,0 +1,255 @@
+<main class="about-page">
+  <section class="about-hero" aria-labelledby="about-title">
+    <img
+      class="hero-poster"
+      src="media/about/hero-poster.jpg"
+      alt=""
+      fetchpriority="high"
+      width="1920"
+      height="839"
+    />
+    <video
+      #heroVideo
+      class="hero-video"
+      [class.video-unavailable]="videoFailed"
+      [autoplay]="!reducedMotion"
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      poster="media/about/hero-poster.jpg"
+      aria-hidden="true"
+      (play)="videoPlaying = true"
+      (pause)="videoPlaying = false"
+      (error)="videoFailed = true; videoPlaying = false"
+    >
+      <source *ngIf="!reducedMotion" src="media/about/rice-terraces.mp4" type="video/mp4" />
+    </video>
+    <div class="hero-shade"></div>
+    <div class="about-container hero-copy">
+      <h1 id="about-title">Du lịch xanh,<br />trải nghiệm thật.</h1>
+      <p>
+        Khám phá Việt Nam theo cách<br class="desktop-break" />
+        ý nghĩa và bền vững hơn.
+      </p>
+    </div>
+    <div class="hero-bottom about-container">
+      <button type="button" class="scroll-cue" (click)="scrollToIntroduction()">
+        <span>Khám phá GreenSteps</span><span aria-hidden="true">↓</span>
+      </button>
+      <button
+        *ngIf="!videoFailed && !reducedMotion"
+        type="button"
+        class="video-toggle"
+        (click)="toggleVideo()"
+        [attr.aria-label]="videoPlaying ? 'Tạm dừng video' : 'Phát video'"
+      >
+        <svg *ngIf="videoPlaying" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 5v14M15 5v14" />
+        </svg>
+        <svg *ngIf="!videoPlaying" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 5 10 7-10 7Z" />
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  <section
+    id="about-introduction"
+    class="about-container section-space introduction"
+    aria-labelledby="introduction-title"
+    data-reveal
+  >
+    <h2 id="introduction-title">Về GreenSteps Travel</h2>
+    <div class="introduction-copy">
+      <p>
+        GreenSteps Travel là nền tảng du lịch hướng đến những hành trình có trách nhiệm với môi
+        trường, kết nối du khách với thiên nhiên, văn hóa và cộng đồng địa phương tại Việt Nam.
+      </p>
+      <p>
+        Chúng tôi tin rằng mỗi hành trình không chỉ là cơ hội khám phá những vùng đất mới, mà còn là
+        cách tạo nên những giá trị tốt đẹp.
+      </p>
+    </div>
+  </section>
+
+  <section
+    class="about-container section-space values-section"
+    aria-labelledby="values-title"
+    data-reveal
+  >
+    <div class="section-heading">
+      <h2 id="values-title">Những giá trị định hình GreenSteps</h2>
+      <p>Đi xa hơn, với những điều chúng tôi tin tưởng.</p>
+    </div>
+    <div class="values-grid">
+      <article class="value-card" *ngFor="let value of values">
+        <div class="value-image">
+          <img
+            [src]="value.image"
+            [alt]="value.alt"
+            width="600"
+            height="750"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <h3>{{ value.title }}</h3>
+        <p>{{ value.description }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="founders-section" aria-labelledby="founders-title">
+    <div class="about-container section-space" data-reveal>
+      <div class="section-heading">
+        <h2 id="founders-title">Những người đứng sau GreenSteps</h2>
+        <p>Chung một niềm tin. Cùng một hướng đi.</p>
+      </div>
+      <div class="founders-grid">
+        <article class="founder" *ngFor="let founder of founders">
+          <div class="founder-portrait">
+            <img
+              *ngIf="founder.portrait && !missingPortraits.has(founder.name); else pendingPortrait"
+              [src]="founder.portrait"
+              [alt]="founder.name"
+              width="640"
+              height="800"
+              loading="lazy"
+              decoding="async"
+              (error)="missingPortraits.add(founder.name)"
+            />
+            <ng-template #pendingPortrait
+              ><div
+                class="portrait-placeholder"
+                role="img"
+                [attr.aria-label]="'Chân dung ' + founder.name + ' đang cập nhật'"
+              >
+                <span>{{ founder.initials }}</span
+                ><small>Chân dung đang cập nhật</small>
+              </div></ng-template
+            >
+          </div>
+          <h3>{{ founder.name }}</h3>
+          <p>
+            <ng-container *ngIf="founder.position"
+              ><span>{{ founder.position }}</span> · </ng-container
+            >{{ founder.role }}
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="about-container section-space story-section"
+    aria-labelledby="story-title"
+    data-reveal
+  >
+    <div class="story-heading">
+      <div>
+        <h2 id="story-title">Hành trình GreenSteps</h2>
+        <p>Từ một ý tưởng nhỏ đến hành trình kiến tạo những trải nghiệm du lịch xanh.</p>
+      </div>
+      <div class="story-controls">
+        <div class="story-year-select">
+          <label for="story-year">Chọn năm</label>
+          <select
+            id="story-year"
+            [value]="activeStoryYear"
+            (change)="selectStoryYear($event)"
+            aria-controls="greensteps-story-track"
+          >
+            <option *ngFor="let year of storyYears" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="story-arrows" role="group" aria-label="Điều hướng hành trình">
+          <button
+            type="button"
+            aria-label="Mốc trước"
+            aria-controls="greensteps-story-track"
+            [disabled]="!canPrevious"
+            (click)="scrollStory(-1)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+          </button>
+          <button
+            type="button"
+            aria-label="Mốc tiếp theo"
+            aria-controls="greensteps-story-track"
+            [disabled]="!canNext"
+            (click)="scrollStory(1)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
+      #storyTrack
+      id="greensteps-story-track"
+      class="story-track"
+      [class.is-dragging]="storyDragging"
+      tabindex="0"
+      role="region"
+      aria-label="Câu chuyện GreenSteps: vuốt ngang hoặc dùng phím mũi tên để khám phá 5 cột mốc"
+      (scroll)="updateCarousel()"
+      (keydown)="onStoryKeydown($event)"
+      (pointerdown)="onStoryPointerDown($event)"
+      (pointermove)="onStoryPointerMove($event)"
+      (pointerup)="onStoryPointerEnd($event)"
+      (pointercancel)="onStoryPointerEnd($event)"
+    >
+      <article
+        class="milestone"
+        *ngFor="let milestone of milestones; let index = index"
+        [attr.aria-label]="'Cột mốc ' + (index + 1) + ' trên 5: ' + milestone.title"
+      >
+        <div class="milestone-image">
+          <img
+            [src]="milestone.image"
+            [alt]="milestone.imageAlt"
+            width="800"
+            height="600"
+            loading="lazy"
+            decoding="async"
+            draggable="false"
+          />
+        </div>
+        <time [attr.datetime]="milestone.date">{{ milestone.dateLabel }}</time>
+        <h3>{{ milestone.title }}</h3>
+        <p
+          class="milestone-description"
+          [class.is-expanded]="expandedStories.has(milestone.id)"
+          [id]="'story-description-' + milestone.id"
+        >
+          {{ milestone.description }}
+        </p>
+        <button
+          class="story-read-more"
+          type="button"
+          [attr.aria-expanded]="expandedStories.has(milestone.id)"
+          [attr.aria-controls]="'story-description-' + milestone.id"
+          [attr.aria-label]="
+            (expandedStories.has(milestone.id) ? 'Thu gọn: ' : 'Đọc tiếp: ') + milestone.title
+          "
+          (click)="toggleStory(milestone.id)"
+        >
+          {{ expandedStories.has(milestone.id) ? 'Thu gọn' : 'Đọc tiếp' }}
+        </button>
+      </article>
+    </div>
+    <p class="story-position" aria-live="polite" aria-atomic="true">
+      {{ activeStoryIndex + 1 }} / {{ milestones.length }}
+    </p>
+  </section>
+
+  <section class="about-cta" aria-labelledby="cta-title" data-reveal>
+    <div class="about-container cta-inner">
+      <h2 id="cta-title">Cùng GreenSteps khám phá<br />Việt Nam theo cách xanh hơn.</h2>
+      <a routerLink="/tours" class="journey-link"
+        >Khám phá hành trình <span aria-hidden="true">↗</span></a
+      >
+    </div>
+  </section>
+</main>

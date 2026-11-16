@@ -1,12 +1,14 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
-import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup } from '../../models/models';
+import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup, ServiceNearbyPlace } from '../../models/models';
+import { ServiceDetailSeoService } from '../../services/service-detail-seo.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { bookingDate } from '../../utils/booking-date';
+import { flashSaleTotal } from '../../utils/flash-sale-price';
 
 @Component({
   selector: 'app-tour-detail',
@@ -14,7 +16,7 @@ import { bookingDate } from '../../utils/booking-date';
   templateUrl: './tour-detail.html',
   styleUrls: ['./tour-detail.css']
 })
-export class TourDetailComponent implements OnInit {
+export class TourDetailComponent implements OnInit, OnDestroy {
   public activeTour: Tour | null = null;
   public slideImages: string[] = [];
   public activeSlideIndex: number = 0;
@@ -46,6 +48,9 @@ export class TourDetailComponent implements OnInit {
   public roomQuantities: Record<string, number> = {};
   public bookingError = '';
   public roomAmenityFilter = '';
+  public locationCategory = 'all';
+  private detailDisposed = false;
+  ngOnDestroy() { this.detailDisposed = true; this.seo.clear(); }
   private mapQuery = '';
   private trustedMapUrl?: SafeResourceUrl;
 
@@ -66,7 +71,27 @@ export class TourDetailComponent implements OnInit {
     return this.activeTour?.nearby?.length ? [{ name: 'Điểm nổi bật', items: this.activeTour.nearby.map(name => ({ name })) }] : [];
   }
   public get nearbyPreview() { return this.nearbyGroups.flatMap(group => group.items.map(item => ({ ...item, category: group.name }))).slice(0, 6); }
+  public get nearbyPlaceCount(): number { return this.nearbyGroups.reduce((count, group) => count + group.items.length, 0); }
+  public distanceLabel(place: ServiceNearbyPlace): string {
+    return typeof place.distanceKm === 'number' && Number.isFinite(place.distanceKm) && place.distanceKm > 0
+      ? new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(place.distanceKm) + ' km' : place.distance || 'Chưa có số liệu';
+  }
+  public directionsTo(place: ServiceNearbyPlace): string {
+    return 'https://www.google.com/maps/dir/?' + new URLSearchParams({ api: '1',
+      origin: this.activeTour?.nearbyOrigin || this.locationQuery,
+      destination: place.mapQuery || `${place.name}, ${this.activeTour?.destination || ''}`,
+      travelmode: place.travelMode || 'driving' }).toString();
+  }
+  public travelModeLabel(mode?: string): string { return mode === 'walking' ? 'đi bộ' : mode === 'bicycling' ? 'đạp xe' : 'đi xe'; }
   public get greenFeatures() { return this.activeTour?.greenFeatures || []; }
+  public get policyTimes(): { checkIn?: string; checkOut?: string } {
+    const text = this.policyGroups.flatMap(group => group.lines).join(' ');
+    return { checkIn: text.match(/nhận phòng\s*(?:từ|sau|lúc)?\s*(\d{1,2}[:h]\d{2})/i)?.[1]?.replace('h', ':'),
+      checkOut: text.match(/trả phòng\s*(?:trước|đến|lúc)?\s*(\d{1,2}[:h]\d{2})/i)?.[1]?.replace('h', ':') };
+  }
+  public get hasCancellationPolicy(): boolean {
+    return this.policyGroups.some(group => /hủy|hoàn tiền|hoàn cọc/i.test([group.title, ...group.lines].join(' ')));
+  }
   public infoIcon(label: string): string {
     const value = label.toLocaleLowerCase('vi');
     const groups: [RegExp, string][] = [
@@ -134,7 +159,7 @@ export class TourDetailComponent implements OnInit {
       const activity = tour?.data?.flat().find(item => item.lat != null && item.lng != null);
       if (activity) return `${activity.lat},${activity.lng}`;
     }
-    return tour?.address || '';
+    return tour?.nearbyOrigin || (tour?.address ? [tour.title, tour.address].join(', ') : '');
   }
   public get mapLink(): string { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.locationQuery)}`; }
   public get mapEmbedUrl() {
@@ -368,7 +393,8 @@ export class TourDetailComponent implements OnInit {
     private apiService: ApiService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private seo: ServiceDetailSeoService
   ) {}
 
   async ngOnInit() {
@@ -387,6 +413,7 @@ export class TourDetailComponent implements OnInit {
         this.activeInfoTab = 'overview';
         this.selectedRoomId = '';
         this.roomQuantities = {};
+        this.locationCategory = 'all';
         this.bookingError = '';
         const isService = this.route.snapshot.routeConfig?.path?.startsWith('services') ||
                           this.route.snapshot.routeConfig?.path?.startsWith('service-detail') ||
@@ -394,7 +421,7 @@ export class TourDetailComponent implements OnInit {
                           id.toLowerCase().startsWith('srv-');
 
         if (isService) {
-          this.activeTour = await this.apiService.getServiceAsTour(id);
+          this.activeTour = await this.apiService.getServiceAsTour(id, this.route.snapshot.queryParamMap?.get('flashSale') || undefined);
           if (!this.activeTour) {
             this.activeTour = await this.apiService.getPresetTour(id);
           }
@@ -405,12 +432,17 @@ export class TourDetailComponent implements OnInit {
           }
         }
 
+        if (this.detailDisposed) return;
         this.isServiceDetail = !!this.activeTour?.isService || isService;
         if (this.activeTour) {
+          if (this.activeTour.isService) this.seo.update(this.activeTour);
+          else this.seo.clear();
           this.setupSlides();
           await this.loadReviews(id);
           await this.loadReviewEligibility();
         }
+        if (this.detailDisposed) return;
+        if (!this.activeTour) this.seo.clear();
         this.isPageLoading = false;
         this.cdr.detectChanges();
       } else {
@@ -524,8 +556,32 @@ export class TourDetailComponent implements OnInit {
   public get totalPrice(): number {
     if (!this.activeTour) return 0;
     if (this.isLodging) return this.selectedRoom
-      ? Number(this.selectedRoom.price_per_night || 0) * (this.roomQuantities[this.selectedRoom.id] || 1) * this.stayNights : 0;
-    return this.activeTour.cost * this.totalGuests;
+      ? this.roomSalePrice(this.selectedRoom) * (this.roomQuantities[this.selectedRoom.id] || 1) * this.stayNights : 0;
+    return flashSaleTotal(this.activeTour.cost, this.totalGuests, this.activeTour.flashSale);
+  }
+  public roomSalePrice(room: ServiceRoom): number {
+    const quantity = this.roomQuantities[room.id] || 1;
+    const units = quantity * this.stayNights;
+    return flashSaleTotal(Number(room.price_per_night || 0), units, this.activeTour?.flashSale, quantity) / units;
+  }
+  public get originalBookingTotal(): number {
+    return this.isLodging && this.selectedRoom
+      ? Number(this.selectedRoom.price_per_night || 0) * (this.roomQuantities[this.selectedRoom.id] || 1) * this.stayNights
+      : (this.activeTour?.cost || 0) * this.totalGuests;
+  }
+  public get previewRoomPrice(): number {
+    const prices = this.rooms.filter(room => this.canBookRoom(room)).map(room => Number(room.price_per_night));
+    return prices.length ? Math.min(...prices) : Number(this.activeTour?.cost || 0);
+  }
+  public get displayedPrice(): number {
+    return this.isLodging && !this.selectedRoom
+      ? flashSaleTotal(this.previewRoomPrice, 1, this.activeTour?.flashSale, 1) : this.totalPrice;
+  }
+  public get displayedOriginalPrice(): number {
+    return this.isLodging && !this.selectedRoom ? this.previewRoomPrice : this.originalBookingTotal;
+  }
+  public get hasDisplayedSale(): boolean {
+    return !!this.activeTour?.flashSale && this.displayedPrice < this.displayedOriginalPrice;
   }
 
   public get totalGuests(): number {
@@ -544,6 +600,7 @@ export class TourDetailComponent implements OnInit {
 
   public get displayOldCost(): number {
     if (!this.activeTour) return 0;
+    if (this.activeTour.flashSale) return this.activeTour.cost;
     return this.activeTour.oldCost || this.activeTour.old_cost || Math.round(this.activeTour.cost * 1.12);
   }
 
@@ -620,7 +677,7 @@ export class TourDetailComponent implements OnInit {
     this.bookingError = '';
     if (!this.bookingAvailable) {
       this.activeInfoTab = 'overview';
-      this.bookingError = 'Vui lòng liên hệ cơ sở qua website chính thức để xác nhận giá và tình trạng chỗ.';
+      this.bookingError = 'Dịch vụ chưa mở đặt chỗ trên GreenSteps. Vui lòng chọn dịch vụ khác hoặc thử lại sau.';
       return;
     }
     if (this.isLodging) {
@@ -650,9 +707,10 @@ export class TourDetailComponent implements OnInit {
 
     const bookingContext = {
       hotelId: `hotel_${this.activeTour.destination || 'greensteps'}`.toLowerCase().replace(/\s+/g, '_'),
-      roomId: this.isLodging ? this.selectedRoomId : 'premium_double_window',
+      roomId: this.isLodging ? this.selectedRoomId : '',
       tourId: this.activeTour.isService ? undefined : this.activeTour.id,
       serviceId: this.activeTour.isService ? this.activeTour.id : undefined,
+      flashSaleId: this.activeTour.flashSale?.id,
       checkIn,
       checkOut,
       guestCount: this.totalGuests,

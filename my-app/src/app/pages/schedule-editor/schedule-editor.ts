@@ -1,6 +1,7 @@
 import { Subscription } from 'rxjs';
 import { FavoritesService } from '../../services/favorites.service';
-import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener, NgZone } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener, NgZone, inject } from '@angular/core';
+import { FoodApi, FoodPlace } from '../local-food/food-api';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +20,30 @@ declare const google: any; // Google Maps SDK mapped globally
   styleUrls: ['./schedule-editor.css']
 })
 export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
+  private foodApi = inject(FoodApi);
+  public pendingFood: FoodPlace | null = null;
+  public addingFood = false;
+  public dismissPendingFood() { this.pendingFood = null; sessionStorage.removeItem('greensteps_pending_food'); }
+  private async loadPendingFood() {
+    try {
+      const id = sessionStorage.getItem('greensteps_pending_food');
+      if (!id) return;
+      this.pendingFood = (await this.foodApi.list()).find(p => p.id === id) || null;
+      if (!this.pendingFood) sessionStorage.removeItem('greensteps_pending_food');
+      this.cdr.detectChanges();
+    } catch { /* Keep the handoff for the next visit when the API is available. */ }
+  }
+  public async addPendingFood() {
+    const p = this.pendingFood;
+    if (!p || !this.activeItinerary || this.isItineraryLocked() || this.addingFood) return;
+    const day = this.activeItinerary.days[this.activeDayIdx];
+    if (day?.activities?.some((a: any) => a.title === p.name)) { this.showAlert('Quán đã có trong ngày này.', 'warning'); return; }
+    this.addingFood = true;
+    try {
+      await this.addPlaceFromMap({ title: p.name, cost: p.priceMin, type: 'dining', img: p.image, address: p.address, rating: p.rating, reviews: p.reviewCount, carbon: 0, isPartner: false });
+      this.dismissPendingFood();
+    } finally { this.addingFood = false; this.cdr.detectChanges(); }
+  }
   public currentUser: any = null;
   public activeItinerary: any = null; // Internal Editor representation
   public activeDayIdx: number = 0;
@@ -314,6 +339,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnInit() {
+    void this.loadPendingFood();
     this.loadFavoritePlaces();
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;

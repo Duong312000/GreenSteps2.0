@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 
 export interface PromotionServiceOption {
   id: string;
@@ -55,7 +55,7 @@ export class PartnerPromotionsService {
       this.http.get<{ items: PartnerCampaign[]; total: number }>(this.base, {
         ...this.options,
         params,
-      }),
+      }).pipe(timeout({ first: 10000 })),
     );
   }
   optionsList() {
@@ -63,7 +63,7 @@ export class PartnerPromotionsService {
       this.http.get<{ services: PromotionServiceOption[]; packages: Record<string, number> }>(
         `${this.base}/options`,
         this.options,
-      ),
+      ).pipe(timeout({ first: 10000 })),
     );
   }
   detail(id: string) {
@@ -71,14 +71,14 @@ export class PartnerPromotionsService {
       this.http.get<{ item: PartnerCampaign }>(
         `${this.base}/${encodeURIComponent(id)}`,
         this.options,
-      ),
+      ).pipe(timeout({ first: 10000 })),
     );
   }
   save(body: unknown, id?: string) {
     return firstValueFrom(
       id
-        ? this.http.put(`${this.base}/${encodeURIComponent(id)}`, body, this.options)
-        : this.http.post(this.base, body, this.options),
+        ? this.http.put(`${this.base}/${encodeURIComponent(id)}`, body, this.options).pipe(timeout({ first: 10000 }))
+        : this.http.post(this.base, body, this.options).pipe(timeout({ first: 10000 })),
     );
   }
   status(row: PartnerCampaign, status: string) {
@@ -87,7 +87,7 @@ export class PartnerPromotionsService {
         `${this.base}/${row.id}/status`,
         { status, version: row.version },
         this.options,
-      ),
+      ).pipe(timeout({ first: 10000 })),
     );
   }
   remove(row: PartnerCampaign) {
@@ -95,12 +95,12 @@ export class PartnerPromotionsService {
       this.http.delete(`${this.base}/${row.id}`, {
         ...this.options,
         body: { version: row.version },
-      }),
+      }).pipe(timeout({ first: 10000 })),
     );
   }
   report(id: string) {
     return firstValueFrom(
-      this.http.get<{ report: Record<string, any> }>(`${this.base}/${id}/report`, this.options),
+      this.http.get<{ report: Record<string, any> }>(`${this.base}/${id}/report`, this.options).pipe(timeout({ first: 10000 })),
     );
   }
 }

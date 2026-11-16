@@ -7,7 +7,7 @@ describe('tour booking dates and prices', () => {
   afterEach(() => vi.useRealTimers());
 
   function create() {
-    return new TourDetailComponent({} as any, { navigate: vi.fn() } as any, {} as any, {} as any, {} as any, {} as any);
+    return new TourDetailComponent({} as any, { navigate: vi.fn() } as any, {} as any, {} as any, {} as any, {} as any, { clear: vi.fn(), update: vi.fn() } as any);
   }
 
   it('defaults to today and advances the earliest departure when the day changes', () => {
@@ -35,6 +35,28 @@ describe('tour booking dates and prices', () => {
     expect(component.totalPrice).toBe(2500000);
     component.bookingAdults = 1;
     expect(component.totalPrice).toBe(1500000);
+  });
+
+  it('uses the same Flash Sale unit price for guests and room nights', () => {
+    const component = create();
+    const flashSale = { id: 'flash', discount_type: 'percent', discount_value: 30, remaining: 10, min_order: 0,
+      start_at: new Date(Date.now() - 10000).toISOString(), end_at: new Date(Date.now() + 86400000).toISOString() };
+    component.activeTour = { id: 'bike', isService: true, type: 'Phương tiện', cost: 50000, flashSale } as any;
+    expect(component.totalPrice).toBe(70000);
+    expect(component.displayOldCost).toBe(50000);
+    component.bookingAdults = 3;
+    expect(component.totalPrice).toBe(105000);
+    const stay = lodging();
+    stay.activeTour!.flashSale = { ...flashSale, discount_type: 'fixed', discount_value: 100000 } as any;
+    expect(stay.totalPrice).toBe(0);
+    expect(stay.displayedPrice).toBe(400000);
+    expect(stay.displayedOriginalPrice).toBe(500000);
+    expect(stay.hasDisplayedSale).toBe(true);
+    stay.selectRoom(stay.rooms[0]);
+    expect(stay.roomSalePrice(stay.rooms[0])).toBe(400000);
+    expect(stay.totalPrice).toBe(1200000);
+    stay.activeTour!.flashSale!.end_at = new Date(Date.now() - 1).toISOString();
+    expect(stay.totalPrice).toBe(1500000);
   });
 
   it('calculates the next local calendar date across month and year boundaries', () => {
@@ -89,5 +111,22 @@ describe('tour booking dates and prices', () => {
     component.checkOutDate = '2026-12-31';
     component.validateStayDates();
     expect(component.checkOutDate).toBe('2027-01-01');
+  });
+
+  it('opens the internal checkout for a bike rental without a lodging room', async () => {
+    const component = create();
+    component.activeTour = { id: 'srv_demo_detail_hoian_cycle', isService: true,
+      type: 'Phương tiện', cost: 50000, days: 1, bookingEnabled: true } as any;
+    const setItem = vi.fn();
+    vi.stubGlobal('localStorage', { setItem });
+    try {
+      await component.submitBooking({ preventDefault() {} } as Event);
+      const context = JSON.parse(setItem.mock.calls[0][1]);
+      expect(context.serviceId).toBe('srv_demo_detail_hoian_cycle');
+      expect(context.roomId).toBe('');
+      expect((component as any).router.navigate).toHaveBeenCalledWith(['/booking'], { queryParams: expect.objectContaining({
+        serviceId: 'srv_demo_detail_hoian_cycle', roomId: '', guestCount: 2,
+      }) });
+    } finally { vi.unstubAllGlobals(); }
   });
 });

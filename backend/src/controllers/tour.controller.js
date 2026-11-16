@@ -2,9 +2,13 @@ const { Op } = require('../db/mongo-store');
 const { randomUUID } = require('node:crypto');
 const { sendItineraryInviteEmail } = require('../services/email.service');
 const { createBookingReview, createReply } = require('../services/review.service');
+const { providerOwnsReviewTarget } = require('./reviews.controller');
+const { searchTours } = require('../services/tour-search.service');
+const { providerForUser } = require('../services/provider-identity.service');
 const {
   store,
   Schedule,
+  Destination,
   ScheduleSample,
   ScheduleCustom,
   ScheduleActivity,
@@ -49,7 +53,7 @@ function formatActivitiesIntoDays(schedule, activities) {
         icon: act.icon,
         type: act.type,
         is_shared: act.is_shared,
-        description: act.description || '',
+        description: act.editorial_note || act.description || '',
         lat: act.coordinates ? parseFloat(act.coordinates.split(',')[0]) : null,
         lng: act.coordinates ? parseFloat(act.coordinates.split(',')[1]) : null
       });
@@ -60,34 +64,47 @@ function formatActivitiesIntoDays(schedule, activities) {
 
 // Helper: Format a ScheduleSample+Schedule row into a tour response object
 function formatTourResponse(sample, schedule, badges, activities, vouchers) {
+  const editorial = ['demo', 'editorial'].includes(schedule.catalog_status);
   return {
     id: sample.id,
     title: schedule.tour_name,
     destination: schedule.destination || 'Việt Nam',
     days: schedule.days,
-    cost: sample.cost,
-    oldCost: sample.old_cost,
-    carbon: schedule.carbon,
+    cost: editorial ? undefined : sample.cost,
+    oldCost: editorial ? undefined : sample.old_cost,
+    carbon: editorial ? undefined : schedule.carbon,
     image: schedule.image_url,
+    coverMediaVerified: schedule.coverMediaVerified === true,
+    coverMediaVariants: schedule.coverMediaVariants || [],
     description: schedule.tour_description,
-    rating: sample.rating,
-    votes_count: sample.votes_count,
+    rating: editorial ? undefined : sample.rating,
+    votes_count: editorial ? undefined : sample.votes_count,
     tags: badges,
     gallery: schedule.gallery || (schedule.image_url ? [schedule.image_url] : []),
+    photoMetadata: schedule.photo_metadata || [],
+    responsibleTravel: schedule.responsible_travel || '',
+    practicalNotes: schedule.practical_notes || '',
+    editorialItineraryNotice: schedule.editorial_itinerary_notice || '',
     highlights: schedule.highlights || [],
+    styleExplanation: schedule.style_explanation || '',
+    fitnessIsEstimate: schedule.fitness_is_estimate === true,
+    fitnessExplanation: schedule.fitness_explanation || '',
     included: schedule.included || [],
     excluded: schedule.excluded || [],
     policy: schedule.policy || [],
     guarantees: schedule.guarantees || [],
     style: schedule.style || 'Gia đình / Eco Travel',
-    group_size: schedule.group_size || 'Nhóm nhỏ thân mật',
-    fitness_level: schedule.fitness_level || 'Nhẹ nhàng',
-    maxCapacity: schedule.max_capacity || 10,
-    max_capacity: schedule.max_capacity || 10,
+    group_size: editorial ? undefined : schedule.group_size || 'Nhóm nhỏ thân mật',
+    fitness_level: schedule.fitness_level || (editorial ? undefined : 'Nhẹ nhàng'),
+    maxCapacity: editorial ? undefined : schedule.max_capacity || 10,
+    max_capacity: editorial ? undefined : schedule.max_capacity || 10,
+    catalog_status: schedule.catalog_status || 'legacy',
+    bookingEnabled: !editorial,
     vouchers: vouchers || schedule.vouchers || [],
     data: activities ? formatActivitiesIntoDays(schedule, activities) : undefined
   };
 }
+exports.formatTourResponse = formatTourResponse;
 const bcrypt = require('bcrypt');
 
 // 1. Get All Preset Tours (Eager Loading — single query)
@@ -97,21 +114,14 @@ exports.getPresetTours = async (req, res, next) => {
     const { userId } = req.query;
     let whereClause = {};
     if (userId) {
-      const user = await User.findByPk(userId);
-      if (user && user.company_name) {
-        const provider = await Provider.findOne({ where: { name_provider: user.company_name } });
-        if (provider) {
-          whereClause = { provider_id: provider.id };
-        } else {
-          return res.json([]);
-        }
-      } else {
-        return res.json([]);
-      }
+      const provider = await providerForUser(userId);
+      if (!provider) return res.json([]);
+      whereClause = { provider_id: provider.id };
     }
 
     const samples = await ScheduleSample.findAll({
       where: whereClause,
+      readPreference: userId ? undefined : 'secondaryPreferred',
       include: [
         {
           model: Schedule,
@@ -149,6 +159,16 @@ exports.getPresetTours = async (req, res, next) => {
   }
 };
 
+exports.searchTours = async (req, res, next) => {
+  try {
+    const result = await searchTours({
+      models: { Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, Destination },
+      query: req.query
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+};
+
 // 2. Get Single Preset Tour (Eager Loading — single query)
 exports.getPresetTourById = async (req, res, next) => {
   console.log("[TourController] getPresetTourById called, id:", req.params.id);
@@ -161,6 +181,16 @@ exports.getPresetTourById = async (req, res, next) => {
       }]
     });
     if (!s || !s.Schedule) {
+      const editorial = await Schedule.findByPk(id, { include: [{ model: ScheduleActivity }] });
+      if (editorial && ['demo', 'editorial'].includes(editorial.catalog_status)) {
+        return res.json({
+          ...formatTourResponse({ id: editorial.id }, editorial, [], editorial.ScheduleActivities || []),
+          catalog_status: editorial.catalog_status,
+          is_demo: true,
+          bookingEnabled: false,
+          priceStatus: 'on_request'
+        });
+      }
       return res.status(404).json({ success: false, message: 'Không tìm thấy tour du lịch này!' });
     }
 
@@ -311,6 +341,15 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
         }, { transaction: t });
       }
 
+      const [existingSchedule, existingSample, existingCustom] = await Promise.all([
+        Schedule.findByPk(id, { transaction: t }),
+        ScheduleSample.findByPk(id, { transaction: t }),
+        ScheduleCustom.findByPk(id, { transaction: t })
+      ]);
+      const catalogStatus = !existingSample && (existingCustom || !existingSchedule)
+        ? 'personal'
+        : existingSchedule?.catalog_status;
+
       await Schedule.upsert({
         id: id,
         tour_name: name,
@@ -319,11 +358,11 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
         discount: 0,
         carbon: computedCarbon,
         image_url: (imageUrl && imageUrl !== 'image/Viet Nam.png') ? imageUrl : (image_url && image_url !== 'image/Viet Nam.png' ? image_url : null),
-        tour_description: `Hành trình tự thiết kế đi ${destination}`
+        tour_description: `Hành trình tự thiết kế đi ${destination}`,
+        ...(catalogStatus !== undefined ? { catalog_status: catalogStatus } : {})
       }, { transaction: t });
 
       // Check current status if exists to create notification
-      const existingCustom = await ScheduleCustom.findByPk(id, { transaction: t });
       const statusChanged = existingCustom && existingCustom.status !== status;
 
       await ScheduleCustom.upsert({
@@ -605,6 +644,10 @@ exports.postTourReview = async (req, res, next) => {
   try {
     if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
     if (parentCommentId) {
+      if (req.user.role === 'provider'
+          && !await providerOwnsReviewTarget(userId, parentCommentId, tourId)) {
+        return res.status(403).json({ success: false, message: 'Đánh giá này không thuộc tour của tài khoản nhà cung cấp.' });
+      }
       const comment = await createReply({ type: 'tour', targetId: tourId, parentCommentId, userId, text });
       const user = await User.findByPk(userId);
       return res.status(201).json({
@@ -763,7 +806,8 @@ exports.cloneItinerary = async (req, res, next) => {
         discount: base.discount,
         carbon: base.carbon,
         image_url: base.image_url,
-        tour_description: base.tour_description
+        tour_description: base.tour_description,
+        catalog_status: 'personal'
       }, { transaction: t });
 
       // Create ScheduleCustom for new user
