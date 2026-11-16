@@ -166,6 +166,15 @@ export class ToursComponent implements OnInit {
       this.currentPage = response?.page || this.currentPage;
     } catch {
       if (sequence !== this.loadSequence) return;
+      try {
+        const fallbackTours = await this.apiService.getPresetTours();
+        if (fallbackTours && fallbackTours.length > 0) {
+          this.toursData = fallbackTours;
+          this.filterTours();
+          this.loadError = false;
+          return;
+        }
+      } catch {}
       this.toursData = this.filteredTours = this.paginatedTours = [];
       this.totalTours = 0;
       this.loadError = true;
