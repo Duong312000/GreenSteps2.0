@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout, catchError, of } from 'rxjs';
 import { getApiUrl } from '../config/api-config';
 import { AuthService } from '../services/auth.service';
 
@@ -17,10 +17,15 @@ async function checkMaintenance(url: string) {
   const router = inject(Router);
   const http = inject(HttpClient);
   try {
-    const status = await firstValueFrom(http.get<MaintenanceStatus>(`${getApiUrl()}/maintenance-status`));
-    return status.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
+    const status = await firstValueFrom(
+      http.get<MaintenanceStatus>(`${getApiUrl()}/maintenance-status`).pipe(
+        timeout(1200),
+        catchError(() => of({ maintenanceMode: false }))
+      )
+    );
+    return status?.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
   } catch {
-    // A temporary status API failure must not block navigation to the page.
+    // A temporary status API failure or timeout must not block navigation to the page.
     return true;
   }
 }
