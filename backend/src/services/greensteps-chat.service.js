@@ -4,6 +4,7 @@ const { canonicalTour, normalizeStructuredResponse, suggestedQuestions, isItiner
 const { performance } = require('node:perf_hooks');
 const { randomUUID } = require('node:crypto');
 const fail = (message, statusCode, code) => Object.assign(new Error(message), { statusCode, code });
+const safeDiagnostic = value => typeof value === 'string' && /^[a-zA-Z0-9_.-]{1,64}$/.test(value) ? value : undefined;
 
 function validateChatInput(body) {
   if (!body || typeof body.message !== 'string' || !body.message.trim() || body.message.length > 4000) {
@@ -195,6 +196,10 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
       } finally { metrics.n8nMs = Math.round((performance.now() - upstreamStart) * 100) / 100; }
     } catch (error) {
       if (error.statusCode) throw error;
+      // Log bounded transport identifiers only; never include webhook URLs or headers.
+      metrics.upstreamErrorName = safeDiagnostic(error?.name);
+      metrics.upstreamErrorCode = safeDiagnostic(error?.cause?.code || error?.code);
+      metrics.upstreamErrorSyscall = safeDiagnostic(error?.cause?.syscall);
       if (abort.aborted) throw fail('Trợ lý chưa trả lời kịp. Bạn có thể hỏi ngắn hơn hoặc tìm tour, dịch vụ trực tiếp trong lúc chờ.', 504, 'CHAT_TIMEOUT');
       if (signal?.aborted) throw fail('Yêu cầu đã được dừng.', 499, 'CHAT_CANCELLED');
       throw fail('Chưa kết nối được trợ lý AI. Vui lòng thử lại sau.', 502, 'CHAT_NETWORK_ERROR');

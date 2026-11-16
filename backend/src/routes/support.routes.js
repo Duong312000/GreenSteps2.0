@@ -14,7 +14,9 @@ function createSupportRouter(options = {}) {
     const metrics = { path: 'validation', catalogMs: 0, n8nMs: 0 };
     const finish = () => {
       const entry = { event: 'greensteps_chat_performance', requestId, path: metrics.path, intent: metrics.intent,
-        status: res.statusCode, upstreamStatus: metrics.upstreamStatus, code: metrics.code, catalogMs: metrics.catalogMs, n8nMs: metrics.n8nMs, agentMs: metrics.agentMs,
+        status: res.statusCode, upstreamStatus: metrics.upstreamStatus, upstreamErrorName: metrics.upstreamErrorName,
+        upstreamErrorCode: metrics.upstreamErrorCode, upstreamErrorSyscall: metrics.upstreamErrorSyscall,
+        code: metrics.code, catalogMs: metrics.catalogMs, n8nMs: metrics.n8nMs, agentMs: metrics.agentMs,
         totalApiMs: Math.round((performance.now() - start) * 100) / 100, disconnected: !res.writableEnded };
       (options.logger || console.info)(JSON.stringify(entry));
     };
