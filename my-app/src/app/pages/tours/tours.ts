@@ -381,20 +381,53 @@ export class ToursComponent implements OnInit {
 
     const user = this.authService.getCurrentUser();
     const userId = user ? (user.id || user._id || '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d') : '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d';
-    const daysData = Array.from({ length: Number(this.modalDays) }, () => []);
+    const daysNum = Math.max(1, Number(this.modalDays) || 1);
+    const daysData = Array.from({ length: daysNum }, () => []);
+    const newItiId = 'iti_' + Date.now();
+    const title = `Lịch trình tự thiết kế ${this.modalDest}`;
 
     const newIti: Itinerary = {
-      id: 'iti_' + Date.now(),
-      name: `Lịch trình tự thiết kế ${this.modalDest}`,
+      id: newItiId,
+      name: title,
       user_id: userId,
       destination: this.modalDest,
-      days: Number(this.modalDays),
+      days: daysNum,
       totalCost: 0,
       totalCarbon: 0,
       daysData: daysData
     };
 
-    await this.apiService.saveItinerary(newIti);
+    // Save to localStorage immediately so schedule editor loads instantly without network lag
+    const destSlug = (this.modalDest || '').toLowerCase().includes('nẵng') ? 'da-nang'
+      : (this.modalDest || '').toLowerCase().includes('phú yên') ? 'phu-yen' : 'da-lat';
+
+    const editorDays = Array.from({ length: daysNum }, (_, idx) => ({
+      dayNum: idx + 1,
+      title: `Ngày ${idx + 1}`,
+      activities: []
+    }));
+
+    const draftPayload = {
+      id: newItiId,
+      title: title,
+      dest: destSlug,
+      destLabel: this.modalDest,
+      destination: this.modalDest,
+      days: editorDays,
+      daysData: daysData,
+      status: 'draft',
+      totalCost: 0,
+      totalCarbon: 0
+    };
+
+    try {
+      localStorage.setItem(`greensteps_draft_${newItiId}`, JSON.stringify(draftPayload));
+      localStorage.setItem(`greensteps_user_draft_${newItiId}`, JSON.stringify(draftPayload));
+      localStorage.setItem(`greensteps_guest_draft_${newItiId}`, JSON.stringify(draftPayload));
+      localStorage.setItem('greensteps_working_itinerary_id', newItiId);
+    } catch (e) {}
+
+    this.apiService.saveItinerary(newIti).catch(err => console.warn('Background save itinerary warning:', err));
     this.router.navigate(['/schedule', newIti.id]);
   }
   // ── Autocomplete helpers ──────────────────────────────────────────

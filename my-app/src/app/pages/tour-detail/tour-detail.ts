@@ -649,25 +649,81 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     return 'attraction';
   }
 
+  public isCloningTrip = false;
+
   public async cloneAndEditTrip() {
-    if (!this.activeTour) return;
-    
-    const user = this.authService.getCurrentUser();
-    const userId = user ? (user.id || user._id || '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d') : '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d';
+    if (!this.activeTour || this.isCloningTrip) return;
+    this.isCloningTrip = true;
 
-    const newIti: Itinerary = {
-      id: "iti_" + Date.now(),
-      name: this.activeTour.title + " (Custom)",
-      user_id: userId,
-      destination: this.activeTour.destination,
-      days: this.activeTour.days,
-      totalCost: this.activeTour.cost,
-      totalCarbon: this.activeTour.carbon,
-      daysData: JSON.parse(JSON.stringify(this.activeTour.data))
-    };
+    try {
+      const user = this.authService.getCurrentUser();
+      const userId = user ? (user.id || user._id || '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d') : '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d';
 
-    await this.apiService.saveItinerary(newIti);
-    this.router.navigate(['/schedule', newIti.id]);
+      const safeData = Array.isArray(this.activeTour.data) && this.activeTour.data.length > 0
+        ? JSON.parse(JSON.stringify(this.activeTour.data))
+        : [[]];
+
+      const newItiId = "iti_" + Date.now();
+      const title = (this.activeTour.title || "Lịch trình tùy chỉnh") + " (Tùy chỉnh)";
+      const destination = this.activeTour.destination || "Đà Lạt";
+      const daysCount = this.activeTour.days || safeData.length || 1;
+      const totalCost = Number(this.activeTour.cost) || 0;
+      const totalCarbon = Number(this.activeTour.carbon) || 0;
+
+      const newIti: Itinerary = {
+        id: newItiId,
+        name: title,
+        user_id: userId,
+        destination: destination,
+        days: daysCount,
+        totalCost: totalCost,
+        totalCarbon: totalCarbon,
+        daysData: safeData
+      };
+
+      // 1. Convert to editor format and save to localStorage immediately for 0ms instant loading
+      const destSlug = destination.toLowerCase().includes('nẵng') ? 'da-nang'
+        : destination.toLowerCase().includes('phú yên') ? 'phu-yen' : 'da-lat';
+
+      const editorDays = safeData.map((acts: any[], idx: number) => ({
+        dayNum: idx + 1,
+        title: `Ngày ${idx + 1}`,
+        activities: acts || []
+      }));
+
+      const draftPayload = {
+        id: newItiId,
+        title: title,
+        dest: destSlug,
+        destLabel: destination,
+        destination: destination,
+        days: editorDays.length > 0 ? editorDays : [{ dayNum: 1, title: 'Ngày 1', activities: [] }],
+        daysData: safeData,
+        status: 'draft',
+        imageUrl: this.activeTour.image || null,
+        totalCost: totalCost,
+        totalCarbon: totalCarbon
+      };
+
+      try {
+        localStorage.setItem(`greensteps_draft_${newItiId}`, JSON.stringify(draftPayload));
+        localStorage.setItem(`greensteps_user_draft_${newItiId}`, JSON.stringify(draftPayload));
+        localStorage.setItem(`greensteps_guest_draft_${newItiId}`, JSON.stringify(draftPayload));
+        localStorage.setItem('greensteps_working_itinerary_id', newItiId);
+      } catch (storageErr) {
+        console.warn('LocalStorage draft write warning:', storageErr);
+      }
+
+      // 2. Sync to backend asynchronously in background
+      this.apiService.saveItinerary(newIti).catch(e => console.warn('Background save itinerary error:', e));
+
+      // 3. Navigate immediately to schedule editor
+      await this.router.navigate(['/schedule', newItiId]);
+    } catch (err) {
+      console.error('Error cloning trip:', err);
+    } finally {
+      this.isCloningTrip = false;
+    }
   }
 
   public async submitBooking(event: Event) {

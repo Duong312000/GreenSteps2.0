@@ -1685,7 +1685,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // 2. Check if already loaded in savedItineraries memory list
     if (this.savedItineraries && this.savedItineraries.length > 0) {
       const foundInList = this.savedItineraries.find((x: any) => idVariants.includes(x.id));
-      if (foundInList && foundInList.daysData && foundInList.daysData.length > 0) {
+      if (foundInList) {
         this.isSampleItinerary = false;
         const cloned = this.convertApiToEditorItinerary(foundInList);
         this.openEditorWithItinerary(cloned);
@@ -1740,6 +1740,25 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       } catch (err) {}
     }
 
+    // 4b. Deep scan all localStorage keys for any partial matches
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || '';
+        if (idVariants.some(v => key.includes(v))) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && (parsed.days || parsed.daysData || parsed.title || parsed.name)) {
+              this.isSampleItinerary = false;
+              const converted = this.convertApiToEditorItinerary(parsed);
+              this.openEditorWithItinerary(converted);
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
     // 5. If activeItinerary is already in place, do not show false alert
     if (this.activeItinerary) {
       this.isLoadingEditor = false;
@@ -1747,8 +1766,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
+    // Graceful fallback: initialize an editable schedule draft so user is NEVER dead-ended!
     this.isLoadingEditor = false;
-    this.showAlert('Không tìm thấy dữ liệu lịch trình này. Bạn có thể tạo lịch trình mới hoặc quay về danh sách.', 'info');
+    const fallbackTour = {
+      id: tourId,
+      title: "Lịch trình tùy chỉnh của tôi",
+      dest: "da-lat",
+      destLabel: "Đà Lạt",
+      days: [{ dayNum: 1, title: "Ngày 1", activities: [] }]
+    };
+    this.openEditorWithItinerary(fallbackTour);
+    this.showAlert('Đã khởi tạo bản soạn thảo cho lịch trình này. Bạn có thể tự do thêm điểm đến.', 'info');
     this.cdr.detectChanges();
   }
 

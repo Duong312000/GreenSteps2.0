@@ -155,9 +155,9 @@
                     <i class="bi bi-arrow-right"></i>
                 </button>
 
-                <button *ngIf="!activeTour.isService" type="button" class="secondary-edit-button" (click)="cloneAndEditTrip()">
+                <button *ngIf="!activeTour.isService" type="button" class="secondary-edit-button" [disabled]="isCloningTrip" (click)="cloneAndEditTrip()">
                     <i class="bi bi-sliders"></i>
-                    Tự chỉnh sửa lịch trình
+                    {{ isCloningTrip ? 'Đang mở lịch trình...' : 'Tự chỉnh sửa lịch trình' }}
                 </button>
             </form>
         </aside>
@@ -882,7 +882,7 @@
                         <p>{{ activeTour.isService ? 'Bạn có thể hỏi thêm về lịch phục vụ, địa chỉ, sức chứa hoặc cách thêm dịch vụ này vào chuyến đi.' : 'Tùy chỉnh điểm đến, thời gian nghỉ và hoạt động theo nhu cầu gia đình trước khi giữ chỗ.' }}</p>
                     </div>
                     <div class="tab-final-cta-actions itinerary-cta-actions">
-                        <button *ngIf="!activeTour.isService" type="button" class="cta-secondary" (click)="cloneAndEditTrip()"><i class="bi bi-arrow-up-right-square"></i> Tự chỉnh sửa lịch trình</button>
+                        <button *ngIf="!activeTour.isService" type="button" class="cta-secondary" [disabled]="isCloningTrip" (click)="cloneAndEditTrip()"><i class="bi bi-arrow-up-right-square"></i> {{ isCloningTrip ? 'Đang mở lịch trình...' : 'Tự chỉnh sửa lịch trình' }}</button>
                         <button type="button" class="cta-primary" (click)="submitBooking($event)"><i class="bi bi-calendar2-check"></i> {{ detailBookingLabelLower }}</button>
                     </div>
                 </div>
@@ -1306,10 +1306,11 @@
             <button *ngIf="!activeTour.isService"
                     type="button"
                     class="gs-btn-secondary"
+                    [disabled]="isCloningTrip"
                     (click)="cloneAndEditTrip()"
                     title="Tùy biến lịch trình theo nhu cầu riêng">
               <i class="bi bi-sliders"></i>
-              Tự chỉnh sửa lịch trình
+              {{ isCloningTrip ? 'Đang mở lịch trình...' : 'Tự chỉnh sửa lịch trình' }}
             </button>
           </div>
         </form>
@@ -1484,8 +1485,8 @@
               <h4>Muốn đổi một vài điểm đến trong lịch trình?</h4>
               <p>Bạn hoàn toàn có thể tự thêm bớt địa điểm hoặc thay đổi khung giờ theo ý muốn.</p>
             </div>
-            <button type="button" class="gs-btn-secondary" (click)="cloneAndEditTrip()">
-              <i class="bi bi-sliders"></i> Tự chỉnh sửa lịch trình này
+            <button type="button" class="gs-btn-secondary" [disabled]="isCloningTrip" (click)="cloneAndEditTrip()">
+              <i class="bi bi-sliders"></i> {{ isCloningTrip ? 'Đang mở lịch trình...' : 'Tự chỉnh sửa lịch trình này' }}
             </button>
           </div>
         </div>
