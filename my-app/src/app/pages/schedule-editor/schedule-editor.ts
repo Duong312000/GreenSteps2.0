@@ -137,7 +137,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public budgetProgressPct: number = 0;
   public carbonProgressPct: number = 0;
 
-  // Transport Booking Integration Properties
+  // Transport Booking & 2-Tab Leg Panel Properties
+  public legPanelTab: 'book' | 'directions' = 'book';
+  public legVehicleCategory: 'car' | 'motorbike' = 'car';
+  public showVehiclePolicyView: boolean = false;
+  public isLegTimePickerOpen: boolean = false;
+  public legPickupTime: string = '09:00';
+  public legPaymentMethodIdx: number = 0;
+  public legPaymentMethods: string[] = ['Ví GreenSteps', 'QR Ngân hàng', 'Tiền mặt'];
+  public legVoucherIdx: number = 0;
+  public legVouchers: { label: string; discount: number }[] = [
+    { label: 'Voucher', discount: 0 },
+    { label: 'ECO20K (-20k)', discount: 20000 },
+    { label: 'XANH35K (-35k)', discount: 35000 }
+  ];
+  public selectedLegVehicle: any = null;
+  public isGpsNavigating: boolean = false;
+  private gpsWatchId: number | null = null;
+  private gpsUserMarker: any = null;
   public isTransportModalOpen: boolean = false;
   public transportModalMode: 'leg' | 'departure' | 'rental' = 'leg';
   public activeLegBookingIdx: number | null = null;
@@ -4699,52 +4716,265 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
+  public switchLegPanelTab(tab: 'book' | 'directions') {
+    this.legPanelTab = tab;
+    this.showVehiclePolicyView = false;
+    this.isLegTimePickerOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public setLegVehicleCategory(cat: 'car' | 'motorbike') {
+    this.legVehicleCategory = cat;
+    const list = this.filteredLegVehicles;
+    if (list.length > 0) {
+      this.selectedLegVehicle = list[0];
+    }
+    this.cdr.detectChanges();
+  }
+
+  public get filteredLegVehicles(): any[] {
+    if (!this.availableTransportOptions) return [];
+    return this.availableTransportOptions.filter(v => v.category === this.legVehicleCategory);
+  }
+
+  public selectLegVehicleOption(v: any) {
+    this.selectedLegVehicle = v;
+    this.cdr.detectChanges();
+  }
+
+  public get legPaymentMethodLabel(): string {
+    return this.legPaymentMethods[this.legPaymentMethodIdx] || 'Ví GreenSteps';
+  }
+
+  public cycleLegPaymentMethod() {
+    this.legPaymentMethodIdx = (this.legPaymentMethodIdx + 1) % this.legPaymentMethods.length;
+    this.cdr.detectChanges();
+  }
+
+  public get legVoucherLabel(): string {
+    return this.legVouchers[this.legVoucherIdx]?.label || 'Voucher';
+  }
+
+  public get legVoucherDiscount(): number {
+    return this.legVouchers[this.legVoucherIdx]?.discount || 0;
+  }
+
+  public cycleLegVoucher() {
+    this.legVoucherIdx = (this.legVoucherIdx + 1) % this.legVouchers.length;
+    this.cdr.detectChanges();
+  }
+
+  public getLegOptionFinalPrice(basePrice: number): number {
+    return Math.max(10000, (Number(basePrice) || 0) - this.legVoucherDiscount);
+  }
+
+  public toggleLegTimePicker() {
+    this.isLegTimePickerOpen = !this.isLegTimePickerOpen;
+    this.cdr.detectChanges();
+  }
+
+  public findMotorbikeDriver() {
+    this.legVehicleCategory = 'motorbike';
+    const bikes = this.filteredLegVehicles;
+    if (bikes.length > 0) {
+      this.selectedLegVehicle = bikes[0];
+      this.selectedLegVehicle.driverStatus = 'Tài xế cách 250m';
+    }
+    this.showAlert('Đã tìm thấy tài xế xe ôm điện gần điểm xuất phát!', 'info');
+    this.cdr.detectChanges();
+  }
+
+  public bookSelectedLegVehicle() {
+    if (!this.activeItinerary || !this.activeLegDirections) return;
+    const legIdx = this.activeLegDirections.fromIdx;
+    const option = this.selectedLegVehicle || this.filteredLegVehicles[0];
+    if (!option) return;
+
+    const day = this.activeItinerary.days[this.activeDayIdx];
+    if (!day) return;
+    if (!day.legTransports) day.legTransports = {};
+
+    const finalPrice = this.getLegOptionFinalPrice(option.price);
+    day.legTransports[legIdx] = {
+      ...option,
+      price: finalPrice,
+      legIdx: legIdx,
+      distanceKm: this.activeLegDistanceKm,
+      pickupTime: this.legPickupTime || '09:00',
+      paymentMethod: this.legPaymentMethodLabel,
+      voucher: this.legVoucherDiscount > 0 ? this.legVoucherLabel : null,
+      bookedAt: new Date().toISOString()
+    };
+
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.showAlert(`Đã đặt trước "${option.provider} - ${option.vehicleName}" (Đón lúc ${this.legPickupTime})!`, 'success');
+    this.cdr.detectChanges();
+  }
+
+  public startGpsDirections() {
+    if (!this.activeLegDirections) return;
+    this.isGpsNavigating = true;
+    this.cdr.detectChanges();
+
+    const { fromCoords, toCoords, fromIdx, toIdx } = this.activeLegDirections;
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.ngZone.run(() => {
+            const userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            this.renderGpsPositionOnMap(userCoords, toCoords, fromIdx, toIdx);
+            this.showAlert('Đã bật định vị GPS và bắt đầu dẫn đường trực tiếp trên bản đồ!', 'success');
+            this.cdr.detectChanges();
+          });
+        },
+        () => {
+          this.ngZone.run(() => {
+            // Fallback to origin coords if browser blocks geolocation permission
+            this.renderGpsPositionOnMap(fromCoords, toCoords, fromIdx, toIdx);
+            this.showAlert('Đã kích hoạt chế độ dẫn đường GPS từ điểm xuất phát của chặng!', 'info');
+            this.cdr.detectChanges();
+          });
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      this.renderGpsPositionOnMap(fromCoords, toCoords, fromIdx, toIdx);
+      this.showAlert('Đã kích hoạt chế độ dẫn đường cho chặng!', 'info');
+    }
+  }
+
+  private renderGpsPositionOnMap(originCoords: { lat: number; lng: number }, destCoords: { lat: number; lng: number }, fromIdx: number, toIdx: number) {
+    if (this.isGoogleMaps && this.gmap && typeof google !== 'undefined' && google.maps) {
+      if (this.gpsUserMarker) {
+        try { this.gpsUserMarker.setMap(null); } catch (e) {}
+      }
+      this.gpsUserMarker = new google.maps.Marker({
+        position: originCoords,
+        map: this.gmap,
+        title: 'Vị trí định vị GPS',
+        zIndex: 999,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#184A37',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 3
+        }
+      });
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(originCoords);
+      bounds.extend(destCoords);
+      this.gmap.fitBounds(bounds, { top: 70, right: 400, bottom: 70, left: 70 });
+    } else if (this.map && typeof L !== 'undefined') {
+      if (this.gpsUserMarker) {
+        try { this.map.removeLayer(this.gpsUserMarker); } catch (e) {}
+      }
+      this.gpsUserMarker = L.circleMarker([originCoords.lat, originCoords.lng], {
+        radius: 9,
+        fillColor: '#184A37',
+        color: '#ffffff',
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1
+      }).addTo(this.map);
+      this.map.fitBounds([
+        [originCoords.lat, originCoords.lng],
+        [destCoords.lat, destCoords.lng]
+      ], { padding: [50, 50] });
+    }
+  }
+
   private loadAvailableLegTransports() {
     const km = Math.max(1, this.activeLegDistanceKm);
     const taxi4Price = Math.max(35000, Math.round(km * 12500 / 1000) * 1000);
     const taxi7Price = Math.max(50000, Math.round(km * 15500 / 1000) * 1000);
+    const limo9Price = Math.max(85000, Math.round(km * 18000 / 1000) * 1000);
     const bikePrice = Math.max(18000, Math.round(km * 5500 / 1000) * 1000);
+    const klaraPrice = Math.max(24000, Math.round(km * 6500 / 1000) * 1000);
+    const evoPrice = Math.max(20000, Math.round(km * 6000 / 1000) * 1000);
 
     this.availableTransportOptions = [
+      // Danh mục Ô tô (category: 'car')
       {
+        id: 'car_xanhsm_4',
         provider: 'Xanh SM Taxi',
         vehicleName: 'VinFast VF e34 (Sedan 4 chỗ)',
         vehicleType: 'electric_car',
-        category: 'taxi',
+        category: 'car',
         capacity: 4,
         price: taxi4Price,
         carbonSaved: Math.round(km * 0.12 * 10) / 10,
-        description: 'Đón tận nơi đúng giờ, xe điện không phát thải, không mùi xăng dầu.'
+        description: 'Đón tận nơi đúng giờ, xe điện không phát thải.'
       },
       {
+        id: 'car_xanhsm_7',
         provider: 'Xanh SM Luxury',
         vehicleName: 'VinFast VF 8 (SUV 7 chỗ VIP)',
         vehicleType: 'electric_car',
-        category: 'taxi',
+        category: 'car',
         capacity: 7,
         price: taxi7Price,
         carbonSaved: Math.round(km * 0.15 * 10) / 10,
-        description: 'Khoang xe rộng rãi, chứa được nhiều hành lý, di chuyển êm ái cao cấp.'
+        description: 'Khoang xe rộng rãi, chứa nhiều hành lý.'
       },
       {
+        id: 'car_moclo_9',
+        provider: 'Mộc Lộ Travel',
+        vehicleName: 'Limousine Dcar 9 chỗ',
+        vehicleType: 'car',
+        category: 'car',
+        capacity: 9,
+        price: limo9Price,
+        carbonSaved: Math.round(km * 0.16 * 10) / 10,
+        description: 'Ghế massage rộng rãi, phù hợp nhóm gia đình.'
+      },
+      {
+        id: 'car_suoingoc_16',
         provider: 'Suối Ngọc Move',
-        vehicleName: 'Xe buýt trung chuyển sinh thái',
+        vehicleName: 'Minibus sinh thái 16 chỗ',
         vehicleType: 'bus',
-        category: 'bus',
+        category: 'car',
         capacity: 16,
         price: 35000,
         carbonSaved: Math.round(km * 0.18 * 10) / 10,
-        description: 'Tuyến buýt kết nối các điểm du lịch trọng điểm, đón tại trạm gần nhất.'
+        description: 'Tuyến cố định kết nối các điểm du lịch.'
       },
+      // Danh mục Xe máy (category: 'motorbike')
       {
+        id: 'bike_xanhsm_1',
         provider: 'Xanh SM Bike',
         vehicleName: 'Xe ôm điện VinFast Feliz S',
         vehicleType: 'electric_motorbike',
-        category: 'bike',
+        category: 'motorbike',
         capacity: 1,
         price: bikePrice,
         carbonSaved: Math.round(km * 0.08 * 10) / 10,
-        description: 'Tiện lợi, nhanh chóng, tài xế bản địa thân thiện, tối ưu chi phí.'
+        description: 'Di chuyển nhanh chóng, tài xế bản địa.'
+      },
+      {
+        id: 'bike_lamay_2',
+        provider: 'Lá Mây Mobility',
+        vehicleName: 'Xe máy điện VinFast Klara S',
+        vehicleType: 'electric_motorbike',
+        category: 'motorbike',
+        capacity: 2,
+        price: klaraPrice,
+        carbonSaved: Math.round(km * 0.09 * 10) / 10,
+        description: 'Giao xe tận điểm đón, kèm 2 mũ bảo hiểm.'
+      },
+      {
+        id: 'bike_doimay_3',
+        provider: 'Đồi Mây Wheels',
+        vehicleName: 'Xe máy điện VinFast Evo200',
+        vehicleType: 'electric_motorbike',
+        category: 'motorbike',
+        capacity: 2,
+        price: evoPrice,
+        carbonSaved: Math.round(km * 0.09 * 10) / 10,
+        description: 'Pin LFP dung lượng cao, chạy êm trên đồi dốc.'
       }
     ];
   }
@@ -4953,13 +5183,34 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       toTitle: toAct.title || toAct.name || 'Điểm đến',
       toAddress: toAct.address || this.getPlaceAddress(toAct.title || toAct.name),
       toCoords,
-      distance: '...',
-      duration: '...',
+      distance: `${this.getLegDistanceKm(this.activeDayIdx, fromIdx)} km`,
+      duration: '15 phút',
       travelMode,
       steps: [],
       isLoading: true,
       googleMapsUrl: deepLink
     };
+
+    // Initialize Tab 1 (Đặt trước xe) for this leg
+    this.activeLegBookingIdx = fromIdx;
+    this.activeLegDistanceKm = this.getLegDistanceKm(this.activeDayIdx, fromIdx);
+    const startM = this.timeToMinutes(fromAct.time || '08:00');
+    const dwellM = this.getDwellMinutesForType(fromAct.type || 'attraction');
+    this.legPickupTime = this.minutesToTime(startM + dwellM);
+    this.showVehiclePolicyView = false;
+    this.isLegTimePickerOpen = false;
+    this.isGpsNavigating = false;
+    this.loadAvailableLegTransports();
+
+    const existingBooking = this.getLegTransport(this.activeDayIdx, fromIdx);
+    if (existingBooking) {
+      this.legVehicleCategory = existingBooking.category === 'motorbike' ? 'motorbike' : 'car';
+      this.legPickupTime = existingBooking.pickupTime || this.legPickupTime;
+      const found = this.availableTransportOptions.find(o => o.id === existingBooking.id || o.vehicleName === existingBooking.vehicleName);
+      this.selectedLegVehicle = found || this.filteredLegVehicles[0] || null;
+    } else {
+      this.selectedLegVehicle = this.filteredLegVehicles[0] || null;
+    }
 
     // Close single place panel so directions panel takes priority
     this.activeGooglePlacePanel = null;
@@ -4973,6 +5224,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.activeLegDirections.duration = res.duration;
         this.activeLegDirections.steps = res.steps || [];
         this.activeLegDirections.isLoading = false;
+
+        const parsedKm = parseFloat(String(res.distance).replace(',', '.'));
+        if (!isNaN(parsedKm) && parsedKm > 0) {
+          this.activeLegDistanceKm = parsedKm;
+          const prevSelectedId = this.selectedLegVehicle?.id;
+          this.loadAvailableLegTransports();
+          this.selectedLegVehicle = this.availableTransportOptions.find(o => o.id === prevSelectedId) || this.filteredLegVehicles[0] || null;
+        }
 
         // Draw bold vibrant active leg polyline on map
         if (this.isGoogleMaps && this.gmap && res.encodedPolyline) {
@@ -5027,6 +5286,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.activeLegDirections.duration = res.duration;
         this.activeLegDirections.steps = res.steps || [];
         this.activeLegDirections.isLoading = false;
+
+        const parsedKm = parseFloat(String(res.distance).replace(',', '.'));
+        if (!isNaN(parsedKm) && parsedKm > 0) {
+          this.activeLegDistanceKm = parsedKm;
+          const prevSelectedId = this.selectedLegVehicle?.id;
+          this.loadAvailableLegTransports();
+          this.selectedLegVehicle = this.availableTransportOptions.find(o => o.id === prevSelectedId) || this.filteredLegVehicles[0] || null;
+        }
 
         if (this.isGoogleMaps && this.gmap && res.encodedPolyline) {
           if (this.activeLegLayer) {
@@ -5175,6 +5442,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public closeLegDirections() {
     this.activeLegDirections = null;
+    this.isGpsNavigating = false;
+    if (this.gpsUserMarker) {
+      try {
+        if (this.isGoogleMaps && this.gpsUserMarker.setMap) this.gpsUserMarker.setMap(null);
+        else if (this.map && this.map.removeLayer) this.map.removeLayer(this.gpsUserMarker);
+      } catch (e) {}
+      this.gpsUserMarker = null;
+    }
     if (this.activeLegLayer) {
       try { this.activeLegLayer.setMap(null); } catch (e) { }
       this.activeLegLayer = null;
