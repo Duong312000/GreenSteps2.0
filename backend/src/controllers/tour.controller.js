@@ -624,14 +624,73 @@ exports.deleteCustomItinerary = async (req, res, next) => {
   }
 };
 
-// 8. Get Distinct Destinations List
+// 8. Get Distinct Destinations List (supports legacy array or paginated catalog object)
 exports.getDestinations = async (req, res, next) => {
   try {
+    const dbDests = await Destination.findAll().catch(() => []);
     const schedules = await Schedule.findAll({
       distinctField: 'destination'
+    }).catch(() => []);
+    const scheduleDests = schedules.map(s => s.destination).filter(Boolean);
+
+    // Merge destinations, normalizing en-dash (–) to hyphen (-) for clean deduplication
+    const map = new Map();
+    [...dbDests.map(d => d.name), ...scheduleDests].forEach(rawName => {
+      if (!rawName) return;
+      const cleanKey = String(rawName).replace(/\u2013|\u2014/g, '-').trim().toLowerCase();
+      if (!map.has(cleanKey)) {
+        map.set(cleanKey, String(rawName).replace(/\u2013|\u2014/g, '-').trim());
+      }
     });
-    const destinations = schedules.map(s => s.destination).filter(Boolean);
-    res.json(destinations);
+    const uniqueDests = Array.from(map.values());
+
+    const items = uniqueDests.map(name => {
+      const cleanKey = name.toLowerCase();
+      const matched = dbDests.find(d => String(d.name || '').replace(/\u2013|\u2014/g, '-').trim().toLowerCase() === cleanKey);
+      return {
+        id: matched ? matched.id : `dest_${cleanKey.replace(/\s+/g, '-')}`,
+        slug: matched ? matched.slug : cleanKey.replace(/\s+/g, '-'),
+        name: name,
+        regionId: matched ? matched.regionId : null,
+        image_url: matched ? matched.image_url : null,
+        description: matched ? matched.description : null
+      };
+    });
+
+    if (req.query.page || req.query.pageSize || req.query.format === 'catalog') {
+      return res.json({
+        success: true,
+        items,
+        total: items.length,
+        page: Number(req.query.page) || 1,
+        pageSize: Number(req.query.pageSize) || items.length,
+        totalPages: 1
+      });
+    }
+
+    res.json(uniqueDests);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getDestinationBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const cleanSlug = String(slug || '').replace(/\u2013|\u2014/g, '-').trim().toLowerCase();
+    const dest = await Destination.findOne({
+      where: {
+        [Op.or]: [
+          { slug: cleanSlug },
+          { id: slug },
+          { name: slug }
+        ]
+      }
+    });
+    if (!dest) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy điểm đến!' });
+    }
+    res.json({ success: true, item: dest });
   } catch (error) {
     next(error);
   }

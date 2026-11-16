@@ -44,5 +44,6 @@ router.use('/admin', adminUsersRoutes);
 router.use('/support', require('./support.routes'));
 router.use('/maps', require('./maps.routes'));
 router.get('/destinations', require('../controllers/tour.controller').getDestinations);
+router.get('/destinations/:slug', require('../controllers/tour.controller').getDestinationBySlug);
 
 module.exports = router;

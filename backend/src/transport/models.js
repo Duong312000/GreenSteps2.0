@@ -1,4 +1,4 @@
-﻿const { ObjectId } = require('mongodb');
+const { ObjectId } = require('mongodb');
 const { store } = require('../config/db.config');
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const id = value => { if (typeof value !== 'string' || !/^[a-f\d]{24}$/i.test(value)) throw fail('ID không hợp lệ.'); return new ObjectId(value); };

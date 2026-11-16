@@ -7,7 +7,7 @@ async function searchTours({ models, query = {} }) {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const pageSize = Math.max(1, Math.min(100, parseInt(query.pageSize || query.limit, 10) || 12));
   const keyword = (query.q || query.keyword || query.search || '').trim().toLowerCase();
-  const dest = (query.dest || '').trim();
+  const dest = (query.dest || query.destination || '').trim();
   const style = (query.style || '').trim();
   const minPrice = query.minPrice ? Number(query.minPrice) : null;
   const maxPrice = query.maxPrice ? Number(query.maxPrice) : null;
@@ -80,9 +80,9 @@ async function searchTours({ models, query = {} }) {
   }
 
   if (dest && dest !== 'all' && dest !== 'Tất cả') {
-    const dNorm = dest.toLowerCase();
+    const dNorm = dest.replace(/\u2013|\u2014/g, '-').trim().toLowerCase();
     tours = tours.filter(t => {
-      const td = (t.destination || '').toLowerCase();
+      const td = (t.destination || '').replace(/\u2013|\u2014/g, '-').trim().toLowerCase();
       return td.includes(dNorm) || dNorm.includes(td);
     });
   }
