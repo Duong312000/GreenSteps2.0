@@ -256,6 +256,10 @@
                                     <button *ngIf="srv.status === 'rejected' || srv.status === 'draft'" (click)="resendServiceApproval(srv)" class="p-2 text-orange-600 hover:bg-orange-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Gửi duyệt lại">
                                         <i class="bi bi-send text-sm"></i>
                                     </button>
+                                    <!-- Xóa khỏi danh sách -->
+                                    <button type="button" (click)="deleteService(srv)" class="p-2 text-red-600 hover:bg-red-50 border border-gray-100 bg-white rounded-lg transition-colors cursor-pointer" title="Xóa dịch vụ" [attr.aria-label]="'Xóa dịch vụ ' + srv.name">
+                                        <i class="bi bi-trash text-sm"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>

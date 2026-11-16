@@ -10,7 +10,7 @@ async function loadAllServicesForSearch(GreenService) {
     readPreference: 'secondaryPreferred'
   });
 
-  return (services || []).filter(s => !s.current_data?.catalogHidden).map(s => ({
+  return (services || []).filter(s => s.status !== 'deleted' && !s.current_data?.catalogHidden).map(s => ({
     id: s.id,
     provider_id: s.vender_id || 'UG26pro0001',
     name: s.name_service,
@@ -88,8 +88,16 @@ async function searchServices({ models, query = {} }) {
   };
 }
 
+function removeServiceFromSearchCache(serviceId) {
+  if (Array.isArray(serviceSearchCache.data)) {
+    serviceSearchCache.data = serviceSearchCache.data.filter(service => service.id !== serviceId);
+  }
+  serviceSearchCache.expiresAt = 0;
+}
+
 module.exports = {
-  searchServices
+  searchServices,
+  removeServiceFromSearchCache
 };
 
 // Warm up service search catalog cache on server startup

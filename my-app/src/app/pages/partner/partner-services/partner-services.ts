@@ -515,6 +515,18 @@ export class PartnerServicesComponent implements OnInit {
     });
   }
 
+  public async deleteService(srv: Service) {
+    this.showConfirm(`Bạn có chắc chắn muốn xóa dịch vụ "${srv.name}" khỏi danh sách? Dịch vụ sẽ không còn hiển thị với khách hàng.`, async () => {
+      const ok = await this.apiService.deleteMyService(srv.id);
+      if (ok) {
+        this.showAlert('Đã xóa dịch vụ khỏi danh sách.', 'success');
+        await this.loadServices();
+      } else {
+        this.showAlert('Không thể xóa dịch vụ. Vui lòng thử lại.', 'error');
+      }
+    });
+  }
+
   public async suspendService(srv: Service) {
     this.showConfirm(`Bạn có chắc chắn muốn tạm ngừng hoạt động dịch vụ "${srv.name}"?`, async () => {
       const ok = await this.apiService.suspendService(srv.id);

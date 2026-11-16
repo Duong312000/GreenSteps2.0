@@ -851,6 +851,17 @@ export class ApiService {
     }
   }
 
+  public async deleteMyService(serviceId: string): Promise<boolean> {
+    this.clearCache('services_');
+
+    try {
+      await firstValueFrom(this.http.delete(`${this.BACKEND_URL}/services/${encodeURIComponent(serviceId)}`, { withCredentials: true }));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
 
   public async getBookings(providerId?: string, customerId?: string, throwOnError = false, timeoutMs = this.requestTimeoutMs, compact = false): Promise<Booking[]> {
     try {

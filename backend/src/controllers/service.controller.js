@@ -14,7 +14,7 @@ const {
 } = require('../models/index');
 const { createBookingReview, createReply } = require('../services/review.service');
 const { catalogMetadata } = require('../services/catalog-presentation.service');
-const { searchServices } = require('../services/service-search.service');
+const { searchServices, removeServiceFromSearchCache } = require('../services/service-search.service');
 
 exports.searchServices = async (req, res, next) => {
   try { res.json({ success: true, ...(await searchServices({ models: { GreenService, Destination: require('../models').Destination }, query: req.query })) }); }
@@ -64,7 +64,7 @@ async function fetchAllServicesFromDb() {
     ]
   });
 
-  return services.filter(s => !s.current_data?.catalogHidden).map(s => {
+  return services.filter(s => s.status !== 'deleted' && !s.current_data?.catalogHidden).map(s => {
     const badges = (s.Badges || []).map(b => b.id);
     const providerId = s.Vender ? s.Vender.user_id : 'UG26pro0001';
 
@@ -108,7 +108,10 @@ function filterAndSliceServices(allServices, query = {}) {
   return list;
 }
 
-exports.invalidateServicesCache = () => {
+exports.invalidateServicesCache = (serviceId) => {
+  if (serviceId && Array.isArray(servicesCache.data)) {
+    servicesCache.data = servicesCache.data.filter(service => service.id !== serviceId);
+  }
   servicesCache.expiresAt = 0;
 };
 
@@ -169,7 +172,7 @@ exports.getProviderServices = async (req, res, next) => {
         'current_data.carbonStatus', 'current_data.capacityStatus'
       ] } : {})
     });
-    const mapped = result.map(s => ({
+    const mapped = result.filter(s => s.status !== 'deleted').map(s => ({
       id: s.id,
       name: s.name_service,
       type: s.type,
@@ -513,12 +516,39 @@ exports.updateService = async (req, res, next) => {
   }
 };
 
+exports.deleteService = async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const service = await GreenService.findByPk(id);
+    if (!service || service.status === 'deleted') {
+      return res.status(404).json({ success: false, message: 'Dịch vụ không tồn tại!' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const vender = service.vender_id ? await Vender.findByPk(service.vender_id) : null;
+      if (!vender || vender.user_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa dịch vụ này!' });
+      }
+    }
+
+    service.status = 'deleted';
+    service.current_data = { ...(service.current_data || {}), catalogHidden: true };
+    await service.save();
+
+    exports.invalidateServicesCache(id);
+    removeServiceFromSearchCache(id);
+    res.json({ success: true, message: 'Đã xóa dịch vụ khỏi danh sách.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // 8. Clone Service
 exports.cloneService = async (req, res, next) => {
   const { id } = req.params;
   try {
     const service = await GreenService.findByPk(id);
-    if (!service) {
+    if (!service || service.status === 'deleted' || service.current_data?.catalogHidden) {
       return res.status(404).json({ success: false, message: 'Dịch vụ không tồn tại!' });
     }
 
@@ -594,7 +624,7 @@ exports.getServiceDetails = async (req, res, next) => {
         { model: Badge, through: { attributes: [] } }
       ]
     });
-    if (!service) {
+    if (!service || service.status === 'deleted' || service.current_data?.catalogHidden) {
       return res.status(404).json({ success: false, message: 'Dịch vụ không tồn tại!' });
     }
     const flashSale = await require('../services/flash-sale-pricing.service').flashSaleFor(service, {
