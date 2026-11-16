@@ -335,12 +335,16 @@ exports.getLeaderboard = async (req, res, next) => {
   catch (error) { next(error); }
 };
 
-async function getLeaderboardRows(limit) {
-  const wallets = await Wallet.findAll({ order: [['green_points', 'DESC']], limit: 100 });
-  const rows = await Promise.all(wallets.map(async wallet => {
-    const user = await User.findByPk(wallet.user_id);
+async function getLeaderboardRows(limit = 10) {
+  const fetchLimit = Math.max(limit * 2, 10);
+  const wallets = await Wallet.findAll({ order: [['green_points', 'DESC']], limit: fetchLimit });
+  const userIds = [...new Set(wallets.map(w => w.user_id).filter(Boolean))];
+  const users = userIds.length ? await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'fullname', 'username', 'avatarUrl'] }) : [];
+  const usersById = new Map(users.map(u => [u.id, u]));
+  const rows = wallets.map(wallet => {
+    const user = usersById.get(wallet.user_id);
     return user ? { userId: user.id, name: user.fullname || user.username, avatar: user.avatarUrl || '', points: wallet.green_points || 0 } : null;
-  }));
+  });
   return rows.filter(row => row && row.points > 0).sort((a, b) => b.points - a.points).slice(0, limit);
 }
 

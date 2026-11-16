@@ -65,6 +65,17 @@ app.use('/images', express.static(path.join(__dirname, '../../server_mongodb/pub
 app.use('/images', express.static(path.join(__dirname, '../images')));
 app.use('/uploads', express.static(path.join(__dirname, '../../server_mongodb/public/uploads')));
 
+// Fallback for missing/ephemeral uploads to prevent 404 console errors
+const TRANSPARENT_1PX_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+app.use('/uploads', (req, res) => {
+  if (req.path.endsWith('.mov') || req.path.endsWith('.mp4') || req.path.endsWith('.webm')) {
+    return res.status(204).end();
+  }
+  res.set('Content-Type', 'image/png');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.send(TRANSPARENT_1PX_PNG);
+});
+
 app.post('/api/upload-base64', (req, res) => {
   try {
     const { base64, type } = req.body;

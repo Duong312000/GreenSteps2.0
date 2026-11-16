@@ -399,7 +399,10 @@ exports.publicList = wrap(async (req, res) => {
   if (serviceIds.length) serviceOr.push({ id: { $in: serviceIds } });
   if (venderIds.length) serviceOr.push({ vender_id: { $in: venderIds } });
   const services = serviceOr.length
-    ? await GreenService.collection.find({ status: 'active', $or: serviceOr }).toArray()
+    ? await GreenService.collection.find(
+        { status: 'active', $or: serviceOr },
+        { projection: { id: 1, name_service: 1, image_url: 1, cost: 1, destination: 1, type: 1, status: 1, days: 1, bookings_count: 1, vender_id: 1 } }
+      ).toArray()
     : [];
   const servicesById = new Map(services.map((service) => [service.id, service]));
   const items = [];
