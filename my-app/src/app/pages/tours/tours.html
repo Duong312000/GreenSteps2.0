@@ -19,9 +19,14 @@
             <span class="filter-title">Bộ Lọc</span>
             <i class="bi bi-sliders filter-icon"></i>
           </div>
-          <button (click)="resetFilters()" class="reset-filter-link">
-            Đặt lại
-          </button>
+          <div class="flex items-center gap-2">
+            <button (click)="resetFilters()" class="reset-filter-link">
+              Đặt lại
+            </button>
+            <button class="md:hidden border-0 bg-transparent text-gray-500 hover:text-black cursor-pointer p-1" (click)="isMobileFilterOpen = false" aria-label="Đóng bộ lọc">
+              <i class="bi bi-x-lg text-sm"></i>
+            </button>
+          </div>
         </div>
 
         <hr class="shopco-divider" />
@@ -77,14 +82,6 @@
             </button>
           </div>
         </div>
-
-        <button type="button" (click)="filterTours(); isMobileFilterOpen = false" class="apply-filter-btn">
-          Áp Dụng Bộ Lọc
-        </button>
-
-        <button type="button" (click)="openCreateItineraryModal()" class="custom-planner-btn mt-3">
-          <i class="bi bi-magic mr-1"></i> Tự Thiết Kế Lịch Trình
-        </button>
       </aside>
 
       <!-- Right Main Column -->

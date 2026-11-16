@@ -809,7 +809,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       if (this.newTripCompanionEmail.trim()) {
         const sender = this.authService.getCurrentUser();
         const senderName = sender ? (sender.fullname || sender.username) : 'Một người bạn';
-        const inviteUrl = `${window.location.origin}/?inviteItineraryId=${newIti.id}&senderName=${encodeURIComponent(senderName)}`;
+        const inviteUrl = `${window.location.origin}/schedule/${newIti.id}?senderName=${encodeURIComponent(senderName)}`;
         this.apiService.inviteCollaborator(newIti.id, this.newTripCompanionEmail.trim(), inviteUrl)
           .then(() => console.log('Initial collaborator invites sent'))
           .catch(err => console.error('Initial invites failed:', err));
@@ -830,12 +830,31 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   // Share methods
-  public openShareModal(iti: any, event: Event) {
-    event.stopPropagation();
-    this.sharingItinerary = iti;
+  public async openShareModal(iti: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.showAlert('Vui lòng đăng nhập trước khi chia sẻ lịch trình để lưu trữ và chia sẻ đến bạn bè nhé!', 'warning', () => {
+        this.loginModalService.open();
+      });
+      return;
+    }
+
+    this.sharingItinerary = iti || this.activeItinerary;
+    if (this.activeItinerary) {
+      this.activeItinerary.user_id = user.id || user._id;
+      await this.saveItineraryToDb();
+    }
+
+    const targetId = this.sharingItinerary?.id || this.activeItinerary?.id;
+    const destName = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
+    const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
+
+    this.shareLink = `${window.location.origin}/schedule/${targetId}`;
+    this.shareMessage = `Khám phá hành trình "${tripName}" tại ${destName} trên GreenSteps! 🌿\nXem chi tiết lịch trình tại: ${this.shareLink}`;
     this.isShareModalOpen = true;
-    this.shareMessage = `Khám phá hành trình xanh của tôi tại ${iti.destination} trên GreenSteps! 🌿`;
-    this.shareLink = `${window.location.origin}/schedule/${iti.id}`;
     this.cdr.detectChanges();
   }
 
@@ -850,7 +869,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.sharingItinerary) return;
     const user = this.authService.getCurrentUser();
     if (!user) {
-      this.showAlert('Vui lòng đăng nhập để chia sẻ!', 'warning');
+      this.showAlert('Vui lòng đăng nhập để chia sẻ!', 'warning', () => {
+        this.loginModalService.open();
+      });
       return;
     }
 
@@ -887,7 +908,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public shareSocial(platform: 'facebook' | 'instagram' | 'zalo' | 'twitter' | 'messenger') {
     const link = this.shareLink || `${window.location.origin}/schedule/${this.sharingItinerary?.id || this.activeItinerary?.id || ''}`;
     const url = encodeURIComponent(link);
-    const text = encodeURIComponent(this.shareMessage || 'Khám phá lịch trình du lịch xanh trên GreenSteps!');
+    const text = encodeURIComponent(this.shareMessage || `Khám phá lịch trình du lịch xanh trên GreenSteps: ${link}`);
     if (platform === 'facebook') {
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=620,height=480');
       return;
@@ -895,7 +916,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (platform === 'zalo') {
       navigator.clipboard.writeText(`${this.shareMessage || ''}\n${link}`.trim());
       window.open(`https://sp.zalo.me/plugins/sdk?url=${url}`, '_blank', 'width=600,height=520');
-      this.showAlert('Đã sao chép liên kết & mở cửa sổ chia sẻ Zalo!', 'success');
+      this.showAlert('Đã sao chép liên kết lịch trình & mở cửa sổ chia sẻ Zalo!', 'success');
       return;
     }
     if (platform === 'instagram') {
@@ -912,8 +933,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public copyShareLink() {
+    if (!this.shareLink) {
+      const targetId = this.sharingItinerary?.id || this.activeItinerary?.id;
+      this.shareLink = `${window.location.origin}/schedule/${targetId}`;
+    }
     navigator.clipboard.writeText(this.shareLink);
-    this.showAlert('Đã sao chép liên kết chia sẻ vào bộ nhớ tạm!', 'success');
+    this.showAlert('Đã sao chép liên kết lịch trình vào bộ nhớ tạm! Bạn có thể gửi liên kết này cho bạn bè.', 'success');
   }
 
   public showAlert(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info', callback?: () => void) {
@@ -6202,7 +6227,18 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   // Collaborator Invitation & Multi-Email / Community / Social actions
-  public openInviteFriendModal() {
+  public async openInviteFriendModal() {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.showAlert('Vui lòng đăng nhập trước khi mời bạn bè cùng tham gia lịch trình này nhé!', 'warning', () => {
+        this.loginModalService.open();
+      });
+      return;
+    }
+    if (this.activeItinerary) {
+      this.activeItinerary.user_id = user.id || user._id;
+      await this.saveItineraryToDb();
+    }
     this.isInviteFriendModalOpen = true;
     this.inviteEmails = '';
     this.inviteEmailChipList = [];
@@ -6242,10 +6278,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private getCollaboratorInviteLink(): string {
-    if (!this.activeItinerary) return window.location.origin;
+    if (!this.activeItinerary) return `${window.location.origin}/schedule`;
     const user = this.authService.getCurrentUser();
     const senderName = user ? (user.fullname || user.username) : 'Một người bạn';
-    return `${window.location.origin}/?inviteItineraryId=${this.activeItinerary.id}&senderName=${encodeURIComponent(senderName)}`;
+    return `${window.location.origin}/schedule/${this.activeItinerary.id}?senderName=${encodeURIComponent(senderName)}`;
   }
 
   public async sendCollaboratorInvites() {

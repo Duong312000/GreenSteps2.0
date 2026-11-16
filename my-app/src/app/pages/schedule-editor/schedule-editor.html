@@ -2303,6 +2303,15 @@
                 <div class="flex-grow border-t border-gray-200"></div>
             </div>
 
+            <!-- Direct Share Link Preview Box -->
+            <div class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-xl">
+                <i class="bi bi-link-45deg text-gray-500 text-sm ml-1"></i>
+                <input type="text" [value]="shareLink" readonly class="flex-grow bg-transparent text-xs text-gray-700 outline-none select-all font-mono truncate" />
+                <button (click)="copyShareLink()" type="button" class="px-3 py-1.5 bg-[#184A37] text-white text-[11px] font-bold rounded-lg hover:bg-[#143d2d] cursor-pointer border-0 flex items-center gap-1 transition-all flex-shrink-0">
+                    <i class="bi bi-clipboard"></i> Sao chép
+                </button>
+            </div>
+
             <!-- Option 2: Social Links (Facebook, Instagram, Zalo, Copy Link) -->
             <div class="grid grid-cols-2 gap-2">
                 <button (click)="shareSocial('facebook')"

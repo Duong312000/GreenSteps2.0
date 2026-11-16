@@ -71,8 +71,7 @@ export class App implements OnInit {
     this.isScheduleRoute = cleanUrl.startsWith('/schedule');
     this.isPlannerRoute = cleanUrl === '/ai-planner';
     this.isProfileRoute = cleanUrl === '/profile';
-    this.isProfileMenuRoute = this.isProfileRoute || cleanUrl.startsWith('/schedule')
-      || cleanUrl === '/ai-planner' || cleanUrl === '/about';
+    this.isProfileMenuRoute = this.isProfileRoute;
     this.isStandalonePolicyRoute = cleanUrl === '/cancellation-policy' || cleanUrl === '/transparency';
     this.isStandaloneMaintenanceRoute = cleanUrl === '/maintenance';
   }

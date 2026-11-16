@@ -1061,6 +1061,7 @@
   width: 100% !important;
   max-width: 100vw !important;
   height: calc(100vh - 88px) !important;
+  margin-top: 88px !important;
   overflow: hidden !important;
   position: relative !important;
   background-color: #F8FAFC !important;
@@ -4630,7 +4631,7 @@
    ========================================================================== */
 .editor-loading-screen {
   position: fixed;
-  top: 72px; /* Header offset */
+  top: 88px; /* Header offset matching 88px navbar */
   left: 0;
   right: 0;
   bottom: 0;
