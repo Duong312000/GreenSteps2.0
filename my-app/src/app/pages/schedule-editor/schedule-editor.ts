@@ -1741,6 +1741,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public async addDayToItinerary() {
     if (!this.activeItinerary) return;
+    if (!this.activeItinerary.days) {
+      this.activeItinerary.days = [];
+    }
     const newDayNum = this.activeItinerary.days.length + 1;
     this.activeItinerary.days.push({
       dayNum: newDayNum,
@@ -1749,8 +1752,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     });
     this.activeDayIdx = newDayNum - 1;
 
+    this.checkTimeConflicts(this.activeDayIdx);
     this.plotMapMarkers();
-    await this.saveItineraryToDb();
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.showAlert(`Đã thêm Ngày ${newDayNum} vào lịch trình!`, 'success');
+    this.cdr.detectChanges();
   }
 
   public async deleteDay(idx: number, event: MouseEvent) {

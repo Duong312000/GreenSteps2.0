@@ -4077,6 +4077,43 @@
   100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 
+/* Add Day Button in Active Day Header */
+.btn-add-day-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #184a37;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-add-day-header:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #143d2d;
+}
+
+.mobile-day-pill.add-day-pill {
+  border: 1px dashed #184a37 !important;
+  color: #184a37 !important;
+  background: #f0fdf4 !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.mobile-day-pill.add-day-pill:hover {
+  background: #dcfce7 !important;
+}
+
 /* Quick Sort Button in Day Header */
 .btn-quick-sort-header {
   display: inline-flex;

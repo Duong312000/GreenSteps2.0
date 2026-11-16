@@ -309,6 +309,10 @@
                     (click)="switchActiveDay(dIdx); $event.stopPropagation()">
                 <span>{{ day.title || ('Ngày ' + (dIdx + 1)) }}</span>
             </button>
+            <button type="button" class="mobile-day-pill add-day-pill" *ngIf="!isItineraryLocked()"
+                    (click)="addDayToItinerary(); $event.stopPropagation()" title="Thêm một ngày mới vào lịch trình">
+                <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
+            </button>
         </div>
         <div class="timeline-cover-container" style="position: relative;">
             <!-- Hidden File Input for Custom Cover Image -->
@@ -382,18 +386,11 @@
         </div>
 
         <div class="active-day-header">
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <h3 id="activeDayTitle" style="margin: 0;">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
-                <div class="timeline-view-modes-segmented">
-                    <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'timeline'"
-                        (click)="switchTimelineViewMode('timeline')" title="Chế độ xem Danh sách">
-                        <i class="bi bi-list-ul"></i> <span>Danh sách</span>
-                    </button>
-                    <button type="button" class="view-mode-btn" [class.active]="activeTimelineViewMode === 'pipeline'"
-                        (click)="switchTimelineViewMode('pipeline')" title="Chế độ xem Sơ đồ tuyến">
-                        <i class="bi bi-diagram-3"></i> <span>Sơ đồ tuyến</span>
-                    </button>
-                </div>
+                <button type="button" class="btn-add-day-header" *ngIf="!isItineraryLocked()" (click)="addDayToItinerary()" title="Thêm một ngày mới vào lịch trình">
+                    <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
+                </button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -425,8 +422,8 @@
             </div>
         </div>
 
-        <!-- Timeline Activities List (Mode 1: Danh sách) -->
-        <div class="timeline-list-container" id="timelineList" *ngIf="activeTimelineViewMode === 'timeline'"
+        <!-- Timeline Activities List -->
+        <div class="timeline-list-container" id="timelineList"
              [class.dragging-active]="isDraggingCard">
             <!-- Empty state -->
             <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0"
@@ -586,127 +583,6 @@
                     </div>
                 </div>
             </ng-container>
-        </div>
-
-        <!-- Mode 2: Sequential Journey Pipeline / Sơ đồ Tuyến trình -->
-        <div class="pipeline-canvas-container" *ngIf="activeTimelineViewMode === 'pipeline'">
-            <div class="pipeline-header-bar">
-                <div class="pipeline-header-left">
-                    <span class="pipeline-station-count">
-                        <i class="bi bi-geo-alt"></i>
-                        {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
-                    </span>
-                    <!-- Quick station jump bar -->
-                    <div class="pipeline-quick-jumper" *ngIf="(activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 1">
-                        <button *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let sIdx = index"
-                                type="button"
-                                class="station-jump-pill"
-                                [class.has-conflict]="act.hasTimeConflict"
-                                (click)="scrollToPipelineStation(sIdx)"
-                                [title]="'Trạm ' + formatStationIndex(sIdx) + ': ' + act.title">
-                            {{ formatStationIndex(sIdx) }}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="pipeline-header-right">
-                    <!-- Smooth scroll arrows -->
-                    <div class="pipeline-nav-arrows" *ngIf="(activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 2">
-                        <button type="button" (click)="scrollPipelineStep(-1)" title="Lướt về trạm trước" class="pipeline-nav-btn">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <button type="button" (click)="scrollPipelineStep(1)" title="Lướt sang trạm kế tiếp" class="pipeline-nav-btn">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-
-                    <div class="pipeline-zoom-controls">
-                        <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">
-                            <i class="bi bi-dash"></i>
-                        </button>
-                        <span class="pipeline-zoom-text">{{ (pipelineZoomScale * 100) | number:'1.0-0' }}%</span>
-                        <button type="button" (click)="zoomPipeline(0.1)" title="Phóng to (+10%)" class="pipeline-zoom-btn">
-                            <i class="bi bi-plus"></i>
-                        </button>
-                        <button type="button" (click)="resetPipelineZoom()" title="Vừa khung hình (100%)" class="pipeline-zoom-btn">
-                            100%
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pipeline-canvas-viewport">
-                <div class="pipeline-track" [style.transform]="'scale(' + pipelineZoomScale + ')'"
-                     [class.dragging-active]="isDraggingCard">
-                    <!-- Empty State in Pipeline -->
-                    <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0" class="pipeline-empty-state">
-                        <i class="bi bi-calendar-event"></i>
-                        <p>Chưa có điểm dừng nào trong ngày này</p>
-                    </div>
-
-                    <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
-                        <!-- Station Node -->
-                        <div class="pipeline-node-card" 
-                             [class.has-conflict]="act.hasTimeConflict"
-                             [class.active-station]="locatingActivityIdx === idx"
-                             [class.is-drag-source]="dragSrcIdx === idx"
-                             [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
-                             [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
-                             [draggable]="!isItineraryLocked()"
-                             (dragstart)="onDragStart($event, idx)" 
-                             (dragover)="onDragOver($event, idx)"
-                             (dragleave)="onDragLeave($event, idx)"
-                             (drop)="onDrop($event, idx)" 
-                             (dragend)="onDragEnd($event)"
-                             (click)="openGooglePlacePanel(act, $event)">
-
-                            <!-- Grip handle in pipeline node -->
-                            <div class="pipeline-node-grip" 
-                                 *ngIf="!isItineraryLocked()"
-                                 title="Kéo thả trực tiếp thẻ hoặc tay nắm này">
-                                <i class="bi bi-grip-vertical"></i>
-                            </div>
-
-                            <div class="pipeline-node-thumb">
-                                <img [src]="getPlacePlaceholderImage(act.title)" [alt]="act.title"
-                                     (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-                                <span class="pipeline-node-order">{{ formatStationIndex(idx) }}</span>
-                            </div>
-                            <div class="pipeline-node-info">
-                                <span class="pipeline-node-time" [class.text-red-700]="act.hasTimeConflict">
-                                    <i class="bi bi-clock"></i> {{ act.time || '08:00' }}
-                                    <i *ngIf="act.hasTimeConflict" class="bi bi-exclamation-triangle-fill ml-1" [title]="act.conflictReason"></i>
-                                </span>
-                                <h4 class="pipeline-node-title" [title]="act.title">{{ act.title }}</h4>
-                                <div class="pipeline-node-meta">
-                                    <span class="pipeline-node-type">{{ getActivityTypeLabel(act.type) }}</span>
-                                    <button *ngIf="act.hasTimeConflict" 
-                                            type="button" 
-                                            class="pipeline-conflict-tag clickable" 
-                                            (click)="fixSingleActivityTime(idx, $event)"
-                                            [title]="act.conflictReason + ' - Nhấp để tự động căn lại giờ chuẩn'">
-                                        <i class="bi bi-magic"></i> Căn lại giờ
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Connector between Station idx and idx + 1 -->
-                        <div class="pipeline-connector-leg" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
-                             (click)="openLegDirections(idx)"
-                             [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
-                             title="Bấm để xem đường đi và chọn phương tiện cho chặng này">
-                            <div class="pipeline-leg-line"></div>
-                            <div class="pipeline-leg-pill">
-                                <i class="bi bi-bus-front"></i>
-                                <span>{{ getTravelGapText(idx) }}</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                            <div class="pipeline-leg-line"></div>
-                        </div>
-                    </ng-container>
-                </div>
-            </div>
         </div>
 
         <!-- Local Area Green Suggestions (Google Maps Style Explore) -->
