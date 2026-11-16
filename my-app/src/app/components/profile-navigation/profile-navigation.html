@@ -1,0 +1,21 @@
+<div class="profile-navigation">
+  <button type="button" class="profile-navigation__toggle" [attr.aria-expanded]="isMobileNavOpen"
+    aria-controls="profile-navigation-list" (click)="isMobileNavOpen = !isMobileNavOpen">
+    <i class="bi" [ngClass]="isMobileNavOpen ? 'bi-x-lg' : 'bi-list'" aria-hidden="true"></i>
+    {{ isMobileNavOpen ? 'Đóng menu' : 'Danh mục' }}
+  </button>
+
+  <aside class="profile-navigation__sidebar" [class.mobile-open]="isMobileNavOpen">
+    <nav id="profile-navigation-list" aria-label="Điều hướng hồ sơ">
+      <section class="profile-navigation__group" *ngFor="let group of groups">
+        <button type="button" class="profile-navigation__item" *ngFor="let item of group"
+          [class.active]="isActive(item)" [attr.aria-current]="isActive(item) ? 'page' : null"
+          (click)="navigate(item)">
+          <i class="bi" [ngClass]="item.icon" aria-hidden="true"></i>
+          <span>{{ item.label }}</span>
+          <small *ngIf="item.badge">{{ item.badge }}</small>
+        </button>
+      </section>
+    </nav>
+  </aside>
+</div>

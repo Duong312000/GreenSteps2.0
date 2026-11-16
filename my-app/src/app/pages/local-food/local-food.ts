@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { FoodApi, FoodPlace, FOOD_CATEGORIES, FOOD_FEATURES } from './food-api';
-import { AuthService } from '../../services/auth.service';
+
 
 @Component({
   selector: 'app-local-food',
@@ -30,14 +30,12 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
   places: FoodPlace[] = [];
   categories = FOOD_CATEGORIES;
   features = FOOD_FEATURES;
-  destination = 'Đà Lạt';
+  destination = '';
   category = '';
   budget = '';
   selectedFeatures: string[] = [];
   query = '';
   sort = 'recommended';
-  date = '';
-  time = '';
   guests = 2;
   loading = true;
   error = '';
@@ -45,22 +43,12 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
   pageSize = 6;
   isMobileFilterOpen = false;
   isFiltering = false;
-  selected: FoodPlace | null = null;
-  booking = false;
-  saving = false;
-  fullname = '';
-  phone = '';
-  bookingError = '';
   notice = '';
   saved: string[] = [];
   private timer?: ReturnType<typeof setInterval>;
   private destroyed = false;
   private fetching = false;
-  private trigger?: HTMLElement;
   private filterTimer?: ReturnType<typeof setTimeout>;
-  get today() {
-    return new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
-  }
   get destinations() {
     return [...new Set(this.places.map((p) => p.destination))];
   }
@@ -76,17 +64,17 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
         (!this.destination || p.destination === this.destination) &&
         (!this.category || p.category === this.category) &&
         (!this.query || normalize(p.name + ' ' + p.description).includes(normalize(this.query))) &&
-        (!this.budget ||
+        (!this.budget || (p.priceMin != null &&
           (this.budget === 'low'
             ? p.priceMin < 100000
             : this.budget === 'mid'
               ? p.priceMin >= 100000 && p.priceMin <= 200000
-              : p.priceMin > 200000)) &&
+              : p.priceMin > 200000))) &&
         this.selectedFeatures.every((f) => p.features.includes(f)) &&
-        p.capacity >= this.guests,
+        (p.capacity == null || p.capacity >= this.guests),
     );
-    if (this.sort === 'price') list.sort((a, b) => a.priceMin - b.priceMin);
-    if (this.sort === 'rating') list.sort((a, b) => b.rating - a.rating);
+    if (this.sort === 'price') list.sort((a, b) => (a.priceMin ?? Infinity) - (b.priceMin ?? Infinity));
+    if (this.sort === 'rating') list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
     return list;
   }
   get totalPages() {
@@ -146,6 +134,7 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
     }
   }
   reset() {
+    this.destination = '';
     this.budget = '';
     this.selectedFeatures = [];
     this.category = '';
@@ -185,66 +174,8 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
     }
   }
   open(p: FoodPlace, booking: boolean, event: Event) {
-    this.trigger = event.currentTarget as HTMLElement;
-    this.selected = p;
-    this.booking = booking;
-    this.bookingError = '';
-    this.notice = '';
-    this.fullname = this.auth.getCurrentUser()?.fullname || '';
-    setTimeout(() => document.getElementById('food-dialog-close')?.focus());
-  }
-  close() {
-    if (this.saving) return;
-    this.selected = null;
-    this.trigger?.focus();
-  }
-  trap(event: KeyboardEvent) {
-    if (event.key === 'Escape') this.close();
-    if (event.key !== 'Tab') return;
-    const nodes = Array.from(
-      (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(
-        'button:not(:disabled),input,select,a[href]',
-      ),
-    );
-    const first = nodes[0],
-      last = nodes[nodes.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first?.focus();
-    }
-  }
-  async reserve() {
-    if (!this.selected || this.saving) return;
-    if (!this.auth.getCurrentUser()) {
-      this.bookingError = 'Vui lòng đăng nhập bằng nút tài khoản để gửi yêu cầu đặt bàn.';
-      return;
-    }
-    this.saving = true;
-    this.bookingError = '';
-    try {
-      const result = await this.api.request<{ id: string }>(
-        'POST',
-        `/places/${this.selected.id}/reservations`,
-        {
-          date: this.date,
-          time: this.time,
-          guests: this.guests,
-          fullname: this.fullname,
-          phone: this.phone,
-        },
-      );
-      this.notice = `Đã gửi yêu cầu ${result.id.slice(0, 8)}. Quán cần xác nhận trước khi bạn đến.`;
-      this.saving = false;
-      this.close();
-    } catch (e: any) {
-      this.bookingError = e?.error?.message || 'Chưa gửi được yêu cầu. Vui lòng thử lại.';
-    } finally {
-      this.saving = false;
-      this.cdr.detectChanges();
-    }
+    event.stopPropagation();
+    void this.router.navigate(['/local-food', p.id], { fragment: booking ? 'booking' : undefined });
   }
   addToSchedule(p: FoodPlace) {
     try {

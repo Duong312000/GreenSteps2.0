@@ -407,14 +407,10 @@
 
 @media (min-width: 1024px) and (max-width: 1279px) {
   .main-header-row {
-    grid-template-columns: 200px minmax(0, 1fr);
     column-gap: 12px;
     height: 80px;
     padding-inline: 20px;
   }
-
-  .main-header-row .header-nav-shell { display: none; }
-  .main-header-row .mobile-hamburger { display: grid !important; }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {

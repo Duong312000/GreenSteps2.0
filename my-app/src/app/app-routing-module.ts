@@ -34,6 +34,7 @@ const routes: Routes = [
   { path: 'about', loadComponent: () => import('./pages/about/about').then(m => m.AboutComponent) },
   { path: 'sustainability', loadComponent: () => import('./pages/sustainability/sustainability').then(m => m.SustainabilityComponent) },
   { path: 'local-food', loadComponent: () => import('./pages/local-food/local-food').then(m => m.LocalFoodComponent) },
+  { path: 'local-food/:id', loadComponent: () => import('./pages/local-food/food-detail').then(m => m.FoodDetailComponent) },
   { path: 'admin/food', loadComponent: () => import('./pages/local-food/food-admin').then(m => m.FoodAdminComponent), canActivate: [foodAdminGuard] },
   { path: 'ai-planner', loadComponent: () => import('./pages/ai-planner/ai-planner').then(m => m.AiPlannerComponent) },
   { path:'transport', loadComponent:()=>import('./pages/transport/transport').then(m=>m.TransportComponent) },

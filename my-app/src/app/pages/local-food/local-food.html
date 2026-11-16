@@ -59,7 +59,7 @@
         </div>
       </fieldset>
       <fieldset>
-        <legend>Ngân sách mỗi người</legend>
+        <legend>Khoảng giá tham khảo</legend>
         <label
           *ngFor="
             let b of [
@@ -157,9 +157,11 @@
         {{ error }} <button (click)="load()">Thử lại</button>
       </div>
       <div class="food-grid" *ngIf="!loading" [class.filtering]="isFiltering">
-        <article class="food-card" *ngFor="let p of visible">
+        <article class="food-card" *ngFor="let p of visible" (click)="open(p, false, $event)">
           <div class="food-photo">
-            <img [src]="p.image" [alt]="p.name" loading="lazy" (error)="imageError($event)" /><span
+            <button type="button" class="food-photo-link" [attr.aria-label]="'Xem chi tiết ' + p.name" (click)="open(p, false, $event)">
+              <img [src]="p.image" [alt]="p.name" loading="lazy" (error)="imageError($event)" />
+            </button><span
               class="food-category"
               >{{ p.category }}</span
             ><button
@@ -167,7 +169,7 @@
               [class.saved]="saved.includes(p.id)"
               [attr.aria-label]="(saved.includes(p.id) ? 'Bỏ lưu ' : 'Lưu ') + p.name"
               [attr.aria-pressed]="saved.includes(p.id)"
-              (click)="toggleSave(p)"
+              (click)="$event.stopPropagation(); toggleSave(p)"
             >
               <i
                 aria-hidden="true"
@@ -177,23 +179,25 @@
             </button>
           </div>
           <div class="food-card-body">
-            <h3>{{ p.name }}</h3>
+            <h3><button type="button" class="food-title-link" (click)="open(p, false, $event)">{{ p.name }}</button></h3>
             <p class="food-location">
               <i aria-hidden="true" class="bi bi-geo-alt"></i> {{ p.destination }} ·
               {{ p.category }}
             </p>
-            <p class="food-rating">
+            <p class="food-rating" *ngIf="p.rating != null && p.reviewCount != null">
               <i aria-hidden="true" class="bi bi-star-fill"></i>
               <b>{{ p.rating | number: '1.1-1' : 'vi' }}</b>
               <span>({{ p.reviewCount }} đánh giá)</span>
             </p>
-            <p class="food-price">
+            <a *ngIf="p.rating == null && p.mapsUrl" class="food-maps-rating" [href]="p.mapsUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">Xem đánh giá trên Google Maps</a>
+            <p class="food-price" *ngIf="p.priceMin != null; else askPrice">
               {{ p.priceMin | number: '1.0-0' : 'vi'
               }}<span *ngIf="p.priceMax !== p.priceMin">
                 – {{ p.priceMax | number: '1.0-0' : 'vi' }}</span
               >đ/{{ p.priceUnit }}
             </p>
-            <small>Chi tiêu tham khảo</small>
+            <ng-template #askPrice><p class="food-price">Liên hệ quán để biết giá</p></ng-template>
+            <small>{{ p.priceMin != null ? 'Giá từ nguồn công khai · Có thể thay đổi' : 'Chưa có giá được xác minh' }}</small>
             <div class="food-eco">
               <i aria-hidden="true" class="bi bi-flower2"></i>
               {{
@@ -204,12 +208,12 @@
             </div>
             <div class="food-actions">
               <button (click)="open(p, false, $event)">
-                {{ p.category === 'Cà phê & trà' ? 'Xem quán' : 'Xem thực đơn' }}</button
+                Xem chi tiết</button
               ><button class="primary" (click)="open(p, true, $event)">
-                {{ p.priceUnit === 'set 2 người' ? 'Đặt set' : 'Đặt bàn' }}
+                {{ p.bookingEnabled === false ? 'Liên hệ quán' : p.priceUnit === 'set 2 người' ? 'Đặt set' : 'Đặt bàn' }}
               </button>
             </div>
-            <button class="food-schedule" (click)="addToSchedule(p)">
+            <button class="food-schedule" (click)="$event.stopPropagation(); addToSchedule(p)">
               <i aria-hidden="true" class="bi bi-plus-lg"></i> Thêm vào lịch trình
             </button>
           </div>
@@ -237,86 +241,3 @@
     </section>
   </div>
 </main>
-<div class="food-backdrop" *ngIf="selected as p" (click)="close()">
-  <section
-    class="food-dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="food-dialog-title"
-    (click)="$event.stopPropagation()"
-    (keydown)="trap($event)"
-  >
-    <button
-      id="food-dialog-close"
-      class="food-close"
-      aria-label="Đóng"
-      [disabled]="saving"
-      (click)="close()"
-    >
-      ×
-    </button>
-    <p class="food-dialog-category">{{ p.category }}</p>
-    <h2 id="food-dialog-title">{{ p.name }}</h2>
-    <p>{{ p.description }}</p>
-    <p>
-      <i aria-hidden="true" class="bi bi-geo-alt"></i> {{ p.address }}<br /><i
-        aria-hidden="true"
-        class="bi bi-clock"
-      ></i>
-      {{ p.hours }}
-    </p>
-    <p class="food-demo" *ngIf="p.isDemo">Địa điểm demo · Thông tin và đánh giá minh họa</p>
-    <ng-container *ngIf="!booking"
-      ><h3>Thực đơn tham khảo</h3>
-      <ul class="food-menu">
-        <li *ngFor="let item of p.menu">
-          <span>{{ item.name }}</span
-          ><b>{{ item.price | number: '1.0-0' : 'vi' }}đ</b>
-        </li>
-      </ul>
-      <p class="food-tags">{{ p.features.join(' · ') }}</p>
-      <button class="primary" (click)="booking = true">Gửi yêu cầu đặt bàn</button></ng-container
-    >
-    <form *ngIf="booking" (ngSubmit)="reserve()">
-      <p>Yêu cầu sẽ được quản trị viên xác nhận. Chưa thu phí trực tuyến.</p>
-      <div class="food-form-grid">
-        <label
-          >Ngày đến<input
-            name="reserveDate"
-            type="date"
-            [(ngModel)]="date"
-            [min]="today"
-            required /></label
-        ><label>Giờ đến<input name="reserveTime" type="time" [(ngModel)]="time" required /></label
-        ><label
-          >Số khách<input
-            name="reserveGuests"
-            type="number"
-            [(ngModel)]="guests"
-            min="1"
-            [max]="p.capacity"
-            required /></label
-        ><label
-          >Họ tên<input
-            name="fullname"
-            [(ngModel)]="fullname"
-            maxlength="100"
-            autocomplete="name"
-            required /></label
-        ><label
-          >Số điện thoại<input
-            name="phone"
-            type="tel"
-            [(ngModel)]="phone"
-            pattern="(\+84|0)[0-9]{9,10}"
-            autocomplete="tel"
-            required
-        /></label>
-      </div>
-      <p *ngIf="bookingError" class="error" role="alert">{{ bookingError }}</p>
-      <button class="primary" [disabled]="saving" type="submit">
-        {{ saving ? 'Đang gửi…' : 'Gửi yêu cầu đặt bàn' }}
-      </button>
-    </form>
-  </section>
-</div>

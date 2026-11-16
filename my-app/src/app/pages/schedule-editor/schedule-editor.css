@@ -2654,6 +2654,17 @@
   color: #047857 !important;
 }
 
+:host-context(.profile-route-shell) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  background: var(--profile-page-background);
+}
+
+:host-context(.profile-route-shell) .schedule-editor-container {
+  background: var(--profile-page-background) !important;
+}
+
 /* ==========================================================================
    FOCUS / DIM INACTIVE STATES WHEN VIEWING DIRECTIONS BETWEEN PINS (A -> B)
    ========================================================================== */

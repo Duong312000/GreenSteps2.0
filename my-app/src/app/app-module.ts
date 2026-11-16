@@ -52,6 +52,7 @@ import { CancellationPolicyComponent } from './pages/cancellation-policy/cancell
 import { NetworkErrorComponent } from './pages/network-error/network-error';
 import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
 import { LocalFoodComponent } from './pages/local-food/local-food';
+import { ProfileNavigationComponent } from './components/profile-navigation/profile-navigation';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
@@ -124,7 +125,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     AdminTableComponent,
     StatusBadgeComponent,
     CopyableIdComponent,
-    OnboardingTourComponent
+    OnboardingTourComponent,
+    ProfileNavigationComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

@@ -24,6 +24,18 @@ router.get(
   }),
 );
 router.get(
+  "/places/:id",
+  wrap(async (req, res) => {
+    let row = await m.places().findOne({ id: req.params.id, status: "published" });
+    if (!row) {
+      const legacy = await m.places().findOne({ id: req.params.id, status: "hidden", replacementId: { $exists: true } });
+      if (legacy) row = await m.places().findOne({ id: legacy.replacementId, status: "published" });
+    }
+    if (!row) return res.status(404).json({ message: "Không tìm thấy địa điểm ẩm thực." });
+    res.json(m.publicRow(row));
+  }),
+);
+router.get(
   "/admin/places",
   ...admin,
   wrap(async (req, res) => {
