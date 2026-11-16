@@ -1,29 +1,28 @@
 const { Op } = require('../db/mongo-store');
 
-async function searchTours({ models, query = {} }) {
-  const { Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, Destination } = models;
-  const { formatTourResponse } = require('../controllers/tour.controller');
+const tourCatalogCache = { data: null, expiresAt: 0, refreshing: false };
+const TOUR_CATALOG_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL with SWR
 
-  const page = Math.max(1, parseInt(query.page, 10) || 1);
-  const pageSize = Math.max(1, Math.min(100, parseInt(query.pageSize || query.limit, 10) || 12));
-  const keyword = (query.q || query.keyword || query.search || '').trim().toLowerCase();
-  const dest = (query.dest || query.destination || '').trim();
-  const style = (query.style || '').trim();
-  const minPrice = query.minPrice ? Number(query.minPrice) : null;
-  const maxPrice = query.maxPrice ? Number(query.maxPrice) : null;
-
-  // 1. Fetch active samples with their schedules and activities
-  const samples = await ScheduleSample.findAll({
-    include: [
-      {
-        model: Schedule,
-        include: [{
-          model: ScheduleActivity,
-          order: [['day_number', 'ASC'], ['time', 'ASC']]
-        }]
-      }
-    ]
-  });
+async function loadAllToursForSearch({ Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, formatTourResponse }) {
+  const [samples, editorialSchedules] = await Promise.all([
+    ScheduleSample.findAll({
+      readPreference: 'secondaryPreferred',
+      include: [
+        {
+          model: Schedule,
+          include: [{
+            model: ScheduleActivity,
+            order: [['day_number', 'ASC'], ['time', 'ASC']]
+          }]
+        }
+      ]
+    }),
+    Schedule.findAll({
+      where: { catalog_status: { [Op.in]: ['demo', 'editorial'] } },
+      readPreference: 'secondaryPreferred',
+      include: [{ model: ScheduleActivity }]
+    }).catch(() => [])
+  ]);
 
   const sampleIds = samples.map(s => s.id);
   const allBadges = sampleIds.length > 0
@@ -35,7 +34,7 @@ async function searchTours({ models, query = {} }) {
     badgeMap[bs.schedule_id].push(bs.badge_name);
   });
 
-  let tours = samples
+  const tours = samples
     .filter(s => s.Schedule)
     .map(s => formatTourResponse(
       s,
@@ -44,29 +43,57 @@ async function searchTours({ models, query = {} }) {
       s.Schedule.ScheduleActivities
     ));
 
-  // 2. Also include editorial / demo schedules if present
-  try {
-    const editorialSchedules = await Schedule.findAll({
-      where: { catalog_status: { [Op.in]: ['demo', 'editorial'] } },
-      include: [{ model: ScheduleActivity }]
-    });
-    if (editorialSchedules && editorialSchedules.length > 0) {
-      const existingIds = new Set(tours.map(t => t.id));
-      for (const ed of editorialSchedules) {
-        if (!existingIds.has(ed.id)) {
-          tours.push({
-            ...formatTourResponse({ id: ed.id }, ed, [], ed.ScheduleActivities || []),
-            catalog_status: ed.catalog_status,
-            is_demo: true,
-            bookingEnabled: false,
-            priceStatus: 'on_request'
-          });
-        }
+  if (editorialSchedules && editorialSchedules.length > 0) {
+    const existingIds = new Set(tours.map(t => t.id));
+    for (const ed of editorialSchedules) {
+      if (!existingIds.has(ed.id)) {
+        tours.push({
+          ...formatTourResponse({ id: ed.id }, ed, [], ed.ScheduleActivities || []),
+          catalog_status: ed.catalog_status,
+          is_demo: true,
+          bookingEnabled: false,
+          priceStatus: 'on_request'
+        });
       }
     }
-  } catch (e) {
-    // Ignore non-fatal editorial lookup
   }
+
+  return tours;
+}
+
+async function searchTours({ models, query = {} }) {
+  const { Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule } = models;
+  const { formatTourResponse } = require('../controllers/tour.controller');
+
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const pageSize = Math.max(1, Math.min(100, parseInt(query.pageSize || query.limit, 10) || 12));
+  const keyword = (query.q || query.keyword || query.search || '').trim().toLowerCase();
+  const dest = (query.dest || query.destination || '').trim();
+  const style = (query.style || '').trim();
+  const minPrice = query.minPrice ? Number(query.minPrice) : null;
+  const maxPrice = query.maxPrice ? Number(query.maxPrice) : null;
+
+  const now = Date.now();
+  let baseTours;
+  if (tourCatalogCache.data) {
+    baseTours = tourCatalogCache.data;
+    if (now > tourCatalogCache.expiresAt && !tourCatalogCache.refreshing) {
+      tourCatalogCache.refreshing = true;
+      loadAllToursForSearch({ Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, formatTourResponse })
+        .then(fresh => {
+          tourCatalogCache.data = fresh;
+          tourCatalogCache.expiresAt = Date.now() + TOUR_CATALOG_TTL_MS;
+        })
+        .catch(() => {})
+        .finally(() => { tourCatalogCache.refreshing = false; });
+    }
+  } else {
+    baseTours = await loadAllToursForSearch({ Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, formatTourResponse });
+    tourCatalogCache.data = baseTours;
+    tourCatalogCache.expiresAt = now + TOUR_CATALOG_TTL_MS;
+  }
+
+  let tours = baseTours.slice();
 
   // 3. In-memory matching for rich metadata
   if (keyword) {
@@ -130,3 +157,11 @@ async function searchTours({ models, query = {} }) {
 module.exports = {
   searchTours
 };
+
+// Warm up tour search catalog cache on server startup
+setTimeout(() => {
+  try {
+    const models = require('../models/index');
+    searchTours({ models, query: { page: 1, pageSize: 6 } }).catch(() => {});
+  } catch {}
+}, 400);

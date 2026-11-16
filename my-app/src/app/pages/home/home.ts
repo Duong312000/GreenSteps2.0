@@ -828,7 +828,10 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
     try {
-      const dbDests = await this.apiService.getDestinations();
+      const [dbDests, firstTours] = await Promise.all([
+        this.apiService.getDestinations().catch(() => []),
+        this.apiService.getPresetTours(undefined, 6).catch(() => [])
+      ]);
       if (dbDests && dbDests.length > 0) {
         this.destinationCards = dbDests.map(dest => {
           let label = dest;
@@ -861,10 +864,20 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
       
-      // Load real tours and build previews
-      this.realTours = await this.apiService.getPresetTours() || [];
+      // Render Above-the-Fold tours immediately
+      this.realTours = firstTours || [];
       this.updatePreviewFromDatabase();
       this.generateAiItinerary();
+
+      // Silently hydrate remaining tours in background
+      setTimeout(() => {
+        this.apiService.getPresetTours().then(fullTours => {
+          if (fullTours && fullTours.length > this.realTours.length) {
+            this.realTours = fullTours;
+            this.updatePreviewFromDatabase();
+          }
+        }).catch(() => {});
+      }, 300);
     } catch (e) {
       console.warn('Failed to load dynamic destinations:', e);
     }

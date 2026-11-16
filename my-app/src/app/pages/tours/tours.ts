@@ -164,6 +164,15 @@ export class ToursComponent implements OnInit {
       this.paginatedTours = this.toursData;
       this.totalTours = response?.total || 0;
       this.currentPage = response?.page || this.currentPage;
+
+      // Silent background prefetch of next page ("Thuật toán che mắt" Layer 2)
+      const totalPages = Math.ceil(this.totalTours / this.pageSize);
+      if (this.currentPage < totalPages) {
+        const nextPageQuery = { ...query, page: this.currentPage + 1 };
+        setTimeout(() => {
+          this.apiService.getToursPage(nextPageQuery).catch(() => {});
+        }, 250);
+      }
     } catch {
       if (sequence !== this.loadSequence) return;
       try {

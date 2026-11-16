@@ -829,6 +829,67 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return 1;
   }
 
+  private encodeShareSnapshot(iti: any): string {
+    try {
+      const src = (iti && Array.isArray(iti.days)) ? iti : this.activeItinerary;
+      if (!src || !Array.isArray(src.days)) return '';
+      const minPayload = {
+        i: src.id,
+        t: src.title || src.name || 'Lịch trình du lịch',
+        d: src.destLabel || src.destination || 'Đà Lạt',
+        y: src.days.map((day: any, idx: number) => ({
+          n: day.dayNum || (idx + 1),
+          a: (day.activities || []).map((act: any) => ({
+            m: act.time || '08:00',
+            t: act.title || act.name || 'Hoạt động',
+            y: act.type || 'attraction',
+            c: Number(act.cost) || 0,
+            b: Number(act.carbon) || 0,
+            la: act.lat,
+            ln: act.lng
+          }))
+        }))
+      };
+      const jsonStr = JSON.stringify(minPayload);
+      return encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+    } catch {
+      return '';
+    }
+  }
+
+  private decodeShareSnapshot(snapParam: string): any | null {
+    try {
+      const jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(snapParam))));
+      const min = JSON.parse(jsonStr);
+      if (!min || !Array.isArray(min.y)) return null;
+      const destSlug = this.mapDestToSlug(min.d);
+      return {
+        id: min.i || 'iti_shared',
+        title: min.t || 'Lịch trình được chia sẻ',
+        dest: destSlug,
+        destLabel: min.d || 'Đà Lạt',
+        destination: min.d || 'Đà Lạt',
+        days: min.y.map((day: any, idx: number) => ({
+          dayNum: day.n || (idx + 1),
+          title: `Ngày ${day.n || (idx + 1)}`,
+          activities: (day.a || []).map((act: any, aIdx: number) => ({
+            id: `act_snap_${idx}_${aIdx}`,
+            time: act.m || '08:00',
+            title: act.t || 'Hoạt động',
+            type: act.y || 'attraction',
+            cost: Number(act.c) || 0,
+            carbon: Number(act.b) || 0,
+            is_shared: act.y === 'lodging',
+            lat: act.la,
+            lng: act.ln
+          }))
+        }))
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // Share methods
   public async openShareModal(iti: any, event?: Event) {
     if (event) {
@@ -852,7 +913,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const destName = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
     const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
 
-    this.shareLink = `${window.location.origin}/schedule/${targetId}`;
+    const snap = this.encodeShareSnapshot(this.sharingItinerary);
+    this.shareLink = snap
+      ? `${window.location.origin}/schedule/${targetId}?s=${snap}`
+      : `${window.location.origin}/schedule/${targetId}`;
     this.shareMessage = `Khám phá hành trình "${tripName}" tại ${destName} trên GreenSteps! 🌿\nXem chi tiết lịch trình tại: ${this.shareLink}`;
     this.isShareModalOpen = true;
     this.cdr.detectChanges();
@@ -1349,6 +1413,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.lastLocalEditAt = Date.now();
     if (this.saveInFlight) {
       this.savePending = true;
+      while (this.saveInFlight) {
+        await new Promise(r => setTimeout(r, 150));
+      }
       return;
     }
     this.saveInFlight = true;
@@ -1686,6 +1753,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     const idVariants = [tourId, `iti_${cleanId}`, cleanId].filter(Boolean);
 
+    // 0. Check URL self-contained share snapshot (?s=...) for 0ms cross-IP instant rendering
+    const snapParam = this.route.snapshot.queryParamMap.get('s');
+    if (snapParam) {
+      const snapIti = this.decodeShareSnapshot(snapParam);
+      if (snapIti) {
+        this.isSampleItinerary = false;
+        this.openEditorWithItinerary(snapIti);
+        // Hydrate latest version from backend in background
+        this.apiService.getItinerary(tourId, true).then(custom => {
+          if (custom && Array.isArray(custom.daysData) && custom.daysData.some((d: any) => d?.length > 0)) {
+            const fresh = this.convertApiToEditorItinerary(custom);
+            this.openEditorWithItinerary(fresh);
+          }
+        }).catch(() => {});
+        return;
+      }
+    }
+
     // 1. Check local working draft across variants
     for (const variant of idVariants) {
       try {
@@ -1739,10 +1824,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
-    // 3. Try loading custom itinerary from backend using all variants
+    // 3. Try loading custom itinerary from backend using all variants (bypass cache for fresh shared data)
     for (const variant of idVariants) {
       try {
-        const custom = await this.apiService.getItinerary(variant);
+        const custom = await this.apiService.getItinerary(variant, true);
         if (custom) {
           this.isSampleItinerary = false;
           const cloned = this.convertApiToEditorItinerary(custom);
@@ -6281,7 +6366,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.activeItinerary) return `${window.location.origin}/schedule`;
     const user = this.authService.getCurrentUser();
     const senderName = user ? (user.fullname || user.username) : 'Một người bạn';
-    return `${window.location.origin}/schedule/${this.activeItinerary.id}?senderName=${encodeURIComponent(senderName)}`;
+    const snap = this.encodeShareSnapshot(this.activeItinerary);
+    const snapQuery = snap ? `&s=${snap}` : '';
+    return `${window.location.origin}/schedule/${this.activeItinerary.id}?senderName=${encodeURIComponent(senderName)}${snapQuery}`;
   }
 
   public async sendCollaboratorInvites() {

@@ -56,13 +56,52 @@ export class ApiService {
     this.cache.set(key, { data, expiry: Date.now() + ttlMs });
   }
 
+  private getSwrPersistentCache<T>(storageKey: string): { data: T; savedAt: number } | null {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.data !== undefined && typeof parsed.savedAt === 'number') {
+        return parsed;
+      }
+    } catch {}
+    return null;
+  }
+
+  private setSwrPersistentCache(storageKey: string, data: any): void {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ data, savedAt: Date.now() }));
+    } catch {}
+  }
+
   private async getPublicCatalogRequest<T>(url: string, isValid: (value: any) => boolean): Promise<T> {
     const cacheKey = `public_catalog:${url}`;
+    const storageKey = `greensteps_swr_v2:${url}`;
     const cached = this.getCachedData(cacheKey);
     if (cached !== null) return structuredClone(cached) as T;
 
+    // Stale-While-Revalidate from previous session: return 0ms and refresh silently in background
+    const persisted = this.getSwrPersistentCache<T>(storageKey);
+    if (persisted && isValid(persisted.data)) {
+      this.setCachedData(cacheKey, structuredClone(persisted.data), 60_000);
+      if (Date.now() - persisted.savedAt > 45_000) {
+        this.sharePendingRequest(url, () => this.getWithTimeout<T>(url))
+          .then(fresh => {
+            if (isValid(fresh)) {
+              this.setCachedData(cacheKey, structuredClone(fresh), 180_000);
+              this.setSwrPersistentCache(storageKey, fresh);
+            }
+          })
+          .catch(() => {});
+      }
+      return structuredClone(persisted.data) as T;
+    }
+
     const response = await this.sharePendingRequest(url, () => this.getWithTimeout<T>(url));
-    if (isValid(response)) this.setCachedData(cacheKey, structuredClone(response), 15_000);
+    if (isValid(response)) {
+      this.setCachedData(cacheKey, structuredClone(response), 180_000);
+      this.setSwrPersistentCache(storageKey, response);
+    }
     return response;
   }
 
@@ -203,9 +242,17 @@ export class ApiService {
   }
 
   // 1. Tours APIs
-  public async getPresetTours(userId?: string): Promise<Tour[]> {
+  public async getPresetTours(userId?: string, initialLimit?: number): Promise<Tour[]> {
     try {
       if (!userId) {
+        if (initialLimit && initialLimit > 0) {
+          const fastPage = await this.getToursPage({ page: 1, pageSize: initialLimit, sort: 'popular' });
+          // Silently prefetch full catalog in background after first paint
+          setTimeout(() => {
+            this.getToursPage({ page: 1, pageSize: 100, sort: 'popular' }).catch(() => {});
+          }, 250);
+          return fastPage.items || [];
+        }
         const page = await this.getToursPage({ page: 1, pageSize: 100, sort: 'popular' });
         return page.items || [];
       }
@@ -1035,7 +1082,7 @@ export class ApiService {
 
     try {
       const url = `${this.BACKEND_URL}/destinations?page=1&pageSize=100`;
-      const response = await this.sharePendingRequest(url, () => this.getWithTimeout<any>(url));
+      const response = await this.getPublicCatalogRequest<any>(url, v => Array.isArray(v) || Array.isArray(v?.items));
       const data = Array.isArray(response) ? response : (response?.items || []).map((item: any) => item.name).filter(Boolean);
       this.setCachedData(cacheKey, data);
       return data;
@@ -1063,7 +1110,7 @@ export class ApiService {
     Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
     try {
       const url = `${this.BACKEND_URL}/destinations?${params.toString()}`;
-      return await this.sharePendingRequest(url, () => this.getWithTimeout<any>(url));
+      return await this.getPublicCatalogRequest<any>(url, v => Array.isArray(v) || Array.isArray(v?.items));
     }
     catch { return { items: [], total: 0, page: 1, pageSize: 12, totalPages: 0 }; }
   }
