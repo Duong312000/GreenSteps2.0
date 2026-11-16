@@ -42,60 +42,104 @@ function saveBase64Image(base64Data, subfolder = 'services') {
 
   const filename = `image_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
   const filePath = path.join(dirPath, filename);
-  fs.writeFileSync(filePath, buffer);
+  try {
+    fs.writeFileSync(filePath, buffer);
+  } catch {}
 
-  return `/uploads/${subfolder}/${filename}`;
+  // Return base64 data URI directly so MongoDB persists it permanently across Render restarts and cross-origin frontends
+  return base64Data;
 }
 
-// 1. Get All Green Services (with optional destination filter — Eager Loading)
+// --- Server-Side In-Memory SWR Cache for Green Services ---
+const servicesCache = { data: null, expiresAt: 0, refreshing: false };
+const SERVICES_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL
+
+async function fetchAllServicesFromDb() {
+  const services = await GreenService.findAll({
+    where: {},
+    readPreference: 'secondaryPreferred',
+    include: [
+      { model: Badge, through: { attributes: [] } },
+      { model: Vender }
+    ]
+  });
+
+  return services.filter(s => !s.current_data?.catalogHidden).map(s => {
+    const badges = (s.Badges || []).map(b => b.id);
+    const providerId = s.Vender ? s.Vender.user_id : 'UG26pro0001';
+
+    return {
+      id: s.id,
+      provider_id: providerId,
+      name: s.name_service,
+      type: s.type,
+      destination: s.destination,
+      cost: s.cost,
+      carbon: s.carbon,
+      icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
+      status: s.status || 'active',
+      views_count: s.views_count || 0,
+      rating: s.rating,
+      reviews_count: s.reviews_count,
+      bookings_count: s.bookings_count,
+      max_capacity: s.max_capacity || 10,
+      badges: badges,
+      is_partner: s.is_partner !== false,
+      source: s.source || (s.is_partner === false ? 'google_maps' : 'partner'),
+      google_place_id: s.google_place_id || null,
+      image_url: s.image_url || (s.current_data ? s.current_data.img : null),
+      current_data: s.current_data || {},
+      ...catalogMetadata(s)
+    };
+  });
+}
+
+function filterAndSliceServices(allServices, query = {}) {
+  let list = allServices;
+  if (query.destination) {
+    const destNeedle = String(query.destination).toLowerCase().trim();
+    list = list.filter(s => String(s.destination || '').toLowerCase().includes(destNeedle));
+  }
+  const offset = Number(query.offset) || 0;
+  const limit = Number(query.limit) || 0;
+  if (offset > 0 || limit > 0) {
+    list = limit > 0 ? list.slice(offset, offset + limit) : list.slice(offset);
+  }
+  return list;
+}
+
+exports.invalidateServicesCache = () => {
+  servicesCache.expiresAt = 0;
+};
+
+setTimeout(() => {
+  fetchAllServicesFromDb().then(list => {
+    servicesCache.data = list;
+    servicesCache.expiresAt = Date.now() + SERVICES_TTL_MS;
+  }).catch(() => {});
+}, 800);
+
+// 1. Get All Green Services (SWR In-Memory Cache + Above-the-Fold Progressive Slice)
 exports.getServices = async (req, res, next) => {
   try {
-    const { destination } = req.query;
-
-    const query = {};
-    if (destination) {
-      query.destination = { [Op.iLike]: `%${destination}%` };
+    const now = Date.now();
+    if (servicesCache.data) {
+      if (now > servicesCache.expiresAt && !servicesCache.refreshing) {
+        servicesCache.refreshing = true;
+        fetchAllServicesFromDb().then(fresh => {
+          servicesCache.data = fresh;
+          servicesCache.expiresAt = Date.now() + SERVICES_TTL_MS;
+        }).catch(() => {}).finally(() => {
+          servicesCache.refreshing = false;
+        });
+      }
+      return res.json(filterAndSliceServices(servicesCache.data, req.query));
     }
 
-    const services = await GreenService.findAll({
-      where: query,
-      readPreference: 'secondaryPreferred',
-      include: [
-        { model: Badge, through: { attributes: [] } },
-        { model: Vender }
-      ]
-    });
-
-    const formatted = services.filter(s => !s.current_data?.catalogHidden).map(s => {
-      const badges = (s.Badges || []).map(b => b.id);
-      const providerId = s.Vender ? s.Vender.user_id : 'UG26pro0001';
-
-      return {
-        id: s.id,
-        provider_id: providerId,
-        name: s.name_service,
-        type: s.type,
-        destination: s.destination,
-        cost: s.cost,
-        carbon: s.carbon,
-        icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
-        status: s.status || 'active',
-        views_count: s.views_count || 0,
-        rating: s.rating,
-        reviews_count: s.reviews_count,
-        bookings_count: s.bookings_count,
-        max_capacity: s.max_capacity || 10,
-        badges: badges,
-        is_partner: s.is_partner !== false,
-        source: s.source || (s.is_partner === false ? 'google_maps' : 'partner'),
-        google_place_id: s.google_place_id || null,
-        image_url: s.image_url || (s.current_data ? s.current_data.img : null),
-        current_data: s.current_data || {},
-        ...catalogMetadata(s)
-      };
-    });
-
-    res.json(formatted);
+    const formatted = await fetchAllServicesFromDb();
+    servicesCache.data = formatted;
+    servicesCache.expiresAt = now + SERVICES_TTL_MS;
+    res.json(filterAndSliceServices(formatted, req.query));
   } catch (error) {
     next(error);
   }
@@ -120,7 +164,7 @@ exports.getProviderServices = async (req, res, next) => {
       ...(compact ? { attributes: [
         'id', 'name_service', 'type', 'destination', 'cost', 'status', 'image_url',
         'views_count', 'bookings_count', 'max_capacity', 'carbon', 'rating',
-        'current_data.imageMetadata',
+        'current_data.imageMetadata', 'current_data.img',
         'current_data.priceStatus', 'current_data.bookingEnabled',
         'current_data.carbonStatus', 'current_data.capacityStatus'
       ] } : {})
@@ -136,7 +180,8 @@ exports.getProviderServices = async (req, res, next) => {
       bookingsCount: s.bookings_count,
       max_capacity: s.max_capacity,
       carbon: s.carbon,
-      image_url: typeof s.image_url === 'string' && !s.image_url.startsWith('data:') ? s.image_url : null,
+      image_url: [s.image_url, s.current_data?.img]
+        .find(value => typeof value === 'string' && value && !value.startsWith('data:')) || null,
       current_data: s.current_data || {},
       ...catalogMetadata(s)
     }));
@@ -206,6 +251,7 @@ exports.addService = async (req, res, next) => {
     for (const b of badgeList) {
       await BadgeService.create({ badge_name: b, service_id: service.id });
     }
+    servicesCache.expiresAt = 0;
 
     res.json({
       id: service.id,
@@ -459,6 +505,7 @@ exports.updateService = async (req, res, next) => {
     service.changed('current_data', true);
 
     await service.save();
+    servicesCache.expiresAt = 0;
 
     res.json({ success: true, service });
   } catch (error) {

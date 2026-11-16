@@ -9,25 +9,44 @@ interface MaintenanceStatus {
   maintenanceMode: boolean;
 }
 
-async function checkMaintenance(url: string) {
+let cachedMaintenanceStatus: { maintenanceMode: boolean; checkedAt: number } | null = null;
+let checkInFlight = false;
+const MAINTENANCE_CACHE_TTL_MS = 60_000;
+
+function checkMaintenance(url: string) {
   const cleanUrl = url.split(/[?#]/, 1)[0];
   if (cleanUrl === '/maintenance') return true;
   if (cleanUrl === '/admin' && inject(AuthService).getCurrentUser()?.role === 'admin') return true;
 
   const router = inject(Router);
   const http = inject(HttpClient);
-  try {
-    const status = await firstValueFrom(
+  const now = Date.now();
+
+  if (cachedMaintenanceStatus && (now - cachedMaintenanceStatus.checkedAt < MAINTENANCE_CACHE_TTL_MS)) {
+    return cachedMaintenanceStatus.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
+  }
+
+  if (!checkInFlight) {
+    checkInFlight = true;
+    firstValueFrom(
       http.get<MaintenanceStatus>(`${getApiUrl()}/maintenance-status`).pipe(
-        timeout(1200),
+        timeout(1500),
         catchError(() => of({ maintenanceMode: false }))
       )
-    );
-    return status?.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
-  } catch {
-    // A temporary status API failure or timeout must not block navigation to the page.
-    return true;
+    ).then(status => {
+      cachedMaintenanceStatus = {
+        maintenanceMode: Boolean(status?.maintenanceMode),
+        checkedAt: Date.now()
+      };
+      if (cachedMaintenanceStatus.maintenanceMode) {
+        router.navigate(['/maintenance']);
+      }
+    }).catch(() => {}).finally(() => {
+      checkInFlight = false;
+    });
   }
+
+  return cachedMaintenanceStatus?.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
 }
 
 export const maintenanceGuard: CanActivateFn = (_route, state) => checkMaintenance(state.url);

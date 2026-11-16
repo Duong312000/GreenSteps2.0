@@ -65,7 +65,6 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     App,
     HeaderComponent,
     FooterComponent,
-    LoadingIndicatorComponent,
     LoginModalComponent,
     HomeComponent,
     ToursComponent,
@@ -102,7 +101,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     StatusBadgeComponent,
     CopyableIdComponent,
     OnboardingTourComponent,
-    ProfileNavigationComponent
+    ProfileNavigationComponent,
+    LoadingIndicatorComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

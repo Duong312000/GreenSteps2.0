@@ -107,21 +107,105 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
 exports.formatTourResponse = formatTourResponse;
 const bcrypt = require('bcrypt');
 
-// 1. Get All Preset Tours (Eager Loading — single query)
+// --- Server-Side In-Memory SWR Cache & Custom Itinerary Hot Cache ---
+const presetToursCache = { data: null, expiresAt: 0, refreshing: false };
+const destinationsCache = { data: null, items: null, expiresAt: 0, refreshing: false };
+const customItineraryCache = new Map(); // id -> { data, cachedAt }
+const PRESET_TOURS_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL with SWR
+const DESTINATIONS_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
+
+async function fetchAllPresetToursFromDb() {
+  const samples = await ScheduleSample.findAll({
+    where: {},
+    readPreference: 'secondaryPreferred',
+    include: [
+      {
+        model: Schedule,
+        include: [{
+          model: ScheduleActivity,
+          order: [['day_number', 'ASC'], ['time', 'ASC']]
+        }]
+      }
+    ]
+  });
+
+  const sampleIds = samples.map(s => s.id);
+  const allBadges = sampleIds.length > 0
+    ? await BadgeSchedule.findAll({ where: { schedule_id: { [Op.in]: sampleIds } } })
+    : [];
+  const badgeMap = {};
+  allBadges.forEach(bs => {
+    if (!badgeMap[bs.schedule_id]) badgeMap[bs.schedule_id] = [];
+    badgeMap[bs.schedule_id].push(bs.badge_name);
+  });
+
+  return samples
+    .filter(s => s.Schedule)
+    .map(s => formatTourResponse(
+      s,
+      s.Schedule,
+      badgeMap[s.id] || [],
+      s.Schedule.ScheduleActivities
+    ));
+}
+
+function applyTourPaginationAndSummary(tours, query = {}) {
+  let list = tours;
+  const offset = Number(query.offset) || 0;
+  const limit = Number(query.limit) || 0;
+  if (offset > 0 || limit > 0) {
+    list = limit > 0 ? list.slice(offset, offset + limit) : list.slice(offset);
+  }
+  if (query.summary === '1' || query.summary === 'true') {
+    return list.map(t => ({ ...t, data: undefined }));
+  }
+  return list;
+}
+
+exports.invalidateTourCaches = () => {
+  presetToursCache.expiresAt = 0;
+  destinationsCache.expiresAt = 0;
+};
+
+// Warm up cache in background shortly after server starts
+setTimeout(() => {
+  fetchAllPresetToursFromDb().then(tours => {
+    presetToursCache.data = tours;
+    presetToursCache.expiresAt = Date.now() + PRESET_TOURS_TTL_MS;
+  }).catch(() => {});
+}, 500);
+
+// 1. Get All Preset Tours (SWR In-Memory Cache + Above-the-Fold Progressive Slice)
 exports.getPresetTours = async (req, res, next) => {
-  console.log("[TourController] getPresetTours called, query:", req.query);
   try {
     const { userId } = req.query;
-    let whereClause = {};
-    if (userId) {
-      const provider = await providerForUser(userId);
-      if (!provider) return res.json([]);
-      whereClause = { provider_id: provider.id };
+    if (!userId) {
+      const now = Date.now();
+      if (presetToursCache.data) {
+        if (now > presetToursCache.expiresAt && !presetToursCache.refreshing) {
+          presetToursCache.refreshing = true;
+          fetchAllPresetToursFromDb().then(fresh => {
+            presetToursCache.data = fresh;
+            presetToursCache.expiresAt = Date.now() + PRESET_TOURS_TTL_MS;
+          }).catch(() => {}).finally(() => {
+            presetToursCache.refreshing = false;
+          });
+        }
+        return res.json(applyTourPaginationAndSummary(presetToursCache.data, req.query));
+      }
+
+      const tours = await fetchAllPresetToursFromDb();
+      presetToursCache.data = tours;
+      presetToursCache.expiresAt = now + PRESET_TOURS_TTL_MS;
+      return res.json(applyTourPaginationAndSummary(tours, req.query));
     }
+
+    const provider = await providerForUser(userId);
+    if (!provider) return res.json([]);
+    const whereClause = { provider_id: provider.id };
 
     const samples = await ScheduleSample.findAll({
       where: whereClause,
-      readPreference: userId ? undefined : 'secondaryPreferred',
       include: [
         {
           model: Schedule,
@@ -133,7 +217,6 @@ exports.getPresetTours = async (req, res, next) => {
       ]
     });
 
-    // Fetch all badges for returned schedule IDs in a single query
     const sampleIds = samples.map(s => s.id);
     const allBadges = sampleIds.length > 0
       ? await BadgeSchedule.findAll({ where: { schedule_id: { [Op.in]: sampleIds } } })
@@ -153,7 +236,7 @@ exports.getPresetTours = async (req, res, next) => {
         s.Schedule.ScheduleActivities
       ));
 
-    res.json(tours);
+    res.json(applyTourPaginationAndSummary(tours, req.query));
   } catch (error) {
     next(error);
   }
@@ -325,10 +408,37 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
       });
     }
 
+    // Immediately write-through to customItineraryCache so shared links on any IP resolve in 1ms
+    customItineraryCache.set(id, {
+      data: {
+        id,
+        name: name || 'Lịch trình tự thiết kế',
+        user_id,
+        destination: destination || 'Việt Nam',
+        days: days || (Array.isArray(daysData) ? daysData.length : 1),
+        totalCost: totalCost || 0,
+        totalCarbon: computedCarbon,
+        daysData: Array.isArray(daysData) ? daysData : [],
+        status: status || 'draft',
+        deposit_deadline: deposit_deadline || null,
+        start_date: start_date || null,
+        end_date: end_date || null,
+        companion_email: companion_email || null,
+        imageUrl: imageUrl || image_url || null,
+        collaborators: []
+      },
+      cachedAt: Date.now()
+    });
+
     // MongoDB transaction
     await store.transaction(async (t) => {
-      // Self-healing check: if the user does not exist in DB, auto-create them and their wallet
-      const userExists = await User.findByPk(user_id, { transaction: t });
+      const [userExists, existingSchedule, existingSample, existingCustom] = await Promise.all([
+        User.findByPk(user_id, { transaction: t }),
+        Schedule.findByPk(id, { transaction: t }),
+        ScheduleSample.findByPk(id, { transaction: t }),
+        ScheduleCustom.findByPk(id, { transaction: t })
+      ]);
+
       if (!userExists) {
         const hashedPwd = await bcrypt.hash('123456', 10);
         await User.create({
@@ -340,12 +450,6 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
           role: 'traveler'
         }, { transaction: t });
       }
-
-      const [existingSchedule, existingSample, existingCustom] = await Promise.all([
-        Schedule.findByPk(id, { transaction: t }),
-        ScheduleSample.findByPk(id, { transaction: t }),
-        ScheduleCustom.findByPk(id, { transaction: t })
-      ]);
       const catalogStatus = !existingSample && (existingCustom || !existingSchedule)
         ? 'personal'
         : existingSchedule?.catalog_status;
@@ -556,33 +660,65 @@ exports.getUserCustomItineraries = async (req, res, next) => {
   }
 };
 
-// 6. Get Single Custom Itinerary (Eager Loading — single query)
+// 6. Get Single Custom Itinerary (Hot RAM Cache + Parallel Eager Loading + Sample Fallback)
 exports.getCustomItineraryById = async (req, res, next) => {
   const { id } = req.params;
   try {
-    const c = await ScheduleCustom.findByPk(id, {
-      include: [{
-        model: Schedule,
-        include: [{ model: ScheduleActivity }]
-      }]
-    });
+    const cached = customItineraryCache.get(id);
+    if (cached && (Date.now() - cached.cachedAt < 2 * 60 * 1000)) {
+      return res.json(cached.data);
+    }
+
+    const [c, userSchedules] = await Promise.all([
+      ScheduleCustom.findByPk(id, {
+        include: [{
+          model: Schedule,
+          include: [{ model: ScheduleActivity }]
+        }]
+      }),
+      UserSchedule.findAll({ where: { schedule_id: id } })
+    ]);
+
     if (!c || !c.Schedule) {
+      // Fallback: if someone shared a preset/sample tour ID on /schedule/:id
+      const fallbackSchedule = await Schedule.findByPk(id, {
+        include: [{ model: ScheduleActivity }]
+      });
+      if (fallbackSchedule) {
+        const sample = await ScheduleSample.findByPk(id);
+        const fallbackPayload = {
+          id: fallbackSchedule.id,
+          name: fallbackSchedule.tour_name,
+          destination: fallbackSchedule.destination || 'Việt Nam',
+          days: fallbackSchedule.days,
+          totalCost: sample ? sample.cost : 0,
+          totalCarbon: fallbackSchedule.carbon,
+          daysData: formatActivitiesIntoDays(fallbackSchedule, fallbackSchedule.ScheduleActivities),
+          status: 'draft',
+          deposit_deadline: null,
+          start_date: null,
+          end_date: null,
+          companion_email: null,
+          imageUrl: fallbackSchedule.image_url,
+          collaborators: []
+        };
+        return res.json(fallbackPayload);
+      }
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
-    // Fetch collaborators via UserSchedule
-    const userSchedules = await UserSchedule.findAll({
-      where: { schedule_id: id }
-    });
     const collaboratorIds = userSchedules.map(us => us.user_id);
-    const collaborators = await User.findAll({
-      where: { id: { [Op.in]: collaboratorIds } },
-      attributes: ['id', 'username', 'fullname', 'avatarUrl', 'email']
-    });
+    const collaborators = collaboratorIds.length > 0
+      ? await User.findAll({
+          where: { id: { [Op.in]: collaboratorIds } },
+          attributes: ['id', 'username', 'fullname', 'avatarUrl', 'email']
+        })
+      : [];
 
-    res.json({
+    const responseData = {
       id: c.id,
       name: c.Schedule.tour_name,
+      user_id: c.user_id,
       destination: c.Schedule.destination || 'Việt Nam',
       days: c.Schedule.days,
       totalCost: c.total_cost,
@@ -601,7 +737,10 @@ exports.getCustomItineraryById = async (req, res, next) => {
         avatarUrl: u.avatarUrl || u.avatar_url || '',
         email: u.email
       }))
-    });
+    };
+
+    customItineraryCache.set(id, { data: responseData, cachedAt: Date.now() });
+    res.json(responseData);
   } catch (error) {
     next(error);
   }
@@ -610,6 +749,7 @@ exports.getCustomItineraryById = async (req, res, next) => {
 // 7. Delete Custom Itinerary
 exports.deleteCustomItinerary = async (req, res, next) => {
   const { id } = req.params;
+  customItineraryCache.delete(id);
   try {
     await store.transaction(async (t) => {
       await ScheduleActivity.destroy({ where: { schedule_id: id }, transaction: t });
@@ -624,13 +764,28 @@ exports.deleteCustomItinerary = async (req, res, next) => {
   }
 };
 
-// 8. Get Distinct Destinations List (supports legacy array or paginated catalog object)
+// 8. Get Distinct Destinations List (SWR Cached + Parallelized)
 exports.getDestinations = async (req, res, next) => {
   try {
-    const dbDests = await Destination.findAll().catch(() => []);
-    const schedules = await Schedule.findAll({
-      distinctField: 'destination'
-    }).catch(() => []);
+    const now = Date.now();
+    if (destinationsCache.data && destinationsCache.items && now < destinationsCache.expiresAt) {
+      if (req.query.page || req.query.pageSize || req.query.format === 'catalog') {
+        return res.json({
+          success: true,
+          items: destinationsCache.items,
+          total: destinationsCache.items.length,
+          page: Number(req.query.page) || 1,
+          pageSize: Number(req.query.pageSize) || destinationsCache.items.length,
+          totalPages: 1
+        });
+      }
+      return res.json(destinationsCache.data);
+    }
+
+    const [dbDests, schedules] = await Promise.all([
+      Destination.findAll().catch(() => []),
+      Schedule.findAll({ distinctField: 'destination' }).catch(() => [])
+    ]);
     const scheduleDests = schedules.map(s => s.destination).filter(Boolean);
 
     // Merge destinations, normalizing en-dash (–) to hyphen (-) for clean deduplication
@@ -656,6 +811,10 @@ exports.getDestinations = async (req, res, next) => {
         description: matched ? matched.description : null
       };
     });
+
+    destinationsCache.data = uniqueDests;
+    destinationsCache.items = items;
+    destinationsCache.expiresAt = now + DESTINATIONS_TTL_MS;
 
     if (req.query.page || req.query.pageSize || req.query.format === 'catalog') {
       return res.json({

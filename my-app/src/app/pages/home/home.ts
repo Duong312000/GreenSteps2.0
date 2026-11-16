@@ -828,12 +828,20 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async loadTourPreviews(): Promise<void> {
     try {
-      const page = await this.apiService.getToursPage({ page: 1, pageSize: 10, sort: 'popular' });
-      this.realTours = page?.items || [];
+      const firstTours = await this.apiService.getPresetTours(undefined, 6);
+      this.realTours = firstTours || [];
       if (this.realTours.length) {
         this.updatePreviewFromDatabase();
         this.generateAiItinerary();
       }
+      setTimeout(() => {
+        this.apiService.getPresetTours().then(fullTours => {
+          if (fullTours?.length > this.realTours.length) {
+            this.realTours = fullTours;
+            this.updatePreviewFromDatabase();
+          }
+        }).catch(() => {});
+      }, 300);
     } catch (e) {
       console.warn('Failed to load tour previews:', e);
     }

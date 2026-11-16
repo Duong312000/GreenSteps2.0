@@ -175,9 +175,22 @@ class Repository {
     return record;
   }
   async bulkCreate(rows, options = {}) {
-    const result = [];
-    for (const row of rows) result.push(await this.create(row, options));
-    return result;
+    if (!rows || !rows.length) return [];
+    await this.store.authenticate();
+    const docs = [];
+    const records = [];
+    for (const values of rows) {
+      const data = this.prepare(values);
+      this.validate(data);
+      Object.assign(data, { _id: String(data.id), _rev: 0 });
+      docs.push(data);
+      records.push(new Record(this, data));
+    }
+    await this.collection.insertMany(docs, this.store.options(options));
+    if ((this.hooks.afterCreate || []).length > 0) {
+      for (const record of records) await this.hook('afterCreate', record, options);
+    }
+    return records;
   }
   async findByPk(id, options = {}) { return id == null ? null : this.findOne({ ...options, where: { id } }); }
   async findOne(options = {}) { return (await this.findAll({ ...options, limit: 1 }))[0] || null; }
@@ -212,7 +225,15 @@ class Repository {
     }
     let rows = (await cursor.toArray()).map(data => new Record(this, this.normalizeRead(data)));
     // Batch associations before pagination: required children must filter parents.
-    for (const spec of includeSpecs) rows = await this.include(rows, spec, options);
+    const canParallelInclude = includeSpecs.length > 1 && includeSpecs.every(s => {
+      const sp = s instanceof Repository ? { model: s } : s;
+      return !(sp.required ?? Boolean(sp.where));
+    });
+    if (canParallelInclude) {
+      await Promise.all(includeSpecs.map(spec => this.include(rows, spec, options)));
+    } else {
+      for (const spec of includeSpecs) rows = await this.include(rows, spec, options);
+    }
     if (hasIncludes && options.offset) rows = rows.slice(options.offset);
     if (hasIncludes && options.limit !== undefined) rows = rows.slice(0, options.limit);
     if (Array.isArray(options.attributes)) {
@@ -264,20 +285,30 @@ class Repository {
     return [rows.length];
   }
   async destroy(options = {}, visited = new Set()) {
+    const childAssociations = this.associations.filter(a => a.kind !== 'belongs');
+    if (childAssociations.length === 0 && !options.individualHooks) {
+      await this.store.authenticate();
+      const res = await this.collection.deleteMany(filter(options.where), this.store.options(options));
+      return res.deletedCount || 0;
+    }
     const rows = await this.findAll({ where: options.where, transaction: options.transaction, include: [] });
+    const idsToDelete = [];
     for (const row of rows) {
       const identity = `${this.name}:${row.id}`;
       if (visited.has(identity)) continue;
       visited.add(identity);
-      for (const a of this.associations.filter(a => a.kind !== 'belongs')) {
+      for (const a of childAssociations) {
         const target = a.kind === 'junction' ? a.through : a.target;
         const where = { [a.foreignKey]: row.id };
         if (a.onDelete === 'RESTRICT' && await target.count({ where, transaction: options.transaction })) throw failure('Dữ liệu đang được sử dụng, không thể xóa.', 409);
         if (a.onDelete === 'CASCADE') await target.destroy({ where, transaction: options.transaction, individualHooks: options.individualHooks }, visited);
         if (a.onDelete === 'SET NULL') await target.update({ [a.foreignKey]: null }, { where, transaction: options.transaction });
       }
-      await this.collection.deleteOne({ _id: row._id }, this.store.options(options));
+      idsToDelete.push(row._id);
       if (options.individualHooks) await this.hook('afterDestroy', row, options);
+    }
+    if (idsToDelete.length > 0) {
+      await this.collection.deleteMany({ _id: { $in: idsToDelete } }, this.store.options(options));
     }
     return rows.length;
   }
@@ -467,8 +498,11 @@ class MongoStore {
   }
   async transaction(callback) {
     await this.authenticate();
-    const hello = await this.db.admin().command({ hello: 1 });
-    if (!hello.setName && hello.msg !== 'isdbgrid') throw failure('MongoDB cần replica set để xử lý giao dịch ví/booking. Xem backend/README.md.', 503);
+    if (!this._replicaVerified) {
+      const hello = await this.db.admin().command({ hello: 1 });
+      if (!hello.setName && hello.msg !== 'isdbgrid') throw failure('MongoDB cần replica set để xử lý giao dịch ví/booking. Xem backend/README.md.', 503);
+      this._replicaVerified = true;
+    }
     const session = this.client.startSession();
     const tx = {
       session, LOCK: { UPDATE: 'UPDATE' }, finished: false,

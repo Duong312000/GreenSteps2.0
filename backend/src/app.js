@@ -120,6 +120,11 @@ app.post('/api/upload-base64', (req, res) => {
     const filePath = path.join(dirPath, filename);
     fs.writeFileSync(filePath, buffer);
 
+    // For images, return data URI so MongoDB stores it permanently across Render restarts and cross-origin frontends
+    if (!isVideo) {
+      return res.json({ success: true, url: base64 });
+    }
+
     const relativeUrl = `/uploads/${subfolder.split(path.sep).join('/')}/${filename}`;
     res.json({ success: true, url: relativeUrl });
   } catch (err) {

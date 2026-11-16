@@ -829,6 +829,67 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return 1;
   }
 
+  private encodeShareSnapshot(iti: any): string {
+    try {
+      const src = (iti && Array.isArray(iti.days)) ? iti : this.activeItinerary;
+      if (!src || !Array.isArray(src.days)) return '';
+      const minPayload = {
+        i: src.id,
+        t: src.title || src.name || 'Lịch trình du lịch',
+        d: src.destLabel || src.destination || 'Đà Lạt',
+        y: src.days.map((day: any, idx: number) => ({
+          n: day.dayNum || (idx + 1),
+          a: (day.activities || []).map((act: any) => ({
+            m: act.time || '08:00',
+            t: act.title || act.name || 'Hoạt động',
+            y: act.type || 'attraction',
+            c: Number(act.cost) || 0,
+            b: Number(act.carbon) || 0,
+            la: act.lat,
+            ln: act.lng
+          }))
+        }))
+      };
+      const jsonStr = JSON.stringify(minPayload);
+      return encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+    } catch {
+      return '';
+    }
+  }
+
+  private decodeShareSnapshot(snapParam: string): any | null {
+    try {
+      const jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(snapParam))));
+      const min = JSON.parse(jsonStr);
+      if (!min || !Array.isArray(min.y)) return null;
+      const destSlug = this.mapDestToSlug(min.d);
+      return {
+        id: min.i || 'iti_shared',
+        title: min.t || 'Lịch trình được chia sẻ',
+        dest: destSlug,
+        destLabel: min.d || 'Đà Lạt',
+        destination: min.d || 'Đà Lạt',
+        days: min.y.map((day: any, idx: number) => ({
+          dayNum: day.n || (idx + 1),
+          title: `Ngày ${day.n || (idx + 1)}`,
+          activities: (day.a || []).map((act: any, aIdx: number) => ({
+            id: `act_snap_${idx}_${aIdx}`,
+            time: act.m || '08:00',
+            title: act.t || 'Hoạt động',
+            type: act.y || 'attraction',
+            cost: Number(act.c) || 0,
+            carbon: Number(act.b) || 0,
+            is_shared: act.y === 'lodging',
+            lat: act.la,
+            lng: act.ln
+          }))
+        }))
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // Share methods
   public async openShareModal(iti: any, event?: Event) {
     if (event) {
@@ -852,7 +913,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const destName = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
     const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
 
-    this.shareLink = `${window.location.origin}/schedule/${targetId}`;
+    const snap = this.encodeShareSnapshot(this.sharingItinerary);
+    this.shareLink = snap
+      ? `${window.location.origin}/schedule/${targetId}?s=${snap}`
+      : `${window.location.origin}/schedule/${targetId}`;
     this.shareMessage = `Khám phá hành trình "${tripName}" tại ${destName} trên GreenSteps! 🌿\nXem chi tiết lịch trình tại: ${this.shareLink}`;
     this.isShareModalOpen = true;
     this.cdr.detectChanges();
@@ -1349,6 +1413,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.lastLocalEditAt = Date.now();
     if (this.saveInFlight) {
       this.savePending = true;
+      while (this.saveInFlight) {
+        await new Promise(r => setTimeout(r, 150));
+      }
       return;
     }
     this.saveInFlight = true;
@@ -1686,6 +1753,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     const idVariants = [tourId, `iti_${cleanId}`, cleanId].filter(Boolean);
 
+    // 0. Check URL self-contained share snapshot (?s=...) for 0ms cross-IP instant rendering
+    const snapParam = this.route.snapshot.queryParamMap.get('s');
+    if (snapParam) {
+      const snapIti = this.decodeShareSnapshot(snapParam);
+      if (snapIti) {
+        this.isSampleItinerary = false;
+        this.openEditorWithItinerary(snapIti);
+        // Hydrate latest version from backend in background
+        this.apiService.getItinerary(tourId, true).then(custom => {
+          if (custom && Array.isArray(custom.daysData) && custom.daysData.some((d: any) => d?.length > 0)) {
+            const fresh = this.convertApiToEditorItinerary(custom);
+            this.openEditorWithItinerary(fresh);
+          }
+        }).catch(() => {});
+        return;
+      }
+    }
+
     // 1. Check local working draft across variants
     for (const variant of idVariants) {
       try {
@@ -1739,10 +1824,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
-    // 3. Try loading custom itinerary from backend using all variants
+    // 3. Try loading custom itinerary from backend using all variants (bypass cache for fresh shared data)
     for (const variant of idVariants) {
       try {
-        const custom = await this.apiService.getItinerary(variant);
+        const custom = await this.apiService.getItinerary(variant, true);
         if (custom) {
           this.isSampleItinerary = false;
           const cloned = this.convertApiToEditorItinerary(custom);
@@ -6165,11 +6250,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const target = iti || this.activeItinerary;
     if (!target) return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
 
-    // 1. If custom uploaded image (Base64 data or uploaded URL)
-    const img = target.imageUrl || target.image_url;
+    // 1. If custom uploaded image (Base64 data, uploaded URL, or dedicated cover cache)
+    let img = target.imageUrl || target.image_url;
+    if (!img && target.id) {
+      try {
+        img = localStorage.getItem(`greensteps_cover_${target.id}`);
+      } catch {}
+    }
     if (img && typeof img === 'string') {
       const trimmed = img.trim();
       if (trimmed !== '' && trimmed !== 'image/Viet Nam.png' && !trimmed.endsWith('/Viet Nam.png') && trimmed !== 'undefined' && trimmed !== 'null') {
+        if (trimmed.startsWith('/uploads/')) {
+          return this.apiService.resolveCommunityMediaUrl(trimmed);
+        }
         return trimmed;
       }
     }
@@ -6194,36 +6287,79 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return this.getUnifiedCoverImage(this.activeItinerary);
   }
 
+  private compressCoverDataUrl(dataUrl: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = 1280;
+          const maxH = 720;
+          let w = img.width || maxW;
+          let h = img.height || maxH;
+          if (w > maxW) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          }
+          if (h > maxH) {
+            w = Math.round((w * maxH) / h);
+            h = maxH;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(dataUrl);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   public async onCoverFileSelected(event: any) {
     const file = event.target.files?.[0];
     if (!file || !this.activeItinerary) return;
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const base64Data = reader.result as string;
+      const rawData = reader.result as string;
+      const base64Data = await this.compressCoverDataUrl(rawData);
       try {
+        // Apply immediately so user sees 0ms update and persist locally right away
+        this.activeItinerary.imageUrl = base64Data;
+        try {
+          localStorage.setItem(`greensteps_cover_${this.activeItinerary.id}`, base64Data);
+          localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+        } catch (e) {}
+        this.cdr.detectChanges();
+
         const uploadRes = await this.apiService.uploadImageBase64(base64Data, 'post');
-        if (uploadRes && uploadRes.success && uploadRes.url) {
-          this.activeItinerary.imageUrl = uploadRes.url;
-          try {
-            localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-            localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-          } catch(e) {}
-          if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
-            const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
-            if (found) {
-              found.imageUrl = uploadRes.url;
-            }
+        const persistedUrl = (uploadRes && uploadRes.success && uploadRes.url) ? uploadRes.url : base64Data;
+        this.activeItinerary.imageUrl = persistedUrl;
+        try {
+          localStorage.setItem(`greensteps_cover_${this.activeItinerary.id}`, persistedUrl);
+          localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+        } catch (e) {}
+        if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
+          const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
+          if (found) {
+            found.imageUrl = persistedUrl;
           }
-          await this.saveItineraryToDb();
-          this.showAlert('Đã cập nhật và đồng bộ ảnh bìa lịch trình!', 'success');
-          this.cdr.detectChanges();
-        } else {
-          this.showAlert('Tải ảnh bìa lên thất bại!', 'error');
         }
+        await this.saveItineraryToDb();
+        this.showAlert('Đã cập nhật và đồng bộ ảnh bìa lịch trình!', 'success');
+        this.cdr.detectChanges();
       } catch (err) {
         console.error('Upload cover failed:', err);
-        this.showAlert('Tải ảnh bìa lên thất bại!', 'error');
+        this.showAlert('Đã lưu ảnh bìa trên trình duyệt!', 'info');
       }
     };
     reader.readAsDataURL(file);
@@ -6284,7 +6420,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.activeItinerary) return `${window.location.origin}/schedule`;
     const user = this.authService.getCurrentUser();
     const senderName = user ? (user.fullname || user.username) : 'Một người bạn';
-    return `${window.location.origin}/schedule/${this.activeItinerary.id}?senderName=${encodeURIComponent(senderName)}`;
+    const snap = this.encodeShareSnapshot(this.activeItinerary);
+    const snapQuery = snap ? `&s=${snap}` : '';
+    return `${window.location.origin}/schedule/${this.activeItinerary.id}?senderName=${encodeURIComponent(senderName)}${snapQuery}`;
   }
 
   public async sendCollaboratorInvites() {

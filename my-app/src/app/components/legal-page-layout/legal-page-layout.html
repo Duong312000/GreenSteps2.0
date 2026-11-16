@@ -53,9 +53,9 @@
           <a *ngFor="let link of section.links" [routerLink]="link.route">{{ link.label }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
         </div>
       </section>
-      <aside *ngIf="finalCta" class="legal-final-cta">
-        <div><h2>{{ finalCta.heading }}</h2><p>{{ finalCta.description }}</p></div>
-        <a class="legal-cta-button" [routerLink]="finalCta.route">{{ finalCta.label }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      <aside *ngIf="finalCta as cta" class="legal-final-cta">
+        <div><h2>{{ cta.heading }}</h2><p>{{ cta.description }}</p></div>
+        <a class="legal-cta-button" [routerLink]="cta.route">{{ cta.label }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
       </aside>
       <button class="legal-back-top" type="button" (click)="scrollToTop()"><i class="bi bi-arrow-up" aria-hidden="true"></i> Lên đầu trang</button>
     </article>

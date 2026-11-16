@@ -122,6 +122,7 @@ export interface Tour extends CatalogMetadata {
   fitnessIsEstimate?: boolean;
   fitnessExplanation?: string;
   isDemo?: boolean;
+  is_demo?: boolean;
   data: Activity[][];
   isRecommended?: boolean;
   source?: string;
@@ -148,9 +149,6 @@ export interface Tour extends CatalogMetadata {
   greenFeatures?: ServiceGreenFeature[];
   contactPhone?: string;
   highlights?: string[];
-  styleExplanation?: string;
-  fitnessIsEstimate?: boolean;
-  fitnessExplanation?: string;
   included?: string[];
   excluded?: string[];
   policy?: Array<{ step?: string; title: string; desc: string }>;
@@ -159,8 +157,6 @@ export interface Tour extends CatalogMetadata {
   fitness_level?: string;
   guarantees?: Array<{ icon?: string; title: string; desc: string }>;
   vouchers?: Array<any>;
-  catalog_status?: string;
-  destination_ids?: string[];
 }
 
 export interface Itinerary {
