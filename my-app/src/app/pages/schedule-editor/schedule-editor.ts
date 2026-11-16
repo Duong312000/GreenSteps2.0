@@ -165,6 +165,20 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public transportFilterTab: string = 'all';
   public availableTransportOptions: any[] = [];
 
+  // Draggable Directions Panel Offset
+  public dirPanelOffsetX: number = 0;
+  public dirPanelOffsetY: number = 0;
+
+  // Inline Price Editor & Notes Properties
+  public editingPriceActId: string | null = null;
+  public tempActivityPrice: number = 0;
+  public editingNoteActId: string | null = null;
+  public editingLegNoteIdx: number | null = null;
+  public tempLegNoteText: string = '';
+  public isItineraryNotesModalOpen: boolean = false;
+  public newChecklistItemText: string = '';
+  public inviteEmailChipList: string[] = [];
+
   // Resizer Panel properties
   public sidebarWidth: number = 290;
   public mapWidthPct: number = 42;
@@ -403,6 +417,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
                 id: parsed.id || gid,
                 name: parsed.title || parsed.name || 'Lịch trình du lịch xanh',
                 destination: parsed.destLabel || parsed.destination || 'Việt Nam',
+                dest: parsed.dest || '',
+                imageUrl: parsed.imageUrl || parsed.image_url || null,
                 days: (parsed.days && parsed.days.length) ? parsed.days.length : 3,
                 totalCost: totalCost,
                 totalCarbon: totalCarbon,
@@ -820,18 +836,31 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  public shareSocial(platform: 'facebook' | 'twitter' | 'messenger') {
-    const url = encodeURIComponent(this.shareLink);
-    const text = encodeURIComponent(this.shareMessage);
-    let shareUrl = '';
+  public shareSocial(platform: 'facebook' | 'instagram' | 'zalo' | 'twitter' | 'messenger') {
+    const link = this.shareLink || `${window.location.origin}/schedule/${this.sharingItinerary?.id || this.activeItinerary?.id || ''}`;
+    const url = encodeURIComponent(link);
+    const text = encodeURIComponent(this.shareMessage || 'Khám phá lịch trình du lịch xanh trên GreenSteps!');
     if (platform === 'facebook') {
-      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-    } else if (platform === 'messenger') {
-      shareUrl = `https://www.facebook.com/dialog/send?app_id=2108319696129542&link=${url}&redirect_uri=${url}`;
-    } else {
-      shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=620,height=480');
+      return;
     }
-    window.open(shareUrl, '_blank', 'width=600,height=400');
+    if (platform === 'zalo') {
+      navigator.clipboard.writeText(`${this.shareMessage || ''}\n${link}`.trim());
+      window.open(`https://sp.zalo.me/plugins/sdk?url=${url}`, '_blank', 'width=600,height=520');
+      this.showAlert('Đã sao chép liên kết & mở cửa sổ chia sẻ Zalo!', 'success');
+      return;
+    }
+    if (platform === 'instagram') {
+      navigator.clipboard.writeText(`${this.shareMessage || ''}\n${link}`.trim());
+      window.open('https://www.instagram.com/', '_blank');
+      this.showAlert('Đã sao chép nội dung & liên kết lịch trình! Bạn có thể dán ngay vào Story hoặc Tin nhắn Instagram.', 'success');
+      return;
+    }
+    if (platform === 'messenger') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=450');
+      return;
+    }
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=450');
   }
 
   public copyShareLink() {
@@ -1041,6 +1070,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             title: title,
             type: type,
             cost: Number(act.cost) || 0,
+            priceUnknown: !!act.priceUnknown,
+            note: act.note || '',
             carbon: Number(act.carbon) || 0,
             is_shared: isShared,
             lat: lat,
@@ -1058,7 +1089,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         return {
           dayNum: dayObj.dayNum || (dIdx + 1),
           title: dayObj.title || `Ngày ${dIdx + 1}`,
-          activities: normalizedActs
+          activities: normalizedActs,
+          legTransports: dayObj.legTransports || {},
+          legNotes: dayObj.legNotes || {}
         };
       });
 
@@ -1072,7 +1105,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         status: apiIti.status || 'draft',
         deposit_deadline: apiIti.deposit_deadline || null,
         imageUrl: apiIti.imageUrl || apiIti.image_url || null,
-        collaborators: apiIti.collaborators || []
+        collaborators: apiIti.collaborators || [],
+        generalNotes: apiIti.generalNotes || '',
+        checklist: Array.isArray(apiIti.checklist) ? apiIti.checklist : []
       };
     }
 
@@ -1855,30 +1890,64 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.cdr.detectChanges();
   }
 
+  private stripVietnameseAccents(str: string): string {
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
+  public onSearchInputKeyup() {
+    this.onCustomPlaceTyping();
+  }
+
   public onCustomPlaceTyping() {
-    const val = this.customPlaceTitle.trim();
+    const val = (this.customPlaceTitle || '').trim();
     if (!val || !this.activeItinerary) {
       this.customSearchSuggestions = [];
       return;
     }
 
-    // Filter local services instantly
-    const localMatches = this.localServices.filter(s =>
-      (s.name || s.name_service || '').toLowerCase().includes(val.toLowerCase())
-    ).slice(0, 3).map(s => ({
-      name: s.name || s.name_service,
-      name_service: s.name || s.name_service,
-      title: s.name || s.name_service,
-      category: s.type || 'explore',
-      lat: s.lat || (s.current_data && s.current_data.lat) || null,
-      lng: s.lng || (s.current_data && s.current_data.lng) || null,
-      isLocal: true,
-      address: s.address || ''
-    }));
+    const qNorm = this.stripVietnameseAccents(val);
 
-    this.customSearchSuggestions = localMatches;
+    // 1. PRIORITY 1: Partner Services & Curated GreenSteps Catalog matching keyword
+    const partnerPool = [
+      ...(this.localServices || []),
+      ...(this.allCombinedRecs || [])
+    ];
+    const seenTitles = new Set<string>();
+    const partnerMatches: any[] = [];
 
-    // Debounce Nominatim API call for external suggestions
+    for (const s of partnerPool) {
+      const name = s.name || s.name_service || s.title || '';
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seenTitles.has(key)) continue;
+      if (this.stripVietnameseAccents(name).includes(qNorm) || this.stripVietnameseAccents(s.address || '').includes(qNorm)) {
+        seenTitles.add(key);
+        partnerMatches.push({
+          name: name,
+          name_service: name,
+          title: name,
+          category: s.type || 'explore',
+          cost: s.cost !== undefined ? Number(s.cost) : 0,
+          carbon: s.carbon !== undefined ? Number(s.carbon) : 0.8,
+          lat: s.lat || (s.current_data && s.current_data.lat) || null,
+          lng: s.lng || (s.current_data && s.current_data.lng) || null,
+          isLocal: true,
+          isPartner: true,
+          address: s.address || (this.activeItinerary?.destLabel || 'Việt Nam')
+        });
+      }
+      if (partnerMatches.length >= 4) break;
+    }
+
+    this.customSearchSuggestions = partnerMatches;
+    this.cdr.detectChanges();
+
+    // 2. PRIORITY 2: Debounced Map Places (Nominatim / Google Places) shown AFTER Partner matches
     if (this.typingTimeout) clearTimeout(this.typingTimeout);
     this.typingTimeout = setTimeout(async () => {
       try {
@@ -1895,32 +1964,36 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           } else if (r.type === "hotel" || r.class === "tourism") {
             placeType = "lodging";
           }
+          const title = r.display_name ? r.display_name.split(',')[0] : val;
+          const resolved = this.resolvePlaceCost(title, { type: placeType }, null);
           return {
-            name: r.display_name ? r.display_name.split(',')[0] : val,
-            name_service: r.display_name ? r.display_name.split(',')[0] : val,
-            title: r.display_name ? r.display_name.split(',')[0] : val,
+            name: title,
+            name_service: title,
+            title: title,
             category: placeType,
+            cost: resolved.cost,
+            priceUnknown: resolved.priceUnknown,
             lat: parseFloat(r.lat) || null,
             lng: parseFloat(r.lon) || null,
             address: r.display_name || '',
-            isLocal: false
+            isLocal: false,
+            isPartner: false
           };
         });
 
-        // Combine local and external matches, filtering duplicates
-        const combined = [...localMatches];
+        const combined = [...partnerMatches];
         osmMatches.forEach((osm: any) => {
           if (!combined.some(c => c.title.toLowerCase() === osm.title.toLowerCase())) {
             combined.push(osm);
           }
         });
 
-        this.customSearchSuggestions = combined.slice(0, 6);
+        this.customSearchSuggestions = combined.slice(0, 7);
         this.cdr.detectChanges();
       } catch (e) {
         console.warn('Autocomplete suggest error:', e);
       }
-    }, 500);
+    }, 280);
   }
 
   public selectSearchSuggestion(sug: any) {
@@ -1928,17 +2001,22 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.customPlaceTitle = placeName;
     this.customSearchSuggestions = [];
     const pType = sug.category || 'explore';
+    const resolved = sug.isPartner
+      ? { cost: sug.cost !== undefined ? sug.cost : 0, priceUnknown: false }
+      : this.resolvePlaceCost(placeName, sug, null);
 
     this.selectedPlaceDetails = {
       title: placeName,
       type: pType,
       category: this.getCategoryLabel(pType),
       rating: sug.rating || 4.8,
-      reviews: sug.reviews || Math.floor(Math.random() * 500 + 120),
+      reviews: sug.reviews || 320,
       address: sug.address || (this.activeItinerary ? this.activeItinerary.destination + ', Việt Nam' : 'Việt Nam'),
       hours: 'Đang mở cửa · Đóng cửa vào 22:00',
-      cost: sug.cost || (pType === 'dining' ? 80000 : (pType === 'lodging' ? 500000 : 30000)),
-      carbon: sug.carbon || (pType === 'dining' ? 1.5 : (pType === 'lodging' ? 2.5 : 0.8)),
+      cost: resolved.cost,
+      priceUnknown: resolved.priceUnknown,
+      isPartner: !!sug.isPartner,
+      carbon: sug.carbon || (pType === 'dining' ? 1.2 : (pType === 'lodging' ? 2.5 : 0.8)),
       lat: sug.lat,
       lng: sug.lng,
       img: sug.img || this.getPlacePlaceholderImage(placeName),
@@ -2692,39 +2770,47 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public setupGoogleAutocomplete() {
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
-      const input = document.getElementById('timelineCustomPlaceInput') as HTMLInputElement;
-      if (input && typeof google !== 'undefined' && google.maps && google.maps.places && google.maps.places.Autocomplete) {
-        clearInterval(interval);
-        try {
-          const autocomplete = new google.maps.places.Autocomplete(input, {
-            fields: ['place_id', 'name', 'geometry', 'formatted_address', 'types', 'rating', 'user_ratings_total', 'photos']
-          });
-          if (this.gmap) {
-            autocomplete.bindTo('bounds', this.gmap);
-          }
-          autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            this.ngZone.run(() => {
-              if (place && place.place_id) {
-                this.fetchGooglePlaceDetails(place.place_id);
-              } else if (place && place.geometry && place.geometry.location) {
-                this.gmap.panTo(place.geometry.location);
-                this.gmap.setZoom(16);
-                this.populateRealGooglePlacePanel(place);
-              }
-            });
-          });
-          console.log('✅ Google Places Autocomplete successfully attached to timeline input');
-        } catch (e) {
-          console.warn('Autocomplete init error:', e);
-        }
-      } else if (attempts > 30) {
-        clearInterval(interval);
-      }
-    }, 250);
+    // Disabled native Google .pac-container widget to prevent "This page can't load Google Maps correctly" popup.
+    // We use our own Hybrid Search Dropdown (Partner services first, Map places second).
+  }
+
+  public resolvePlaceCost(title: string, place?: any, greenMatch?: any): { cost: number; priceUnknown: boolean } {
+    if (greenMatch && greenMatch.cost !== undefined && greenMatch.cost !== null) {
+      return { cost: Number(greenMatch.cost) || 0, priceUnknown: false };
+    }
+    if (place && place.cost !== undefined && place.cost !== null && !place.priceUnknown && place.isPartner) {
+      return { cost: Number(place.cost) || 0, priceUnknown: false };
+    }
+
+    const t = this.stripVietnameseAccents(title || '');
+    // Known ticketed attractions
+    if (t.includes('ba na')) return { cost: 900000, priceUnknown: false };
+    if (t.includes('cu lao cham')) return { cost: 650000, priceUnknown: false };
+    if (t.includes('rung dua') || t.includes('bay mau') || t.includes('thuyen thung')) return { cost: 150000, priceUnknown: false };
+    if (t.includes('tra que')) return { cost: 100000, priceUnknown: false };
+    if (t.includes('ngu hanh son')) return { cost: 40000, priceUnknown: false };
+    if (t.includes('langbiang')) return { cost: 50000, priceUnknown: false };
+    if (t.includes('datanla')) return { cost: 150000, priceUnknown: false };
+    if (t.includes('thung lung tinh yeu')) return { cost: 250000, priceUnknown: false };
+    if (t.includes('ganh da dia') || t.includes('ghenh da dia')) return { cost: 40000, priceUnknown: false };
+    if (t.includes('bai xep')) return { cost: 20000, priceUnknown: false };
+    if (t.includes('thap nhan')) return { cost: 20000, priceUnknown: false };
+
+    // Known free public places
+    const freeKeywords = [
+      'cau rong', 'song han', 'pho co', 'chua cau', 'ho xuan huong', 'quang truong', 'lam vien',
+      'chua ', 'nha tho', 'bai bien', 'my khe', 'an bang', 'cong vien', 'cho dem', 'deo ', 'ho tay', 'ho guom'
+    ];
+    if (freeKeywords.some(k => t.includes(k))) {
+      return { cost: 0, priceUnknown: false };
+    }
+
+    if (place && place.price_level) {
+      return { cost: Number(place.price_level) * 50000, priceUnknown: false };
+    }
+
+    // Unknown price from external map -> do not hardcode 120k, mark as priceUnknown
+    return { cost: 0, priceUnknown: true };
   }
 
   public async fetchGooglePlaceDetails(placeId: string, fallbackLatLng?: any) {
@@ -2901,9 +2987,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const isPartner = !!greenMatch;
 
     // SOURCE OF TRUTH: If matched with GreenSteps, ALWAYS prioritize GreenSteps official pricing and carbon!
-    const cost = greenMatch?.cost !== undefined
-      ? greenMatch.cost
-      : (place.cost !== undefined ? place.cost : (place.price_level ? place.price_level * 50000 : (cat.includes('Ăn') ? 55000 : (cat.includes('Lưu') ? 650000 : 120000))));
+    const resolvedPrice = this.resolvePlaceCost(title, place, greenMatch);
+    const cost = resolvedPrice.cost;
+    const priceUnknown = resolvedPrice.priceUnknown;
 
     const carbon = greenMatch?.carbon !== undefined
       ? greenMatch.carbon
@@ -2922,6 +3008,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       reviews: place.reviewsCount ?? place.user_ratings_total ?? (realReviews.length > 0 ? realReviews.length * 150 : 340),
       googleReviews: realReviews,
       cost: cost,
+      priceUnknown: priceUnknown,
       carbon: carbon,
       lat: lat,
       lng: lng,
@@ -4069,11 +4156,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
+  public onDragOverPlaceholder(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
   public onDragLeave(event: DragEvent, idx: number) {
     const currentTarget = event.currentTarget as HTMLElement;
     const relatedTarget = event.relatedTarget as HTMLElement;
     if (currentTarget && relatedTarget && currentTarget.contains(relatedTarget)) {
-      return; // Cursor is still inside the item, ignore false child dragleave
+      return;
+    }
+    if (relatedTarget && relatedTarget.closest('.drag-placeholder-slot')) {
+      return; // Keep placeholder slot open when hovering directly inside the placeholder slot!
+    }
+    if (relatedTarget && relatedTarget.closest('#timelineList')) {
+      return; // Keep slot stable while dragging within the timeline list
     }
     if (this.dragTargetIdx === idx) {
       this.dragTargetIdx = null;
@@ -4220,9 +4320,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!activeDay) return;
     if (!activeDay.activities) activeDay.activities = [];
 
-    // Check smart matching for GreenSteps priority
+    // Check smart matching for GreenSteps priority & resolve real price
     const greenMatch = this.findMatchingGreenStepsService(details.title, details.lat, details.lng);
-    const cost = greenMatch?.cost !== undefined ? greenMatch.cost : (details.cost !== undefined ? details.cost : 120000);
+    const resolvedPrice = this.resolvePlaceCost(details.title, details, greenMatch);
+    const cost = resolvedPrice.cost;
+    const priceUnknown = resolvedPrice.priceUnknown;
+
     const carbon = greenMatch?.carbon !== undefined ? greenMatch.carbon : (details.carbon !== undefined ? details.carbon : 0.8);
     const type = greenMatch?.type || details.type || 'explore';
     const isPartner = !!greenMatch || !!details.isPartner;
@@ -4231,10 +4334,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const address = details.address || this.getPlaceAddress(details.title);
 
     const newAct: any = {
+      id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       time: time,
       title: details.title,
       type: type,
       cost: cost,
+      priceUnknown: priceUnknown,
+      note: '',
       carbon: carbon,
       is_shared: this.checkIfSharedByDefault(details.title, type),
       lat: details.lat,
@@ -4260,8 +4366,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.activeGooglePlacePanel.itemRef = newAct;
     }
 
-    this.showAlert(`Đã thêm "${details.title}" vào Ngày ${dayIdx + 1}!`, 'success');
     this.focusTimelineItem(details.title);
+
+    if (priceUnknown) {
+      const wantCustomPrice = await this.showConfirm(
+        'Chưa có dữ liệu về giá',
+        `Địa danh "${details.title}" hiện chưa có dữ liệu giá vé trong hệ thống (tạm tính 0đ). Bạn có muốn tự điền chi phí dự kiến cho địa điểm này không?`
+      );
+      if (wantCustomPrice) {
+        this.startEditActivityPrice(newAct);
+      }
+    } else {
+      this.showAlert(`Đã thêm "${details.title}" vào Ngày ${dayIdx + 1}!`, 'success');
+    }
     this.cdr.detectChanges();
   }
 
@@ -5856,24 +5973,28 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.cdr.detectChanges();
   }
 
-  public getItineraryCoverImage(): string {
-    if (!this.activeItinerary) return 'image/Viet Nam.png';
-    if (this.activeItinerary.imageUrl) return this.activeItinerary.imageUrl;
+  public getUnifiedCoverImage(iti?: any): string {
+    const target = iti || this.activeItinerary;
+    if (!target) return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
+    if (target.imageUrl || target.image_url) return target.imageUrl || target.image_url;
 
-    const dest = (this.activeItinerary.dest || '').toLowerCase();
-    const destLabel = (this.activeItinerary.destLabel || this.activeItinerary.destination || '').toLowerCase();
+    const rawText = `${target.dest || ''} ${target.destLabel || ''} ${target.destination || ''} ${target.title || ''} ${target.name || ''}`;
+    const norm = this.stripVietnameseAccents(rawText);
 
-    if (dest.includes('da-lat') || dest.includes('dalat') || destLabel.includes('đà lạt') || destLabel.includes('da lat')) {
+    if (norm.includes('da lat') || norm.includes('dalat') || norm.includes('tuyen lam') || norm.includes('lam dong')) {
       return 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg';
     }
-    if (dest.includes('phu-yen') || dest.includes('phuyen') || destLabel.includes('phú yên') || destLabel.includes('phu yen')) {
+    if (norm.includes('phu yen') || norm.includes('phuyen') || norm.includes('tuy hoa') || norm.includes('ganh da dia')) {
       return 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg';
     }
-    if (dest.includes('da-nang') || dest.includes('danang') || destLabel.includes('đà nẵng') || destLabel.includes('da nang') ||
-      dest.includes('hoi-an') || dest.includes('hoian') || destLabel.includes('hội an') || destLabel.includes('hoi an')) {
+    if (norm.includes('da nang') || norm.includes('danang') || norm.includes('hoi an') || norm.includes('hoian') || norm.includes('quang nam')) {
       return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
     }
-    return 'image/Viet Nam.png';
+    return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
+  }
+
+  public getItineraryCoverImage(): string {
+    return this.getUnifiedCoverImage(this.activeItinerary);
   }
 
   public async onCoverFileSelected(event: any) {
@@ -5900,10 +6021,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     reader.readAsDataURL(file);
   }
 
-  // Collaborator Invitation actions
+  // Collaborator Invitation & Multi-Email / Community / Social actions
   public openInviteFriendModal() {
     this.isInviteFriendModalOpen = true;
     this.inviteEmails = '';
+    this.inviteEmailChipList = [];
     this.isSendingInvites = false;
     this.cdr.detectChanges();
   }
@@ -5911,7 +6033,32 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public closeInviteFriendModal() {
     this.isInviteFriendModalOpen = false;
     this.inviteEmails = '';
+    this.inviteEmailChipList = [];
     this.cdr.detectChanges();
+  }
+
+  public addInviteEmailFromInput(event?: Event) {
+    if (event) event.preventDefault();
+    const raw = (this.inviteEmails || '').trim();
+    if (!raw) return;
+    const parts = raw.split(/[,;\s]+/).map(e => e.trim()).filter(e => e.includes('@'));
+    for (const p of parts) {
+      if (!this.inviteEmailChipList.includes(p)) {
+        this.inviteEmailChipList.push(p);
+      }
+    }
+    this.inviteEmails = '';
+    this.cdr.detectChanges();
+  }
+
+  public removeInviteEmailChip(idx: number) {
+    this.inviteEmailChipList.splice(idx, 1);
+    this.cdr.detectChanges();
+  }
+
+  public getTotalPendingInviteCount(): number {
+    const typed = (this.inviteEmails || '').split(/[,;\s]+/).filter(e => e.trim().includes('@')).length;
+    return this.inviteEmailChipList.length + typed;
   }
 
   private getCollaboratorInviteLink(): string {
@@ -5922,8 +6069,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public async sendCollaboratorInvites() {
-    if (!this.activeItinerary || !this.inviteEmails.trim()) {
-      this.showAlert('Vui lòng nhập địa chỉ email hợp lệ!', 'warning');
+    this.addInviteEmailFromInput();
+    if (!this.activeItinerary || this.inviteEmailChipList.length === 0) {
+      this.showAlert('Vui lòng nhập ít nhất 1 địa chỉ email hợp lệ!', 'warning');
       return;
     }
 
@@ -5931,39 +6079,66 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.cdr.detectChanges();
 
     const inviteUrl = this.getCollaboratorInviteLink();
+    const allEmailsCsv = this.inviteEmailChipList.join(', ');
 
     try {
       const res = await this.apiService.inviteCollaborator(
         this.activeItinerary.id,
-        this.inviteEmails.trim(),
+        allEmailsCsv,
         inviteUrl
       );
       this.isSendingInvites = false;
       if (res && res.success) {
+        const count = this.inviteEmailChipList.length;
         this.closeInviteFriendModal();
-        this.showAlert(res.message || 'Đã gửi lời mời qua email thành công!', 'success');
+        this.showAlert(res.message || `Đã gửi lời mời đồng hành tới ${count} địa chỉ Gmail thành công!`, 'success');
       } else {
-        this.showAlert(res.message || 'Gửi lời mời thất bại!', 'error');
+        this.showAlert(res?.message || 'Gửi lời mời thất bại!', 'error');
       }
     } catch (e: any) {
       this.isSendingInvites = false;
-      this.showAlert(e.error?.message || 'Đã xảy ra lỗi khi gửi lời mời.', 'error');
+      this.showAlert(e?.error?.message || 'Đã xảy ra lỗi khi gửi lời mời.', 'error');
     }
   }
 
-  public shareInviteSocial(platform: 'facebook' | 'messenger') {
+  public shareActiveItineraryToCommunity() {
+    if (!this.activeItinerary) return;
+    this.closeInviteFriendModal();
+    const mapped = {
+      id: this.activeItinerary.id,
+      name: this.activeItinerary.title || this.activeItinerary.name,
+      destination: this.activeItinerary.destLabel || this.activeItinerary.destination,
+      days: this.activeItinerary.days?.length || 1
+    };
+    this.openShareModal(mapped, new Event('click'));
+  }
+
+  public shareInviteSocial(platform: 'facebook' | 'instagram' | 'zalo' | 'messenger') {
     const inviteLink = this.getCollaboratorInviteLink();
     const url = encodeURIComponent(inviteLink);
+    const title = encodeURIComponent(`Cùng mình lên lịch trình "${this.activeItinerary?.title || 'Du lịch xanh'}" trên GreenSteps nhé!`);
     if (platform === 'facebook' || platform === 'messenger') {
-      const shareUrl = `https://www.facebook.com/dialog/send?app_id=2108319696129542&link=${url}&redirect_uri=${url}`;
-      window.open(shareUrl, '_blank', 'width=600,height=400');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${title}`, '_blank', 'width=620,height=480');
+      return;
+    }
+    if (platform === 'zalo') {
+      navigator.clipboard.writeText(inviteLink);
+      window.open(`https://sp.zalo.me/plugins/sdk?url=${url}`, '_blank', 'width=600,height=520');
+      this.showAlert('Đã sao chép liên kết mời & mở cửa sổ chia sẻ Zalo!', 'success');
+      return;
+    }
+    if (platform === 'instagram') {
+      navigator.clipboard.writeText(inviteLink);
+      window.open('https://www.instagram.com/', '_blank');
+      this.showAlert('Đã sao chép liên kết mời bạn đồng hành! Bạn có thể dán gửi ngay qua Instagram Direct hoặc Story.', 'success');
+      return;
     }
   }
 
   public copyInviteLink() {
     const inviteLink = this.getCollaboratorInviteLink();
     navigator.clipboard.writeText(inviteLink);
-    this.showAlert('Đã sao chép liên kết mời gửi qua Messenger/Zalo!', 'success');
+    this.showAlert('Đã sao chép liên kết mời bạn đồng hành vào bộ nhớ tạm!', 'success');
   }
 
   private startBackgroundSync() {
@@ -6133,12 +6308,230 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.cdr.detectChanges();
   }
 
+  // =========================================================================
+  // DRAGGABLE DIRECTIONS PANEL & UNIFIED MODE SWITCHER
+  // =========================================================================
+  public startDraggingDirectionsPanel(event: MouseEvent) {
+    event.preventDefault();
+    const startX = event.clientX - this.dirPanelOffsetX;
+    const startY = event.clientY - this.dirPanelOffsetY;
+
+    const onMove = (e: MouseEvent) => {
+      this.dirPanelOffsetX = e.clientX - startX;
+      this.dirPanelOffsetY = Math.max(-10, e.clientY - startY);
+      this.cdr.detectChanges();
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  public onSelectUnifiedLegMode(mode: 'DRIVE' | 'TWO_WHEELER' | 'WALK') {
+    if (mode === 'DRIVE') {
+      this.setLegVehicleCategory('car');
+      this.switchLegTravelMode('DRIVE');
+    } else if (mode === 'TWO_WHEELER') {
+      this.setLegVehicleCategory('motorbike');
+      this.switchLegTravelMode('TWO_WHEELER');
+    } else if (mode === 'WALK') {
+      this.legPanelTab = 'directions';
+      this.switchLegTravelMode('WALK');
+    }
+  }
+
+  // =========================================================================
+  // FAVORITE PLACE TOGGLE FROM GOOGLE MAPS PANEL
+  // =========================================================================
+  public isPlaceFavorited(place: any): boolean {
+    if (!place) return false;
+    const title = (place.title || place.name || '').toLowerCase();
+    return (this.favoritePlaces || []).some((f: any) => (f.name || '').toLowerCase() === title);
+  }
+
+  public toggleFavoritePlaceFromMap(place: any) {
+    if (!place) return;
+    const title = place.title || place.name || '';
+    const existingIdx = (this.favoritePlaces || []).findIndex((f: any) => (f.name || '').toLowerCase() === title.toLowerCase());
+    if (existingIdx !== -1) {
+      this.favoritePlaces.splice(existingIdx, 1);
+      place.isSaved = false;
+      this.showAlert(`Đã bỏ "${title}" khỏi danh sách Yêu thích.`, 'info');
+    } else {
+      this.favoritePlaces.push({
+        name: title,
+        type: place.type || 'explore',
+        category: place.category || 'Địa điểm yêu thích',
+        cost: Number(place.cost) || 0,
+        carbon: Number(place.carbon) || 0.5,
+        lat: place.lat,
+        lng: place.lng,
+        img: place.img || this.getPlacePlaceholderImage(title)
+      });
+      place.isSaved = true;
+      this.showAlert(`Đã lưu "${title}" vào mục Yêu thích!`, 'success');
+    }
+    try {
+      localStorage.setItem('greensteps_fav_places', JSON.stringify(this.favoritePlaces));
+    } catch (e) {}
+    this.cdr.detectChanges();
+  }
+
+  // =========================================================================
+  // INLINE ACTIVITY PRICE EDITOR
+  // =========================================================================
+  public startEditActivityPrice(act: any) {
+    if (!act || this.isItineraryLocked()) return;
+    if (!act.id) act.id = 'act_' + Date.now();
+    this.editingPriceActId = act.id;
+    this.tempActivityPrice = Number(act.cost) || 0;
+    this.cdr.detectChanges();
+  }
+
+  public saveEditedActivityPrice(act: any) {
+    if (!act) return;
+    act.cost = Math.max(0, Number(this.tempActivityPrice) || 0);
+    act.priceUnknown = false;
+    this.editingPriceActId = null;
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.cdr.detectChanges();
+  }
+
+  // =========================================================================
+  // ACTIVITY COMMENTS, LEG NOTES & ITINERARY NOTES MODAL
+  // =========================================================================
+  public toggleActivityNote(act: any) {
+    if (!act || this.isItineraryLocked()) return;
+    if (!act.id) act.id = 'act_' + Date.now();
+    this.editingNoteActId = this.editingNoteActId === act.id ? null : act.id;
+    this.cdr.detectChanges();
+  }
+
+  public saveActivityNote(act: any) {
+    this.editingNoteActId = null;
+    this.saveItineraryToDb();
+    this.cdr.detectChanges();
+  }
+
+  public getLegNote(dayIdx: number, legIdx: number): string {
+    const day = this.activeItinerary?.days?.[dayIdx];
+    if (!day || !day.legNotes) return '';
+    return day.legNotes[legIdx] || '';
+  }
+
+  public toggleLegNoteEditor(legIdx: number) {
+    if (this.editingLegNoteIdx === legIdx) {
+      this.editingLegNoteIdx = null;
+    } else {
+      this.editingLegNoteIdx = legIdx;
+      this.tempLegNoteText = this.getLegNote(this.activeDayIdx, legIdx);
+    }
+    this.cdr.detectChanges();
+  }
+
+  public saveLegNote(dayIdx: number, legIdx: number) {
+    const day = this.activeItinerary?.days?.[dayIdx];
+    if (!day) return;
+    if (!day.legNotes) day.legNotes = {};
+    const trimmed = (this.tempLegNoteText || '').trim();
+    if (trimmed) {
+      day.legNotes[legIdx] = trimmed;
+    } else {
+      delete day.legNotes[legIdx];
+    }
+    this.editingLegNoteIdx = null;
+    this.saveItineraryToDb();
+    this.cdr.detectChanges();
+  }
+
+  public openItineraryNotesModal() {
+    if (!this.activeItinerary) return;
+    if (!this.activeItinerary.generalNotes) this.activeItinerary.generalNotes = '';
+    if (!Array.isArray(this.activeItinerary.checklist) || this.activeItinerary.checklist.length === 0) {
+      this.activeItinerary.checklist = [
+        { text: 'Giấy tờ tùy thân (CCCD / Hộ chiếu)', done: false },
+        { text: 'Bình nước cá nhân giảm rác thải nhựa', done: false },
+        { text: 'Sạc dự phòng & thuốc cá nhân', done: false }
+      ];
+    }
+    this.isItineraryNotesModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  public closeItineraryNotesModal() {
+    this.isItineraryNotesModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public getItineraryChecklist(): { text: string; done: boolean }[] {
+    if (!this.activeItinerary) return [];
+    if (!Array.isArray(this.activeItinerary.checklist)) this.activeItinerary.checklist = [];
+    return this.activeItinerary.checklist;
+  }
+
+  public addChecklistItem() {
+    const text = (this.newChecklistItemText || '').trim();
+    if (!text || !this.activeItinerary) return;
+    if (!Array.isArray(this.activeItinerary.checklist)) this.activeItinerary.checklist = [];
+    this.activeItinerary.checklist.push({ text, done: false });
+    this.newChecklistItemText = '';
+    this.saveItineraryNotes();
+  }
+
+  public removeChecklistItem(idx: number) {
+    if (!this.activeItinerary || !Array.isArray(this.activeItinerary.checklist)) return;
+    this.activeItinerary.checklist.splice(idx, 1);
+    this.saveItineraryNotes();
+  }
+
+  public getAllActivityAndLegNotes(): { label: string; text: string }[] {
+    const out: { label: string; text: string }[] = [];
+    if (!this.activeItinerary || !this.activeItinerary.days) return out;
+    this.activeItinerary.days.forEach((d: any, dIdx: number) => {
+      const dayTitle = d.title || `Ngày ${dIdx + 1}`;
+      (d.activities || []).forEach((a: any) => {
+        if (a.note && a.note.trim()) {
+          out.push({ label: `${dayTitle} · ${a.title}`, text: a.note.trim() });
+        }
+      });
+      if (d.legNotes) {
+        Object.keys(d.legNotes).forEach((k: string) => {
+          const lIdx = Number(k);
+          const noteText = d.legNotes[k];
+          const fromTitle = d.activities?.[lIdx]?.title || `Trạm ${lIdx + 1}`;
+          const toTitle = d.activities?.[lIdx + 1]?.title || `Trạm ${lIdx + 2}`;
+          if (noteText) {
+            out.push({ label: `${dayTitle} · Chặng ${fromTitle} → ${toTitle}`, text: noteText });
+          }
+        });
+      }
+    });
+    return out;
+  }
+
+  public saveItineraryNotes() {
+    this.saveItineraryToDb();
+    this.cdr.detectChanges();
+  }
+
+  public saveAndCloseItineraryNotes() {
+    this.saveItineraryToDb();
+    this.isItineraryNotesModalOpen = false;
+    this.showAlert('Đã lưu sổ tay ghi chú & checklist hành trình!', 'success');
+    this.cdr.detectChanges();
+  }
+
   public alertNotesDev() {
-    this.showAlert('Tính năng Ghi chú hành trình tự do đang phát triển! Bạn có thể lưu trữ ghi chú của mình ở đây.', 'info');
+    this.openItineraryNotesModal();
   }
 
   public alertPlacesDev() {
-    this.showAlert('Tính năng lưu trữ các địa điểm đã ghim đang được phát triển!', 'info');
+    this.scrollToSuggestions();
   }
 
   // Drag-to-resize panel layout handler
@@ -6151,7 +6544,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       if (!this.isResizing) return;
       if (this.resizeType === 'left') {
         const newWidth = moveEvent.clientX;
-        if (newWidth > 200 && newWidth < 450) {
+        if (newWidth >= 210 && newWidth <= 420) {
           this.sidebarWidth = newWidth;
           this.cdr.detectChanges();
         }
@@ -6159,15 +6552,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         const containerWidth = window.innerWidth;
         const mapWidthPx = containerWidth - moveEvent.clientX;
         const pct = (mapWidthPx / containerWidth) * 100;
-        if (pct > 20 && pct < 60) {
+        if (pct >= 22 && pct <= 62) {
           this.mapWidthPct = pct;
           this.cdr.detectChanges();
-          if (this.map) {
-            if (typeof this.map.invalidateSize === 'function') {
-              this.map.invalidateSize();
-            } else if (typeof google !== 'undefined') {
-              google.maps.event.trigger(this.map, 'resize');
-            }
+          if (this.map && typeof this.map.invalidateSize === 'function') {
+            this.map.invalidateSize();
+          }
+          if (this.isGoogleMaps && this.gmap && typeof google !== 'undefined') {
+            google.maps.event.trigger(this.gmap, 'resize');
           }
         }
       }
@@ -6243,6 +6635,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       ? { lat: item.lat, lng: item.lng }
       : this.lookupActivityCoordinates(title);
 
+    const greenMatch = this.findMatchingGreenStepsService(title, coords?.lat, coords?.lng);
+    const resolvedPrice = item.cost !== undefined
+      ? { cost: Number(item.cost) || 0, priceUnknown: !!item.priceUnknown }
+      : this.resolvePlaceCost(title, item, greenMatch);
+
     // Initial render so panel pops open immediately
     this.activeGooglePlacePanel = {
       title: title,
@@ -6252,7 +6649,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       rating: item.rating || 4.8,
       reviews: item.reviews || item.user_ratings_total || 250,
       googleReviews: item.googleReviews || [],
-      cost: item.cost !== undefined ? item.cost : 150000,
+      cost: resolvedPrice.cost,
+      priceUnknown: resolvedPrice.priceUnknown,
       carbon: item.carbon || 0.8,
       img: item.img || this.getPlacePlaceholderImage(title),
       photos: item.photos || [],

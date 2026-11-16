@@ -1067,9 +1067,9 @@
 }
 
 .sidebar-panel {
-  width: 290px !important;
-  min-width: 260px !important;
-  max-width: 320px !important;
+  width: 290px;
+  min-width: 210px;
+  max-width: 420px;
   flex-shrink: 0 !important;
   height: 100% !important;
   border-right: 1px solid var(--border-color) !important;
@@ -1081,10 +1081,9 @@
 }
 
 .editor-main-panel {
-  width: 490px !important;
-  min-width: 440px !important;
-  max-width: 530px !important;
-  flex-shrink: 0 !important;
+  flex: 1 1 0% !important;
+  min-width: 360px !important;
+  max-width: none !important;
   height: 100% !important;
   overflow-y: auto !important;
   background-color: #FFFFFF !important;
@@ -1096,8 +1095,7 @@
 
 .right-map-panel {
   display: flex !important;
-  flex: 1 1 0% !important;
-  min-width: 380px !important;
+  min-width: 280px !important;
   height: 100% !important;
   position: relative !important;
   background-color: #E2E8F0 !important;
@@ -6132,6 +6130,327 @@
 .gm-btn-gps-start:hover,
 .gm-btn-gps-start.active {
   background: #143d2d;
+}
+
+/* Mid 2-Tab Bar placed below Origin -> Destination */
+.gm-mid-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f1f5f2;
+  border-bottom: 1px solid #e2e8e4;
+}
+
+.gm-mid-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gm-mid-tab-btn:hover {
+  color: #184a37;
+  border-color: #94a3b8;
+}
+
+.gm-mid-tab-btn.active {
+  background: #184a37;
+  border-color: #184a37;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Suppress broken Google Maps .pac-container popup */
+.pac-container {
+  display: none !important;
+}
+
+/* Hybrid Search Autocomplete Dropdown (Partner First -> Map Second) */
+.hybrid-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 300px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+  z-index: 2500;
+  max-height: 290px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.hybrid-sug-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.hybrid-sug-item:hover {
+  background: #f4fbf7;
+}
+
+.hybrid-sug-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.hybrid-sug-icon.partner {
+  background: #e6f4ea;
+  color: #184a37;
+}
+
+.hybrid-sug-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hybrid-sug-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.hybrid-sug-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #192520;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hybrid-sug-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.hybrid-sug-badge.partner {
+  background: #e6f4ea;
+  color: #184a37;
+}
+
+.hybrid-sug-badge.map {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.hybrid-sug-sub {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* Visible Drag-and-Drop Placeholder Slot */
+.drag-placeholder-slot {
+  height: 62px;
+  margin: 8px 0 8px 34px;
+  border: 2px dashed #184a37;
+  border-radius: 12px;
+  background: rgba(24, 74, 55, 0.05);
+  color: #184a37;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: auto !important;
+  transition: all 0.15s ease;
+}
+
+/* Unknown Price Badge & Inline Price Input */
+.act-unknown-price-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+  padding: 1px 7px;
+  border-radius: 4px;
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+.act-unknown-price-badge:hover {
+  border-color: #184a37;
+  color: #184a37;
+}
+
+.act-inline-price-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.act-price-input {
+  width: 96px;
+  height: 24px;
+  border: 1px solid #184a37;
+  border-radius: 5px;
+  padding: 0 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #192520;
+  outline: none;
+}
+
+.act-price-save-btn {
+  height: 24px;
+  padding: 0 8px;
+  background: #184a37;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.act-price-cancel-btn {
+  height: 24px;
+  padding: 0 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Activity & Leg Notes */
+.act-note-box {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.act-note-display {
+  font-size: 11.5px;
+  color: #334155;
+  background: #f8faf8;
+  padding: 5px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.act-note-display i {
+  color: #184a37;
+}
+
+.act-note-editor,
+.leg-note-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act-note-editor input,
+.leg-note-input-row input {
+  flex: 1;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  color: #192520;
+  outline: none;
+}
+
+.act-note-editor button,
+.leg-note-input-row button {
+  height: 28px;
+  padding: 0 10px;
+  background: #184a37;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leg-note-trigger-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  padding: 0 4px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.leg-note-trigger-btn:hover {
+  color: #184a37;
+}
+
+.leg-note-inline-box {
+  margin: 4px 0 0 38px;
+  max-width: 420px;
+}
+
+.leg-note-text {
+  font-size: 11.5px;
+  color: #334155;
+  background: #f8faf8;
+  border: 1px solid #e2e8e4;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Panel Resizer Handle Enhancement */
+.layout-resizer {
+  width: 6px !important;
+  cursor: col-resize !important;
+  background: transparent;
+  position: relative;
+  z-index: 1300 !important;
+  flex-shrink: 0 !important;
+  transition: background 0.15s ease;
+}
+
+.layout-resizer:hover,
+.layout-resizer:active {
+  background: rgba(24, 74, 55, 0.25) !important;
 }
 
 

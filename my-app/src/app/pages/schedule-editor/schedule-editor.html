@@ -105,7 +105,7 @@
                         quan</span>
                     <div class="sidebar-menu-item"
                         style="padding: 10px 15px; border-radius: var(--border-radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: row !important; align-items: center; justify-content: center; gap: 8px; color: var(--text-secondary);"
-                        (click)="alertNotesDev()">
+                        (click)="openItineraryNotesModal()">
                         <i class="bi bi-file-earmark-text"></i> Ghi chú hành trình
                     </div>
                     <div class="sidebar-menu-item"
@@ -366,7 +366,7 @@
                 </div>
             </div>
 
-            <img id="timelineCoverImg" [src]="getItineraryCoverImage()" alt="Dest Cover" class="cover-bg-img">
+            <img id="timelineCoverImg" [src]="getUnifiedCoverImage(activeItinerary)" alt="Dest Cover" class="cover-bg-img">
 
             <!-- Bottom Left Info Overlay -->
             <div class="cover-overlay">
@@ -397,8 +397,33 @@
                 </button>
                 <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
                     <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput"
-                        placeholder="Thêm địa điểm tùy chỉnh..." (keyup.enter)="searchSidebarPlaceOnMap()">
-                    <button (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
+                        autocomplete="off"
+                        placeholder="Tìm địa điểm đối tác hoặc bản đồ..."
+                        (input)="onSearchInputKeyup()"
+                        (keydown.enter)="searchSidebarPlaceOnMap(); $event.preventDefault()">
+                    <button type="button" (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
+
+                    <!-- Hybrid Search Suggestions Dropdown (Partner Services First -> Map Places Second) -->
+                    <div class="hybrid-search-dropdown" *ngIf="customSearchSuggestions && customSearchSuggestions.length > 0">
+                        <div *ngFor="let sug of customSearchSuggestions"
+                             class="hybrid-sug-item"
+                             (click)="selectSearchSuggestion(sug)">
+                            <div class="hybrid-sug-icon" [class.partner]="sug.isPartner">
+                                <i class="bi" [ngClass]="sug.isPartner ? 'bi-patch-check-fill' : 'bi-geo-alt'"></i>
+                            </div>
+                            <div class="hybrid-sug-body">
+                                <div class="hybrid-sug-title-row">
+                                    <span class="hybrid-sug-name">{{ sug.name }}</span>
+                                    <span class="hybrid-sug-badge partner" *ngIf="sug.isPartner">Đối tác</span>
+                                    <span class="hybrid-sug-badge map" *ngIf="!sug.isPartner">Bản đồ</span>
+                                </div>
+                                <div class="hybrid-sug-sub">
+                                    <span>{{ sug.address }}</span>
+                                    <span *ngIf="sug.cost !== undefined && sug.cost !== null"> · {{ sug.cost === 0 ? 'Miễn phí' : (sug.cost | number) + 'đ' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -433,6 +458,15 @@
             </div>
 
             <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
+                <!-- Drag-and-Drop Placeholder Slot BEFORE target card -->
+                <div class="drag-placeholder-slot"
+                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx"
+                    (dragover)="onDragOverPlaceholder($event)"
+                    (drop)="onDrop($event, idx)">
+                    <i class="bi bi-arrows-move"></i>
+                    <span>Thả địa điểm vào vị trí này</span>
+                </div>
+
                 <div class="timeline-item" [class.cursor-grab]="!isItineraryLocked()"
                     [class.cursor-default]="isItineraryLocked()"
                     [class.dimmed-when-routing]="activeLegDirections && (idx !== activeLegDirections.fromIdx && idx !== activeLegDirections.toIdx)"
@@ -504,6 +538,11 @@
                                     <!-- Reorder & Management Controls -->
                                     <div class="act-min-actions" *ngIf="!isItineraryLocked()"
                                         (click)="$event.stopPropagation()">
+                                        <button type="button" class="act-icon-btn" (click)="toggleActivityNote(act)"
+                                            [class.has-gps]="!!act.note"
+                                            title="Thêm / sửa ghi chú cho địa điểm này">
+                                            <i class="bi" [ngClass]="act.note ? 'bi-chat-left-text-fill' : 'bi-chat-left-text'"></i>
+                                        </button>
                                         <button type="button" class="act-icon-btn" (click)="moveActivity(idx, -1)"
                                             title="Di chuyển lên">
                                             <i class="bi bi-chevron-up"></i>
@@ -525,7 +564,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Inline Illogical Time Conflict Alert (Low-saturation red) -->
+                                <!-- Inline Illogical Time Conflict Alert -->
                                 <div class="act-inline-conflict-alert" *ngIf="act.hasTimeConflict" (click)="$event.stopPropagation()">
                                     <div class="act-conflict-left">
                                         <i class="bi bi-exclamation-triangle-fill act-conflict-icon"></i>
@@ -539,14 +578,30 @@
                                     </button>
                                 </div>
 
-                                <!-- Bottom Row: Pills + Direct Google Maps Action Buttons -->
-                                <div class="act-min-bottom">
+                                <!-- Bottom Row: Price (with click-to-edit) + Shared/Personal + Carbon -->
+                                <div class="act-min-bottom" (click)="$event.stopPropagation()">
                                     <div class="act-meta-line">
-                                        <span class="act-meta-cost">{{ act.cost === 0 ? 'Miễn phí' : (act.cost |
-                                            number:'1.0-0':'vi-VN') + '₫' }}</span>
+                                        <!-- Clickable Price or Inline Price Input -->
+                                        <ng-container *ngIf="editingPriceActId !== act.id">
+                                            <span class="act-meta-cost" (click)="startEditActivityPrice(act)" title="Nhấp để chỉnh sửa chi phí địa điểm này" style="cursor: pointer;">
+                                                {{ act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + '₫' }}
+                                                <i class="bi bi-pencil" style="font-size: 10px; opacity: 0.6; margin-left: 2px;"></i>
+                                            </span>
+                                            <span class="act-unknown-price-badge" *ngIf="act.priceUnknown" (click)="startEditActivityPrice(act)">
+                                                Chưa có dữ liệu giá · Tự điền
+                                            </span>
+                                        </ng-container>
+                                        <div class="act-inline-price-editor" *ngIf="editingPriceActId === act.id">
+                                            <input type="number" [(ngModel)]="tempActivityPrice" min="0" step="10000"
+                                                class="act-price-input" placeholder="Nhập giá (đ)..."
+                                                (keydown.enter)="saveEditedActivityPrice(act)">
+                                            <button type="button" class="act-price-save-btn" (click)="saveEditedActivityPrice(act)">Lưu</button>
+                                            <button type="button" class="act-price-cancel-btn" (click)="editingPriceActId = null">×</button>
+                                        </div>
+
                                         <span class="act-meta-dot">·</span>
                                         <span *ngIf="act.cost > 0" class="act-meta-shared"
-                                            (click)="$event.stopPropagation(); toggleActivityShared(act)"
+                                            (click)="toggleActivityShared(act)"
                                             title="Nhấp để đổi hình thức chi tiêu">
                                             {{ (act.is_shared || act.type === 'lodging') ? 'Dùng chung' : 'Cá nhân' }}
                                         </span>
@@ -554,6 +609,19 @@
                                         <span class="act-meta-eco">
                                             <i class="bi bi-leaf-fill"></i> {{ formatCarbon(act.carbon) }}
                                         </span>
+                                    </div>
+                                </div>
+
+                                <!-- Inline Activity Comment / Note -->
+                                <div class="act-note-box" *ngIf="act.note || editingNoteActId === act.id" (click)="$event.stopPropagation()">
+                                    <div *ngIf="editingNoteActId !== act.id" class="act-note-display" (click)="toggleActivityNote(act)">
+                                        <i class="bi bi-chat-left-text"></i>
+                                        <span>{{ act.note }}</span>
+                                    </div>
+                                    <div *ngIf="editingNoteActId === act.id" class="act-note-editor">
+                                        <input type="text" [(ngModel)]="act.note" placeholder="Nhập ghi chú tại địa điểm này (VD: Mua vé trước, mang áo khoác...)"
+                                            (keydown.enter)="saveActivityNote(act)">
+                                        <button type="button" (click)="saveActivityNote(act)">Lưu</button>
                                     </div>
                                 </div>
 
@@ -568,18 +636,41 @@
                     </div>
                 </div>
 
+                <!-- Drag-and-Drop Placeholder Slot AFTER target card -->
+                <div class="drag-placeholder-slot"
+                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'after' && dragSrcIdx !== idx"
+                    (dragover)="onDragOverPlaceholder($event)"
+                    (drop)="onDrop($event, idx)">
+                    <i class="bi bi-arrows-move"></i>
+                    <span>Thả địa điểm vào vị trí này</span>
+                </div>
+
                 <!-- Organic Travel Transit note in Timeline -->
                 <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
-                    (click)="openLegDirections(idx)"
-                    [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
-                    title="Nhấp để đặt trước xe hoặc xem đường đi chặng này">
-                    <div class="travel-gap-badge">
+                    [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx">
+                    <div class="travel-gap-badge" (click)="openLegDirections(idx)" title="Nhấp để đặt trước xe hoặc xem đường đi chặng này">
                         <i class="bi bi-geo-alt"></i>
                         <span class="travel-gap-text">{{ getTravelGapText(idx) }}</span>
                         <span class="travel-gap-booked-inline" *ngIf="getLegTransport(activeDayIdx, idx) as legTrans">
                             · <i [class]="getTransportIcon(legTrans.vehicleType)"></i> {{ legTrans.provider }} ({{ legTrans.pickupTime || '09:00' }})
                         </span>
                         <span class="travel-gap-cta">Xem đường đi <i class="bi bi-arrow-right"></i></span>
+                        <button type="button" class="leg-note-trigger-btn" *ngIf="!isItineraryLocked()"
+                            (click)="$event.stopPropagation(); toggleLegNoteEditor(idx)"
+                            title="Ghi chú cho chặng đường này">
+                            <i class="bi" [ngClass]="getLegNote(activeDayIdx, idx) ? 'bi-chat-dots-fill' : 'bi-chat-dots'"></i>
+                        </button>
+                    </div>
+                    <!-- Route Leg Comment / Note -->
+                    <div class="leg-note-inline-box" *ngIf="getLegNote(activeDayIdx, idx) || editingLegNoteIdx === idx" (click)="$event.stopPropagation()">
+                        <div *ngIf="editingLegNoteIdx !== idx" class="leg-note-text" (click)="toggleLegNoteEditor(idx)">
+                            <i class="bi bi-chat-dots"></i> {{ getLegNote(activeDayIdx, idx) }}
+                        </div>
+                        <div *ngIf="editingLegNoteIdx === idx" class="leg-note-input-row">
+                            <input type="text" [(ngModel)]="tempLegNoteText" placeholder="Ghi chú chặng đường (VD: Đường đèo đẹp, dừng chụp ảnh...)"
+                                (keydown.enter)="saveLegNote(activeDayIdx, idx)">
+                            <button type="button" (click)="saveLegNote(activeDayIdx, idx)">Lưu</button>
+                        </div>
                     </div>
                 </div>
             </ng-container>
@@ -725,7 +816,10 @@
     <div class="layout-resizer" (mousedown)="startResizing($event, 'right')"></div>
 
     <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT SPACER -->
-    <aside class="right-map-panel" [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections">
+    <aside class="right-map-panel"
+           [style.width.%]="mapWidthPct"
+           [style.flex]="'0 0 ' + mapWidthPct + '%'"
+           [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections">
         <!-- =========================================================================
              OFFICIAL GOOGLE MAPS PLACE DETAILS SIDE PANEL (Matches Google Maps 100%)
              Only appears when activated; completely hidden when closed!
@@ -810,19 +904,9 @@
                             (click)="activePlaceTab = 'about'">Giới thiệu</button>
                     </div>
 
-                    <!-- Google Maps Round Action Buttons (Matches Reference Screenshot 100%) -->
+                    <!-- Google Maps Round Action Buttons (Streamlined: +Lịch trình, Yêu thích, Chia sẻ) -->
                     <div class="gm-circle-actions-row">
-                        <!-- 1. Đường đi (Google Directions) -->
-                        <div class="gm-action-item">
-                            <button type="button" class="gm-round-action-btn btn-route"
-                                (click)="openDirectionsForActivity(activeGooglePlacePanel.itemRef || activeGooglePlacePanel)"
-                                title="Chỉ đường bằng Google Maps">
-                                <i class="bi bi-signpost-2-fill"></i>
-                            </button>
-                            <span class="gm-action-label">Đường đi</span>
-                        </div>
-
-                        <!-- 2. Thêm vào ngày / Xóa khỏi ngày -->
+                        <!-- 1. Thêm vào ngày / Xóa khỏi ngày -->
                         <div class="gm-action-item" *ngIf="!activeGooglePlacePanel.isActivity && !isItineraryLocked()">
                             <button type="button" class="gm-round-action-btn btn-add"
                                 (click)="addPlaceFromMap(activeGooglePlacePanel)" title="Thêm vào ngày">
@@ -838,27 +922,18 @@
                             <span class="gm-action-label">Xóa bỏ</span>
                         </div>
 
-                        <!-- 3. Lưu -->
+                        <!-- 2. Yêu thích (Lưu vào danh sách Yêu thích) -->
                         <div class="gm-action-item">
                             <button type="button" class="gm-round-action-btn"
-                                (click)="activeGooglePlacePanel.isSaved = !activeGooglePlacePanel.isSaved"
-                                title="Lưu địa điểm">
+                                (click)="toggleFavoritePlaceFromMap(activeGooglePlacePanel)"
+                                title="Lưu vào mục Yêu thích">
                                 <i class="bi"
-                                    [ngClass]="activeGooglePlacePanel.isSaved ? 'bi-bookmark-fill text-amber-500' : 'bi-bookmark'"></i>
+                                    [ngClass]="isPlaceFavorited(activeGooglePlacePanel) ? 'bi-heart-fill text-rose-500' : 'bi-heart'"></i>
                             </button>
-                            <span class="gm-action-label">{{ activeGooglePlacePanel.isSaved ? 'Đã lưu' : 'Lưu' }}</span>
+                            <span class="gm-action-label">{{ isPlaceFavorited(activeGooglePlacePanel) ? 'Đã thích' : 'Yêu thích' }}</span>
                         </div>
 
-                        <!-- 4. Gắn cờ vị trí -->
-                        <div class="gm-action-item">
-                            <button type="button" class="gm-round-action-btn" title="Vị trí trên bản đồ"
-                                (click)="focusActivityOnMap(activeGooglePlacePanel.itemRef || activeGooglePlacePanel)">
-                                <i class="bi bi-geo-alt-fill text-emerald-600"></i>
-                            </button>
-                            <span class="gm-action-label">Gắn cờ</span>
-                        </div>
-
-                        <!-- 5. Chia sẻ -->
+                        <!-- 3. Chia sẻ -->
                         <div class="gm-action-item">
                             <button type="button" class="gm-round-action-btn" title="Chia sẻ địa điểm"
                                 (click)="sharePlace(activeGooglePlacePanel)">
@@ -1054,27 +1129,87 @@
 
 
         <!-- =========================================================================
-             OFFICIAL GOOGLE MAPS LEG DIRECTIONS & PRE-BOOKING PANEL (2 TABS)
+             OFFICIAL GOOGLE MAPS LEG DIRECTIONS & PRE-BOOKING PANEL (DRAGGABLE, 2 TABS)
              ========================================================================= -->
-        <div class="gm-directions-panel" *ngIf="activeLegDirections">
-            <!-- Top 2-Tab Header -->
-            <div class="gm-dir-header gm-dir-tabs-header">
-                <div class="gm-panel-tabs">
-                    <button type="button" class="gm-panel-tab-btn"
-                        [class.active]="legPanelTab === 'book'"
-                        (click)="switchLegPanelTab('book')">
-                        <i class="bi bi-car-front"></i>
-                        <span>Đặt trước xe</span>
-                    </button>
-                    <button type="button" class="gm-panel-tab-btn"
-                        [class.active]="legPanelTab === 'directions'"
-                        (click)="switchLegPanelTab('directions')">
-                        <i class="bi bi-sign-turn-right"></i>
-                        <span>Xem chỉ đường</span>
+        <div class="gm-directions-panel" *ngIf="activeLegDirections"
+             [style.transform]="'translate3d(' + dirPanelOffsetX + 'px, ' + dirPanelOffsetY + 'px, 0)'">
+            <!-- 1. Draggable Header (Cố định ở cả 2 tab) -->
+            <div class="gm-dir-header" (mousedown)="startDraggingDirectionsPanel($event)" style="cursor: move; user-select: none;" title="Giữ chuột để kéo di chuyển bảng này">
+                <span class="gm-dir-title" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-grip-vertical"></i> Chỉ đường & Phương tiện chặng
+                </span>
+                <button type="button" class="gm-dir-close-btn" (mousedown)="$event.stopPropagation()" (click)="closeLegDirections()" title="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- 2. Mode Selector: Ô tô / Xe máy / Đi bộ (Cố định ở cả 2 tab, đồng bộ lọc loại xe) -->
+            <div class="gm-dir-modes">
+                <button type="button" class="gm-dir-mode-btn"
+                    [class.active]="(legPanelTab === 'book' && legVehicleCategory === 'car') || (legPanelTab === 'directions' && activeLegDirections.travelMode === 'DRIVE')"
+                    (click)="onSelectUnifiedLegMode('DRIVE')">
+                    <i class="bi bi-car-front-fill"></i>
+                    <span>Ô tô</span>
+                </button>
+                <button type="button" class="gm-dir-mode-btn"
+                    [class.active]="(legPanelTab === 'book' && legVehicleCategory === 'motorbike') || (legPanelTab === 'directions' && activeLegDirections.travelMode === 'TWO_WHEELER')"
+                    (click)="onSelectUnifiedLegMode('TWO_WHEELER')">
+                    <i class="bi bi-bicycle"></i>
+                    <span>Xe máy</span>
+                </button>
+                <button type="button" class="gm-dir-mode-btn"
+                    [class.active]="legPanelTab === 'directions' && activeLegDirections.travelMode === 'WALK'"
+                    (click)="onSelectUnifiedLegMode('WALK')">
+                    <i class="bi bi-person-walking"></i>
+                    <span>Đi bộ</span>
+                </button>
+            </div>
+
+            <!-- 3. Origin & Destination Route Card (Cố định ở cả 2 tab) -->
+            <div class="gm-dir-route-card">
+                <div class="gm-dir-node">
+                    <span class="gm-dir-dot from"></span>
+                    <div class="gm-dir-node-text">
+                        <span class="gm-dir-node-label">Điểm xuất phát ({{ activeLegDirections.fromIdx + 1 }})</span>
+                        <strong>{{ activeLegDirections.fromTitle }}</strong>
+                        <span class="gm-dir-node-addr">{{ activeLegDirections.fromAddress }}</span>
+                    </div>
+                </div>
+                <div class="gm-dir-connector">
+                    <div class="gm-dir-line"></div>
+                    <button type="button" class="gm-dir-swap-btn" (click)="swapLegDirections()"
+                        title="Đảo chiều đường đi">
+                        <i class="bi bi-arrow-down-up"></i>
                     </button>
                 </div>
-                <button type="button" class="gm-dir-close-btn" (click)="closeLegDirections()" title="Đóng">
-                    <i class="bi bi-x-lg"></i>
+                <div class="gm-dir-node">
+                    <span class="gm-dir-dot to"></span>
+                    <div class="gm-dir-node-text">
+                        <span class="gm-dir-node-label">Điểm đến ({{ activeLegDirections.toIdx + 1 }})</span>
+                        <strong>{{ activeLegDirections.toTitle }}</strong>
+                        <span class="gm-dir-node-addr">{{ activeLegDirections.toAddress }}</span>
+                    </div>
+                </div>
+                <!-- Booked Vehicle Status Pill if any -->
+                <div *ngIf="getLegTransport(activeDayIdx, activeLegDirections.fromIdx) as booked" class="gm-booked-pill" style="margin-top: 6px; align-self: flex-start;">
+                    <i class="bi bi-check2-circle"></i> Đã đặt: {{ booked.provider }} - {{ booked.vehicleName }} ({{ booked.pickupTime }})
+                    <button type="button" class="gm-unbook-btn" (click)="removeLegTransport(activeDayIdx, activeLegDirections.fromIdx, $event)" title="Hủy đặt xe">×</button>
+                </div>
+            </div>
+
+            <!-- 4. 2-Tab Selector Bar (Nằm ngay dưới Điểm xuất phát -> Điểm đến) -->
+            <div class="gm-mid-tabs-bar">
+                <button type="button" class="gm-mid-tab-btn"
+                    [class.active]="legPanelTab === 'book'"
+                    (click)="switchLegPanelTab('book')">
+                    <i class="bi bi-car-front"></i>
+                    <span>Đặt trước xe</span>
+                </button>
+                <button type="button" class="gm-mid-tab-btn"
+                    [class.active]="legPanelTab === 'directions'"
+                    (click)="switchLegPanelTab('directions')">
+                    <i class="bi bi-sign-turn-right"></i>
+                    <span>Xem chỉ đường</span>
                 </button>
             </div>
 
@@ -1084,40 +1219,6 @@
             <ng-container *ngIf="legPanelTab === 'book'">
                 <!-- Sub-view A: Vehicle Selection & Booking -->
                 <ng-container *ngIf="!showVehiclePolicyView">
-                    <!-- Top Vehicle Category Filter: Chọn xe máy chỉ hiện xe máy, chọn ô tô chỉ hiện ô tô -->
-                    <div class="gm-dir-modes">
-                        <button type="button" class="gm-dir-mode-btn"
-                            [class.active]="legVehicleCategory === 'car'"
-                            (click)="setLegVehicleCategory('car')">
-                            <i class="bi bi-car-front-fill"></i>
-                            <span>Ô tô</span>
-                        </button>
-                        <button type="button" class="gm-dir-mode-btn"
-                            [class.active]="legVehicleCategory === 'motorbike'"
-                            (click)="setLegVehicleCategory('motorbike')">
-                            <i class="bi bi-bicycle"></i>
-                            <span>Xe máy</span>
-                        </button>
-                    </div>
-
-                    <!-- Compact Route Info -->
-                    <div class="gm-book-route-summary">
-                        <div class="gm-book-route-line">
-                            <span class="gm-dot-sm from"></span>
-                            <span class="gm-route-text">{{ activeLegDirections.fromTitle }}</span>
-                            <i class="bi bi-arrow-right"></i>
-                            <span class="gm-dot-sm to"></span>
-                            <span class="gm-route-text">{{ activeLegDirections.toTitle }}</span>
-                        </div>
-                        <div class="gm-book-route-meta">
-                            <span>Quãng đường: {{ activeLegDirections.distance }} ({{ activeLegDirections.duration }})</span>
-                            <span *ngIf="getLegTransport(activeDayIdx, activeLegDirections.fromIdx) as booked" class="gm-booked-pill">
-                                Đã đặt: {{ booked.provider }} ({{ booked.pickupTime }})
-                                <button type="button" class="gm-unbook-btn" (click)="removeLegTransport(activeDayIdx, activeLegDirections.fromIdx, $event)" title="Hủy đặt xe">×</button>
-                            </span>
-                        </div>
-                    </div>
-
                     <!-- Saved Partner Transport Services List -->
                     <div class="gm-book-vehicle-list">
                         <div *ngFor="let v of filteredLegVehicles"
@@ -1234,53 +1335,6 @@
                  TAB 2: XEM CHỈ ĐƯỜNG (DIRECTIONS & GPS NAVIGATION)
                  ================================================================= -->
             <ng-container *ngIf="legPanelTab === 'directions'">
-                <!-- Mode Selector: Drive / Two-Wheeler / Walk -->
-                <div class="gm-dir-modes">
-                    <button type="button" class="gm-dir-mode-btn"
-                        [class.active]="activeLegDirections.travelMode === 'DRIVE'" (click)="switchLegTravelMode('DRIVE')">
-                        <i class="bi bi-car-front-fill"></i>
-                        <span>Ô tô</span>
-                    </button>
-                    <button type="button" class="gm-dir-mode-btn"
-                        [class.active]="activeLegDirections.travelMode === 'TWO_WHEELER'"
-                        (click)="switchLegTravelMode('TWO_WHEELER')">
-                        <i class="bi bi-bicycle"></i>
-                        <span>Xe máy</span>
-                    </button>
-                    <button type="button" class="gm-dir-mode-btn" [class.active]="activeLegDirections.travelMode === 'WALK'"
-                        (click)="switchLegTravelMode('WALK')">
-                        <i class="bi bi-person-walking"></i>
-                        <span>Đi bộ</span>
-                    </button>
-                </div>
-
-                <!-- Origin & Destination -->
-                <div class="gm-dir-route-card">
-                    <div class="gm-dir-node">
-                        <span class="gm-dir-dot from"></span>
-                        <div class="gm-dir-node-text">
-                            <span class="gm-dir-node-label">Điểm xuất phát ({{ activeLegDirections.fromIdx + 1 }})</span>
-                            <strong>{{ activeLegDirections.fromTitle }}</strong>
-                            <span class="gm-dir-node-addr">{{ activeLegDirections.fromAddress }}</span>
-                        </div>
-                    </div>
-                    <div class="gm-dir-connector">
-                        <div class="gm-dir-line"></div>
-                        <button type="button" class="gm-dir-swap-btn" (click)="swapLegDirections()"
-                            title="Đảo chiều đường đi">
-                            <i class="bi bi-arrow-down-up"></i>
-                        </button>
-                    </div>
-                    <div class="gm-dir-node">
-                        <span class="gm-dir-dot to"></span>
-                        <div class="gm-dir-node-text">
-                            <span class="gm-dir-node-label">Điểm đến ({{ activeLegDirections.toIdx + 1 }})</span>
-                            <strong>{{ activeLegDirections.toTitle }}</strong>
-                            <span class="gm-dir-node-addr">{{ activeLegDirections.toAddress }}</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Stats Banner -->
                 <div class="gm-dir-stats">
                     <div class="gm-dir-stats-left">
@@ -1481,7 +1535,7 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="iti.imageUrl || (iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' || iti.destination === 'Hội An' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png')))"
+                                <img [src]="getUnifiedCoverImage(iti)"
                                     alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
@@ -1568,7 +1622,7 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="iti.imageUrl || (iti.destination === 'Đà Lạt' ? 'image/cb4fbf769d60d911e13c255f7fb39dcc.jpg' : (iti.destination === 'Phú Yên' ? 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg' : (iti.destination === 'Đà Nẵng' || iti.destination === 'Hội An' ? 'image/52627caa0015b2f833fbdc632d37dc82.jpg' : 'image/Viet Nam.png')))"
+                                <img [src]="getUnifiedCoverImage(iti)"
                                     alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
@@ -2173,8 +2227,8 @@
             <div class="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
                 <i class="bi bi-journal-check text-2xl text-[#0E9F6E]"></i>
                 <div class="flex-grow min-w-0">
-                    <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name }}</h4>
-                    <span class="text-[10px] text-gray-500 font-semibold uppercase">{{ sharingItinerary?.destination }}
+                    <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name || sharingItinerary?.title }}</h4>
+                    <span class="text-[10px] text-gray-500 font-semibold uppercase">{{ sharingItinerary?.destLabel || sharingItinerary?.destination }}
                         • {{ getItineraryDaysCount(sharingItinerary) }} ngày</span>
                 </div>
             </div>
@@ -2187,39 +2241,41 @@
                     class="w-full p-3 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] resize-none bg-gray-50 focus:bg-white transition-all"
                     placeholder="Nhập cảm nghĩ về lịch trình này..."></textarea>
                 <button (click)="postToCommunity()"
-                    class="w-full h-9 rounded-xl bg-[#0E9F6E] hover:bg-[#0F6B4C] text-white font-bold text-xs shadow-sm cursor-pointer border-0 transition-colors flex items-center justify-center gap-1.5">
-                    <i class="bi bi-chat-heart"></i> Đăng lên Bảng tin Cộng đồng
+                    class="w-full h-9 rounded-xl bg-[#184A37] hover:bg-[#143d2d] text-white font-bold text-xs shadow-sm cursor-pointer border-0 transition-colors flex items-center justify-center gap-1.5">
+                    <i class="bi bi-people-fill"></i> Đăng lên Cộng đồng GreenSteps
                 </button>
             </div>
 
             <div class="relative flex py-1 items-center">
                 <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Hoặc chia sẻ
-                    ngoài</span>
+                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Hoặc chia sẻ qua mạng xã hội</span>
                 <div class="flex-grow border-t border-gray-200"></div>
             </div>
 
-            <!-- Option 2: Social Links -->
-            <div class="grid grid-cols-3 gap-2">
-                <button (click)="shareSocial('messenger')"
-                    class="h-9 rounded-xl border border-gray-200 hover:bg-blue-50 text-blue-600 hover:text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors"
-                    title="Chia sẻ qua Facebook Messenger">
-                    <i class="bi bi-messenger text-blue-500"></i> Messenger
+            <!-- Option 2: Social Links (Facebook, Instagram, Zalo, Copy Link) -->
+            <div class="grid grid-cols-2 gap-2">
+                <button (click)="shareSocial('facebook')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-facebook"></i> Facebook
                 </button>
-                <button (click)="shareSocial('twitter')"
-                    class="h-9 rounded-xl border border-gray-200 hover:bg-sky-50 text-sky-500 hover:text-sky-600 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
-                    <i class="bi bi-twitter"></i> Twitter
+                <button (click)="shareSocial('instagram')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-instagram"></i> Instagram
+                </button>
+                <button (click)="shareSocial('zalo')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-chat-dots"></i> Zalo
                 </button>
                 <button (click)="copyShareLink()"
                     class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
-                    <i class="bi bi-link-45deg text-sm"></i> Copy Link
+                    <i class="bi bi-link-45deg text-sm"></i> Sao chép Link
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- INVITE FRIEND MODAL -->
+<!-- INVITE FRIEND & COLLABORATOR MODAL (Supports multiple Gmails, GreenSteps Community, FB, IG, Zalo) -->
 <div class="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300"
     *ngIf="isInviteFriendModalOpen">
     <div
@@ -2228,8 +2284,8 @@
         <div
             class="px-5 py-4 border-b border-[#184A37]/10 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50">
             <h3 class="text-base font-bold text-[#184A37] flex items-center gap-2">
-                <i class="bi bi-person-plus-fill text-[#0E9F6E]"></i>
-                Mời bạn đồng hành
+                <i class="bi bi-person-plus-fill text-[#184A37]"></i>
+                Mời bạn đồng hành & Chia sẻ
             </h3>
             <button (click)="closeInviteFriendModal()"
                 class="h-7 w-7 rounded-full hover:bg-black/5 flex items-center justify-center text-[#184A37]/60 hover:text-[#184A37] border-0 bg-transparent cursor-pointer">
@@ -2240,7 +2296,7 @@
         <div class="p-5 space-y-4">
             <!-- Details -->
             <div class="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
-                <i class="bi bi-journal-text text-2xl text-[#0E9F6E]"></i>
+                <i class="bi bi-journal-text text-2xl text-[#184A37]"></i>
                 <div class="flex-grow min-w-0">
                     <h4 class="text-xs font-bold text-[#184A37] truncate">{{ activeItinerary?.title }}</h4>
                     <span class="text-[10px] text-gray-500 font-semibold uppercase">{{ activeItinerary?.destLabel }} •
@@ -2248,40 +2304,141 @@
                 </div>
             </div>
 
-            <!-- Option 1: Invite via Email -->
+            <!-- Option 1: Invite Multiple Emails via Chip List -->
             <div class="space-y-2">
-                <label class="text-[10px] font-bold text-[#184A37]/60 uppercase tracking-wider block">Mời qua địa chỉ
-                    Email (cách nhau bằng dấu phẩy)</label>
-                <input type="text" [(ngModel)]="inviteEmails" placeholder="email1@gmail.com, email2@gmail.com..."
-                    class="w-full p-3 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] bg-gray-50 focus:bg-white transition-all">
+                <label class="text-[10px] font-bold text-[#184A37]/70 uppercase tracking-wider block">
+                    Mời nhiều Gmail cùng lúc (Nhấn Enter hoặc dấu phẩy để thêm nhiều email)
+                </label>
+                <!-- Email Chips -->
+                <div class="flex flex-wrap gap-1.5 mb-1.5" *ngIf="inviteEmailChipList.length > 0">
+                    <span *ngFor="let em of inviteEmailChipList; let eIdx = index"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#184A37]">
+                        <i class="bi bi-envelope"></i> {{ em }}
+                        <button type="button" (click)="removeInviteEmailChip(eIdx)" class="border-0 bg-transparent text-gray-500 hover:text-gray-800 cursor-pointer p-0 leading-none">×</button>
+                    </span>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" [(ngModel)]="inviteEmails"
+                        (keydown.enter)="addInviteEmailFromInput($event)"
+                        placeholder="Nhập 1 hoặc nhiều Gmail (cách nhau dấu phẩy)..."
+                        class="flex-1 p-2.5 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#184A37] bg-gray-50 focus:bg-white transition-all">
+                    <button type="button" (click)="addInviteEmailFromInput()"
+                        class="px-3 rounded-xl border border-gray-200 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-[#184A37] cursor-pointer">
+                        + Thêm
+                    </button>
+                </div>
                 <button (click)="sendCollaboratorInvites()" [disabled]="isSendingInvites"
-                    class="w-full h-9 rounded-xl bg-[#0E9F6E] hover:bg-[#0F6B4C] text-white font-bold text-xs shadow-sm cursor-pointer border-0 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
+                    class="w-full h-9 rounded-xl bg-[#184A37] hover:bg-[#143d2d] text-white font-bold text-xs shadow-sm cursor-pointer border-0 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
                     <i class="bi animate-spin bi-arrow-repeat" *ngIf="isSendingInvites"></i>
                     <i class="bi bi-envelope-paper-fill" *ngIf="!isSendingInvites"></i>
-                    Gửi lời mời qua Email
+                    <span>Gửi lời mời ({{ getTotalPendingInviteCount() }} email)</span>
                 </button>
             </div>
 
             <div class="relative flex py-1 items-center">
                 <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Hoặc mời qua mạng xã
-                    hội</span>
+                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Chia sẻ Cộng đồng & Mạng xã hội</span>
                 <div class="flex-grow border-t border-gray-200"></div>
             </div>
 
-            <!-- Option 2: Facebook & Messenger Copy Link -->
+            <!-- Share to GreenSteps Community -->
+            <button type="button" (click)="shareActiveItineraryToCommunity()"
+                class="w-full h-9 rounded-xl border border-[#184A37] bg-emerald-50/60 hover:bg-emerald-100/70 text-[#184A37] font-bold text-xs cursor-pointer transition-colors flex items-center justify-center gap-1.5">
+                <i class="bi bi-people-fill"></i> Chia sẻ lên Cộng đồng GreenSteps
+            </button>
+
+            <!-- Social Platforms: Facebook, Instagram, Zalo, Copy Link -->
             <div class="grid grid-cols-2 gap-2">
-                <button (click)="shareInviteSocial('messenger')"
-                    class="h-9 rounded-xl border border-gray-200 hover:bg-blue-50 text-blue-600 hover:text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors"
-                    title="Gửi lời mời qua Facebook Messenger">
-                    <i class="bi bi-messenger text-blue-500"></i> Messenger
+                <button (click)="shareInviteSocial('facebook')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-facebook"></i> Facebook
+                </button>
+                <button (click)="shareInviteSocial('instagram')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-instagram"></i> Instagram
+                </button>
+                <button (click)="shareInviteSocial('zalo')"
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-chat-dots"></i> Zalo
                 </button>
                 <button (click)="copyInviteLink()"
-                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors"
-                    title="Sao chép link gửi qua Messenger/Zalo">
-                    <i class="bi bi-messenger text-blue-500"></i> Copy Link Messenger
+                    class="h-9 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-transparent transition-colors">
+                    <i class="bi bi-link-45deg"></i> Sao chép Link
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ITINERARY NOTES & CHECKLIST MODAL (Hoàn thiện tính năng Ghi chú hành trình) -->
+<div class="fixed inset-0 z-[2050] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300"
+    *ngIf="isItineraryNotesModalOpen" (click)="closeItineraryNotesModal()">
+    <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-200 mx-4"
+        (click)="$event.stopPropagation()">
+        <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-[#f8faf8]">
+            <h3 class="text-base font-bold text-[#184A37] flex items-center gap-2 m-0">
+                <i class="bi bi-journal-text"></i> Ghi chú hành trình & Checklist
+            </h3>
+            <button type="button" (click)="closeItineraryNotesModal()"
+                class="h-7 w-7 rounded-full hover:bg-black/5 flex items-center justify-center text-gray-500 border-0 bg-transparent cursor-pointer">
+                <i class="bi bi-x-lg text-xs"></i>
+            </button>
+        </div>
+        <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+            <!-- General Trip Notes -->
+            <div>
+                <label class="text-xs font-bold text-gray-700 block mb-1.5">Sổ tay ghi chú chung cho chuyến đi</label>
+                <textarea [(ngModel)]="activeItinerary.generalNotes" rows="4"
+                    (change)="saveItineraryNotes()"
+                    placeholder="Ghi chú giờ tập trung, giấy tờ tùy thân, số điện thoại khẩn cấp, lưu ý thời tiết..."
+                    class="w-full p-3 rounded-xl border border-gray-200 text-xs text-gray-800 outline-none focus:border-[#184A37] resize-y bg-gray-50 focus:bg-white"></textarea>
+            </div>
+
+            <!-- Checklist Items -->
+            <div>
+                <label class="text-xs font-bold text-gray-700 block mb-1.5">Danh sách đồ cần chuẩn bị (Checklist)</label>
+                <div class="flex gap-2 mb-2.5">
+                    <input type="text" [(ngModel)]="newChecklistItemText"
+                        (keydown.enter)="addChecklistItem()"
+                        placeholder="Thêm vật dụng hoặc việc cần làm..."
+                        class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#184A37]">
+                    <button type="button" (click)="addChecklistItem()"
+                        class="px-3.5 py-2 rounded-lg bg-[#184A37] text-white text-xs font-bold border-0 cursor-pointer">
+                        + Thêm
+                    </button>
+                </div>
+                <div class="space-y-1.5 max-h-40 overflow-y-auto">
+                    <div *ngFor="let item of getItineraryChecklist(); let cIdx = index"
+                        class="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1">
+                            <input type="checkbox" [(ngModel)]="item.done" (change)="saveItineraryNotes()">
+                            <span [style.text-decoration]="item.done ? 'line-through' : 'none'"
+                                  [style.color]="item.done ? '#94a3b8' : '#1f2421'">{{ item.text }}</span>
+                        </label>
+                        <button type="button" (click)="removeChecklistItem(cIdx)"
+                            class="border-0 bg-transparent text-gray-400 hover:text-gray-700 cursor-pointer">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary of Activity & Leg Notes -->
+            <div *ngIf="getAllActivityAndLegNotes().length > 0">
+                <label class="text-xs font-bold text-gray-700 block mb-1.5">Tổng hợp ghi chú theo từng điểm đến & đường đi</label>
+                <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                    <div *ngFor="let n of getAllActivityAndLegNotes()"
+                        class="px-3 py-2 rounded-lg bg-[#f4fbf7] border border-[#d1e7dd] text-xs text-[#192520]">
+                        <strong>{{ n.label }}:</strong> {{ n.text }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="px-5 py-3 border-t border-gray-100 flex justify-end bg-gray-50">
+            <button type="button" (click)="saveAndCloseItineraryNotes()"
+                class="px-5 py-2 rounded-lg bg-[#184A37] text-white text-xs font-bold border-0 cursor-pointer">
+                Lưu ghi chú
+            </button>
         </div>
     </div>
 </div>
