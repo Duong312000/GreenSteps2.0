@@ -346,6 +346,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnInit() {
+    this.apiService.preloadMapData();
     void this.loadPendingFood();
     this.loadFavoritePlaces();
     this.authService.currentUser$.subscribe(user => {

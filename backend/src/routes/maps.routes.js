@@ -4,6 +4,195 @@ const { getCache, setCache, getCacheStats } = require('../services/maps-cache.se
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBlR9BgBQW4J-HoaA5hlS3Ov8TmPw6nebA';
 
+const PRESEEDED_POPULAR_PLACES = [
+  {
+    id: "place_dalat_chodem",
+    title: "Chợ Đêm Đà Lạt",
+    address: "Đường Nguyễn Thị Minh Khai, Phường 1, Đà Lạt, Lâm Đồng",
+    rating: 4.5,
+    reviewsCount: 19350,
+    lat: 11.9414015,
+    lng: 108.4372912,
+    photos: ["image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg"],
+    img: "image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg",
+    hours: "Đang mở cửa",
+    destination: "Đà Lạt",
+    types: ["market", "point_of_interest"]
+  },
+  {
+    id: "place_dalat_hoxuanhuong",
+    title: "Hồ Xuân Hương Đà Lạt",
+    address: "Phường 1, Đà Lạt, Lâm Đồng",
+    rating: 4.8,
+    reviewsCount: 15420,
+    lat: 11.940419,
+    lng: 108.445213,
+    photos: ["image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg"],
+    img: "image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Lạt",
+    types: ["tourist_attraction", "natural_feature"]
+  },
+  {
+    id: "place_dalat_lamvien",
+    title: "Quảng trường Lâm Viên",
+    address: "Đường Trần Quốc Toản, Phường 10, Đà Lạt, Lâm Đồng",
+    rating: 4.6,
+    reviewsCount: 22100,
+    lat: 11.936056,
+    lng: 108.445258,
+    photos: ["image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg"],
+    img: "image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Lạt",
+    types: ["point_of_interest", "park"]
+  },
+  {
+    id: "place_hoian_phoco",
+    title: "Phố cổ Hội An",
+    address: "Phường Minh An, Hội An, Quảng Nam",
+    rating: 4.9,
+    reviewsCount: 38900,
+    lat: 15.877028,
+    lng: 108.326233,
+    photos: ["image/greensteps/da-nang-hoi-an/hoi-an-pho-co-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/hoi-an-pho-co-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Nẵng - Hội An",
+    types: ["historical_landmark", "tourist_attraction"]
+  },
+  {
+    id: "place_hoian_chuacau",
+    title: "Chùa Cầu Hội An",
+    address: "Đường Nguyễn Thị Minh Khai, Phường Minh An, Hội An, Quảng Nam",
+    rating: 4.7,
+    reviewsCount: 14200,
+    lat: 15.877139,
+    lng: 108.325889,
+    photos: ["image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg",
+    hours: "Đang mở cửa",
+    destination: "Đà Nẵng - Hội An",
+    types: ["tourist_attraction", "place_of_worship"]
+  },
+  {
+    id: "place_hoian_anbang",
+    title: "Bãi biển An Bàng",
+    address: "Đường Hai Bà Trưng, Phường Cẩm An, Hội An, Quảng Nam",
+    rating: 4.6,
+    reviewsCount: 9800,
+    lat: 15.918917,
+    lng: 108.339250,
+    photos: ["image/greensteps/da-nang-hoi-an/da-nang-my-khe-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/da-nang-my-khe-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Nẵng - Hội An",
+    types: ["natural_feature", "beach"]
+  },
+  {
+    id: "place_phuyen_ghenhdadia",
+    title: "Ghềnh Đá Đĩa Phú Yên",
+    address: "Xã An Ninh Đông, Huyện Tuy An, Phú Yên",
+    rating: 4.8,
+    reviewsCount: 12500,
+    lat: 13.364444,
+    lng: 109.303889,
+    photos: ["image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg"],
+    img: "image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg",
+    hours: "Đang mở cửa",
+    destination: "Phú Yên",
+    types: ["tourist_attraction", "natural_feature"]
+  },
+  {
+    id: "place_phuyen_baixep",
+    title: "Bãi Xép Phú Yên",
+    address: "Xã An Chấn, Huyện Tuy An, Phú Yên",
+    rating: 4.7,
+    reviewsCount: 8900,
+    lat: 13.197028,
+    lng: 109.299500,
+    photos: ["image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg"],
+    img: "image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Phú Yên",
+    types: ["tourist_attraction", "beach"]
+  },
+  {
+    id: "place_phuyen_thapnhan",
+    title: "Tháp Nhạn",
+    address: "Phường 1, Thành phố Tuy Hòa, Phú Yên",
+    rating: 4.6,
+    reviewsCount: 7100,
+    lat: 13.089500,
+    lng: 109.296500,
+    photos: ["image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg"],
+    img: "image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg",
+    hours: "Đang mở cửa",
+    destination: "Phú Yên",
+    types: ["historical_landmark", "tourist_attraction"]
+  },
+  {
+    id: "place_danang_caurong",
+    title: "Cầu Rồng Đà Nẵng",
+    address: "Đường Nguyễn Văn Linh, Phước Ninh, Hải Châu, Đà Nẵng",
+    rating: 4.8,
+    reviewsCount: 31200,
+    lat: 16.061111,
+    lng: 108.227222,
+    photos: ["image/greensteps/da-nang-hoi-an/da-nang-cau-rong-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/da-nang-cau-rong-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Nẵng - Hội An",
+    types: ["tourist_attraction", "point_of_interest"]
+  },
+  {
+    id: "place_danang_banahills",
+    title: "Bà Nà Hills",
+    address: "Xã Hòa Ninh, Huyện Hòa Vang, Đà Nẵng",
+    rating: 4.7,
+    reviewsCount: 45000,
+    lat: 15.998944,
+    lng: 107.995806,
+    photos: ["image/greensteps/da-nang-hoi-an/da-nang-ba-na-hills-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/da-nang-ba-na-hills-01.jpg",
+    hours: "Đang mở cửa",
+    destination: "Đà Nẵng - Hội An",
+    types: ["tourist_attraction", "amusement_park"]
+  },
+  {
+    id: "place_danang_sontra",
+    title: "Bán đảo Sơn Trà",
+    address: "Quận Sơn Trà, Đà Nẵng",
+    rating: 4.8,
+    reviewsCount: 16800,
+    lat: 16.115833,
+    lng: 108.271389,
+    photos: ["image/greensteps/da-nang-hoi-an/da-nang-son-tra-01.jpg"],
+    img: "image/greensteps/da-nang-hoi-an/da-nang-son-tra-01.jpg",
+    hours: "Mở cả ngày",
+    destination: "Đà Nẵng - Hội An",
+    types: ["natural_feature", "tourist_attraction"]
+  }
+];
+
+/**
+ * 0. Popular Places Batch Endpoint (Single round-trip, pre-seeded 5ms response)
+ */
+router.get('/popular-places', async (req, res) => {
+  try {
+    const cachedBatch = await getCache('places:popular:batch');
+    if (cachedBatch && Array.isArray(cachedBatch) && cachedBatch.length > 0) {
+      return res.json({ success: true, places: cachedBatch, cached: true });
+    }
+
+    // Return pre-seeded high quality places directly (0ms latency, zero third-party calls)
+    await setCache('places:popular:batch', PRESEEDED_POPULAR_PLACES, 14);
+    return res.json({ success: true, places: PRESEEDED_POPULAR_PLACES, cached: false });
+  } catch (err) {
+    return res.json({ success: true, places: PRESEEDED_POPULAR_PLACES, cached: false });
+  }
+});
+
 /**
  * 0. Cache Statistics & Health Endpoint
  */

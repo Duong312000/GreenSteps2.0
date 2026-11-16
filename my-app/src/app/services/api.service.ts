@@ -2020,6 +2020,16 @@ export class ApiService {
       return Promise.resolve(cached);
     }
 
+    // Check popular batch cache before sending an external network request
+    const batchPlaces: any[] = this.getMapLocalCache('places_popular_batch');
+    if (Array.isArray(batchPlaces) && batchPlaces.length > 0) {
+      const match = batchPlaces.find(p => p.title && (p.title.toLowerCase().includes(cleanQ) || cleanQ.includes(p.title.toLowerCase())));
+      if (match) {
+        this.setMapLocalCache(cacheKey, [match], 30);
+        return Promise.resolve([match]);
+      }
+    }
+
     return firstValueFrom(
       this.http.get<any>(this.BACKEND_URL + '/maps/places/search?query=' + encodeURIComponent(cleanQ))
     ).then((res: any) => {
@@ -2072,25 +2082,33 @@ export class ApiService {
     }).catch(() => null);
   }
 
-  // Pre-warms map data & popular POIs into browser storage on session start
-  public preloadMapData() {
-    const defaultQueries = [
-      'Chợ Đêm Đà Lạt', 'Hồ Xuân Hương Đà Lạt', 'Quảng trường Lâm Viên',
-      'Phố cổ Hội An', 'Chùa Cầu Hội An', 'Bãi biển An Bàng',
-      'Ghềnh Đá Đĩa Phú Yên', 'Bãi Xép Phú Yên', 'Tháp Nhạn',
-      'Cầu Rồng Đà Nẵng', 'Bà Nà Hills', 'Bán đảo Sơn Trà'
-    ];
+  public getPopularPlaces(): Promise<any[]> {
+    const cacheKey = 'places_popular_batch';
+    const cached = this.getMapLocalCache(cacheKey);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return Promise.resolve(cached);
+    }
 
-    // Run non-blocking in background with slight stagger
-    setTimeout(() => {
-      defaultQueries.forEach((q, idx) => {
-        const cacheKey = 'search_' + encodeURIComponent(q.toLowerCase().trim());
-        if (!this.getMapLocalCache(cacheKey)) {
-          setTimeout(() => {
-            this.searchGooglePlaces(q);
-          }, idx * 400);
-        }
-      });
-    }, 1500);
+    return firstValueFrom(
+      this.http.get<any>(this.BACKEND_URL + '/maps/popular-places')
+    ).then((res: any) => {
+      const places = res && res.success && Array.isArray(res.places) ? res.places : [];
+      if (places.length > 0) {
+        this.setMapLocalCache(cacheKey, places, 30);
+        // Pre-warm local search caches for instant 0ms retrieval
+        places.forEach((p: any) => {
+          if (p.title) {
+            const placeKey = 'search_' + encodeURIComponent(p.title.toLowerCase().trim());
+            this.setMapLocalCache(placeKey, [p], 30);
+          }
+        });
+      }
+      return places;
+    }).catch(() => []);
+  }
+
+  // Pre-warms map data & popular POIs in 1 single lightweight batch call
+  public preloadMapData() {
+    this.getPopularPlaces().catch(() => {});
   }
 }
