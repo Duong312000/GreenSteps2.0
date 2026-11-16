@@ -1,19 +1,51 @@
-const { OperationsAssignment, ServiceBooking, TourBooking, GreenService, Vender } = require('../models/index');
+const { OperationsAssignment, ServiceBooking, TourBooking, GreenService, Vender, Provider, ScheduleSample } = require('../models/index');
 const { Op } = require('../db/mongo-store');
+
+function bookingDateIsInFuture(value, now = new Date()) {
+  if (!value) return false;
+  const dateOnly = value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return false;
+  return dateOnly > now.toISOString().slice(0, 10);
+}
+
+async function providerOwnsBooking(user, booking, type) {
+  if (user?.role === 'admin') return true;
+  if (user?.role !== 'provider' || !user.id) return false;
+  const provider = await Provider.findOne({ where: { user_id: user.id }, attributes: ['id'] });
+  if (!provider) return false;
+
+  if (type === 'tour') {
+    const schedule = await ScheduleSample.findByPk(booking.schedule_id, { attributes: ['id', 'provider_id'] });
+    return Boolean(schedule && String(schedule.provider_id) === String(provider.id));
+  }
+
+  const service = await GreenService.findByPk(booking.service_id, { attributes: ['id', 'vender_id'] });
+  return Boolean(service && String(service.vender_id) === String(provider.id));
+}
 
 // 1. Get assignments
 exports.getAssignments = async (req, res, next) => {
-  const { providerId } = req.query;
+  const providerId = req.user?.role === 'admin'
+    ? req.query.providerId
+    : req.user?.role === 'provider' ? req.user.id : null;
+  if (!providerId && req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Access denied.' });
+  }
   try {
     let bookingIds = [];
+    let providerBookings = null;
     if (providerId) {
       const vender = await Vender.findOne({ where: { user_id: providerId } });
       const venderId = vender ? vender.id : '';
-      const services = await GreenService.findAll({ where: { vender_id: venderId } });
+      const services = await GreenService.findAll({ where: { vender_id: venderId }, attributes: ['id'] });
       const serviceIds = services.map(s => s.id);
 
-      const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } } });
-      bookingIds = sBookings.map(b => b.id);
+      providerBookings = await ServiceBooking.findAll({
+        where: { service_id: { [Op.in]: serviceIds } },
+        attributes: ['id', 'fullname', 'name_service', 'guests', 'booking_date', 'booking_status', 'payment_status', 'operation_status'],
+        order: [['booking_date', 'ASC']]
+      });
+      bookingIds = providerBookings.map(b => b.id);
     }
 
     const list = await OperationsAssignment.findAll({
@@ -21,19 +53,7 @@ exports.getAssignments = async (req, res, next) => {
     });
 
     const mapped = [];
-    let allBookings = [];
-    if (providerId) {
-      const vender = await Vender.findOne({ where: { user_id: providerId } });
-      const venderId = vender ? vender.id : '';
-      const services = await GreenService.findAll({ where: { vender_id: venderId } });
-      const serviceIds = services.map(s => s.id);
-      allBookings = await ServiceBooking.findAll({
-        where: { service_id: { [Op.in]: serviceIds } },
-        order: [['booking_date', 'ASC']]
-      });
-    } else {
-      allBookings = await ServiceBooking.findAll({ order: [['booking_date', 'ASC']] });
-    }
+    const allBookings = providerBookings || await ServiceBooking.findAll({ order: [['booking_date', 'ASC']] });
 
     for (const b of allBookings) {
       let assignment = list.find(a => a.booking_id === b.id);
@@ -161,6 +181,24 @@ exports.updateAssignmentStatus = async (req, res, next) => {
   const { bookingId } = req.params;
   const { status, incidents } = req.body;
   try {
+    let booking = await ServiceBooking.findByPk(bookingId);
+    let bookingType = 'service';
+    if (!booking) {
+      booking = await TourBooking.findByPk(bookingId);
+      bookingType = 'tour';
+    }
+
+    if (req.user?.role !== 'admin') {
+      if (!booking) return res.status(404).json({ success: false, message: 'KhÃ´ng tÃ¬m tháº¥y booking.' });
+      if (!await providerOwnsBooking(req.user, booking, bookingType)) {
+        return res.status(403).json({ success: false, message: 'Báº¡n khÃ´ng cÃ³ quyá»n cáº­p nháº­t booking nÃ y.' });
+      }
+    }
+
+    if (status === 'completed' && bookingDateIsInFuture(booking?.booking_date)) {
+      return res.status(409).json({ success: false, message: 'ChÆ°a Ä‘áº¿n ngÃ y sá»­ dá»¥ng booking.' });
+    }
+
     let assignment = await OperationsAssignment.findOne({ where: { booking_id: bookingId } });
     if (!assignment) {
       assignment = await OperationsAssignment.create({
@@ -179,10 +217,6 @@ exports.updateAssignmentStatus = async (req, res, next) => {
       await assignment.save();
     }
 
-    let booking = await ServiceBooking.findByPk(bookingId);
-    if (!booking) {
-      booking = await TourBooking.findByPk(bookingId);
-    }
     if (booking) {
       booking.operation_status = status === 'incident' ? 'preparing' : status;
       if (status === 'completed') {

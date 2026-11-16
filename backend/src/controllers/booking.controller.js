@@ -1,4 +1,5 @@
 const loyalty = require('../services/wallet.service');
+const { providerForUser } = require('../services/provider-identity.service');
 const savedPromotions = require('../services/saved-promotions.service');
 const { consumeFlashSale } = require('../services/flash-sale-pricing.service');
 async function consumeBookingVoucher(userId, code, context, transaction) {
@@ -156,6 +157,7 @@ exports.quoteBooking = async (req, res, next) => {
 
 exports.createBooking = async (req, res, next) => {
   const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail, roomId, roomCount, checkOutDate, flashSaleId, addonIds = [] } = req.body;
+  let preloadedTour = null;
   let userId = req.user ? req.user.id : req.body.customerId;
   const fullname = (req.user && req.user.fullname) ? req.user.fullname : (req.body.customerName || 'Khách hàng');
   const email = customerEmail || (req.user ? req.user.email : null);
@@ -164,6 +166,14 @@ exports.createBooking = async (req, res, next) => {
   let emailAlreadyExists = false;
 
   try {
+    if (type === 'tour' || type === 'itinerary') {
+      preloadedTour = await Schedule.findByPk(targetId);
+      if (!preloadedTour) return res.status(404).json({ success: false, message: 'Tour không tồn tại.' });
+      const allowPersonal = type === 'itinerary'
+        && Boolean(await ScheduleCustom.findByPk(targetId))
+        && !(await ScheduleSample.findByPk(targetId));
+      require('../services/catalog-presentation.service').assertTourBookable(preloadedTour, { allowPersonal });
+    }
     if ((paymentMethod === 'wallet' || voucherCode) && !req.user) return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để dùng ví hoặc ưu đãi.' });
     if (!Number.isSafeInteger(guests) || guests < 1) throw loyalty.error('Số khách không hợp lệ.');
     if (!userId && email) {
@@ -231,6 +241,9 @@ exports.createBooking = async (req, res, next) => {
       }
     }
     let bookingId;
+    const momoCapabilityPair = paymentMethod === 'momo' ? require('../services/momo-payment.service').createGuestCapability() : null;
+    const momoCapability = momoCapabilityPair?.raw || null;
+    const momoCapabilityHash = momoCapabilityPair?.hash;
     let totalValue = 0;
     let tourNameOrServiceName = '';
     let discount = 0;
@@ -277,7 +290,7 @@ exports.createBooking = async (req, res, next) => {
       tourNameOrServiceName = service.name_service;
       bookingId = 'BKS-' + Date.now();
     } else if (type === 'tour' || type === 'itinerary') {
-      const baseTour = await Schedule.findByPk(targetId);
+      const baseTour = preloadedTour || await Schedule.findByPk(targetId);
       if (!baseTour) {
         return res.status(404).json({ success: false, message: 'Lịch trình hoặc Tour không tồn tại!' });
       }
@@ -591,7 +604,8 @@ exports.createBooking = async (req, res, next) => {
           escrow_status: 'none',
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
-          customer_email: email || null
+          customer_email: email || null,
+          ...(momoCapabilityHash ? { momo_capability_hash: momoCapabilityHash } : {})
         }, { transaction: t });
       } else {
         await TourBooking.create({
@@ -609,7 +623,8 @@ exports.createBooking = async (req, res, next) => {
           escrow_status: 'none',
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
-          customer_email: email || null
+          customer_email: email || null,
+          ...(momoCapabilityHash ? { momo_capability_hash: momoCapabilityHash } : {})
         }, { transaction: t });
       }
       if (voucherCode) {
@@ -625,6 +640,7 @@ exports.createBooking = async (req, res, next) => {
       bookingId,
       emailAlreadyExists: !!emailAlreadyExists
     };
+    if (momoCapability) responsePayload.momoPaymentCapability = momoCapability;
 
     if (userId && !emailAlreadyExists && autoCreatedCredentials) {
       const user = await User.findByPk(userId);
@@ -924,6 +940,7 @@ exports.getBookings = async (req, res, next) => {
   try {
     const requestedProviderId = req.query.providerId;
     const requestedCustomerId = req.query.customerId;
+    const compact = req.query.compact === '1';
     const isAdmin = req.user.role === 'admin';
     let providerId = null;
     let customerId = null;
@@ -945,22 +962,29 @@ exports.getBookings = async (req, res, next) => {
 
     let serviceBookings = [];
     let tourBookings = [];
+    const compactBookingFields = compact
+      ? ['id', 'fullname', 'name_service', 'tour_name', 'booking_date', 'guests', 'value', 'status', 'payment_status', 'createdAt', 'service_id', 'schedule_id']
+      : undefined;
 
     if (providerId) {
       const vender = await Vender.findOne({ where: { user_id: providerId } });
       const venderId = vender ? vender.id : '';
 
-      const services = await GreenService.findAll({ where: { vender_id: venderId } });
+      const services = await GreenService.findAll({
+        where: { vender_id: venderId },
+        attributes: compact ? ['id'] : undefined
+      });
       const serviceIds = services.map(s => s.id);
 
       serviceBookings = await ServiceBooking.findAll({
         where: { service_id: { [Op.in]: serviceIds } },
+        attributes: compactBookingFields,
         order: [['createdAt', 'DESC']]
       });
 
-      const provider = await Provider.findOne({ where: { user_id: providerId } });
-      const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id } }) : [];
-      tourBookings = await TourBooking.findAll({ where: { schedule_id: { [Op.in]: tours.map(tour => tour.id) } }, order: [['createdAt', 'DESC']] });
+      const provider = await providerForUser(providerId);
+      const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: compact ? ['id'] : undefined }) : [];
+      tourBookings = await TourBooking.findAll({ where: { schedule_id: { [Op.in]: tours.map(tour => tour.id) } }, attributes: compactBookingFields, order: [['createdAt', 'DESC']] });
     } else if (customerId) {
       serviceBookings = await ServiceBooking.findAll({
         where: { user_id: customerId },
@@ -975,18 +999,22 @@ exports.getBookings = async (req, res, next) => {
       tourBookings = await TourBooking.findAll({ order: [['createdAt', 'DESC']] });
     }
 
-    const mappedServices = await Promise.all(serviceBookings.map(async row => {
-      let image_url = '';
-      let destination = '';
-      if (row.service_id) {
-        try {
-          const s = await GreenService.findByPk(row.service_id);
-          if (s) {
-            image_url = s.image_url || '';
-            destination = s.destination || '';
-          }
-        } catch (_) {}
-      }
+    // Resolve associated catalog rows in batches. Looking up one service or
+    // schedule per booking created an N+1 request and made partner/admin lists
+    // stall as the booking history grew.
+    const serviceIds = [...new Set(serviceBookings.map(row => row.service_id).filter(Boolean))];
+    const scheduleIds = [...new Set(tourBookings.map(row => row.schedule_id).filter(Boolean))];
+    const [serviceRows, scheduleRows] = await Promise.all([
+      serviceIds.length ? GreenService.findAll({ where: { id: { [Op.in]: serviceIds } }, attributes: compact ? ['id', 'destination'] : undefined }) : [],
+      scheduleIds.length ? Schedule.findAll({ where: { id: { [Op.in]: scheduleIds } }, attributes: compact ? ['id', 'destination'] : undefined }) : []
+    ]);
+    const servicesById = new Map(serviceRows.map(row => [row.id, row]));
+    const schedulesById = new Map(scheduleRows.map(row => [row.id, row]));
+
+    const mappedServices = serviceBookings.map(row => {
+      const service = servicesById.get(row.service_id);
+      const image_url = service?.image_url || '';
+      const destination = service?.destination || '';
       return {
         id: row.id,
         customer: row.fullname,
@@ -1022,20 +1050,12 @@ exports.getBookings = async (req, res, next) => {
         rejection_reason: row.rejection_reason,
         createdAt: row.createdAt
       };
-    }));
+    });
 
-    const mappedTours = await Promise.all(tourBookings.map(async row => {
-      let image_url = '';
-      let destination = '';
-      if (row.schedule_id) {
-        try {
-          const t = await Schedule.findByPk(row.schedule_id);
-          if (t) {
-            image_url = t.image_url || '';
-            destination = t.destination || '';
-          }
-        } catch (_) {}
-      }
+    const mappedTours = tourBookings.map(row => {
+      const schedule = schedulesById.get(row.schedule_id);
+      const image_url = schedule?.image_url || '';
+      const destination = schedule?.destination || '';
       return {
         id: row.id,
         customer: row.fullname,
@@ -1071,7 +1091,7 @@ exports.getBookings = async (req, res, next) => {
         rejection_reason: row.rejection_reason,
         createdAt: row.createdAt
       };
-    }));
+    });
 
     const allBookings = [...mappedServices, ...mappedTours].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     res.json(allBookings);
@@ -1084,7 +1104,7 @@ async function canManageBooking(req, booking) {
   if (req.user?.role === 'admin') return true;
   if (req.user?.role !== 'provider') return false;
   if (booking.schedule_id) {
-    const provider = await Provider.findOne({ where: { user_id: req.user.id } });
+    const provider = await providerForUser(req.user.id);
     const tour = await ScheduleSample.findByPk(booking.schedule_id);
     return Boolean(provider && tour && tour.provider_id === provider.id);
   }
@@ -1110,6 +1130,13 @@ exports.simulateBookingPayment = async (req, res, next) => {
     let booking = await ServiceBooking.findByPk(id);
     if (!booking) booking = await TourBooking.findByPk(id);
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+    if (booking.schedule_id) {
+      const schedule = await Schedule.findByPk(booking.schedule_id);
+      if (!schedule) return res.status(404).json({ success: false, message: 'Tour not found.' });
+      const allowPersonal = Boolean(await ScheduleCustom.findByPk(booking.schedule_id))
+        && !(await ScheduleSample.findByPk(booking.schedule_id));
+      require('../services/catalog-presentation.service').assertTourBookable(schedule, { allowPersonal });
+    }
     if (!['bank_transfer', 'card'].includes(booking.payment_method)) {
       return res.status(400).json({ success: false, message: 'Only QR and card sandbox payments can be simulated.' });
     }
@@ -1384,10 +1411,12 @@ exports.getBookingDetails = async (req, res, next) => {
     if (booking.user_id !== req.user?.id && !(await canManageBooking(req, booking))) return bookingAccessDenied(res);
 
     if (booking.User) delete booking.User.password_hash;
+    const safeBooking = booking.toJSON();
+    delete safeBooking.momo_capability_hash;
     res.json({
       success: true,
       booking: {
-        ...booking.toJSON(),
+        ...safeBooking,
         type
       },
       autoCreatedUser: null,

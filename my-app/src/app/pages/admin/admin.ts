@@ -93,6 +93,20 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.reportsState = result.available ? 'ready' : 'unavailable';
     this.cdr.detectChanges();
   }
+  public async loadDashboardSummary() {
+    this.dashboardSummaryState = 'loading';
+    try {
+      const response = await this.apiService.getAdminDashboardSummary();
+      if (this.destroyed) return;
+      if (response?.success !== true || !response.data) throw new Error('Invalid dashboard summary response');
+      this.dashboardSummary = response.data;
+      this.dashboardSummaryState = 'ready';
+    } catch {
+      if (!this.destroyed) this.dashboardSummaryState = 'unavailable';
+    }
+    if (!this.destroyed) this.cdr.detectChanges();
+  }
+
   public openReportReview(report: any) {
     if (this.isPreviewMode) return;
     this.reviewTarget = report;
@@ -179,7 +193,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public providerVisibleColumns: Record<string, boolean> = {
     serviceType: false, revenue: false, cancellationRate: false, rating: false, priority: false
   };
-  public serviceVisibleColumns: Record<string, boolean> = { id: true, name: true, detail: true, amount: true, date: true, status: true };
+  public serviceVisibleColumns: Record<string, boolean> = { id: true, name: true, images: true, detail: true, amount: true, date: true, status: true };
   public sidebarCollapsed = false;
   public mobileMenuOpen = false;
   public isPreviewMode = isDevMode()
@@ -204,6 +218,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   public queueState: Record<QueueKey, QueueState> = {
     providers: 'loading', deposits: 'loading', withdrawals: 'loading', wallets: 'loading', bookings: 'loading'
   };
+  public dashboardSummary: any = null;
+  public dashboardSummaryState: QueueState = 'loading';
   private requestedQueues = new Set<QueueKey>();
   public providerDetail: any = null;
   public providerModalLoading = false;
@@ -291,7 +307,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.queueSearch = '';
       this.currentPage = 1;
       if (this.currentUser) {
-        this.loadQueueOnDemand(tab);
+        if (this.isCatalogTab) void this.loadCatalog(this.activeTab as CatalogKey);
+        else this.loadQueueOnDemand(tab);
         if (tab === 'reports' && !this.isPreviewMode && this.reportsState === 'loading') void this.loadReports();
       }
     });
@@ -308,7 +325,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     await this.loadAllData();
     if (!this.destroyed && !this.isPreviewMode) this.refreshTimer = setInterval(() => {
       if (document.visibilityState === 'visible') void this.loadAllData();
-    }, 15000);
+    }, 60000);
   }
 
   ngOnDestroy() { this.destroyed = true; if (this.refreshTimer) clearInterval(this.refreshTimer); }
@@ -446,19 +463,34 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.loadPreviewData();
       return;
     }
-    this.requestedQueues.add('providers');
-    this.requestedQueues.add('bookings');
     this.refreshing = true;
-    try { await Promise.all([
-      this.loadProviders(),
-      this.loadDeposits(),
-      this.loadWithdrawals(),
-      this.loadWallets(),
-      this.loadBookings(),
-      this.loadReports(),
-      ...(['services', 'tours', 'promotions', 'allBookings', 'refunds'] as CatalogKey[]).map(kind => this.loadCatalog(kind))
-    ]); } finally { this.refreshing = false; }
-
+    const requests: Promise<unknown>[] = [];
+    if (this.isOverview) {
+      // The overview only displays provider and booking queue counts. Leave
+      // other queues and catalog tabs lazy until an administrator opens them.
+      this.requestedQueues.add('providers');
+      this.requestedQueues.add('bookings');
+      requests.push(this.loadProviders(), this.loadBookings(), this.loadDashboardSummary());
+    } else if (this.isUserManagement || this.unsupportedSection) {
+      // User management loads in its own view; unsupported sections have no queue API.
+    } else if (this.isCatalogTab) {
+      requests.push(this.loadCatalog(this.activeTab as CatalogKey));
+    } else if (this.activeTab === 'reports') {
+      requests.push(this.loadReports());
+    } else if (['providers', 'bookings', 'deposits', 'withdrawals', 'wallets'].includes(this.activeTab)) {
+      const queue = this.activeTab as QueueKey;
+      this.requestedQueues.add(queue);
+      const loaders: Record<QueueKey, () => Promise<void>> = {
+        providers: () => this.loadProviders(),
+        bookings: () => this.loadBookings(),
+        deposits: () => this.loadDeposits(),
+        withdrawals: () => this.loadWithdrawals(),
+        wallets: () => this.loadWallets()
+      };
+      requests.push(loaders[queue]());
+    }
+    try { await Promise.allSettled(requests); }
+    finally { this.refreshing = false; }
   }
 
   private loadPreviewData() {
@@ -578,6 +610,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public readonly serviceTableColumns: AdminTableColumn[] = [
     { key: 'id', label: 'Mã', width: '180px', minWidth: '180px' },
     { key: 'name', label: 'Tên', minWidth: '280px', primary: true },
+    { key: 'images', label: 'Ảnh', width: '116px', align: 'center' },
     { key: 'detail', label: 'Thông tin', width: '150px', minWidth: '140px' },
     { key: 'amount', label: 'Giá trị', width: '120px', align: 'right' },
     { key: 'date', label: 'Ngày tạo', width: '110px' },
@@ -639,14 +672,28 @@ export class AdminComponent implements OnInit, OnDestroy {
   public get pageCount(): number { return Math.max(1, Math.ceil(this.filteredRows.length / this.pageSize)); }
 
   public get metrics() {
+    const loaded = this.dashboardSummaryState === 'ready';
+    const unavailable = this.dashboardSummaryState === 'unavailable';
+    const summary = this.dashboardSummary;
+    const revenue = summary?.platformRevenueToday?.value;
     return [
-      { label: 'Người dùng đang hoạt động', value: '—', note: 'Chưa có dữ liệu', icon: 'bi-people', tone: 'green' },
+      { label: 'Người dùng đang hoạt động', value: loaded ? this.formatCount(summary.activeUsers?.value) : '—', note: loaded ? 'Đã xác minh, tài khoản đang hoạt động' : unavailable ? 'Không tải được KPI · thử tải lại' : 'Đang tải dữ liệu', icon: 'bi-people', tone: 'green' },
       { label: 'Nhà cung cấp chờ duyệt', value: this.queueValue('providers'), note: this.queueNote('providers'), icon: 'bi-shop', tone: 'amber' },
-      { label: 'Dịch vụ chờ kiểm duyệt', value: '—', note: 'Chưa có dữ liệu', icon: 'bi-file-earmark-check', tone: 'amber' },
+      { label: 'Dịch vụ chờ kiểm duyệt', value: loaded ? this.formatCount(summary.pendingServices?.value) : '—', note: loaded ? 'GreenService có trạng thái pending' : unavailable ? 'Không tải được KPI · thử tải lại' : 'Đang tải dữ liệu', icon: 'bi-file-earmark-check', tone: 'amber' },
       { label: 'Booking cần xử lý', value: this.queueValue('bookings'), note: this.queueNote('bookings'), icon: 'bi-calendar2-check', tone: 'blue' },
-      { label: 'Giao dịch bất thường', value: '—', note: 'Chưa có dữ liệu', icon: 'bi-exclamation-triangle', tone: 'red' },
-      { label: 'Doanh thu nền tảng hôm nay', value: '—', note: 'Chưa có dữ liệu', icon: 'bi-graph-up-arrow', tone: 'green' }
+      { label: 'Giao dịch bất thường', value: loaded ? 'Chưa triển khai' : '—', note: loaded ? summary.abnormalTransactions?.reason : unavailable ? 'Không tải được KPI · thử tải lại' : 'Đang tải dữ liệu', icon: 'bi-exclamation-triangle', tone: 'red' },
+      { label: 'Doanh thu nền tảng hôm nay', value: loaded && revenue != null && Number.isFinite(Number(revenue)) ? this.formatMoney(revenue) : '—', note: loaded ? 'Phí hoa hồng giao dịch thành công trong ngày Việt Nam' : unavailable ? 'Không tải được KPI · thử tải lại' : 'Đang tải dữ liệu', icon: 'bi-graph-up-arrow', tone: 'green' }
     ];
+  }
+
+  public formatCount(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    const count = Number(value);
+    return Number.isFinite(count) ? new Intl.NumberFormat('vi-VN').format(count) : '—';
+  }
+
+  public openDashboardAlert(section: string): void {
+    this.setSection(section);
   }
 
   public get demoBookingDistribution() {

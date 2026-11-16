@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const partnerController = require('../controllers/partner.controller');
-const { authMiddleware, softAuth, checkRole } = require('../middlewares/auth.middleware');
+const { authMiddleware, checkRole } = require('../middlewares/auth.middleware');
 
 router.post('/register', authMiddleware, partnerController.registerProvider);
-router.get('/stats', softAuth, partnerController.getMonthlyStats);
+router.get('/stats', authMiddleware, checkRole(['provider', 'admin']), partnerController.getMonthlyStats);
 
 // Admin-only endpoints
 router.get('/pending', authMiddleware, checkRole(['admin']), partnerController.listPendingProviders);

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { Tour, Itinerary, Service, Booking, WalletInfo, WalletTransaction, CommunityPost, Notification } from '../models/models';
+import { DEMO_TOUR_PHOTO_DATA } from '../data/demo-tour-photo-data';
 import type { ChatItineraryDraft } from '../components/greensteps-chat/greensteps-chat.types';
 import { getApiUrl } from '../config/api-config';
 
@@ -26,6 +27,7 @@ export interface AdminUserQuery {
   providedIn: 'root'
 })
 export class ApiService {
+  private requestTimeoutMs = 15000;
   public BACKEND_URL = getApiUrl();
 
   walletRequest(method: string, path: string, body?: unknown, key?: string): Promise<any> {
@@ -33,6 +35,7 @@ export class ApiService {
   }
 
   private cache = new Map<string, { data: any; expiry: number }>();
+  private inFlightRequests = new Map<string, Promise<unknown>>();
   private adminUserRequests = new Map<string, Promise<any>>();
   private adminUserCacheVersion = 0;
   private adminUserCacheScope = 'anonymous';
@@ -51,6 +54,36 @@ export class ApiService {
 
   private setCachedData(key: string, data: any, ttlMs: number = 300000): void {
     this.cache.set(key, { data, expiry: Date.now() + ttlMs });
+  }
+
+  private async getPublicCatalogRequest<T>(url: string, isValid: (value: any) => boolean): Promise<T> {
+    const cacheKey = `public_catalog:${url}`;
+    const cached = this.getCachedData(cacheKey);
+    if (cached !== null) return structuredClone(cached) as T;
+
+    const response = await this.sharePendingRequest(url, () => this.getWithTimeout<T>(url));
+    if (isValid(response)) this.setCachedData(cacheKey, structuredClone(response), 15_000);
+    return response;
+  }
+
+  private sharePendingRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
+    const pending = this.inFlightRequests.get(key);
+    if (pending) return pending as Promise<T>;
+
+    let shared: Promise<T>;
+    try {
+      shared = Promise.resolve(request()).finally(() => {
+        if (this.inFlightRequests.get(key) === shared) this.inFlightRequests.delete(key);
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.inFlightRequests.set(key, shared);
+    return shared;
+  }
+
+  private getWithTimeout<T>(url: string, options?: object, timeoutMs = this.requestTimeoutMs): Promise<T> {
+    return firstValueFrom(this.http.get<T>(url, options).pipe(timeout({ first: timeoutMs })));
   }
 
   private getAdminUserCachedRequest<T>(key: string, request: () => Promise<T>): Promise<T> {
@@ -99,7 +132,9 @@ export class ApiService {
       this.adminUserRequests.clear();
     } else {
       for (const key of this.cache.keys()) {
-        if (key.startsWith(prefix)) {
+        if (key.startsWith(prefix)
+          || (prefix.startsWith('services_') && key.startsWith('public_catalog:') && key.includes('/services/search?'))
+          || (prefix.startsWith('preset_tour') && key.startsWith('public_catalog:') && key.includes('/tours/search?'))) {
           this.cache.delete(key);
         }
       }
@@ -116,6 +151,14 @@ export class ApiService {
 
 
   private mapTourToFrontend(tour: any): Tour {
+    const v3PhotoData = DEMO_TOUR_PHOTO_DATA[tour.id];
+    const isDemo = Boolean(v3PhotoData || tour.is_demo || ['demo', 'editorial'].includes(tour.catalog_status));
+    const photoMetadata = v3PhotoData?.photoMetadata || (Array.isArray(tour.photoMetadata) ? tour.photoMetadata : []);
+    const photoImage = v3PhotoData?.image || tour.image_url || tour.image;
+    const verifiedLocalDemoCover = isDemo
+      && photoMetadata.some((photo: any) => photo.path === photoImage
+        && photo.verificationStatus === 'verified'
+        && String(photo.path || '').startsWith('image/greensteps/tours/'));
     return {
       id: tour.id,
       title: tour.title,
@@ -124,42 +167,54 @@ export class ApiService {
       type: tour.badges && tour.badges.includes('Gia đình') ? 'Gia đình' : 
             tour.badges && tour.badges.includes('Trải nghiệm') ? 'Trải nghiệm' :
             tour.badges && tour.badges.includes('Tiết kiệm') ? 'Tiết kiệm' : 'Nghỉ dưỡng',
-      cost: Number(tour.cost),
-      oldCost: Number(tour.old_cost || tour.oldCost || tour.cost * 1.2),
-      image: tour.image_url || tour.image,
-      gallery: Array.isArray(tour.gallery) && tour.gallery.length > 0 ? tour.gallery : (tour.image_url || tour.image ? [tour.image_url || tour.image] : []),
+      cost: isDemo || tour.cost == null ? undefined as any : Number(tour.cost),
+      oldCost: isDemo || (tour.old_cost == null && tour.oldCost == null) ? undefined : Number(tour.old_cost ?? tour.oldCost),
+      image: isDemo && tour.coverMediaVerified !== true && !verifiedLocalDemoCover ? 'image/greensteps/travel-placeholder.svg' : photoImage,
+      coverMediaVerified: tour.coverMediaVerified === true,
+      gallery: v3PhotoData?.gallery || (Array.isArray(tour.gallery) && tour.gallery.length > 0 ? tour.gallery : (tour.image_url || tour.image ? [tour.image_url || tour.image] : [])),
+      photoMetadata,
       description: tour.description || tour.tour_description || '',
+      responsibleTravel: tour.responsibleTravel || '',
+      practicalNotes: tour.practicalNotes || '',
+      editorialItineraryNotice: tour.editorialItineraryNotice || '',
       highlights: tour.highlights || [],
+      styleExplanation: tour.styleExplanation || '',
+      fitnessIsEstimate: tour.fitnessIsEstimate === true,
+      fitnessExplanation: tour.fitnessExplanation || '',
       included: tour.included || [],
       excluded: tour.excluded || [],
       policy: tour.policy || [],
       guarantees: tour.guarantees || [],
       vouchers: tour.vouchers || [],
-      style: tour.style || 'Gia đình / Eco Travel',
-      group_size: tour.group_size || 'Nhóm nhỏ thân mật',
-      fitness_level: tour.fitness_level || 'Nhẹ nhàng',
-      maxCapacity: Number(tour.maxCapacity || tour.max_capacity || 10),
+      style: tour.style || (isDemo ? '' : 'Gia đình / Eco Travel'),
+      group_size: isDemo ? undefined : tour.group_size,
+      fitness_level: tour.fitness_level,
+      maxCapacity: isDemo ? undefined : Number(tour.maxCapacity || tour.max_capacity || 10),
       tags: tour.badges || tour.tags || [],
-      rating: this.optionalRating(tour.rating),
-      votes: Number(tour.votes_count || tour.votes || 0),
-      carbon: Number(tour.carbon || 0),
-      data: tour.data || []
+      rating: isDemo ? undefined : this.optionalRating(tour.rating),
+      votes: isDemo ? undefined : Number(tour.votes_count || tour.votes || 0),
+      carbon: isDemo || tour.carbon == null ? undefined as any : Number(tour.carbon),
+      data: tour.data || [],
+      catalog_status: tour.catalog_status,
+      is_demo: isDemo,
+      destination_ids: tour.destination_ids || [],
+      bookingEnabled: tour.bookingEnabled === true
     };
   }
 
   // 1. Tours APIs
   public async getPresetTours(userId?: string): Promise<Tour[]> {
-    const cacheKey = `preset_tours_${userId || 'guest'}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     try {
-      const url = userId ? `${this.BACKEND_URL}/tours?userId=${userId}` : `${this.BACKEND_URL}/tours`;
-      const res = await firstValueFrom(this.http.get<any[]>(url));
+      if (!userId) {
+        const page = await this.getToursPage({ page: 1, pageSize: 100, sort: 'popular' });
+        return page.items || [];
+      }
+
+      // Provider-specific results are private and stay on their authorized endpoint.
+      const url = `${this.BACKEND_URL}/tours?userId=${encodeURIComponent(userId)}`;
+      const res = await this.getWithTimeout<any[]>(url, { withCredentials: true });
       if (Array.isArray(res)) {
-        const data = res.map(t => this.mapTourToFrontend(t));
-        this.setCachedData(cacheKey, data);
-        return data;
+        return res.map(t => this.mapTourToFrontend(t));
       }
     } catch (e) {
       console.warn('Backend tours unavailable.');
@@ -184,21 +239,23 @@ export class ApiService {
             title: s.name || s.name_service,
             destination: s.destination,
             days: 1,
-            cost: Number(s.cost),
-            oldCost: Number(s.cost * 1.12),
+            cost: Number.isFinite(Number(s.cost)) && s.cost != null ? Number(s.cost) : undefined as any,
+            oldCost: s.priceStatus === 'verified' && s.oldCost != null ? Number(s.oldCost) : undefined,
             image: s.image_url || s.image || 'image/Viet Nam.png',
             tags: [mappedType, ...(s.badges || [])],
             rating: this.optionalRating(s.rating),
             votes: Number(s.reviews_count || s.reviewsCount || 0),
-            carbon: Number(s.carbon || 0),
+            carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : undefined as any,
+            priceStatus: s.priceStatus,
+            bookingEnabled: s.bookingEnabled === true,
             data: [
               [
                 {
                   id: 'act_' + s.id,
                   time: '08:00',
                   name: s.name || s.name_service,
-                  cost: s.cost,
-                  carbon: s.carbon,
+                  cost: s.cost == null ? null : Number(s.cost),
+                  carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : null,
                   icon: s.type === 'stay' ? 'bi-house-door-fill' : 
                         s.type === 'food' ? 'bi-cup-hot-fill' : 
                         s.type === 'transport' ? 'bi-car-front-fill' : 'bi-tree-fill',
@@ -223,7 +280,7 @@ export class ApiService {
 
     try {
       const cleanId = String(id).replace('preset_', '');
-      const t = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/tours/${cleanId}`));
+      const t = await this.getWithTimeout<any>(`${this.BACKEND_URL}/tours/${cleanId}`);
       if (t) {
         const tour = this.mapTourToFrontend(t);
         this.setCachedData(cacheKey, tour);
@@ -550,7 +607,7 @@ export class ApiService {
   }
 
   // 4. Community APIs
-  public async getCommunityPosts(page = 0, limit = 10, type = 'all', query = ''): Promise<CommunityPost[]> {
+  public async getCommunityPosts(page = 0, limit = 10, type = 'all', query = '', throwOnError = false): Promise<CommunityPost[]> {
     const cacheKey = `community_posts_${page}_${limit}_${type}_${query}`;
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
@@ -559,10 +616,13 @@ export class ApiService {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (type !== 'all') params.set('type', type);
       if (query.trim()) params.set('q', query.trim());
-      const data = await firstValueFrom(this.http.get<CommunityPost[]>(`${this.BACKEND_URL}/community/posts?${params}`));
+      const url = `${this.BACKEND_URL}/community/posts?${params}`;
+      // The response contains user-specific isSaved state; never share it across sessions.
+      const data = await this.getWithTimeout<CommunityPost[]>(url);
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
+      if (throwOnError) throw e;
       return [];
     }
   }
@@ -649,24 +709,18 @@ export class ApiService {
     return {
       ...raw, name: raw.name ?? raw.name_service, destination: raw.destination ?? raw.dest,
       description: data.description || data.shortDesc || raw.description,
+      gallery: Array.isArray(data.gallery) && data.gallery.length ? data.gallery : (Array.isArray(data.images) ? data.images : []),
+      photoMetadata: Array.isArray(data.imageMetadata) ? data.imageMetadata : [],
       priceStatus: data.priceStatus ?? raw.priceStatus, bookingEnabled: data.bookingEnabled ?? raw.bookingEnabled,
-      carbonKnown: raw.carbonKnown !== false && data.carbonStatus !== 'unconfirmed', capacityKnown: raw.capacityKnown !== false && data.capacityStatus !== 'unconfirmed',
+      carbonKnown: raw.carbonKnown === true || data.carbonStatus === 'verified', capacityKnown: raw.capacityKnown === true || data.capacityStatus === 'verified',
       sourceUrls: data.sourceUrls || raw.sourceUrls || [], sourceCheckedAt: data.sourceCheckedAt || raw.sourceCheckedAt
     };
   }
 
   public async getServices(): Promise<Service[]> {
-    const cacheKey = 'services_all';
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     try {
-      const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services`));
-      if (Array.isArray(data)) {
-        const services = data.filter((row: any) => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
-        this.setCachedData(cacheKey, services);
-        return services;
-      }
+      const response = await this.getServicesPage({ page: 1, pageSize: 100, sort: 'bookings_count', order: 'desc' });
+      return response.items || [];
     } catch (e) {
       console.warn('Backend services unavailable.');
     }
@@ -674,25 +728,30 @@ export class ApiService {
   }
 
   public async getServicesByDestination(destination: string): Promise<any[]> {
-    const cacheKey = `services_dest_${destination}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     try {
-      const data = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/services?destination=${encodeURIComponent(destination)}`));
-      const services = data.filter(row => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
-      this.setCachedData(cacheKey, services);
-      return services;
+      const response = await this.getServicesPage({ dest: destination, page: 1, pageSize: 100, sort: 'bookings_count', order: 'desc' });
+      return response.items || [];
     } catch (e) {
       return [];
     }
   }
 
-  public async getMyServices(providerId: string): Promise<Service[]> {
+  public async getServicesPage(query: Record<string, string | number | undefined> = {}): Promise<any> {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    params.set('compact', '1');
+    const url = `${this.BACKEND_URL}/services/search?${params.toString()}`;
+    const response = await this.getPublicCatalogRequest<any>(url, value => value?.success === true && Array.isArray(value.items));
+    return { ...response, items: (response?.items || []).map((item: any) => this.normalizeCatalogService(item)) };
+  }
+
+  public async getMyServices(providerId: string, throwOnError = false, timeoutMs = this.requestTimeoutMs, compact = false): Promise<Service[]> {
     try {
-      const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/services/provider/${providerId}`, { withCredentials: true }));
+      const query = compact ? '?compact=1' : '';
+      const data = await this.getWithTimeout<Service[]>(`${this.BACKEND_URL}/services/provider/${encodeURIComponent(providerId)}${query}`, { withCredentials: true }, timeoutMs);
       return data.map(row => this.normalizeCatalogService(row));
     } catch (e) {
+      if (throwOnError) throw e;
       return [];
     }
   }
@@ -720,19 +779,21 @@ export class ApiService {
   }
 
 
-  public async getBookings(providerId?: string, customerId?: string): Promise<Booking[]> {
+  public async getBookings(providerId?: string, customerId?: string, throwOnError = false, timeoutMs = this.requestTimeoutMs, compact = false): Promise<Booking[]> {
     try {
       let query = '';
-      if (providerId) query = `providerId=${providerId}`;
-      else if (customerId) query = `customerId=${customerId}`;
-      return await firstValueFrom(this.http.get<Booking[]>(`${this.BACKEND_URL}/bookings?${query}`, { withCredentials: true }));
+      if (providerId) query = `providerId=${encodeURIComponent(providerId)}`;
+      else if (customerId) query = `customerId=${encodeURIComponent(customerId)}`;
+      if (compact) query += `${query ? '&' : ''}compact=1`;
+      return await this.getWithTimeout<Booking[]>(`${this.BACKEND_URL}/bookings?${query}`, { withCredentials: true }, timeoutMs);
     } catch (e) {
+      if (throwOnError) throw e;
       return [];
     }
   }
 
   public async getBookingsForReviewEligibility(customerId: string): Promise<any[]> {
-    return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/bookings?customerId=${encodeURIComponent(customerId)}`, { withCredentials: true }));
+    return await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/bookings?customerId=${encodeURIComponent(customerId)}`, { withCredentials: true });
   }
 
   public async getBooking(id: string): Promise<any> {
@@ -758,7 +819,7 @@ export class ApiService {
     }
   }
 
-  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any }> {
+  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any; momoPaymentCapability?: string }> {
     try {
       const payload = {
         type: bookingData.type ?? bookingData.kind,
@@ -794,7 +855,8 @@ export class ApiService {
         pricing: res.pricing || res.booking?.pricing_snapshot,
         message: res.message,
         emailAlreadyExists: res.emailAlreadyExists,
-        autoCreatedUser: res.autoCreatedUser
+        autoCreatedUser: res.autoCreatedUser,
+        momoPaymentCapability: res.momoPaymentCapability
       };
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Có lỗi xảy ra khi tạo đặt chỗ.' };
@@ -805,12 +867,16 @@ export class ApiService {
     return await firstValueFrom(this.http.get<{ configured: boolean; environment?: string; missing?: string[] }>(`${this.BACKEND_URL}/payments/momo/config`));
   }
 
-  public async createMomoPayment(bookingId: string): Promise<{ success: boolean; bookingId?: string; payUrl?: string; message?: string }> {
+  public async createMomoPayment(bookingId: string, capability?: string): Promise<{ success: boolean; bookingId?: string; payUrl?: string; message?: string }> {
     try {
-      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/payments/momo/create`, { bookingId }));
+      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/payments/momo/create`, { bookingId }, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'MoMo payment creation failed.' };
     }
+  }
+
+  public async getMomoPaymentStatus(bookingId: string, capability?: string): Promise<any> {
+    return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/payments/momo/status/${encodeURIComponent(bookingId)}`, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
   }
 
   public getLocalCounterBookingNotifications(userId: string): any[] {
@@ -902,7 +968,7 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/reviews/tour/${cleanId}`));
+      const data = await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/reviews/tour/${cleanId}`);
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
@@ -937,7 +1003,7 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/reviews/service/${serviceId}`));
+      const data = await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/reviews/service/${serviceId}`);
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
@@ -966,12 +1032,86 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<string[]>(`${this.BACKEND_URL}/destinations`));
+      const url = `${this.BACKEND_URL}/destinations?page=1&pageSize=100`;
+      const response = await this.sharePendingRequest(url, () => this.getWithTimeout<any>(url));
+      const data = Array.isArray(response) ? response : (response?.items || []).map((item: any) => item.name).filter(Boolean);
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
-      return ['Đà Lạt', 'Phú Yên', 'Đà Nẵng - Hội An']; // fallback
+      return [];
     }
+  }
+
+  public async getNationalRegions(): Promise<any[]> {
+    try {
+      const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/regions`));
+      return response?.items || [];
+    } catch { return []; }
+  }
+
+  public async getNationalProvinces(query: { q?: string; page?: number; pageSize?: number } = {}): Promise<any> {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    try { return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/provinces?${params.toString()}`)); }
+    catch { return { items: [], total: 0, page: 1, pageSize: 34, totalPages: 0 }; }
+  }
+
+  public async getNationalDestinations(query: Record<string, string | number | undefined> = {}): Promise<any> {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    try {
+      const url = `${this.BACKEND_URL}/destinations?${params.toString()}`;
+      return await this.sharePendingRequest(url, () => this.getWithTimeout<any>(url));
+    }
+    catch { return { items: [], total: 0, page: 1, pageSize: 12, totalPages: 0 }; }
+  }
+
+  public async getNationalDestination(slug: string): Promise<any | null> {
+    try {
+      const response = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/destinations/${encodeURIComponent(slug)}`));
+      return response?.item || null;
+    } catch { return null; }
+  }
+
+  public getAdminCatalogDestinations(query: Record<string, string | number | undefined> = {}): Promise<any> {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/catalog/destinations?${params.toString()}`, { withCredentials: true }));
+  }
+
+  public getAdminCatalogReviewQueue(): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/catalog/review-queue`, { withCredentials: true }));
+  }
+
+  public saveAdminDestination(data: any, id?: string): Promise<any> {
+    const request = id
+      ? this.http.put<any>(`${this.BACKEND_URL}/admin/catalog/destinations/${encodeURIComponent(id)}`, data, { withCredentials: true })
+      : this.http.post<any>(`${this.BACKEND_URL}/admin/catalog/destinations`, data, { withCredentials: true });
+    return firstValueFrom(request);
+  }
+
+  public saveAdminEditorialTour(data: any, id?: string): Promise<any> {
+    const request = id
+      ? this.http.put<any>(`${this.BACKEND_URL}/admin/catalog/tours/${encodeURIComponent(id)}`, data, { withCredentials: true })
+      : this.http.post<any>(`${this.BACKEND_URL}/admin/catalog/tours`, data, { withCredentials: true });
+    return firstValueFrom(request);
+  }
+
+  public uploadCatalogMedia(data: any): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/media`, data, { withCredentials: true }));
+  }
+
+  public verifyCatalogMedia(id: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/catalog/media/${encodeURIComponent(id)}/verify`, {}, { withCredentials: true }));
+  }
+
+  public async getToursPage(query: Record<string, string | number | undefined> = {}): Promise<any> {
+    const params = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    params.set('compact', '1');
+    const url = `${this.BACKEND_URL}/tours/search?${params.toString()}`;
+    const response = await this.getPublicCatalogRequest<any>(url, value => value?.success === true && Array.isArray(value.items));
+    return { ...response, items: (response?.items || []).map((tour: any) => this.mapTourToFrontend(tour)) };
   }
 
   public async getRecommendedTours(userId: string): Promise<Tour[]> {
@@ -1043,7 +1183,7 @@ export class ApiService {
 
   public async getPartnerStats(): Promise<any> {
     try {
-      return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/partner/stats`));
+      return await this.getWithTimeout<any>(`${this.BACKEND_URL}/partner/stats`, { withCredentials: true });
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi tải báo cáo đối soát!' };
     }
@@ -1243,6 +1383,10 @@ export class ApiService {
     );
   }
 
+  public getAdminDashboardSummary(): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/dashboard/summary`, { withCredentials: true }));
+  }
+
   public refreshAdminUserData(): void {
     this.clearCache('admin_users:');
     this.clearCache('admin_user_stats:');
@@ -1326,6 +1470,42 @@ export class ApiService {
     const params = new URLSearchParams(this.adminUserQuery(query));
     selectedIds.forEach(id => params.append('id', id));
     return firstValueFrom(this.http.get(`${this.BACKEND_URL}/admin/users/export?${params.toString()}`, { withCredentials: true, responseType: 'blob' }));
+  }
+
+  public getAdminSettingsCategories(): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/settings/categories`, { withCredentials: true }));
+  }
+
+  public createAdminSettingsCategory(data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/settings/categories`, data, { withCredentials: true }));
+  }
+
+  public updateAdminSettingsCategory(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/settings/categories/${encodeURIComponent(id)}`, data, { withCredentials: true }));
+  }
+
+  public archiveAdminSettingsCategory(id: string, reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/settings/categories/${encodeURIComponent(id)}/archive`, { reason }, { withCredentials: true }));
+  }
+
+  public getAdminBookingSettings(): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/settings/booking`, { withCredentials: true }));
+  }
+
+  public updateAdminBookingPricing(data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/settings/booking/pricing`, data, { withCredentials: true }));
+  }
+
+  public createAdminBookingAddon(data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/admin/settings/booking/addons`, data, { withCredentials: true }));
+  }
+
+  public updateAdminBookingAddon(id: string, data: Record<string, unknown>): Promise<any> {
+    return firstValueFrom(this.http.patch<any>(`${this.BACKEND_URL}/admin/settings/booking/addons/${encodeURIComponent(id)}`, data, { withCredentials: true }));
+  }
+
+  public getAdminSettingsAudit(): Promise<any> {
+    return firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/admin/settings/audit`, { withCredentials: true }));
   }
 
 
@@ -1499,7 +1679,7 @@ export class ApiService {
   // Cải tiến Quản trị Đối tác (Partner Dashboard Upgrades)
   public async getServiceDetails(id: string, flashSaleId?: string): Promise<any> {
     try {
-      const res = await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/services/${encodeURIComponent(id)}${flashSaleId ? '?flashSale=' + encodeURIComponent(flashSaleId) : ''}`, { withCredentials: true }));
+      const res = await this.getWithTimeout<any>(`${this.BACKEND_URL}/services/${encodeURIComponent(id)}${flashSaleId ? '?flashSale=' + encodeURIComponent(flashSaleId) : ''}`, { withCredentials: true });
       if (res) return res;
     } catch (e) {
       // ignore
@@ -1524,24 +1704,27 @@ export class ApiService {
         destination: s.destination,
         days: 1,
         type: mappedType,
-        cost: Number(s.cost || 0),
+        cost: Number.isFinite(Number(s.cost)) && s.cost != null ? Number(s.cost) : undefined as any,
         flashSale: s.flashSale || null,
-        oldCost: Number((s.cost || 0) * 1.12),
+        oldCost: s.priceStatus === 'verified' && s.oldCost != null ? Number(s.oldCost) : undefined,
         image: s.image_url || s.image || s.current_data?.img || 'image/Viet Nam.png',
         description: s.current_data?.shortDesc || s.current_data?.description || s.description,
         tags: [mappedType, ...(s.badges || [])],
         badges: s.badges || [],
         rating: this.optionalRating(s.rating),
         votes: Number(s.reviews_count || s.reviewsCount || 0),
-        carbon: Number(s.carbon || 0),
+        carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : undefined as any,
+        priceStatus: s.priceStatus,
+        bookingEnabled: s.bookingEnabled === true,
+        is_demo: ['demo', 'editorial'].includes(s.catalog_status),
         data: [
           [
             {
               id: 'act_' + s.id,
               time: s.current_data?.startTime || '',
               name: title,
-              cost: Number(s.cost || 0),
-              carbon: Number(s.carbon || 0),
+              cost: s.cost == null ? null : Number(s.cost),
+              carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : null,
               icon: serviceType === 'stay' || serviceType === 'lodging' ? 'bi-house-door-fill' :
                     serviceType === 'food' || serviceType === 'dining' ? 'bi-cup-hot-fill' :
                     serviceType === 'transport' ? 'bi-car-front-fill' : 'bi-tree-fill',
@@ -1564,8 +1747,7 @@ export class ApiService {
         nearbyOrigin: s.current_data?.nearbyOrigin,
         greenFeatures: Array.isArray(s.current_data?.greenFeatures) ? s.current_data.greenFeatures : [],
         isDemo: s.current_data?.isDemo === true,
-        priceStatus: s.current_data?.priceStatus,
-        bookingEnabled: s.current_data?.bookingEnabled,
+        coverMediaVerified: s.coverMediaVerified === true,
         sourceUrls: s.current_data?.sourceUrls || [],
         sourceCheckedAt: s.current_data?.sourceCheckedAt,
         carbonKnown: s.current_data?.carbonStatus !== 'unconfirmed',
@@ -1577,7 +1759,10 @@ export class ApiService {
         areaDescription: s.current_data?.areaDescription,
         nearby: Array.isArray(s.current_data?.nearby) ? s.current_data.nearby : [],
         policies: Array.isArray(s.current_data?.policies) ? s.current_data.policies : [],
-        gallery: s.current_data?.images || s.current_data?.gallery || [],
+        gallery: Array.isArray(s.current_data?.gallery) && s.current_data.gallery.length
+          ? s.current_data.gallery
+          : Array.isArray(s.current_data?.images) ? s.current_data.images : [],
+        photoMetadata: Array.isArray(s.current_data?.imageMetadata) ? s.current_data.imageMetadata : [],
         maxCapacity: s.current_data?.capacityStatus === 'unconfirmed' ? undefined : (s.max_capacity ?? s.maxCapacity)
       };
 
@@ -1645,13 +1830,15 @@ export class ApiService {
     }
   }
 
-  public async getChangeRequests(providerId?: string, customerId?: string): Promise<any[]> {
+  public async getChangeRequests(providerId?: string, customerId?: string, throwOnError = false, timeoutMs = this.requestTimeoutMs, compact = false): Promise<any[]> {
     try {
       let query = '';
-      if (providerId) query = `providerId=${providerId}`;
-      else if (customerId) query = `customerId=${customerId}`;
-      return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/change-requests?${query}`, { withCredentials: true }));
+      if (providerId) query = `providerId=${encodeURIComponent(providerId)}`;
+      else if (customerId) query = `customerId=${encodeURIComponent(customerId)}`;
+      if (compact) query += `${query ? '&' : ''}compact=1`;
+      return await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/change-requests?${query}`, { withCredentials: true }, timeoutMs);
     } catch (e) {
+      if (throwOnError) throw e;
       return [];
     }
   }
@@ -1691,10 +1878,11 @@ export class ApiService {
     }
   }
 
-  public async getOperationsAssignments(providerId: string): Promise<any[]> {
+  public async getOperationsAssignments(providerId: string, throwOnError = false): Promise<any[]> {
     try {
-      return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/operations?providerId=${providerId}`, { withCredentials: true }));
+      return await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/operations?providerId=${encodeURIComponent(providerId)}`, { withCredentials: true });
     } catch (e) {
+      if (throwOnError) throw e;
       return [];
     }
   }
@@ -1735,7 +1923,7 @@ export class ApiService {
       if (filters.rating) queryParams.set('rating', filters.rating);
       if (filters.answered !== undefined) queryParams.set('answered', filters.answered);
       const query = queryParams.toString();
-      return await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/reviews/provider${query ? `?${query}` : ''}`, { withCredentials: true }));
+      return await this.getWithTimeout<any[]>(`${this.BACKEND_URL}/reviews/provider${query ? `?${query}` : ''}`, { withCredentials: true });
     } catch (e) {
       throw e;
     }

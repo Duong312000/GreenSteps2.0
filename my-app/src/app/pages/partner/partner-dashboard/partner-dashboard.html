@@ -36,7 +36,7 @@
       <div>
         <h2>Tổng lượt đặt</h2>
         <strong class="kpi-value">{{
-          isLoading ? '—' : formatNumber(filteredBookings.length)
+          isLoading || loadError ? '—' : formatNumber(filteredBookings.length)
         }}</strong>
         <p>{{ periodText }}</p>
       </div>
@@ -46,8 +46,8 @@
       <div>
         <h2>Doanh thu</h2>
         <strong class="kpi-value revenue-value"
-          >{{ isLoading ? '—' : formatNumber(analytics.totalRevenue)
-          }}<small *ngIf="!isLoading">đ</small></strong
+          >{{ isLoading || loadError ? '—' : formatNumber(analytics.totalRevenue)
+          }}<small *ngIf="!isLoading && !loadError">đ</small></strong
         >
         <p>Đơn chờ, đã xác nhận và hoàn thành</p>
       </div>
@@ -57,10 +57,10 @@
       <div>
         <h2>Yêu cầu hủy / hoàn tiền</h2>
         <strong class="kpi-value">{{
-          isLoading ? '—' : formatNumber(analytics.refundRequests)
+          isLoading || loadError ? '—' : formatNumber(analytics.refundRequests)
         }}</strong
         ><a routerLink="/partner-bookings" class="pending-link"
-          >{{ analytics.pendingRefundRequests }} yêu cầu cần xử lý <span aria-hidden="true">↗</span></a
+          >{{ loadError ? '—' : analytics.pendingRefundRequests }} yêu cầu cần xử lý <span aria-hidden="true">↗</span></a
         >
       </div>
     </article>
@@ -69,7 +69,7 @@
       <div>
         <h2>Điểm đánh giá</h2>
         <strong class="kpi-value">{{
-          isLoading || analytics.rating === null ? '—' : formatNumber(analytics.rating) + '/5'
+          isLoading || loadError || analytics.rating === null ? '—' : formatNumber(analytics.rating) + '/5'
         }}</strong>
         <p>
           {{
@@ -149,7 +149,7 @@
           <p>Phân bổ theo dịch vụ trong dữ liệu đã chọn.</p>
         </div>
       </div>
-      <div class="booking-mix" *ngIf="totalAllocation; else emptyChart">
+      <div class="booking-mix" *ngIf="totalAllocation && !loadError; else emptyChart">
         <div
           class="allocation-donut"
           [style.background]="allocationChartBackground"
@@ -165,14 +165,14 @@
           </div>
         </div>
       </div>
-      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có lượt đặt để phân tích.</p>
+      <p class="no-data-inline" *ngIf="!totalAllocation && !loadError">Chưa có lượt đặt để phân tích.</p>
     </article>
   </section>
   <ng-template #emptyChart
-    ><div class="empty-chart">
+    ><div class="empty-chart" *ngIf="!loadError">
       <app-partner-icon name="chart" /><strong>Chưa có dữ liệu biểu đồ</strong>
       <p>Biểu đồ sẽ xuất hiện khi có đơn đặt với ngày hợp lệ.</p>
-    </div></ng-template
+    </div><div class="empty-state" *ngIf="loadError"><p>Biểu đồ chưa tải được. Hãy thử tải lại.</p></div></ng-template
   >
 
   <section class="operations-grid">
@@ -217,41 +217,41 @@
         </table>
       </div>
       <ng-template #emptyBookings
-        ><div class="empty-state">
+        ><div class="empty-state" *ngIf="!loadError">
           <app-partner-icon name="calendar" />
           <p>Chưa có dữ liệu đơn đặt trong khoảng thời gian này.</p>
-        </div></ng-template
+        </div><div class="empty-state" *ngIf="loadError"><p>Danh sách booking chưa tải được. Hãy thử tải lại.</p></div></ng-template
       >
     </article>
     <article class="dashboard-card tasks-card">
       <div class="card-heading">
         <app-partner-icon name="check" />
         <h2>Công việc cần xử lý</h2>
-        <span class="task-count" *ngIf="taskCount">{{ taskCount }}</span>
+        <span class="task-count" *ngIf="taskCount && !loadError">{{ taskCount }}</span>
       </div>
-      <a *ngIf="analytics.pendingBookings" routerLink="/partner-bookings" class="task-row"
+      <a *ngIf="!loadError && analytics.pendingBookings" routerLink="/partner-bookings" class="task-row"
         ><span class="task-icon orange"><app-partner-icon name="calendar" /></span
         ><span
           ><strong>{{ analytics.pendingBookings }} đơn</strong> chờ xác nhận</span
         ><app-partner-icon name="chevron"
       /></a>
-      <a *ngIf="analytics.pendingServices" routerLink="/partner-services" class="task-row"
+      <a *ngIf="!loadError && analytics.pendingServices" routerLink="/partner-services" class="task-row"
         ><span class="task-icon mint"><app-partner-icon name="clock" /></span
         ><span
           ><strong>{{ analytics.pendingServices }} dịch vụ</strong> đang chờ duyệt</span
         ><app-partner-icon name="chevron"
       /></a>
-      <a *ngIf="analytics.pendingRefundRequests" routerLink="/partner-bookings" class="task-row"
+      <a *ngIf="!loadError && analytics.pendingRefundRequests" routerLink="/partner-bookings" class="task-row"
         ><span class="task-icon orange"><app-partner-icon name="calendar" /></span
         ><span><strong>{{ analytics.pendingRefundRequests }} yêu cầu</strong> hủy / hoàn tiền từ khách</span
         ><app-partner-icon name="chevron"
       /></a>
-      <div class="empty-state small" *ngIf="!taskCount">
+      <div class="empty-state small" *ngIf="!taskCount && !loadError">
         <span class="all-clear"><app-partner-icon name="check" /></span
         ><strong>Chưa có công việc cần xử lý</strong>
         <p>Chưa có đơn hoặc dịch vụ chờ xử lý trong dữ liệu hiện có.</p>
       </div>
-      <div class="customer-request-list" *ngIf="analytics.recentRefundRequests.length">
+      <div class="customer-request-list" *ngIf="!loadError && analytics.recentRefundRequests.length">
         <h3>Hoạt động hủy / hoàn tiền gần đây</h3>
         <a routerLink="/partner-bookings" *ngFor="let request of analytics.recentRefundRequests">
           <span><strong>{{ changeRequestType(request) }}</strong><small>{{ request.booking_id || request.booking?.id || request.id }}</small></span>
@@ -282,7 +282,7 @@
         <h2>Cơ cấu đơn dịch vụ</h2>
       </div>
       <p class="card-description">Tỷ trọng lượt đặt theo nhóm sản phẩm.</p>
-      <div class="allocation-bar" *ngIf="totalAllocation">
+      <div class="allocation-bar" *ngIf="totalAllocation && !loadError">
         <span
           *ngFor="let row of allocationRows"
           [attr.data-category]="row.key"
@@ -290,8 +290,8 @@
           [title]="row.label + ': ' + row.value"
         ></span>
       </div>
-      <p class="no-data-inline" *ngIf="!totalAllocation">Chưa có lượt đặt để phân tích.</p>
-      <div class="allocation-values">
+      <p class="no-data-inline" *ngIf="!totalAllocation && !loadError">Chưa có lượt đặt để phân tích.</p>
+      <div class="allocation-values" *ngIf="!loadError">
         <div *ngFor="let row of allocationRows">
           <span>{{ row.label }}</span
           ><strong>{{ row.value }}</strong
@@ -345,7 +345,7 @@
         </div>
         <span>{{ formatNumber(service.revenue) }}đ</span>
       </div>
-      <p class="no-data-inline" *ngIf="!analytics.bestServices.length">
+      <p class="no-data-inline" *ngIf="!analytics.bestServices.length && !loadError">
         Chưa có đơn đặt để xếp hạng dịch vụ.
       </p>
     </article>

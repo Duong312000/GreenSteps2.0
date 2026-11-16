@@ -1,26 +1,60 @@
 const { Op } = require('../db/mongo-store');
-const { ChangeRequest, ServiceBooking, TourBooking, GreenService, Vender } = require('../models/index');
+const { ChangeRequest, ServiceBooking, TourBooking, GreenService, Vender, ScheduleSample } = require('../models/index');
+const { providerForUser } = require('../services/provider-identity.service');
 
 // 1. Get all change requests
 exports.getChangeRequests = async (req, res, next) => {
-  const { providerId, customerId } = req.query;
+  const requestedProviderId = req.query.providerId;
+  const requestedCustomerId = req.query.customerId;
+  const compact = req.query.compact === '1';
   try {
+    let providerId = null;
+    let customerId = null;
+    if (req.user.role === 'admin') {
+      providerId = requestedProviderId || null;
+      customerId = requestedCustomerId || null;
+    } else if (req.user.role === 'provider') {
+      if ((requestedProviderId && requestedProviderId !== req.user.id) || requestedCustomerId) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+      providerId = req.user.id;
+    } else {
+      if (requestedProviderId || (requestedCustomerId && requestedCustomerId !== req.user.id)) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+      customerId = req.user.id;
+    }
+
     let where = {};
+    let relatedBookings = [];
     if (providerId) {
-      const vender = await Vender.findOne({ where: { user_id: providerId } });
+      const vender = await Vender.findOne({ where: { user_id: providerId }, attributes: compact ? ['id'] : undefined });
       const venderId = vender ? vender.id : '';
-      const services = await GreenService.findAll({ where: { vender_id: venderId } });
+      const services = await GreenService.findAll({ where: { vender_id: venderId }, attributes: compact ? ['id'] : undefined });
       const serviceIds = services.map(s => s.id);
-
-      const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } } });
-      const bookingIds = sBookings.map(b => b.id);
-
+      const bookingFields = compact ? ['id', 'fullname', 'name_service', 'tour_name', 'guests', 'value', 'booking_date', 'service_id', 'schedule_id'] : undefined;
+      const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } }, attributes: bookingFields });
+      const provider = await providerForUser(providerId);
+      const schedules = provider
+        ? await ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: compact ? ['id'] : undefined })
+        : [];
+      const scheduleIds = schedules.map(schedule => schedule.id);
+      const tBookings = scheduleIds.length
+        ? await TourBooking.findAll({ where: { schedule_id: { [Op.in]: scheduleIds } }, attributes: bookingFields })
+        : [];
+      relatedBookings = [...sBookings, ...tBookings];
+      const bookingIds = relatedBookings.map(b => b.id);
       where.booking_id = { [Op.in]: bookingIds };
     } else if (customerId) {
-      const sBookings = await ServiceBooking.findAll({ where: { user_id: customerId } });
-      const tBookings = await TourBooking.findAll({ where: { user_id: customerId } });
-      const bookingIds = [...sBookings.map(b => b.id), ...tBookings.map(b => b.id)];
+      const [sBookings, tBookings] = await Promise.all([
+        ServiceBooking.findAll({ where: { user_id: customerId } }),
+        TourBooking.findAll({ where: { user_id: customerId } })
+      ]);
+      relatedBookings = [...sBookings, ...tBookings];
+      const bookingIds = relatedBookings.map(b => b.id);
       where.booking_id = { [Op.in]: bookingIds };
+    } else {
+      relatedBookings = [...await ServiceBooking.findAll(), ...await TourBooking.findAll()];
     }
 
     const list = await ChangeRequest.findAll({
@@ -28,13 +62,10 @@ exports.getChangeRequests = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    const mapped = [];
-    for (const item of list) {
-      let booking = await ServiceBooking.findByPk(item.booking_id);
-      if (!booking) {
-        booking = await TourBooking.findByPk(item.booking_id);
-      }
-      mapped.push({
+    const bookingsById = new Map(relatedBookings.map(booking => [booking.id, booking]));
+    const mapped = list.map(item => {
+      const booking = bookingsById.get(item.booking_id);
+      return {
         ...item.toJSON(),
         booking: booking ? {
           id: booking.id,
@@ -44,8 +75,8 @@ exports.getChangeRequests = async (req, res, next) => {
           value: booking.value,
           date: booking.booking_date
         } : null
-      });
-    }
+      };
+    });
 
     res.json(mapped);
   } catch (error) {

@@ -14,6 +14,12 @@ const {
 } = require('../models/index');
 const { createBookingReview, createReply } = require('../services/review.service');
 const { catalogMetadata } = require('../services/catalog-presentation.service');
+const { searchServices } = require('../services/service-search.service');
+
+exports.searchServices = async (req, res, next) => {
+  try { res.json({ success: true, ...(await searchServices({ models: { GreenService, Destination: require('../models').Destination }, query: req.query })) }); }
+  catch (error) { next(error); }
+};
 
 function saveBase64Image(base64Data, subfolder = 'services') {
   if (!base64Data || typeof base64Data !== 'string') return base64Data;
@@ -53,6 +59,7 @@ exports.getServices = async (req, res, next) => {
 
     const services = await GreenService.findAll({
       where: query,
+      readPreference: 'secondaryPreferred',
       include: [
         { model: Badge, through: { attributes: [] } },
         { model: Vender }
@@ -98,11 +105,25 @@ exports.getServices = async (req, res, next) => {
 // 2. Get My Services (for provider dashboard)
 exports.getProviderServices = async (req, res, next) => {
   const { providerId } = req.params;
+  const compact = req.query.compact === '1';
+  if (req.user?.role !== 'admin' && req.user?.id !== providerId) {
+    return res.status(403).json({ success: false, message: 'Access denied.' });
+  }
   try {
     const vender = await Vender.findOne({ where: { user_id: providerId } });
     const venderId = vender ? vender.id : '';
 
-    const result = await GreenService.findAll({ where: { vender_id: venderId } });
+    // Dashboard cards only need counts and labels. Avoid transferring large
+    // current_data galleries and embedded base64 images for every service.
+    const result = await GreenService.findAll({
+      where: { vender_id: venderId },
+      ...(compact ? { attributes: [
+        'id', 'name_service', 'type', 'destination', 'cost', 'status',
+        'views_count', 'bookings_count', 'max_capacity', 'carbon', 'rating',
+        'current_data.priceStatus', 'current_data.bookingEnabled',
+        'current_data.carbonStatus', 'current_data.capacityStatus'
+      ] } : {})
+    });
     const mapped = result.map(s => ({
       id: s.id,
       name: s.name_service,
@@ -539,39 +560,9 @@ exports.getServiceDetails = async (req, res, next) => {
 
 
 exports.cacheGooglePlace = async (req, res, next) => {
-  try {
-    const { place_id, name, type, destination, rating, reviews_count, image_url, address, lat, lng } = req.body;
-    if (!place_id || !name) {
-      return res.status(400).json({ success: false, message: 'Thiếu place_id hoặc tên địa điểm' });
-    }
-
-    let service = await GreenService.findOne({ where: { google_place_id: place_id } });
-    if (!service) {
-      service = await GreenService.create({
-        id: 'GGP-' + Date.now(),
-        google_place_id: place_id,
-        name_service: name,
-        type: type || 'attraction',
-        destination: destination || 'Hội An',
-        cost: 0,
-        carbon: 2.5,
-        rating: rating || 4.7,
-        reviews_count: reviews_count || 120,
-        image_url: image_url || 'image/Viet Nam.png',
-        is_partner: false,
-        source: 'google_maps',
-        current_data: { address, lat, lng, source: 'google_maps' }
-      });
-    } else {
-      service.name_service = name;
-      if (rating) service.rating = rating;
-      if (reviews_count) service.reviews_count = reviews_count;
-      if (image_url) service.image_url = image_url;
-      await service.save();
-    }
-
-    res.json({ success: true, message: 'Đã lưu trữ / cập nhật địa điểm Google Maps thành công (Upsert)', data: service });
-  } catch (err) {
-    next(err);
-  }
+  return res.status(503).json({
+    success: false,
+    code: 'PLACES_PERSISTENCE_BLOCKED',
+    message: 'Chưa được phép lưu nội dung Google Maps vào danh mục nội bộ.'
+  });
 };

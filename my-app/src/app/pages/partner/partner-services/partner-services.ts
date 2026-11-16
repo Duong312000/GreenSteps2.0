@@ -16,6 +16,9 @@ import { User, Service, ServiceRoom, ServiceAmenity, ServiceAmenityGroup, Servic
 export class PartnerServicesComponent implements OnInit {
   public currentUser: User | null = null;
   public myServices: Service[] = [];
+  public isLoading = false;
+  public loadError = false;
+  public isSavingService = false;
 
   // Add / Edit Service Form (Wizard State)
   public isAddModalOpen: boolean = false;
@@ -194,8 +197,16 @@ export class PartnerServicesComponent implements OnInit {
   public async loadServices() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    this.myServices = await this.apiService.getMyServices(providerId);
-    this.cdr.detectChanges();
+    this.isLoading = true;
+    this.loadError = false;
+    try {
+      this.myServices = await this.apiService.getMyServices(providerId, true, 8000, true);
+    } catch {
+      this.loadError = true;
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
 
   // Filter actions
@@ -566,7 +577,9 @@ export class PartnerServicesComponent implements OnInit {
 
   public async submitNewService(event: Event) {
     if (event) event.preventDefault();
-    if (!this.currentUser) return;
+    if (!this.currentUser || this.isSavingService) return;
+    this.isSavingService = true;
+    try {
 
     const providerId = this.currentUser.id || this.currentUser._id || '';
     const categoryMap: Record<string, string> = { stay: 'Lưu trú', food: 'Ăn uống', tour: 'Tour', transport: 'Di chuyển', attraction: 'Giải trí' };
@@ -681,6 +694,10 @@ export class PartnerServicesComponent implements OnInit {
       }
     }
     this.cdr.detectChanges();
+    } finally {
+      this.isSavingService = false;
+      this.cdr.detectChanges();
+    }
   }
 
   public getActivityTypeLabel(type: string): string {

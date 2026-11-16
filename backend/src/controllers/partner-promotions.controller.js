@@ -259,7 +259,7 @@ exports.options = wrap(async (req, res) => {
     ? await GreenService.collection
         .find(
           { vender_id: vender.id, status: 'active' },
-          { projection: { id: 1, name_service: 1, cost: 1, image_url: 1 } },
+          { projection: { id: 1, name_service: 1, cost: 1 } },
         )
         .toArray()
     : [];
@@ -269,7 +269,7 @@ exports.options = wrap(async (req, res) => {
       id: s.id,
       name: s.name_service,
       cost: s.cost,
-      image: s.image_url,
+      image: undefined,
     })),
     packages: PACKAGES,
   });
@@ -365,7 +365,10 @@ exports.list = wrap(async (req, res) => {
     .limit(limit)
     .toArray();
   const services = await GreenService.collection
-    .find({ id: { $in: items.map((c) => c.service_id).filter(Boolean) } })
+    .find(
+      { id: { $in: items.map((c) => c.service_id).filter(Boolean) } },
+      { projection: { id: 1, name_service: 1, cost: 1, destination: 1, type: 1, status: 1, days: 1, bookings_count: 1 } },
+    )
     .toArray();
   res.json({
     success: true,

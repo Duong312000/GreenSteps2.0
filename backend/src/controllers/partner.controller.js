@@ -110,7 +110,8 @@ exports.approveProvider = async (req, res, next) => {
 };
 
 exports.getMonthlyStats = async (req, res, next) => {
-  const providerId = req.user ? req.user.id : (req.query.providerId || req.body.providerId || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+  const providerId = req.user?.role === 'admin' ? req.query.providerId : req.user?.id;
+  if (!providerId) return res.status(400).json({ success: false, message: 'Vui lòng chọn nhà cung cấp cần xem báo cáo.' });
   const { fromDate, toDate } = req.query;
 
   try {
@@ -120,7 +121,10 @@ exports.getMonthlyStats = async (req, res, next) => {
     }
 
     // 1. Fetch green services owned by this partner
-    const services = await GreenService.findAll({ where: { vender_id: vender.id } });
+    const services = await GreenService.findAll({
+      where: { vender_id: vender.id },
+      attributes: ['id']
+    });
     const serviceIds = services.map(s => s.id);
 
     // 2. Build booking query dates filter
@@ -136,7 +140,7 @@ exports.getMonthlyStats = async (req, res, next) => {
     }
 
     // 3. Sum booking values directly in DB
-    const completedBookings = await ServiceBooking.findAll({ where: bookingQuery });
+    const completedBookings = await ServiceBooking.findAll({ where: bookingQuery, attributes: ['value'] });
 
     let grossRevenue = 0;
     completedBookings.forEach(b => {

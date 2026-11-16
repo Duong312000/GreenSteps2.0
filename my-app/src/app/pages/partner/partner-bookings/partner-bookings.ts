@@ -17,6 +17,8 @@ export class PartnerBookingsComponent implements OnInit {
   public currentUser: User | null = null;
   public bookings: any[] = []; 
   public myServices: Service[] = [];
+  public isLoading = false;
+  public loadError = false;
 
   // Tab State
   public activeTab: 'bookings' | 'change-requests' | 'schedules' | 'reviews' = 'bookings';
@@ -148,24 +150,34 @@ export class PartnerBookingsComponent implements OnInit {
   public async loadAllData() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    
-    // Load my services for filters
-    this.myServices = await this.apiService.getMyServices(providerId);
-
-    await Promise.all([
-      this.loadBookings(),
-      this.loadChangeRequests(),
-      this.loadOperations(),
-      this.loadReviews()
-    ]);
-    this.cdr.detectChanges();
+    this.isLoading = true;
+    this.loadError = false;
+    try {
+      const results = await Promise.allSettled([
+        this.apiService.getMyServices(providerId, true, 8000, true),
+        this.loadBookings(),
+        this.loadChangeRequests(),
+        this.loadOperations(),
+        this.loadReviews()
+      ]);
+      const servicesResult = results[0];
+      if (servicesResult.status === 'fulfilled') this.myServices = servicesResult.value;
+      this.loadError = results.some(result => result.status === 'rejected');
+    } catch {
+      this.loadError = true;
+    } finally {
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
   }
+
+  public retryLoad(): void { void this.loadAllData(); }
 
   // 1. Booking handlers
   public async loadBookings() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    const res = await this.apiService.getBookings(providerId);
+    const res = await this.apiService.getBookings(providerId, undefined, true, 8000, true);
     this.bookings = res || [];
   }
 
@@ -270,7 +282,7 @@ export class PartnerBookingsComponent implements OnInit {
   public async loadChangeRequests() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    this.changeRequests = await this.apiService.getChangeRequests(providerId) || [];
+    this.changeRequests = await this.apiService.getChangeRequests(providerId, undefined, true, 8000, true) || [];
   }
 
   public get filteredChangeRequests() {
@@ -352,7 +364,7 @@ export class PartnerBookingsComponent implements OnInit {
   public async loadOperations() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    this.operations = await this.apiService.getOperationsAssignments(providerId) || [];
+    this.operations = await this.apiService.getOperationsAssignments(providerId, true) || [];
   }
 
   public openAssignModal(op: any) {

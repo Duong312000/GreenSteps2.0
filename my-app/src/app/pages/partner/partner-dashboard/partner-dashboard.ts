@@ -30,6 +30,7 @@ export class PartnerDashboardComponent {
   public analytics = dashboardAnalytics([], []);
   public tooltip: string | null = null;
   private loadSequence = 0;
+  private loadedProviderId: string | null = null;
   public readonly grid = [0, 1, 2, 3];
   public readonly statusLabels: Record<string, string> = {
     pending: 'Chờ xác nhận',
@@ -160,27 +161,34 @@ export class PartnerDashboardComponent {
       this.loadError = true;
       return;
     }
+    const providerKey = String(providerId);
+    if (this.loadedProviderId !== providerKey) {
+      this.loadedProviderId = providerKey;
+      this.bookings = [];
+      this.services = [];
+      this.changeRequests = [];
+      this.selectedPeriod = 'all';
+      this.analytics = dashboardAnalytics([], []);
+    }
     const sequence = ++this.loadSequence;
     this.isLoading = true;
     this.loadError = false;
-    try {
-      const [bookings, services, changeRequests] = await Promise.all([
-        this.apiService.getBookings(providerId),
-        this.apiService.getMyServices(providerId),
-        this.apiService.getChangeRequests(providerId),
-      ]);
-      if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
-      this.bookings = bookings;
-      this.services = services;
-      this.changeRequests = changeRequests;
-      this.recalculate();
-    } catch {
-      if (!this.destroyRef.destroyed) this.loadError = true;
-    } finally {
-      if (!this.destroyRef.destroyed && sequence === this.loadSequence) {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
+    const [bookings, services, changeRequests] = await Promise.allSettled([
+      this.apiService.getBookings(providerId, undefined, true, 8000, true),
+      this.apiService.getMyServices(providerId, true, 8000, true),
+      this.apiService.getChangeRequests(providerId, undefined, true, 8000, true),
+    ]);
+    if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
+    if (bookings.status === 'fulfilled') this.bookings = bookings.value;
+    else this.loadError = true;
+    if (services.status === 'fulfilled') this.services = services.value;
+    else this.loadError = true;
+    if (changeRequests.status === 'fulfilled') this.changeRequests = changeRequests.value;
+    else this.loadError = true;
+    this.recalculate();
+    if (!this.destroyRef.destroyed && sequence === this.loadSequence) {
+      this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
   public async approveBooking(id: string): Promise<void> {

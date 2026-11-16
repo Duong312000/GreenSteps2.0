@@ -27,9 +27,9 @@ async function resolveProviderRecord(userId) {
 
 async function getOwnedTargets(userId) {
   const vender = await Vender.findOne({ where: { user_id: userId } });
-  const services = vender ? await GreenService.findAll({ where: { vender_id: vender.id } }) : [];
+  const services = vender ? await GreenService.findAll({ where: { vender_id: vender.id }, attributes: ['id', 'name_service', 'type'] }) : [];
   const provider = await resolveProviderRecord(userId);
-  const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id } }) : [];
+  const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: ['id', 'tour_name'] }) : [];
   return { services, tours };
 }
 
@@ -47,19 +47,25 @@ async function ownedReviewTarget(userId, comment) {
   }
 
   if (serviceId) {
-    const service = await GreenService.findByPk(serviceId);
+    const service = await GreenService.findByPk(serviceId, { attributes: ['id', 'vender_id', 'name_service', 'type'] });
     const vender = service?.vender_id ? await Vender.findByPk(service.vender_id) : null;
     if (vender?.user_id === userId) return { type: 'service', target: service };
   }
   if (tourId) {
     const [provider, tour] = await Promise.all([
       resolveProviderRecord(userId),
-      ScheduleSample.findByPk(tourId)
+      ScheduleSample.findByPk(tourId, { attributes: ['id', 'provider_id'] })
     ]);
     if (provider && tour?.provider_id === provider.id) return { type: 'tour', target: tour };
   }
   return null;
 }
+
+exports.providerOwnsReviewTarget = async (userId, commentId, targetId) => {
+  const comment = await CommentPost.findByPk(commentId);
+  const owned = await ownedReviewTarget(userId, comment);
+  return owned?.type === 'tour' && owned.target?.id === targetId;
+};
 
 function mapReply(reply, user) {
   return {
@@ -74,88 +80,107 @@ exports.getProviderReviews = async (req, res, next) => {
   try {
     const userId = requireProvider(req);
     const { rating, serviceId, tourId, type, answered } = req.query;
-    if (rating !== undefined && (!/^([1-5])$/.test(String(rating)))) {
-      return res.status(400).json({ success: false, message: 'Bộ lọc số sao phải từ 1 đến 5.' });
+    if (rating !== undefined && !/^([1-5])$/.test(String(rating))) {
+      return res.status(400).json({ success: false, message: 'Rating must be from 1 to 5.' });
     }
     if (type && !['tour', 'service'].includes(type)) {
-      return res.status(400).json({ success: false, message: 'Loại đánh giá không hợp lệ.' });
+      return res.status(400).json({ success: false, message: 'Invalid review type.' });
     }
 
     const owned = await getOwnedTargets(userId);
     const allServiceIds = owned.services.map(item => item.id);
     const allTourIds = owned.tours.map(item => item.id);
-    if (serviceId && !allServiceIds.includes(serviceId)) return res.status(403).json({ success: false, message: 'Dịch vụ không thuộc tài khoản này.' });
-    if (tourId && !allTourIds.includes(tourId)) return res.status(403).json({ success: false, message: 'Tour không thuộc tài khoản này.' });
+    if (serviceId && !allServiceIds.includes(serviceId)) return res.status(403).json({ success: false, message: 'Service does not belong to this provider.' });
+    if (tourId && !allTourIds.includes(tourId)) return res.status(403).json({ success: false, message: 'Tour does not belong to this provider.' });
 
     const serviceIds = serviceId ? [serviceId] : (type === 'tour' ? [] : allServiceIds);
     const tourIds = tourId ? [tourId] : (type === 'service' ? [] : allTourIds);
     if (!serviceIds.length && !tourIds.length) return res.json([]);
 
     const [serviceLinks, tourLinks] = await Promise.all([
-      serviceIds.length ? CPGS.findAll({ where: { service_id: { [Op.in]: serviceIds } } }) : [],
-      tourIds.length ? CPSS.findAll({ where: { schedule_sample_id: { [Op.in]: tourIds } } }) : []
+      serviceIds.length ? CPGS.findAll({ where: { service_id: { [Op.in]: serviceIds } }, attributes: ['comment_id', 'service_id'] }) : [],
+      tourIds.length ? CPSS.findAll({ where: { schedule_sample_id: { [Op.in]: tourIds } }, attributes: ['comment_id', 'schedule_sample_id'] }) : []
     ]);
+    const serviceTargetByComment = new Map(serviceLinks.map(link => [link.comment_id, link.service_id]));
+    const tourTargetByComment = new Map(tourLinks.map(link => [link.comment_id, link.schedule_sample_id]));
     const clauses = [];
     if (serviceIds.length) clauses.push({ service_id: { [Op.in]: serviceIds } });
     if (tourIds.length) clauses.push({ tour_id: { [Op.in]: tourIds } });
-    const linkedIds = [...serviceLinks, ...tourLinks].map(link => link.comment_id).filter(Boolean);
+    const linkedIds = [...serviceTargetByComment.keys(), ...tourTargetByComment.keys()];
     if (linkedIds.length) clauses.push({ id: { [Op.in]: linkedIds } });
-
     const where = { parent_comment_id: null, [Op.or]: clauses };
     if (rating !== undefined) where.rating = Number(rating);
-    const comments = await CommentPost.findAll({ where, order: [['createdAt', 'DESC']] });
+
+    const comments = await CommentPost.findAll({
+      where,
+      attributes: ['id', 'parent_comment_id', 'user_id', 'service_id', 'tour_id', 'booking_id', 'rating', 'text', 'image_url', 'createdAt', 'is_reported', 'report_reason', 'internal_notes'],
+      order: [['createdAt', 'DESC']]
+    });
+    const serviceById = new Map(owned.services.map(item => [item.id, item]));
+    const tourById = new Map(owned.tours.map(item => [item.id, item]));
+    const resolved = comments.map(comment => {
+      const directService = serviceById.get(comment.service_id);
+      if (directService) return { comment, type: 'service', target: directService };
+      const directTour = tourById.get(comment.tour_id);
+      if (directTour) return { comment, type: 'tour', target: directTour };
+      const linkedService = serviceById.get(serviceTargetByComment.get(comment.id));
+      if (linkedService) return { comment, type: 'service', target: linkedService };
+      const linkedTour = tourById.get(tourTargetByComment.get(comment.id));
+      return linkedTour ? { comment, type: 'tour', target: linkedTour } : null;
+    }).filter(entry => entry && (!type || entry.type === type)
+      && (!serviceId || (entry.type === 'service' && entry.target.id === serviceId))
+      && (!tourId || (entry.type === 'tour' && entry.target.id === tourId)));
+    if (!resolved.length) return res.json([]);
+
+    const commentIds = resolved.map(entry => entry.comment.id);
+    const serviceBookingIds = resolved.filter(entry => entry.type === 'service').map(entry => entry.comment.booking_id).filter(Boolean);
+    const tourBookingIds = resolved.filter(entry => entry.type === 'tour').map(entry => entry.comment.booking_id).filter(Boolean);
+    const tourTargetIds = [...new Set(resolved.filter(entry => entry.type === 'tour').map(entry => entry.target.id))];
+    const [replyRows, serviceBookings, tourBookings, schedules] = await Promise.all([
+      CommentPost.findAll({ where: { parent_comment_id: { [Op.in]: commentIds } }, attributes: ['id', 'parent_comment_id', 'user_id', 'text', 'createdAt'], order: [['createdAt', 'ASC']] }),
+      serviceBookingIds.length ? ServiceBooking.findAll({ where: { id: { [Op.in]: serviceBookingIds } }, attributes: ['id', 'booking_date', 'guests'] }) : [],
+      tourBookingIds.length ? TourBooking.findAll({ where: { id: { [Op.in]: tourBookingIds } }, attributes: ['id', 'booking_date', 'guests'] }) : [],
+      tourTargetIds.length ? Schedule.findAll({ where: { id: { [Op.in]: tourTargetIds } }, attributes: ['id', 'tour_name'] }) : []
+    ]);
+    const userIds = [...new Set([...resolved.map(entry => entry.comment.user_id), ...replyRows.map(reply => reply.user_id)].filter(Boolean))];
+    const users = userIds.length ? await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'fullname', 'role'] }) : [];
+    const usersById = new Map(users.map(user => [user.id, user]));
+    const bookingsById = new Map([...serviceBookings, ...tourBookings].map(booking => [booking.id, booking]));
+    const schedulesById = new Map(schedules.map(schedule => [schedule.id, schedule]));
+    const repliesByComment = new Map();
+    for (const reply of replyRows) {
+      const replies = repliesByComment.get(reply.parent_comment_id) || [];
+      replies.push(reply);
+      repliesByComment.set(reply.parent_comment_id, replies);
+    }
+
     const mapped = [];
-
-    for (const comment of comments) {
-      const targetInfo = await ownedReviewTarget(userId, comment);
-      if (!targetInfo) continue;
-      if (type && type !== targetInfo.type) continue;
-      if (serviceId && (targetInfo.type !== 'service' || targetInfo.target.id !== serviceId)) continue;
-      if (tourId && (targetInfo.type !== 'tour' || targetInfo.target.id !== tourId)) continue;
-
-      const [customer, replyRows] = await Promise.all([
-        User.findByPk(comment.user_id),
-        CommentPost.findAll({ where: { parent_comment_id: comment.id }, order: [['createdAt', 'ASC']] })
-      ]);
+    for (const entry of resolved) {
+      const { comment, type: reviewType, target } = entry;
+      const customer = usersById.get(comment.user_id);
+      const replyRowsForComment = repliesByComment.get(comment.id) || [];
       const replies = [];
       let providerReply = null;
-      for (const reply of replyRows) {
-        const replyUser = await User.findByPk(reply.user_id);
-        const mappedReply = mapReply(reply, replyUser);
+      for (const reply of replyRowsForComment) {
+        const mappedReply = mapReply(reply, usersById.get(reply.user_id));
         replies.push(mappedReply);
-        if (replyUser?.role === 'provider' && replyUser.id === userId) providerReply = mappedReply;
+        if (usersById.get(reply.user_id)?.role === 'provider' && reply.user_id === userId) providerReply = mappedReply;
       }
       if (answered === 'true' && !providerReply) continue;
       if (answered === 'false' && providerReply) continue;
-
-      let booking = null;
-      if (comment.booking_id) {
-        booking = targetInfo.type === 'tour'
-          ? await TourBooking.findByPk(comment.booking_id)
-          : await ServiceBooking.findByPk(comment.booking_id);
-      }
-      const target = targetInfo.target;
-      const schedule = targetInfo.type === 'tour' ? await Schedule.findByPk(target.id) : null;
-      const targetView = targetInfo.type === 'tour'
+      const booking = bookingsById.get(comment.booking_id);
+      const schedule = schedulesById.get(target.id);
+      const targetView = reviewType === 'tour'
         ? { id: target.id, name: schedule?.tour_name || target.tour_name || target.id, type: 'tour' }
         : { id: target.id, name: target.name_service, type: target.type };
       mapped.push({
-        id: comment.id,
-        type: targetInfo.type,
-        targetId: target.id,
-        target: targetView,
-        ...(targetInfo.type === 'tour' ? { tour: targetView } : { service: targetView }),
-        rating: comment.rating,
-        text: comment.text,
-        image_url: comment.image_url,
-        createdAt: comment.createdAt,
-        is_reported: comment.is_reported,
-        report_reason: comment.report_reason,
-        internal_notes: comment.internal_notes,
-        user: customer ? { id: customer.id, fullname: customer.fullname, role: customer.role } : { fullname: 'Người dùng ẩn danh' },
-        replies,
-        providerReply,
-        replied: Boolean(providerReply),
+        id: comment.id, type: reviewType, targetId: target.id, target: targetView,
+        ...(reviewType === 'tour' ? { tour: targetView } : { service: targetView }),
+        rating: comment.rating, text: comment.text, image_url: comment.image_url,
+        createdAt: comment.createdAt, is_reported: comment.is_reported,
+        report_reason: comment.report_reason, internal_notes: comment.internal_notes,
+        user: customer ? { id: customer.id, fullname: customer.fullname, role: customer.role } : { fullname: 'Anonymous user' },
+        replies, providerReply, replied: Boolean(providerReply),
         booking: booking ? { id: booking.id, date: booking.booking_date, guests: booking.guests } : null
       });
     }

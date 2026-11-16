@@ -3,6 +3,9 @@ const { authMiddleware, checkRole } = require('../middlewares/auth.middleware');
 const { GreenService, ScheduleSample, Schedule, PartnerCampaign, ServiceBooking, TourBooking } = require('../models');
 const { campaignState } = require('../services/campaign-state.service');
 const { validateFlashUpdate } = require('../services/admin-flash-sale.service');
+const dashboardController = require('../controllers/admin-dashboard.controller');
+
+router.get('/dashboard/summary', authMiddleware, checkRole(['admin']), dashboardController.getSummary);
 
 // Read the same collections used by the customer and partner APIs.
 router.get('/catalog/:kind', authMiddleware, checkRole(['admin']), async (req, res, next) => {
@@ -11,7 +14,13 @@ router.get('/catalog/:kind', authMiddleware, checkRole(['admin']), async (req, r
     let rows;
     switch (req.params.kind) {
       case 'services':
-        rows = (await GreenService.findAll()).map(s => ({ id: s.id, name: s.name_service, detail: s.destination, type: s.type, value: s.cost, status: s.status, createdAt: s.createdAt }));
+        rows = (await GreenService.findAll()).map(s => ({
+          id: s.id, name: s.name_service, detail: s.destination, type: s.type, value: s.cost,
+          status: s.status, createdAt: s.createdAt,
+          image_url: s.image_url || s.current_data?.img || null,
+          gallery: Array.isArray(s.current_data?.gallery) ? s.current_data.gallery : (Array.isArray(s.current_data?.images) ? s.current_data.images : []),
+          imageMetadata: Array.isArray(s.current_data?.imageMetadata) ? s.current_data.imageMetadata : []
+        }));
         break;
       case 'tours':
         rows = (await ScheduleSample.findAll({ include: [{ model: Schedule }] })).map(t => ({ id: t.id, name: t.Schedule?.tour_name, detail: t.Schedule?.destination, value: t.cost, createdAt: t.createdAt }));
