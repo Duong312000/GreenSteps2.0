@@ -25,6 +25,11 @@
   </div>
 </main>
 
+<div class="detail-notice error" *ngIf="!isPageLoading && !activeTour && loadError" role="alert" style="max-width: 1200px; margin: 24px auto;">
+  <span>Chưa thể tải thông tin tour hoặc dịch vụ này.</span>
+  <button type="button" (click)="retryDetail()">Thử lại</button>
+</div>
+
 <main class="tour-detail-page" *ngIf="!isPageLoading && activeTour">
     <section class="tour-heading">
         <div>
@@ -708,10 +713,12 @@
                         </div>
                     </div>
 
-                    <p *ngIf="reviewLoadError" class="review-empty-state">Không thể tải đánh giá. Vui lòng thử lại.</p>
-                    <p *ngIf="!reviewLoadError && !reviewsList.length" class="review-empty-state">Chưa có đánh giá nào.</p>
-                    <p *ngIf="reviewEligibilityError" class="review-empty-state">Không thể kiểm tra điều kiện viết đánh giá. Vui lòng thử lại.</p>
-                    <p *ngIf="!reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Chỉ khách hàng có đơn đặt chỗ đã hoàn thành mới có thể viết đánh giá.</p>
+                    <p *ngIf="isReviewsLoading" class="review-empty-state">Đang tải đánh giá...</p>
+                    <p *ngIf="!isReviewsLoading && reviewLoadError" class="review-empty-state">Không thể tải đánh giá. Vui lòng thử lại.</p>
+                    <p *ngIf="!isReviewsLoading && !reviewLoadError && !reviewsList.length" class="review-empty-state">Chưa có đánh giá nào.</p>
+                    <p *ngIf="isReviewEligibilityLoading" class="review-empty-state">Đang kiểm tra điều kiện đánh giá...</p>
+                    <p *ngIf="!isReviewEligibilityLoading && reviewEligibilityError" class="review-empty-state">Không thể kiểm tra điều kiện viết đánh giá. Vui lòng thử lại.</p>
+                    <p *ngIf="!isReviewEligibilityLoading && !reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Chỉ khách hàng có đơn đặt chỗ đã hoàn thành mới có thể viết đánh giá.</p>
                     <div class="review-filter-bar">
                         <div>
                             <span class="section-kicker">Review</span>
@@ -983,6 +990,11 @@
   </div>
 </main>
 
+<div class="detail-notice error" *ngIf="!isPageLoading && !activeTour && loadError" role="alert" style="max-width: 1200px; margin: 24px auto;">
+  <span>Chưa thể tải thông tin tour hoặc dịch vụ này.</span>
+  <button type="button" (click)="retryDetail()">Thử lại</button>
+</div>
+
 <!-- MAIN LOADED STATE -->
 <main class="gs-detail-root" *ngIf="!isPageLoading && activeTour">
   <div class="gs-detail-container">
@@ -1001,6 +1013,7 @@
     <section class="gs-hero-grid">
       
       <!-- LEFT: SHOP.CO GALLERY (Vertical Thumbnails + Natural Aspect Ratio Main Image) -->
+      <div class="gs-gallery-column">
       <div class="gs-gallery-layout">
         
         <!-- VERTICAL THUMBNAIL COLUMN -->
@@ -1011,7 +1024,9 @@
                   [class.active]="activeSlideIndex === idx"
                   (click)="setSlide(idx)"
                   [attr.aria-label]="'Xem ảnh ' + (idx + 1)">
-            <img [src]="img" [alt]="activeTour.title" loading="lazy" (error)="onThumbError($event)">
+            <img [src]="img" [attr.srcset]="photoSrcSet(activeTour.photoMetadata?.[idx])" sizes="82px"
+                 [attr.width]="activeTour.photoMetadata?.[idx]?.width || null" [attr.height]="activeTour.photoMetadata?.[idx]?.height || null"
+                 [alt]="activeTour.photoMetadata?.[idx]?.alt || activeTour.title" loading="lazy" decoding="async" (error)="onThumbError($event)">
           </button>
         </div>
 
@@ -1020,10 +1035,17 @@
              (click)="openPhotoGallery(activeSlideIndex)"
              role="button"
              tabindex="0"
+             (keydown.enter)="openPhotoGallery(activeSlideIndex)"
+             (keydown.space)="openPhotoGallery(activeSlideIndex); $event.preventDefault()"
              title="Bấm để xem ảnh phóng to">
           <img [src]="slideImages[activeSlideIndex] || slideImages[0]"
-               [alt]="activeTour.title"
-               class="gs-main-img">
+               [alt]="activePhotoCredit?.alt || activeTour.title"
+               class="gs-main-img"
+               [attr.srcset]="photoSrcSet(activePhotoCredit)" sizes="(max-width: 767px) 100vw, 72vw"
+               [attr.width]="activePhotoCredit?.width || null" [attr.height]="activePhotoCredit?.height || null"
+               loading="eager"
+               fetchpriority="high"
+               (error)="onHeroError($event)">
           
           <!-- Subtle Floating Badges -->
           <div class="gs-photo-floating-badges">
@@ -1035,6 +1057,18 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="gs-photo-credit" *ngIf="activePhotoCredit as photo">
+        <p class="gs-photo-caption">{{ photo.caption }}</p>
+        <p class="gs-photo-relevance" *ngIf="photo.relevance as relevance">
+          {{ relevance.type === 'exact_landmark' ? 'Điểm có trong lịch trình' : 'Ảnh bối cảnh tại điểm đến' }} · {{ relevance.explanation }}
+        </p>
+        <p class="gs-photo-attribution">
+          {{ photo.attribution }} · <a [href]="photo.sourcePage" target="_blank" rel="noopener noreferrer">Nguồn ảnh</a>
+          · <a [href]="photo.licenseUrl" target="_blank" rel="noopener noreferrer">{{ photo.licenseId }}</a>
+        </p>
+      </div>
       </div>
 
       <!-- RIGHT: PRODUCT BUYING PANEL -->
@@ -1073,7 +1107,7 @@
         </div>
 
         <!-- Price Display -->
-        <div class="gs-price-wrap">
+        <div class="gs-price-wrap" *ngIf="!activeTour.is_demo">
           <div class="gs-price-main">
             <span class="gs-price-current">{{ totalPrice | number:'1.0-0':'vi-VN' }}₫</span>
             <span class="gs-price-old" *ngIf="displayOldCost > activeTour.cost">
@@ -1091,7 +1125,7 @@
         </p>
 
         <!-- SHOPEE-INSPIRED ULTRA-MINIMAL SPEC MATRIX (Every row is an interactive expand/link) -->
-        <div class="gs-shopee-matrix">
+        <div class="gs-shopee-matrix" *ngIf="!activeTour.is_demo">
           
           <!-- 1. VOUCHERS ROW (Shopee Style: only 1 voucher pill displayed; hover expands full voucher list) -->
           <div class="gs-matrix-row gs-voucher-row" *ngIf="tourVouchers && tourVouchers.length > 0">
@@ -1251,7 +1285,7 @@
         <div class="gs-divider"></div>
 
         <!-- BOOKING CONTROLS (Shop.co style form) -->
-        <form class="gs-booking-form" (submit)="submitBooking($event)">
+        <form *ngIf="!activeTour.is_demo" class="gs-booking-form" (submit)="submitBooking($event)">
           
           <!-- Departure Date -->
           <div class="gs-field-group">
@@ -1314,9 +1348,13 @@
             </button>
           </div>
         </form>
+        <div *ngIf="activeTour.is_demo" class="gs-booking-form gs-editorial-booking-note" role="status">
+          <strong>Bản giới thiệu · Không thể đặt chỗ</strong>
+          <p>Nội dung tham khảo, chưa phải dịch vụ có thể đặt. Giá và thông tin tổ chức chưa được xác nhận.</p>
+        </div>
 
         <!-- Trust Features Strip with Interactive Jump Links -->
-        <div class="gs-trust-strip">
+        <div class="gs-trust-strip" *ngIf="!activeTour.is_demo">
           <div class="gs-trust-item" (click)="scrollToTab('policy')" role="button" tabindex="0" title="Xem chính sách giữ chỗ và bảo lãnh">
             <i class="bi bi-shield-check"></i>
             <span>Xác nhận tức thì <i class="bi bi-chevron-right gs-trust-arrow"></i></span>
@@ -1389,7 +1427,7 @@
               <div>
                 <span class="gs-ov-label">{{ activeTour.isService ? 'Loại hình' : 'Phong cách tour' }}</span>
                 <strong class="gs-ov-val">{{ tourStyle }}</strong>
-                <p class="gs-ov-sub">Trải nghiệm gắn liền với thiên nhiên và văn hóa địa phương.</p>
+                <p class="gs-ov-sub">{{ activeTour.is_demo ? activeTour.styleExplanation : 'Trải nghiệm gắn liền với thiên nhiên và văn hóa địa phương.' }}</p>
               </div>
             </div>
 
@@ -1398,7 +1436,7 @@
               <div>
                 <span class="gs-ov-label">Quy mô nhóm</span>
                 <strong class="gs-ov-val">{{ tourGroupSize }}</strong>
-                <p class="gs-ov-sub">Không gian thư giãn, dễ dàng tương tác và chăm sóc các thành viên.</p>
+                <p class="gs-ov-sub">{{ activeTour.is_demo ? 'Quy mô nhóm chưa được xác nhận.' : 'Không gian thư giãn, dễ dàng tương tác và chăm sóc các thành viên.' }}</p>
               </div>
             </div>
 
@@ -1407,7 +1445,10 @@
               <div>
                 <span class="gs-ov-label">Cường độ vận động</span>
                 <strong class="gs-ov-val">{{ tourFitnessLevel }}</strong>
-                <p class="gs-ov-sub">Lộ trình êm dịu, phù hợp cho mọi lứa tuổi từ trẻ em đến người lớn.</p>
+                <p class="gs-ov-sub">
+                  <ng-container *ngIf="activeTour.is_demo">Ước tính biên tập. {{ activeTour.fitnessExplanation }}</ng-container>
+                  <ng-container *ngIf="!activeTour.is_demo">Lộ trình êm dịu, phù hợp cho mọi lứa tuổi từ trẻ em đến người lớn.</ng-container>
+                </p>
               </div>
             </div>
 
@@ -1415,14 +1456,14 @@
               <div class="gs-ov-icon"><i class="bi bi-leaf"></i></div>
               <div>
                 <span class="gs-ov-label">Chỉ số phát thải</span>
-                <strong class="gs-ov-val">{{ formattedCarbon || '0kg CO₂' }}</strong>
-                <p class="gs-ov-sub">Ưu tiên xe điện, đi bộ và các cơ sở lưu trú bền vững.</p>
+                <strong class="gs-ov-val">{{ formattedCarbon || 'Chưa có dữ liệu phát thải' }}</strong>
+                <p class="gs-ov-sub">Chỉ hiển thị khi có số liệu được xác minh.</p>
               </div>
             </div>
           </div>
 
           <!-- Highlight bullets -->
-          <div class="gs-section-block">
+          <div class="gs-section-block" *ngIf="!activeTour.is_demo && tourHighlights.length">
             <h3 class="gs-block-title">Điểm nổi bật của {{ activeTour.isService ? 'dịch vụ' : 'chuyến đi' }}</h3>
             <div class="gs-bullet-grid">
               <div class="gs-bullet-item" *ngFor="let hl of tourHighlights">
@@ -1432,10 +1473,30 @@
             </div>
           </div>
 
+          <div class="gs-section-block" *ngIf="activeTour.is_demo && tourHighlights.length">
+            <h3 class="gs-block-title">Điểm nổi bật của chuyến đi</h3>
+            <div class="gs-bullet-grid">
+              <div class="gs-bullet-item" *ngFor="let hl of tourHighlights">
+                <i class="bi bi-check2" aria-hidden="true"></i>
+                <span>{{ hl }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Full description -->
           <div class="gs-section-block" *ngIf="activeTour.description">
             <h3 class="gs-block-title">Giới thiệu chi tiết</h3>
             <p class="gs-prose-text">{{ activeTour.description }}</p>
+          </div>
+
+          <div class="gs-section-block gs-editorial-section" *ngIf="activeTour.is_demo && activeTour.responsibleTravel">
+            <h3 class="gs-block-title">Du lịch có trách nhiệm</h3>
+            <p class="gs-prose-text">{{ activeTour.responsibleTravel }}</p>
+          </div>
+
+          <div class="gs-section-block gs-editorial-section" *ngIf="activeTour.is_demo && activeTour.practicalNotes">
+            <h3 class="gs-block-title">Lưu ý khi lên kế hoạch</h3>
+            <p class="gs-prose-text">{{ activeTour.practicalNotes }}</p>
           </div>
         </div>
 
@@ -1453,6 +1514,22 @@
             </button>
           </div>
 
+          <ng-container *ngIf="activeTour.data[activeDayIndex]?.[0] as dayActivity">
+            <div class="gs-itinerary-day-heading">
+              <h3>Ngày {{ activeDayIndex + 1 }} · {{ dayActivity.name }}</h3>
+              <span *ngIf="activeTour.is_demo">Lịch trình gợi ý</span>
+            </div>
+            <figure class="gs-itinerary-photo" *ngIf="itineraryPhotoFor(dayActivity) as dayPhoto">
+              <img [src]="dayPhoto.path" [attr.srcset]="photoSrcSet(dayPhoto)" sizes="(max-width: 640px) 100vw, 720px"
+                   [attr.width]="dayPhoto.width || null" [attr.height]="dayPhoto.height || null"
+                   [alt]="dayPhoto.alt" loading="lazy" decoding="async" (error)="onThumbError($event)">
+              <figcaption>
+                {{ dayPhoto.caption }} · <a [href]="dayPhoto.sourcePage" target="_blank" rel="noopener noreferrer">Nguồn ảnh</a>
+                · <a [href]="dayPhoto.licenseUrl" target="_blank" rel="noopener noreferrer">{{ dayPhoto.licenseId }}</a>
+              </figcaption>
+            </figure>
+          </ng-container>
+
           <!-- Timeline Activities -->
           <div class="gs-timeline-wrap" *ngIf="activeTour.data && activeTour.data[activeDayIndex]">
             <div class="gs-timeline-item" *ngFor="let act of activeTour.data[activeDayIndex]">
@@ -1468,7 +1545,7 @@
                   <h4 class="gs-act-title">{{ act.name }}</h4>
                   <div class="gs-act-meta-tags">
                     <span class="gs-tag-free" *ngIf="act.cost === 0">Miễn phí</span>
-                    <span class="gs-tag-cost" *ngIf="act.cost > 0">{{ act.cost | number:'1.0-0':'vi-VN' }}₫</span>
+                    <span class="gs-tag-cost" *ngIf="act.cost != null && act.cost > 0">{{ act.cost | number:'1.0-0':'vi-VN' }}₫</span>
                     <span class="gs-tag-carbon" *ngIf="act.carbon"><i class="bi bi-leaf"></i> {{ act.carbon }}kg CO₂</span>
                   </div>
                 </div>
@@ -1479,8 +1556,13 @@
             </div>
           </div>
 
+          <div class="gs-itinerary-practical" *ngIf="activeTour.is_demo && activeTour.practicalNotes">
+            <h4>Lưu ý khi lên kế hoạch</h4>
+            <p>{{ activeTour.practicalNotes }}</p>
+          </div>
+
           <!-- Edit prompt -->
-          <div class="gs-bottom-cta-banner" *ngIf="!activeTour.isService">
+          <div class="gs-bottom-cta-banner" *ngIf="!activeTour.isService && !activeTour.is_demo">
             <div>
               <h4>Muốn đổi một vài điểm đến trong lịch trình?</h4>
               <p>Bạn hoàn toàn có thể tự thêm bớt địa điểm hoặc thay đổi khung giờ theo ý muốn.</p>
@@ -1493,7 +1575,10 @@
 
         <!-- TAB 3: INCLUDED -->
         <div class="gs-panel-included" *ngIf="activeInfoTab === 'included'">
-          <div class="gs-included-grid">
+          <div class="gs-editorial-booking-note" *ngIf="activeTour.is_demo" role="status">
+            Dịch vụ bao gồm chưa được xác nhận.
+          </div>
+          <div class="gs-included-grid" *ngIf="!activeTour.is_demo">
             <div class="gs-inc-card">
               <div class="gs-inc-icon"><i class="bi bi-check-circle-fill text-green"></i></div>
               <div>
@@ -1524,14 +1609,17 @@
 
         <!-- TAB 4: POLICY -->
         <div class="gs-panel-policy" *ngIf="activeInfoTab === 'policy'">
-          <div class="gs-policy-steps-grid">
+          <div class="gs-editorial-booking-note" *ngIf="activeTour.is_demo" role="status">
+            Tour tham khảo — chưa áp dụng đặt cọc hoặc thanh toán.
+          </div>
+          <div class="gs-policy-steps-grid" *ngIf="!activeTour.is_demo">
             <div class="gs-policy-step" *ngFor="let p of tourPolicies; let pIdx = index">
               <div class="gs-step-num">{{ p.step || ('0' + (pIdx + 1)) }}</div>
               <h4>{{ p.title }}</h4>
               <p>{{ p.desc }}</p>
             </div>
           </div>
-          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div *ngIf="!activeTour.is_demo" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <span style="font-size: 13px; color: #6B7280;">Mọi giao dịch đặt cọc và hoàn hủy được bảo đảm minh bạch 100%.</span>
             <a routerLink="/cancellation-policy" [queryParams]="{ tab: 'deposit' }" style="font-size: 13px; font-weight: 600; color: #132b22; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
               Xem chi tiết toàn văn Chính sách & Tiêu chuẩn <i class="bi bi-arrow-right"></i>
@@ -1566,7 +1654,7 @@
           </div>
 
           <!-- Review / Comment Form (any logged-in user) -->
-          <div class="gs-write-review-box" *ngIf="currentUser; else loginToReview">
+          <div class="gs-write-review-box" *ngIf="!activeTour.is_demo && currentUser; else loginToReview">
             <h4>{{ hasUserRated ? 'Viết bình luận' : 'Đánh giá & bình luận' }}</h4>
             <div class="gs-rating-picker" *ngIf="!hasUserRated">
               <span class="gs-label">Chấm điểm (không bắt buộc):</span>
@@ -1595,7 +1683,7 @@
             </div>
           </div>
           <ng-template #loginToReview>
-            <div class="gs-write-review-box gs-login-prompt">
+            <div class="gs-write-review-box gs-login-prompt" *ngIf="!activeTour.is_demo">
               <p>Đăng nhập để đánh giá và bình luận về {{ activeTour.isService ? 'dịch vụ' : 'tour' }} này.</p>
               <a routerLink="/login" class="gs-btn-primary gs-btn-sm">Đăng nhập</a>
             </div>
@@ -1658,7 +1746,7 @@
           <!-- Empty Reviews State -->
           <div class="gs-empty-reviews" *ngIf="filteredReviews.length === 0">
             <i class="bi bi-chat-heart"></i>
-            <p>Chưa có đánh giá hay bình luận nào. Hãy là người đầu tiên chia sẻ!</p>
+            <p>{{ activeTour.is_demo ? 'Chưa có đánh giá cho hành trình này.' : 'Chưa có đánh giá hay bình luận nào. Hãy là người đầu tiên chia sẻ!' }}</p>
           </div>
 
         </div>
@@ -1682,7 +1770,8 @@
       </div>
 
       <div class="gs-modal-featured-frame">
-        <img [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [alt]="activeTour.title">
+          <img [src]="galleryPhotoUrl || slideImages[activeSlideIndex] || slideImages[0]" [attr.srcset]="photoSrcSet(activePhotoCredit)" sizes="90vw"
+               [alt]="activePhotoCredit?.alt || activeTour.title" (error)="onHeroError($event)">
       </div>
 
       <div class="gs-modal-thumbs-grid">

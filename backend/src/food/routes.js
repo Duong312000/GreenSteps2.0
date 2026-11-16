@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authMiddleware, checkRole } = require("../middlewares/auth.middleware");
+const { cacheMiddleware, clearCache } = require("../middlewares/cache");
 const m = require("./model");
 const wrap = (fn) => async (req, res, next) => {
   try {
@@ -14,13 +15,24 @@ const wrap = (fn) => async (req, res, next) => {
 const admin = [authMiddleware, checkRole(["admin"])];
 router.get(
   "/places",
+  cacheMiddleware(60),
   wrap(async (req, res) => {
     const rows = await m
       .places()
-      .find({ status: "published" })
+      // Public catalog pages can be read from an Atlas secondary. This keeps
+      // the list available while the primary is electing or briefly unreachable.
+      // Food records contain large base64 photos; keep them out of list reads
+      // and return the source URL or a bundled fallback instead.
+      .find({ status: "published" }, {
+        readPreference: "secondaryPreferred",
+        projection: { image: 0 },
+      })
       .sort({ createdAt: 1, id: 1 })
       .toArray();
-    res.json(rows.map(m.publicRow));
+    res.json(rows.map(row => m.publicRow({
+      ...row,
+      image: row.imageSource?.url || "/image/services/food_organic_vietnamese.png",
+    })));
   }),
 );
 router.get(
@@ -43,10 +55,13 @@ router.get(
       (
         await m
           .places()
-          .find({ status: { $ne: "deleted" } })
+          .find({ status: { $ne: "deleted" } }, { projection: { image: 0 } })
           .sort({ createdAt: 1 })
           .toArray()
-      ).map(m.publicRow),
+      ).map(row => m.publicRow({
+        ...row,
+        image: row.imageSource?.url || "/image/services/food_organic_vietnamese.png",
+      })),
     );
   }),
 );
@@ -62,6 +77,7 @@ router.post(
       updatedAt: new Date(),
     };
     await m.places().insertOne(row);
+    clearCache("/api/food/places");
     res.status(201).json(m.publicRow(row));
   }),
 );
@@ -89,6 +105,7 @@ router.put(
         .json({
           message: "Địa điểm đã thay đổi. Tải lại danh sách trước khi sửa.",
         });
+    clearCache("/api/food/places");
     res.json(m.publicRow(row));
   }),
 );
@@ -112,6 +129,7 @@ router.delete(
       return res
         .status(409)
         .json({ message: "Địa điểm đã thay đổi. Tải lại trước khi xóa." });
+    clearCache("/api/food/places");
     res.json({ success: true });
   }),
 );
@@ -121,7 +139,7 @@ router.post(
   wrap(async (req, res) => {
     const place = await m
       .places()
-      .findOne({ id: req.params.id, status: "published" });
+      .findOne({ id: req.params.id, status: "published" }, { projection: { image: 0 } });
     if (!place)
       return res
         .status(404)

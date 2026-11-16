@@ -68,22 +68,6 @@
 
         <hr class="shopco-divider" />
 
-        <!-- 4. Eco Badges Section (Shop.co SizeSection pill style) -->
-        <div class="filter-section">
-          <h4 class="filter-section-title">Tiêu Chuẩn Net-Zero</h4>
-          <div class="eco-pills-wrap">
-            <button *ngFor="let badge of ecoBadgesList"
-                    type="button"
-                    (click)="toggleEcoBadge(badge)"
-                    class="eco-tag-pill"
-                    [class.active]="selectedEcoBadge === badge">
-              {{ badge }}
-            </button>
-          </div>
-        </div>
-
-        <hr class="shopco-divider" />
-
         <!-- 5. Rating Section -->
         <div class="filter-section">
           <h4 class="filter-section-title">Đánh Giá Sao</h4>
@@ -115,7 +99,7 @@
 
           <div class="toolbar-controls-box">
             <span class="results-count-text">
-              Hiển thị {{ paginatedServices.length }} trên {{ filteredServices.length }} dịch vụ
+              Hiển thị {{ paginatedServices.length }} trên {{ totalServices }} dịch vụ
             </span>
             <div class="sort-by-wrapper">
               <span class="sort-by-label">Sắp xếp theo:</span>
@@ -124,7 +108,6 @@
                 <option value="cost_asc">Giá: Thấp đến cao</option>
                 <option value="cost_desc">Giá: Cao đến thấp</option>
                 <option value="rating">Đánh giá cao nhất</option>
-                <option value="carbon">Giảm CO₂ nhiều nhất</option>
               </select>
             </div>
           </div>
@@ -144,15 +127,15 @@
         </div>
 
         <!-- Active Filter Badges -->
-        <div *ngIf="filterDest !== 'all' || filterPrice !== 'all' || filterRating !== 'all' || selectedEcoBadge !== 'all' || searchQuery" class="active-chips-row">
+        <div *ngIf="filterDest !== 'all' || filterPrice !== 'all' || filterRating !== 'all' || onlyPartner || searchQuery" class="active-chips-row">
           <span class="active-chips-label">Đang lọc:</span>
           <span *ngIf="filterDest !== 'all'" class="filter-chip">
             {{ filterDest }}
             <i class="bi bi-x" (click)="filterDest = 'all'; filterServices()"></i>
           </span>
-          <span *ngIf="selectedEcoBadge !== 'all'" class="filter-chip">
-            {{ selectedEcoBadge }}
-            <i class="bi bi-x" (click)="selectedEcoBadge = 'all'; filterServices()"></i>
+          <span *ngIf="onlyPartner" class="filter-chip">
+            Đối tác GreenSteps
+            <i class="bi bi-x" (click)="onlyPartner = false; filterServices()"></i>
           </span>
           <span *ngIf="filterPrice !== 'all'" class="filter-chip">
             Giá lọc
@@ -173,18 +156,19 @@
             <!-- Image Container -->
             <div class="card-img-container">
               <app-favorite-button style="position:absolute;bottom:12px;right:12px;z-index:3" targetType="service" [targetId]="s.id" [label]="s.name" />
-              <img [src]="s.image_url || 'image/services/stay_homestay_dalat.png'" 
-                   [alt]="s.name" 
+              <img [src]="serviceCardImage(s)" loading="lazy"
+                   [attr.srcset]="serviceCardImageSrcSet(s)" sizes="(max-width: 767px) 100vw, 33vw"
+                   [alt]="serviceCardImageAlt(s)"
                    class="card-img" 
-                   onerror="this.src='image/Viet Nam.png'">
-              
+                   decoding="async"
+                   onerror="this.src='image/service-photo-pending.svg'">
               <!-- Floating Top Badges -->
               <div class="card-floating-badges">
-                <span class="eco-carbon-badge" *ngIf="s.carbonKnown !== false">
-                  <i class="bi bi-leaf-fill"></i> -{{ s.carbon || 0 }}kg CO₂
+                <span class="eco-carbon-badge" *ngIf="s.carbonKnown === true && s.carbon !== undefined && s.carbon !== null">
+                  <i class="bi bi-leaf-fill"></i> {{ s.carbon }}kg CO₂
                 </span>
-                <span class="rating-badge">
-                  <i class="bi bi-star-fill star-icon"></i> {{ s.rating ?? '—' }}
+                <span class="rating-badge" *ngIf="s.rating !== undefined && s.rating !== null">
+                  <i class="bi bi-star-fill star-icon"></i> {{ s.rating }}
                 </span>
               </div>
             </div>
@@ -193,8 +177,8 @@
             <div class="card-body">
               <div class="card-dest-row">
                 <span class="card-dest-tag">{{ s.destination }}</span>
-                <span *ngIf="s.source !== 'google_maps' && s.is_partner !== false" class="partner-verified-tag">
-                  Cam kết Net-Zero
+                <span *ngIf="s.is_partner === true" class="partner-verified-tag">
+                  Đối tác GreenSteps
                 </span>
                 <span *ngIf="s.source === 'google_maps'" class="google-public-tag">
                   Điểm tham quan
@@ -235,12 +219,13 @@
 
               <!-- Price Row (Shop.co signature layout) -->
               <div class="card-price-row">
-                <span class="current-price" *ngIf="s.priceStatus !== 'on_request'; else requestPrice">{{ (s.cost || 0) | number:'1.0-0' }}đ<span *ngIf="s.priceStatus === 'reference'"> · tham khảo</span></span>
-                <ng-template #requestPrice><span class="current-price">Liên hệ báo giá</span></ng-template>
-                <span *ngIf="s.oldCost && s.oldCost > s.cost" class="old-price">
+                <span class="current-price" *ngIf="s.priceStatus === 'verified' && s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ</span>
+                <span class="current-price" *ngIf="s.priceStatus === 'reference' && s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ · tham khảo</span>
+                <span class="current-price" *ngIf="s.priceStatus !== 'verified' && s.priceStatus !== 'reference'">Giá chưa được xác minh</span>
+                <span *ngIf="s.priceStatus === 'verified' && s.oldCost && s.cost != null && s.oldCost > s.cost" class="old-price">
                   {{ s.oldCost | number:'1.0-0' }}đ
                 </span>
-                <span *ngIf="s.discountPercent && s.discountPercent > 0" class="discount-pill">
+                <span *ngIf="s.priceStatus === 'verified' && s.discountPercent && s.discountPercent > 0" class="discount-pill">
                   -{{ s.discountPercent }}%
                 </span>
               </div>
@@ -256,7 +241,14 @@
 
         <!-- No Results Fallback -->
         <ng-template #noResults>
-          <div class="no-results-box">
+          <app-loading-indicator *ngIf="isPageLoading" label="Đang tải dịch vụ..."></app-loading-indicator>
+          <div class="no-results-box" *ngIf="!isPageLoading && loadError" role="alert">
+            <i class="bi bi-wifi-off no-results-icon"></i>
+            <h3>Chưa thể tải danh sách dịch vụ</h3>
+            <p>Kiểm tra kết nối rồi thử tải lại.</p>
+            <button type="button" (click)="retryLoad()" class="btn-reset-large">Thử lại</button>
+          </div>
+          <div class="no-results-box" *ngIf="!isPageLoading && !loadError">
             <i class="bi bi-search no-results-icon"></i>
             <h3>Không tìm thấy dịch vụ phù hợp</h3>
             <p>Vui lòng thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>

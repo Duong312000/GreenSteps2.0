@@ -4,6 +4,11 @@ const { Op } = require('../db/mongo-store');
 const { FAQ, AdCampaign, GreenService, TourBooking, ServiceBooking } = require('../models/index');
 const { geminiModel } = require('../config/gemini');
 const { sendBookingConfirmationEmail } = require('./email.service');
+const { isCatalogDependentRequest } = require('./greensteps-chat-fast-path.service');
+const { createLegacyChatAdapter } = require('./greensteps-chat-legacy-adapter.service');
+const { randomUUID } = require('node:crypto');
+
+const sendCatalogTravelChat = createLegacyChatAdapter();
 
 // Load Training Dataset (85+ Curated Multi-turn Samples)
 let trainingDataset = null;
@@ -32,9 +37,9 @@ function normalizeText(text) {
 async function triggerN8nWorkflow(payload) {
   const url = process.env.N8N_WEBHOOK_URL;
   const headerName = process.env.N8N_AUTH_HEADER_NAME || 'X-GreenSteps-Agent-Key';
-  const headerValue = process.env.N8N_AUTH_HEADER_VALUE || '01012006';
+  const headerValue = process.env.N8N_AUTH_HEADER_VALUE;
 
-  if (!url) return null;
+  if (!url || !headerValue) return null;
 
   try {
     const controller = new AbortController();
@@ -42,7 +47,7 @@ async function triggerN8nWorkflow(payload) {
 
     const fullPayload = {
       ...payload,
-      sessionId: payload.sessionId || ('gs_session_' + (payload.userId || 'guest_' + Date.now()).replace(/[^a-zA-Z0-9_-]/g, '')),
+      sessionId: payload.sessionId || `gs_session_${randomUUID()}`,
       chatInput: payload.message || payload.chatInput || ''
     };
 
@@ -158,9 +163,17 @@ Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư mục Spam trong vòn
 /**
  * Main AI Router Engine with Training Dataset Retrieval & Interactive Actions
  */
-async function routeUserIntent({ message, destination, currentActivities, history, userId }) {
+async function routeUserIntent({ message, destination, currentActivities, history, userId, catalogChat = sendCatalogTravelChat }) {
   const cleanMessage = String(message || '').trim();
   const normalized = normalizeText(cleanMessage);
+
+  const scheduleAction = /(?:toi uu lich trinh|sua gio|trung gio|chinh gio|tu dong sua|sap xep lai gio|doi gio hop ly|giam phat thai carbon)/.test(normalized);
+  const bookingAction = /\b(?:BKT-[A-Z0-9_-]+|SCH[A-Z0-9_-]+)\b/i.test(cleanMessage)
+    || /(?:tra cuu|kiem tra|tim don|ma don|ma ve|tinh trang don|trang thai don)/.test(normalized);
+  const resendAction = /(?:gui lai ve|gui lai email|chua nhan duoc ve|ban lai ve|gui ve qua mail|gui mail ve)/.test(normalized);
+  if (isCatalogDependentRequest(cleanMessage) && !scheduleAction && !bookingAction && !resendAction) {
+    return catalogChat({ message: cleanMessage, destination, currentActivities, history });
+  }
 
   // 1. Check against the 85+ Curated Training Samples in Dataset
   if (trainingDataset && Array.isArray(trainingDataset.examples)) {
@@ -231,8 +244,7 @@ async function routeUserIntent({ message, destination, currentActivities, histor
   const n8nReply = await triggerN8nWorkflow({
     message: cleanMessage,
     destination: destination || 'Đà Lạt',
-    currentActivities: currentActivities || [],
-    userId: userId || 'guest'
+    currentActivities: currentActivities || []
   });
 
   if (n8nReply) {

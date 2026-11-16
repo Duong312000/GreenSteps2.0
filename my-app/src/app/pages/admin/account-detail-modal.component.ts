@@ -3,7 +3,7 @@ import { Component, EventEmitter, HostListener, Input, OnDestroy, Output } from 
 import { FormsModule } from '@angular/forms';
 
 export interface AccountModalTab { id: string; label: string; }
-export interface AccountModalField { label: string; value: unknown; key?: string; type?: 'text' | 'date' | 'email' | 'tel'; required?: boolean; }
+export interface AccountModalField { label: string; value?: unknown; key?: string; type?: 'text' | 'date' | 'email' | 'tel' | 'number'; required?: boolean; }
 export interface AccountModalRecord { title: string; detail?: string; meta?: string; status?: string; }
 export interface AccountModalAction { id: string; label: string; icon?: string; disabled?: boolean; }
 
@@ -26,6 +26,9 @@ export class AccountDetailModalComponent implements OnDestroy {
   @Input() canLoadMore = false;
   @Input() loadMoreBusy = false;
   @Input() actions: AccountModalAction[] = [];
+  @Input() settingsMode = false;
+  @Input() formTitle = '';
+  @Input() submitLabel = 'Lưu thay đổi';
   @Input() loading = false;
   @Input() error = '';
   @Input() editing = false;

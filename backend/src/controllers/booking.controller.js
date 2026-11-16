@@ -157,6 +157,9 @@ exports.quoteBooking = async (req, res, next) => {
 
 exports.createBooking = async (req, res, next) => {
   const { type, targetId, bookingDate, guests, paymentMethod, voucherCode, customerPhone, customerEmail, roomId, roomCount, checkOutDate, flashSaleId, addonIds = [] } = req.body;
+  if (paymentMethod && !['wallet', 'bank_transfer', 'card', 'counter', 'sepay'].includes(paymentMethod)) {
+    return res.status(400).json({ success: false, message: 'Phương thức thanh toán không được hỗ trợ.' });
+  }
   let preloadedTour = null;
   let userId = req.user ? req.user.id : req.body.customerId;
   const fullname = (req.user && req.user.fullname) ? req.user.fullname : (req.body.customerName || 'Khách hàng');
@@ -241,9 +244,9 @@ exports.createBooking = async (req, res, next) => {
       }
     }
     let bookingId;
-    const momoCapabilityPair = paymentMethod === 'momo' ? require('../services/momo-payment.service').createGuestCapability() : null;
-    const momoCapability = momoCapabilityPair?.raw || null;
-    const momoCapabilityHash = momoCapabilityPair?.hash;
+    const sepayCapabilityPair = paymentMethod === 'sepay' ? require('../services/sepay-payment.service').createGuestCapability() : null;
+    const sepayCapability = sepayCapabilityPair?.raw || null;
+    const sepayCapabilityHash = sepayCapabilityPair?.hash;
     let totalValue = 0;
     let tourNameOrServiceName = '';
     let discount = 0;
@@ -605,7 +608,7 @@ exports.createBooking = async (req, res, next) => {
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
           customer_email: email || null,
-          ...(momoCapabilityHash ? { momo_capability_hash: momoCapabilityHash } : {})
+          ...(sepayCapabilityHash ? { sepay_capability_hash: sepayCapabilityHash } : {})
         }, { transaction: t });
       } else {
         await TourBooking.create({
@@ -624,7 +627,7 @@ exports.createBooking = async (req, res, next) => {
           voucher_code: voucherCode || null,
           customer_phone: customerPhone || null,
           customer_email: email || null,
-          ...(momoCapabilityHash ? { momo_capability_hash: momoCapabilityHash } : {})
+          ...(sepayCapabilityHash ? { sepay_capability_hash: sepayCapabilityHash } : {})
         }, { transaction: t });
       }
       if (voucherCode) {
@@ -640,7 +643,7 @@ exports.createBooking = async (req, res, next) => {
       bookingId,
       emailAlreadyExists: !!emailAlreadyExists
     };
-    if (momoCapability) responsePayload.momoPaymentCapability = momoCapability;
+    if (sepayCapability) responsePayload.sepayPaymentCapability = sepayCapability;
 
     if (userId && !emailAlreadyExists && autoCreatedCredentials) {
       const user = await User.findByPk(userId);
@@ -1413,6 +1416,7 @@ exports.getBookingDetails = async (req, res, next) => {
     if (booking.User) delete booking.User.password_hash;
     const safeBooking = booking.toJSON();
     delete safeBooking.momo_capability_hash;
+    delete safeBooking.sepay_capability_hash;
     res.json({
       success: true,
       booking: {

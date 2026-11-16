@@ -108,7 +108,7 @@ describe('AdminUsersComponent', () => {
 
     expect(component.detail.fullname).toBe('Mai detail');
     expect(component.drawerLoading).toBe(false);
-    expect(component.cdr.markForCheck).toHaveBeenCalled();
+    expect((component as any).cdr.markForCheck).toHaveBeenCalled();
   });
 
   it('explicit refresh invalidates cached data and reloads list and stats together', async () => {

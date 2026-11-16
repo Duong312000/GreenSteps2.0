@@ -1,12 +1,13 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
+const {testMongoAvailable,skipReason}=require('./helpers/test-mongodb-guard');
 const jwt=require('jsonwebtoken');
 const {store,User,Favorite,GreenService,Schedule,ScheduleSample,ScheduleCustom,UserSchedule}=require('../src/models');
 const F=require('../src/services/favorites.service');
 const {JWT_SECRET}=require('../src/middlewares/auth.middleware');
 const app=require('../src/app');
-test('MongoDB Favorites API persists, isolates accounts, enforces itinerary rights and handles deleted targets',{skip:process.env.FAVORITES_INTEGRATION!=='1',timeout:180000},async()=>{
+test('MongoDB Favorites API persists, isolates accounts, enforces itinerary rights and handles deleted targets',{skip:!testMongoAvailable||process.env.FAVORITES_INTEGRATION!=='1'?skipReason:undefined,timeout:180000},async()=>{
  await F.ensureSchema();const tag='fav-check-'+randomUUID(),users=[],fixtures=[];const server=app.listen(0);
  const base=`http://127.0.0.1:${server.address().port}/api/favorites`;
  async function request(path='',method='GET',body,user=users[0]){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(user?{Authorization:`Bearer ${user.token}`}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,...await r.json()};}

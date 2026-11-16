@@ -13,6 +13,12 @@ test('queries escape search text, preserve ranges/nulls and reject Mongo operato
   assert.throws(() => filter({ $where: 'code' }), /Invalid/);
 });
 
+test('regex query operator emits bounded case-insensitive Mongo regex', () => {
+  const query = filter({ destination: { [Op.regex]: 'd[aàá] l[aàá]t' } });
+  assert.deepEqual(query.destination, { $regex: 'd[aàá] l[aàá]t', $options: 'i' });
+  assert.throws(() => filter({ destination: { [Op.regex]: 'x'.repeat(257) } }), /Invalid query regex/);
+});
+
 test('migration preserves IDs, hashes composite keys and keeps DATE and JSON intact', () => {
   const row = { id: 'UG123', cost: '1234.50', date: '2026-10-24', details: { friends: ['a'] } };
   const result = convert(row, [{ column_name: 'cost', data_type: 'numeric' }], ['id']);

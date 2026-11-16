@@ -51,6 +51,25 @@ const authMiddleware = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+// Sensitive catalog/media administration must never use the legacy userId fallback.
+const strictAuthMiddleware = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  const token = authorization?.startsWith('Bearer ')
+    ? authorization.slice(7)
+    : req.cookies?.token;
+  if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  let decoded;
+  try { decoded = jwt.verify(token, JWT_SECRET); }
+  catch { return res.status(401).json({ success: false, error: 'Unauthorized' }); }
+  try {
+    const user = await User.findByPk(decoded.id, { attributes: ['id', 'username', 'fullname', 'role', 'account_status'] });
+    if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if ((user.account_status || 'active') !== 'active') return res.status(403).json({ success: false, error: 'AccountDisabled' });
+    req.user = { ...decoded, id: user.id, username: user.username, fullname: user.fullname, role: user.role };
+    return next();
+  } catch (error) { return next(error); }
+};
+
 const softAuth = async (req, res, next) => {
   let token = null;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -89,4 +108,4 @@ const checkRole = (roles = []) => {
   };
 };
 
-module.exports = { authMiddleware, softAuth, checkRole, JWT_SECRET };
+module.exports = { authMiddleware, strictAuthMiddleware, softAuth, checkRole, JWT_SECRET };

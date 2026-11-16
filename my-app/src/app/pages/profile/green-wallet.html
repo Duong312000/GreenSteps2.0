@@ -1,6 +1,6 @@
 <div class="feedback error" role="alert" *ngIf="error">{{ error }} <button (click)="refresh()">Thử lại</button></div>
 <div class="feedback" role="status" *ngIf="notice">{{ notice }}</div>
-<p *ngIf="!data && !error" aria-live="polite">Đang tải ví GreenSteps…</p>
+<app-loading-indicator *ngIf="loading && !data && !error" label="Đang tải ví GreenSteps..."></app-loading-indicator>
 <ng-container *ngIf="data">
   <header class="gs-wallet-hero">
     <img class="mountain" src="image/greensteps_wallet_mountain_bg.png" alt="">

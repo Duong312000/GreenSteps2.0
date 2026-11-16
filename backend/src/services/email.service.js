@@ -198,6 +198,7 @@ async function sendItineraryInviteEmail({ to, itineraryName, inviteUrl }) {
 }
 
 async function sendBookingConfirmationEmail({ to, bookingId, tourName, bookingDate, guests, depositAmount, paymentMethod, lookupUrl, credentials }) {
+  if (process.env.NODE_ENV === 'test') return false;
   const subject = `Xác nhận thông tin giữ chỗ GreenSteps - ${bookingId}`;
   
   const paymentMethodLabel = 

@@ -3,7 +3,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 require('../src/config/env');
-const configured = process.env.TEST_MONGODB_URI;
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
+const configured = testMongoAvailable ? process.env.TEST_MONGODB_URI : '';
 if (configured) {
   const uri = new URL(configured);
   uri.pathname = `/CatalogTest_${randomUUID().replaceAll('-', '')}`;
@@ -14,7 +15,7 @@ const app = require('../src/app');
 const { store, User, GreenService, ScheduleSample, PartnerCampaign, ServiceBooking, TourBooking } = require('../src/models');
 const { JWT_SECRET } = require('../src/middlewares/auth.middleware');
 
-test('admin catalog reads shared MongoDB records and restricts access', { skip: !configured, timeout: 30000 }, async () => {
+test('admin catalog reads shared MongoDB records and restricts access', { skip: !configured && skipReason, timeout: 30000 }, async () => {
   let server;
   try {
     await store.sync();

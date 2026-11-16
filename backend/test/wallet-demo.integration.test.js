@@ -2,8 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 require('../src/config/env');
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
 
-test('phase 1 demo wallet: isolation, permissions, pending settlement, holds, transfers and durable ledger', { skip: !process.env.TEST_MONGODB_URI, timeout: 60000 }, async () => {
+test('phase 1 demo wallet: isolation, permissions, pending settlement, holds, transfers and durable ledger', { skip: !testMongoAvailable && skipReason, timeout: 60000 }, async () => {
   const database = `WalletDemoTest_${randomUUID().replaceAll('-', '')}`;
   const uri = new URL(process.env.TEST_MONGODB_URI); uri.pathname = `/${database}`;
   process.env.MONGODB_URI = uri.toString();

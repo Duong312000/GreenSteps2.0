@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { componentTestModule } from '../../testing/component-test-setup';
 
 import { Profile } from './profile';
 
@@ -7,9 +8,7 @@ describe('Profile', () => {
   let fixture: ComponentFixture<Profile>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      declarations: [Profile],
-    }).compileComponents();
+    await TestBed.configureTestingModule(componentTestModule([Profile])).compileComponents();
 
     fixture = TestBed.createComponent(Profile);
     component = fixture.componentInstance;
@@ -19,4 +18,5 @@ describe('Profile', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
 });

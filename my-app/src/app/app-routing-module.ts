@@ -4,7 +4,6 @@ import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
 import { PromotionsComponent } from './pages/promotions/promotions';
 import { TourDetailComponent } from './pages/tour-detail/tour-detail';
-import { ProfileComponent } from './pages/profile/profile';
 import { CommunityComponent } from './pages/community/community';
 import { ScheduleEditorComponent } from './pages/schedule-editor/schedule-editor';
 import { PartnerDashboardComponent } from './pages/partner/partner-dashboard/partner-dashboard';
@@ -19,10 +18,9 @@ import { MaintenanceComponent } from './pages/maintenance/maintenance';
 import { maintenanceChildGuard, maintenanceGuard } from './guards/maintenance.guard';
 import { BookingComponent } from './pages/booking/booking';
 import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
-import { AdminComponent } from './pages/admin/admin';
 import { ServicesComponent } from './pages/services/services';
 import { roleGuard } from './guards/role.guard';
-import { PartnerLayoutComponent } from './components/partner-layout/partner-layout';
+import { adminGuard } from './guards/admin.guard';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
@@ -45,6 +43,8 @@ const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'tours', component: ToursComponent },
+  { path: 'destinations', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'destinations/:slug', redirectTo: 'home', pathMatch: 'full' },
   { path: 'promotions', redirectTo: 'promotions/for-you', pathMatch: 'full' },
   { path: 'promotions/:section', component: PromotionsComponent },
   { path: 'tours/:id', component: TourDetailComponent },
@@ -62,28 +62,17 @@ const routes: Routes = [
   { path: 'help-center', component: HelpCenterComponent },
   { path: 'help-center/:slug', component: HelpCenterComponent },
   { path: 'contact', component: HelpCenterContactComponent },
-  { path: 'profile', component: ProfileComponent },
+  { path: 'profile', loadChildren: () => import('./pages/profile/profile.module').then(m => m.ProfileModule) },
   { path: 'community', component: CommunityComponent },
-  { path: 'schedule', component: ScheduleEditorComponent },
-  { path: 'schedule/:id', component: ScheduleEditorComponent },
-  { path: 'schedule-editor', component: ScheduleEditorComponent },
-  { path: 'schedule-editor/:id', component: ScheduleEditorComponent },
-  { path: 'booking', component: BookingComponent },
-  { path: 'booking/payment', component: BookingComponent },
-  { path: 'booking/confirm', component: BookingComponent },
+  { path: 'schedule', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
+  { path: 'schedule/:id', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
+  { path: 'schedule-editor', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
+  { path: 'schedule-editor/:id', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
+  { path: 'booking', loadChildren: () => import('./pages/booking/booking.module').then(m => m.BookingModule) },
+  { path: 'admin/catalog', loadComponent: () => import('./pages/admin/catalog-admin.component').then(m => m.CatalogAdminComponent), canActivate: [adminGuard] },
   { path: 'booking-lookup', component: BookingLookupComponent },
-  { path: '', component: PartnerLayoutComponent, children: [
-    { path: 'partner-dashboard', component: PartnerDashboardComponent, canActivate: [roleGuard] },
-    { path: 'partner-services', component: PartnerServicesComponent, canActivate: [roleGuard] },
-    { path: 'partner-bookings', component: PartnerBookingsComponent, canActivate: [roleGuard] },
-    { path: 'partner-ads', component: PartnerAdsComponent, canActivate: [roleGuard] },
-    { path: 'partner-promotions', component: PartnerPromotionsComponent, canActivate: [roleGuard] }
-  ] },
-  { path: 'partner-register', component: PartnerRegisterComponent },
-  { path: 'become-a-partner', component: PartnerRegisterComponent },
-  { path: 'provider-terms', component: PartnerLegalComponent, data: { partnerPolicy: 'terms' } },
-  { path: 'payment-policy', component: PartnerLegalComponent, data: { partnerPolicy: 'payment' } },
-  { path: 'admin', component: AdminComponent },
+  { path: 'admin', loadChildren: () => import('./pages/admin/admin.module').then(m => m.AdminModule) },
+  { path: '', loadChildren: () => import('./pages/partner/partner.module').then(m => m.PartnerModule) },
   { path: '**', redirectTo: 'home' }
 ];
 

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">GreenSteps Travel</title>
+  <desc id="desc">Hình minh họa trung tính cho nội dung điểm đến đang chờ ảnh được cấp quyền.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.9" y2="1"><stop stop-color="#dce9d4"/><stop offset="1" stop-color="#92b49c"/></linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#648b70"/><stop offset="1" stop-color="#1e5944"/></linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <circle cx="920" cy="180" r="76" fill="#eaf1d7" opacity=".8"/>
+  <path d="M0 520 220 330l170 150 215-255 250 278 155-154 190 168v283H0z" fill="#a6c4a4"/>
+  <path d="M0 603 240 420l198 172 192-210 220 235 158-163 192 185v161H0z" fill="url(#hill)"/>
+  <path d="M0 676c190-70 326-42 474 10s318 72 726-22v136H0z" fill="#174b3b" opacity=".7"/>
+  <g fill="#f7f8f0" font-family="Arial,sans-serif" text-anchor="middle">
+    <text x="600" y="710" font-size="22" letter-spacing="5" opacity=".92">GREENSTEPS TRAVEL</text>
+    <text x="600" y="748" font-size="15" opacity=".78">ẢNH ĐIỂM ĐẾN ĐANG ĐƯỢC BỔ SUNG CÓ KIỂM DUYỆT</text>
+  </g>
+</svg>

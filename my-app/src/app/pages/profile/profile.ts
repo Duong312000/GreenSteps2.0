@@ -68,6 +68,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     finally { this.sharedRefreshInFlight = false; }
   }
   public activeSection: ProfileSection = 'overview';
+  public isMobileNavOpen = false;
+  public isSavingProfile = false;
+  public isSavingAvatar = false;
   public dashboardSearchQuery = '';
   public selectedSubSection: string = '';
   public currentUser: User | null = null;
@@ -781,29 +784,33 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   public async saveDetails(event: Event) {
     event.preventDefault();
-    if (!this.currentUser) return;
+    if (!this.currentUser || this.isSavingProfile) return;
     const userId = this.currentUser.id || this.currentUser._id || '';
-    const res = await this.authService.updateProfile(userId, {
-      fullname: this.detFullname,
-      phone: this.detPhone,
-      email: this.detEmail,
-      dob: this.detDob,
-      gender: this.detGender,
-      address: this.detAddress,
-      company_name: this.detCompanyName,
-      job: this.detJobType,
-      bio: this.detBio
-    });
-    if (res.success) {
-      this.showNotification('Thành công', 'Lưu thông tin thành công!', 'success');
-      // Update local profileUser info
-      if (res.user) {
-        this.applyProfileUser(res.user);
+    this.isSavingProfile = true;
+    try {
+      const res = await this.authService.updateProfile(userId, {
+        fullname: this.detFullname,
+        phone: this.detPhone,
+        email: this.detEmail,
+        dob: this.detDob,
+        gender: this.detGender,
+        address: this.detAddress,
+        company_name: this.detCompanyName,
+        job: this.detJobType,
+        bio: this.detBio
+      });
+      if (res.success) {
+        this.showNotification('Thành công', 'Lưu thông tin thành công!', 'success');
+        if (res.user) this.applyProfileUser(res.user);
+      } else {
+        this.showNotification('Thất bại', res.message || 'Cập nhật thất bại!', 'error');
       }
-    } else {
-      this.showNotification('Thất bại', res.message || 'Cập nhật thất bại!', 'error');
+    } catch {
+      this.showNotification('Thất bại', 'Không thể lưu hồ sơ. Vui lòng thử lại.', 'error');
+    } finally {
+      this.isSavingProfile = false;
+      this.cdr.detectChanges();
     }
-    this.cdr.detectChanges();
   }
 
   public async handleWalletActivation() {
@@ -1015,9 +1022,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   public async saveAvatar() {
-    if (!this.profileUser) return;
+    if (!this.profileUser || this.isSavingAvatar) return;
     const userId = this.profileUser.id || this.profileUser._id || '';
-    
+    this.isSavingAvatar = true;
     try {
       let finalAvatarPath = this.selectedAvatarPath;
       if (finalAvatarPath.startsWith('data:image/')) {
@@ -1039,6 +1046,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       console.error('Save avatar failed:', err);
       this.showNotification('Thất bại', 'Không thể lưu ảnh đại diện: ' + (err.message || 'Lỗi kết nối'), 'error');
+    } finally {
+      this.isSavingAvatar = false;
+      this.cdr.detectChanges();
     }
   }
 

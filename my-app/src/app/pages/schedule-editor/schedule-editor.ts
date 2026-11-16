@@ -4544,8 +4544,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       });
     } catch (e) {
       console.error('AI Chat error:', e);
+      const error = e as any;
+      const catalogUnavailable = error?.error?.code === 'CHAT_CATALOG_UNAVAILABLE'
+        || error?.error?.error === 'DatabaseUnavailable';
       this.aiMessages.push({
-        text: "Xin lỗi, trợ lý AI đang bận hoặc gặp lỗi kết nối. Hãy thử lại sau nhé!",
+        text: catalogUnavailable ? 'Danh mục du lịch hiện chưa truy cập được nên trợ lý chưa thể xác minh tour, dịch vụ hoặc giá. Lịch trình của bạn vẫn có thể được chỉnh sửa; vui lòng thử tư vấn lại sau.' : "Xin lỗi, trợ lý AI đang bận hoặc gặp lỗi kết nối. Hãy thử lại sau nhé!",
         isOutgoing: false
       });
     } finally {

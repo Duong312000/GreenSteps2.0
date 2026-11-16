@@ -3,8 +3,9 @@
 const { MongoClient } = require('mongodb');
 const { randomUUID } = require('node:crypto');
 const { AsyncLocalStorage } = require('node:async_hooks');
+const { performance } = require('node:perf_hooks');
 const { isDeepStrictEqual } = require('node:util');
-const Op = Object.fromEntries(['or', 'and', 'in', 'ne', 'gt', 'gte', 'lt', 'lte', 'between', 'like', 'iLike'].map(k => [k, Symbol(k)]));
+const Op = Object.fromEntries(['or', 'and', 'in', 'ne', 'gt', 'gte', 'lt', 'lte', 'between', 'like', 'iLike', 'regex'].map(k => [k, Symbol(k)]));
 const FieldTypes = Object.fromEntries(['TEXT', 'UUID', 'BOOLEAN', 'INTEGER', 'DOUBLE', 'DATE', 'DATEONLY', 'JSONB', 'VIRTUAL'].map(k => [k, k]));
 FieldTypes.STRING = () => 'STRING';
 FieldTypes.ENUM = (...values) => ({ enum: values });
@@ -32,6 +33,10 @@ function filter(where = {}) {
         const pattern = String(operand).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.');
         expression.$regex = `^${pattern}$`;
         if (operator === Op.iLike) expression.$options = 'i';
+      } else if (operator === Op.regex) {
+        if (typeof operand !== 'string' || operand.length > 256) throw failure('Invalid query regex');
+        expression.$regex = operand;
+        expression.$options = 'i';
       } else {
         const name = Object.keys(Op).find(k => Op[k] === operator);
         if (!['in', 'ne', 'gt', 'gte', 'lt', 'lte'].includes(name)) throw failure('Unsupported query operator');
@@ -101,6 +106,13 @@ class Repository {
     this.fields.id.allowNull = false;
   }
   get collection() { return this.store.db.collection(this.collectionName); }
+  readOptions(options = {}) {
+    // Public catalog reads can fall back to a secondary while Atlas is electing
+    // a primary. Transaction reads and user-specific queries keep their default.
+    const result = this.store.options(options);
+    if (options.readPreference && !options.transaction && !this.store.context.getStore()) result.readPreference = options.readPreference;
+    return result;
+  }
   relation(kind, target, options) {
     this.associations.push({ kind, target, ...options, as: options.as || (['many', 'junction'].includes(kind) ? plural(target.name) : target.name) });
     if (kind === 'junction') {
@@ -172,22 +184,22 @@ class Repository {
   async findAll(options = {}) {
     await this.store.authenticate();
     const query = filter(options.where);
-    if (options.distinctField) return (await this.collection.distinct(options.distinctField, query, this.store.options(options))).map(value => ({ [options.distinctField]: value }));
+    if (options.distinctField) return (await this.collection.distinct(options.distinctField, query, this.readOptions(options))).map(value => ({ [options.distinctField]: value }));
     if (Array.isArray(options.attributes) && options.attributes.some(Array.isArray)) {
       const distinct = options.attributes.find(([expr]) => expr?.fn === 'DISTINCT');
-      if (distinct) return (await this.collection.distinct(distinct[0].column, query, this.store.options(options))).map(value => ({ [distinct[1]]: value }));
+      if (distinct) return (await this.collection.distinct(distinct[0].column, query, this.readOptions(options))).map(value => ({ [distinct[1]]: value }));
       const group = { _id: null };
       for (const [expr, alias] of options.attributes) {
         if (expr.fn === 'AVG') group[alias] = { $avg: `$${expr.column}` };
         else if (expr.fn === 'COUNT') group[alias] = { $sum: 1 };
         else throw failure('Unsupported aggregation');
       }
-      const [row] = await this.collection.aggregate([{ $match: query }, { $group: group }], this.store.options(options)).toArray();
+      const [row] = await this.collection.aggregate([{ $match: query }, { $group: group }], this.readOptions(options)).toArray();
       return [{ dataValues: row || {} }];
     }
     const includeSpecs = options.include || this.defaultScope.include || [];
     const hasIncludes = includeSpecs.length > 0;
-    const cursor = this.collection.find(query, this.store.options(options));
+    const cursor = this.collection.find(query, this.readOptions(options));
     if (options.order) cursor.sort(Object.fromEntries(options.order.map(([key, direction]) => [key, String(direction).toUpperCase() === 'DESC' ? -1 : 1])));
     // Queries without associations can be paged and projected by MongoDB itself.
     // Association queries keep their previous order because required joins must
@@ -204,7 +216,10 @@ class Repository {
     if (hasIncludes && options.offset) rows = rows.slice(options.offset);
     if (hasIncludes && options.limit !== undefined) rows = rows.slice(0, options.limit);
     if (Array.isArray(options.attributes)) {
-      for (const row of rows) for (const key of Object.keys(row)) if (!options.attributes.includes(key) && !['_id', '_rev'].includes(key) && !this.associations.some(a => a.as === key)) delete row[key];
+      for (const row of rows) for (const key of Object.keys(row)) {
+        const selected = options.attributes.some(attribute => attribute === key || attribute.startsWith(`${key}.`));
+        if (!selected && !['_id', '_rev'].includes(key) && !this.associations.some(a => a.as === key)) delete row[key];
+      }
     } else if (options.attributes?.exclude) {
       for (const row of rows) for (const key of options.attributes.exclude) delete row[key];
     }
@@ -234,7 +249,7 @@ class Repository {
     }
     // Keep join keys available even when the caller selects a subset of fields.
     const attributes = Array.isArray(spec.attributes) ? [...new Set([...spec.attributes, key])] : spec.attributes;
-    const children = await a.target.findAll({ ...spec, attributes, where: { [Op.and]: [{ [key]: { [Op.in]: targetIds } }, spec.where || {}] }, transaction: options.transaction });
+    const children = await a.target.findAll({ ...spec, attributes, where: { [Op.and]: [{ [key]: { [Op.in]: targetIds } }, spec.where || {}] }, transaction: options.transaction, readPreference: spec.readPreference || options.readPreference });
     const byKey = new Map();
     for (const child of children) { const list = byKey.get(child[key]) || []; list.push(child); byKey.set(child[key], list); }
     return rows.filter(row => {
@@ -266,15 +281,15 @@ class Repository {
     }
     return rows.length;
   }
-  async count(options = {}) { await this.store.authenticate(); return this.collection.countDocuments(filter(options.where), this.store.options(options)); }
+  async count(options = {}) { await this.store.authenticate(); return this.collection.countDocuments(filter(options.where), this.readOptions(options)); }
   async ratingStats(where, options = {}) {
     await this.store.authenticate();
-    const [row] = await this.collection.aggregate([{ $match: filter(where) }, { $group: { _id: null, avgRating: { $avg: '$rating' }, votesCount: { $sum: 1 } } }], this.store.options(options)).toArray();
+    const [row] = await this.collection.aggregate([{ $match: filter(where) }, { $group: { _id: null, avgRating: { $avg: '$rating' }, votesCount: { $sum: 1 } } }], this.readOptions(options)).toArray();
     return [{ dataValues: row || {} }];
   }
   async sum(key, options = {}) {
     await this.store.authenticate();
-    const [row] = await this.collection.aggregate([{ $match: filter(options.where) }, { $group: { _id: null, total: { $sum: `$${key}` } } }], this.store.options(options)).toArray();
+    const [row] = await this.collection.aggregate([{ $match: filter(options.where) }, { $group: { _id: null, total: { $sum: `$${key}` } } }], this.readOptions(options)).toArray();
     return row?.total || 0;
   }
   async upsert(values, options = {}) {
@@ -294,13 +309,91 @@ class Repository {
 
 class MongoStore {
   constructor(uri, { prefix = 'app_' } = {}) {
-    this.client = new MongoClient(uri, { serverSelectionTimeoutMS: 30000, connectTimeoutMS: 20000, readPreference: 'primaryPreferred' });
+    this.client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 20000,
+      readPreference: 'primaryPreferred',
+      // Do not leave API requests waiting forever if an Atlas socket goes idle.
+      socketTimeoutMS: 15_000,
+      // Catalog documents contain large nested objects; compress DB wire traffic.
+      compressors: ['zlib'],
+      zlibCompressionLevel: 1,
+      monitorCommands: process.env.MONGO_PERF_LOGS === 'true'
+    });
+    if (process.env.MONGO_PERF_LOGS === 'true') {
+      this.client.on('commandSucceeded', event => {
+        if (event.duration < 100) return;
+        console.info('[DB PERF]', {
+          phase: 'command',
+          command: event.commandName,
+          database: event.databaseName,
+          collection: event.command?.createIndexes || event.command?.find || event.command?.aggregate || event.command?.count || event.command?.distinct || null,
+          durationMs: Math.round(event.duration * 100) / 100,
+          timestamp: new Date().toISOString()
+        });
+      });
+      this.client.on('commandFailed', event => {
+        console.warn('[DB PERF]', {
+          phase: 'command-failed',
+          command: event.commandName,
+          database: event.databaseName,
+          durationMs: Math.round(event.duration * 100) / 100,
+          error: event.failure?.name || 'MongoError',
+          code: event.failure?.code || 'n/a',
+          timestamp: new Date().toISOString()
+        });
+      });
+      this.client.on('connectionCheckOutFailed', event => {
+        console.warn('[DB PERF]', {
+          phase: 'pool-checkout-failed',
+          reason: event.reason,
+          durationMs: event.durationMS ?? null,
+          address: event.address,
+          timestamp: new Date().toISOString()
+        });
+      });
+      this.client.on('connectionCheckedOut', event => {
+        if (event.durationMS < 100) return;
+        console.warn('[DB PERF]', {
+          phase: 'pool-checkout-wait',
+          durationMs: Math.round(event.durationMS * 100) / 100,
+          address: event.address,
+          timestamp: new Date().toISOString()
+        });
+      });
+      this.client.on('serverHeartbeatFailed', event => {
+        console.warn('[DB PERF]', {
+          phase: 'server-heartbeat-failed',
+          durationMs: Math.round(event.duration * 100) / 100,
+          failure: event.failure?.name || 'MongoError',
+          code: event.failure?.code || 'n/a',
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     Object.assign(this, { db: this.client.db(), prefix, models: {}, context: new AsyncLocalStorage() });
   }
   define(name, fields, settings = {}) { return this.models[name] = new Repository(this, name, fields, settings); }
   async authenticate() {
+    const startedAt = performance.now();
     if (!this.connection) this.connection = this.client.connect().catch(error => { this.connection = null; throw error; });
-    await this.connection;
+    try {
+      await this.connection;
+      const durationMs = Math.round((performance.now() - startedAt) * 100) / 100;
+      if (process.env.MONGO_PERF_LOGS === 'true' && durationMs >= 100) {
+        console.info('[DB PERF]', { phase: 'connect-wait', durationMs, timestamp: new Date().toISOString() });
+      }
+    } catch (error) {
+      const durationMs = Math.round((performance.now() - startedAt) * 100) / 100;
+      if (process.env.MONGO_PERF_LOGS === 'true') {
+        console.warn('[DB PERF]', {
+          phase: 'connect-wait-failed', durationMs,
+          error: error?.name || 'MongoError', code: error?.code || error?.cause?.code || 'n/a',
+          timestamp: new Date().toISOString()
+        });
+      }
+      throw error;
+    }
   }
   options(options = {}) {
     const tx = options.transaction || this.context.getStore();

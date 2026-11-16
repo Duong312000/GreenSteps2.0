@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { fixedReply, catalogReply, compactAiInput } = require('../src/services/greensteps-chat-fast-path.service');
 const { createChatAdapter } = require('../src/services/greensteps-chat.service');
+const { createCatalogModels } = require('./helpers/greensteps-catalog-models');
 const catalog = { available: true, truncated: false, tours: [
   { id: 'T1', title: 'Tour Đà Lạt', destination: 'Đà Lạt', days: 3, cost: 1950000 },
   { id: 'T2', title: 'Tour đúng 3 triệu', destination: 'Đà Lạt', days: 3, cost: 3000000 },
@@ -82,15 +83,15 @@ test('prices and sums require exact uniquely verified catalog products', () => {
   for (const message of ['Tính tổng tour T1 x 2 + dịch vụ S1 x 1', 'Tính tổng tour T3 x 2', 'Tính tổng tour T1 x 0', 'Tính tổng 100000 + 200000', 'Giá tour không tồn tại']) assert.equal(catalogReply(message, catalog), null);
 });
 
-test('tour recommendations still pass through n8n while public catalog records stay cached', async () => {
-  let catalogCalls = 0;
+test('tour recommendations reach n8n while catalog reads stay inside Mongo repositories', async () => {
   let webhookCalls = 0;
+  const models = createCatalogModels({ tours: catalog.tours, services: catalog.services.map(service => ({ ...service, status: 'active' })) });
   const send = createChatAdapter({ env: {
     N8N_CATALOG_ENABLED: 'true',
     N8N_WEBHOOK_URL: 'https://workflow.example.test/webhook/chat',
     N8N_AUTH_HEADER_NAME: 'X-Test-Agent-Key',
     N8N_AUTH_HEADER_VALUE: 'test-only-secret'
-  }, fetchImpl: async (url, options) => {
+  }, models, fetchImpl: async (url, options) => {
     if (options.method === 'GET') catalogCalls++;
     else webhookCalls++;
     if (options.method !== 'GET') return new Response(JSON.stringify({ output: {
@@ -106,7 +107,6 @@ test('tour recommendations still pass through n8n while public catalog records s
     assert.equal(metrics.path, 'ai');
     assert.ok(metrics.n8nMs > 0);
   }
-  assert.equal(catalogCalls, 2);
   assert.equal(webhookCalls, 3);
 });
 

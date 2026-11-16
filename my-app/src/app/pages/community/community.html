@@ -26,8 +26,11 @@
         <label class="gs-feed-search"><i class="bi bi-search"></i><input [(ngModel)]="query" (ngModelChange)="searchChanged()" [placeholder]="activeTab === 'question' ? 'Tìm câu hỏi hoặc địa điểm...' : 'Tìm trong cộng đồng...'" aria-label="Tìm bài viết"></label>
       </div>
 
-      <div class="gs-feed-loading" *ngIf="loading"><span class="gs-spinner"></span> Đang tải bảng tin...</div>
-      <div class="gs-empty-state" *ngIf="!loading && posts.length === 0">
+      <div class="gs-feed-loading" *ngIf="loading"><app-loading-indicator [compact]="true" label="Đang tải bảng tin..."></app-loading-indicator></div>
+      <div class="gs-empty-state" *ngIf="!loading && loadError" role="alert">
+        <p>Chưa thể tải bảng tin cộng đồng.</p><button type="button" (click)="refreshPage()">Thử lại</button>
+      </div>
+      <div class="gs-empty-state" *ngIf="!loading && !loadError && posts.length === 0">
         <i class="bi bi-compass"></i>
         <strong>{{ activeTab === 'question' ? 'Chưa có câu hỏi phù hợp' : activeTab === 'reel' ? 'Chưa có thước phim nào' : 'Bảng tin đang chờ bài chia sẻ đầu tiên' }}</strong>
         <span>Đăng chia sẻ thật của bạn để bắt đầu kết nối với cộng đồng.</span>

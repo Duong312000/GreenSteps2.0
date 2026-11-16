@@ -2,7 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 require('../src/config/env');
-test('wallet API: verified money, points ledger, idempotency, ownership and booking rewards', { skip: !process.env.TEST_MONGODB_URI, timeout: 60000 }, async () => {
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
+test('wallet API: verified money, points ledger, idempotency, ownership and booking rewards', { skip: !testMongoAvailable && skipReason, timeout: 60000 }, async () => {
   const uri = new URL(process.env.TEST_MONGODB_URI);
   uri.pathname = `/WalletTest_${randomUUID().replaceAll('-', '')}`;
   process.env.MONGODB_URI = uri.toString();

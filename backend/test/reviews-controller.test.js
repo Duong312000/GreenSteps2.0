@@ -51,6 +51,7 @@ test('tour review author comes from the authenticated account, not request body 
     [ServiceBooking, 'findByPk', async () => null],
     [ScheduleSample, 'findByPk', async id => ({ id, rating: 5, votes_count: 1 })],
     [CommentPost, 'findOne', async () => null],
+    [CommentPost, 'findAll', async () => []],
     [CommentPost, 'create', async values => {
     const row = { id: 'review-1', createdAt: timestamp, ...values };
     created.push(row);
@@ -300,6 +301,11 @@ test('provider cannot bypass ownership checks through the tour comment reply rou
   let writes = 0;
   await withPatched([
     [CommentPost, 'findByPk', async () => ({ id: 'review-a', user_id: 'customer-a', tour_id: 'tour-a', parent_comment_id: null })],
+    [Vender, 'findOne', async () => null],
+    [Provider, 'findOne', async () => null],
+    [User, 'findByPk', async () => null],
+    [ScheduleSample, 'findByPk', async id => ({ id, provider_id: 'another-provider' })],
+    [CPGS, 'findAll', async () => []],
     [CommentPost, 'create', async () => { writes++; return {}; }]
   ], async () => {
     const res = await invoke(tourController.postTourReview, {

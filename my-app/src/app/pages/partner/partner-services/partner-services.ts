@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoginModalService } from '../../../services/login-modal.service';
-import { User, Service, ServiceRoom, ServiceAmenity, ServiceAmenityGroup, ServiceGreenFeature, ServiceNearbyGroup, ServicePolicyGroup } from '../../../models/models';
+import { User, Service, ServiceRoom, ServiceAmenity, ServiceAmenityGroup, ServiceGreenFeature, ServiceNearbyGroup, ServicePolicyGroup, TourPhotoCredit } from '../../../models/models';
 
 @Component({
   selector: 'app-partner-services',
@@ -285,6 +285,11 @@ export class PartnerServicesComponent implements OnInit {
       return 'image/greensteps_logo.png';
     }
     return 'image/Gemini_Generated_Image_szp1ouszp1ouszp1.png';
+  }
+
+  public servicePhotoCredit(srv: Service): TourPhotoCredit | null {
+    const image = this.getServiceImage(srv);
+    return srv.photoMetadata?.find(photo => photo.path === image && photo.verificationStatus === 'verified') || null;
   }
 
   public servicePrice(service: any): string {

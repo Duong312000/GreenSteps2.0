@@ -15,8 +15,11 @@ cd D:\Web2\backend
 npm.cmd ci
 # Nếu chưa có .env: Copy-Item .env.example .env
 npm.cmd run db:local
+npm.cmd run db:init
 npm.cmd start
 ```
+
+`db:init` chay mot lan sau khi tao database hoac khi schema/index thay doi. API startup chi ket noi MongoDB; khong chay lai `createIndexes`/`collMod` tren moi lan restart. Neu Atlas tam thoi khong ket noi, HTTP server van duy tri va API tra database unavailable de frontend co the thu lai.
 
 `db:local` khởi chạy replica set `rs0` riêng tại `127.0.0.1:27018`, không sửa
 MongoDB service tại `27017`. Dữ liệu local lưu ở `D:\Web2\tmp\mongodb-rs`;
@@ -92,18 +95,18 @@ npm.cmd run migrate:postgres -- --source-mongo --apply
 - `src/db/mongo-store.js`: truy vấn MongoDB, nạp liên kết theo lô, validation,
   unique indexes, chống ghi đè khi dữ liệu cũ, và ClientSession transactions.
 - `src/controllers` / `src/routes`: giữ nghiệp vụ và response shape frontend.
-- `scripts/sync_db.js`: tạo collection/index, không xóa dữ liệu.
+- `scripts/sync_db.js`: khởi tạo collection, validators, indexes và booking add-ons; không xóa dữ liệu. Chạy qua `npm run db:init` khi cần cập nhật schema.
 - `scripts/seed_mongo.js`: dữ liệu mẫu cho database rỗng; từ chối database đã có dữ liệu.
 - `migrations/`: lịch sử PostgreSQL, không được thực thi bởi API MongoDB.
 
 ```powershell
 npm.cmd test
 npm.cmd run verify:mongo
-$env:TEST_MONGODB_URI='mongodb://127.0.0.1:27019/?replicaSet=rs0'
+$env:TEST_MONGODB_URI='mongodb://127.0.0.1:27019/GreenStepsIntegrationTest?replicaSet=rs0'
 npm.cmd test
 ```
 
-`TEST_MONGODB_URI` must point to a disposable local MongoDB replica set with a separate data directory. For example, run a test-only `mongod` on port 27019 with `D:\Web2\tmp\mongodb-test`, initialize it once using `mongosh "mongodb://127.0.0.1:27019" --eval "rs.initiate()"`, and then set the environment variable above. Do not point it at the application or production database.
+`TEST_MONGODB_URI` must point to a disposable local MongoDB replica set with a separate data directory, loopback host, port 27019, and database name `GreenStepsIntegrationTest`. The integration-test guard rejects other hosts, ports, or database names. For example, run a test-only `mongod` on port 27019 with `D:\Web2\tmp\mongodb-test`, initialize it once using `mongosh "mongodb://127.0.0.1:27019" --eval "rs.initiate()"`, and then set the environment variable above. Do not point it at the application or production database.
 
 Integration test tạo database tên ngẫu nhiên `GreenStepsMigrationTest_*` rồi
 xóa đúng database đó khi kết thúc. Bao gồm đăng nhập, cả hai tiền tố API,

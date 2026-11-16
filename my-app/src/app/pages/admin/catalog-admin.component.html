@@ -1,0 +1,90 @@
+<main class="catalog-admin">
+  <header class="catalog-admin__header">
+    <div><a routerLink="/admin" class="catalog-admin__back">← Trang quản trị</a><p class="catalog-admin__eyebrow">GREENSTEPS · EDITORIAL CMS</p><h1>Danh mục điểm đến</h1><p>Quản lý nội dung biên tập, tour demo và hồ sơ quyền sử dụng ảnh.</p></div>
+    <span class="catalog-admin__safe">Tour mới luôn ở trạng thái chưa mở đặt</span>
+  </header>
+
+  <nav class="catalog-admin__tabs" aria-label="Khu vực quản lý">
+    <button type="button" [class.active]="tab === 'destinations'" (click)="tab='destinations'">Điểm đến</button>
+    <button type="button" [class.active]="tab === 'tours'" (click)="tab='tours'">Tour biên tập</button>
+    <button type="button" [class.active]="tab === 'media'" (click)="tab='media'; loadReviewQueue()">Ảnh & quyền</button>
+    <button type="button" [class.active]="tab === 'review'" (click)="tab='review'; loadReviewQueue()">Hàng chờ duyệt</button>
+  </nav>
+
+  <p class="catalog-admin__notice" *ngIf="notice" role="status">{{ notice }}</p>
+  <p class="catalog-admin__error" *ngIf="error" role="alert">{{ error }}</p>
+
+  <section *ngIf="tab === 'destinations'" class="catalog-admin__layout">
+    <article class="catalog-admin__panel">
+      <div class="catalog-admin__panel-head"><div><h2>Điểm đến trong catalog</h2><p>{{ total }} bản ghi · tìm kiếm và phân trang từ API</p></div><button type="button" class="catalog-admin__primary" (click)="startDestination()">Thêm điểm đến</button></div>
+      <div class="catalog-admin__search"><input [(ngModel)]="search" name="destinationSearch" placeholder="Tìm tên, slug hoặc alias" (keyup.enter)="page=1;loadDestinations()"><button type="button" (click)="page=1;loadDestinations()">Tìm</button></div>
+      <p *ngIf="loading" class="catalog-admin__state">Đang tải danh mục…</p>
+      <div class="catalog-admin__rows" *ngIf="!loading">
+        <button type="button" class="catalog-admin__row" *ngFor="let item of destinations" (click)="editDestination(item)">
+          <span><strong>{{ item.name }}</strong><small>{{ item.slug }} · {{ item.status }}</small></span>
+          <span class="catalog-admin__row-state">{{ item.coordinateVerification === 'verified' ? 'Tọa độ đã xác minh' : 'Tọa độ chờ xác minh' }}</span>
+        </button>
+        <p *ngIf="!destinations.length" class="catalog-admin__state">Không tìm thấy điểm đến.</p>
+      </div>
+      <div class="catalog-admin__pager"><button type="button" [disabled]="page <= 1" (click)="page=page-1;loadDestinations()">Trước</button><span>Trang {{ page }}</span><button type="button" [disabled]="page * pageSize >= total" (click)="page=page+1;loadDestinations()">Sau</button></div>
+    </article>
+
+    <article class="catalog-admin__panel">
+      <div class="catalog-admin__panel-head"><div><h2>{{ destinationForm.id ? 'Sửa điểm đến' : 'Tạo điểm đến' }}</h2><p>ID cũ được giữ nguyên khi cập nhật.</p></div><button type="button" class="catalog-admin__quiet" (click)="startDestination()">Làm mới</button></div>
+      <form class="catalog-admin__form" (ngSubmit)="saveDestination()">
+        <label>Tên điểm đến<input [(ngModel)]="destinationForm.name" name="destinationName" required maxlength="120"></label>
+        <label>Slug<input [(ngModel)]="destinationForm.slug" name="destinationSlug" placeholder="Tự tạo từ tên nếu để trống"></label>
+        <label>Alias, phân cách bằng dấu phẩy<input [(ngModel)]="destinationForm.aliasesText" name="destinationAliases" placeholder="Tên cũ, tên không dấu"></label>
+        <label>Vùng<select [(ngModel)]="destinationForm.regionId" name="destinationRegion" required><option *ngFor="let region of regions" [value]="region.id">{{ region.name }}</option></select></label>
+        <label>Đơn vị hành chính liên quan<select multiple [(ngModel)]="destinationForm.adminAreaIds" name="destinationAreas" class="catalog-admin__multi"><option *ngFor="let province of provinces" [value]="province.id">{{ province.name }} · {{ province.code }}</option></select></label>
+        <label class="catalog-admin__wide">Mô tả biên tập<textarea [(ngModel)]="destinationForm.description" name="destinationDescription" rows="3" maxlength="5000"></textarea></label>
+        <div class="catalog-admin__two"><label>Vĩ độ<input type="number" step="any" [(ngModel)]="destinationForm.latitude" name="destinationLat"></label><label>Kinh độ<input type="number" step="any" [(ngModel)]="destinationForm.longitude" name="destinationLng"></label></div>
+        <div class="catalog-admin__two"><label>Nguồn tọa độ<input [(ngModel)]="destinationForm.sourceName" name="destinationSource" placeholder="Tên tài liệu/nguồn"></label><label>URL nguồn<input [(ngModel)]="destinationForm.sourceUrl" name="destinationSourceUrl" type="url"></label></div>
+        <div class="catalog-admin__two"><label>Xác minh tọa độ<select [(ngModel)]="destinationForm.coordinateVerification" name="coordinateVerification"><option value="pending">Chờ xác minh</option><option value="verified">Đã xác minh</option></select></label><label>Trạng thái<select [(ngModel)]="destinationForm.status" name="destinationStatus"><option value="draft">Nháp</option><option value="editorial">Biên tập</option><option value="published">Xuất bản</option><option value="archived">Ẩn</option></select></label></div>
+        <section class="catalog-admin__gallery catalog-admin__wide"><h3>Gallery điểm đến</h3><p>Ảnh chưa có quyền đã xác minh sẽ không xuất hiện trên trang công khai.</p><div class="catalog-admin__media-list"><div *ngFor="let id of destinationForm.mediaAssetIds; let i = index"><code>{{ id }}</code><span [class.is-cover]="destinationForm.coverMediaAssetId === id">{{ destinationForm.coverMediaAssetId === id ? 'Cover' : 'Ảnh gallery' }}</span><button type="button" (click)="moveGalleryItem(destinationForm,i,-1)" [disabled]="i===0" aria-label="Di chuyển ảnh lên">↑</button><button type="button" (click)="moveGalleryItem(destinationForm,i,1)" [disabled]="i===destinationForm.mediaAssetIds.length-1" aria-label="Di chuyển ảnh xuống">↓</button><button type="button" (click)="setCover(destinationForm,id)">Chọn cover</button><button type="button" (click)="removeGalleryItem(destinationForm,id)">Bỏ</button></div></div></section>
+        <button class="catalog-admin__primary catalog-admin__wide" type="submit" [disabled]="saving">{{ saving ? 'Đang lưu…' : 'Lưu điểm đến' }}</button>
+      </form>
+    </article>
+  </section>
+
+  <section *ngIf="tab === 'tours'" class="catalog-admin__layout">
+    <article class="catalog-admin__panel">
+      <div class="catalog-admin__panel-head"><div><h2>Tour editorial/demo</h2><p>{{ tours.length }} tour trong hàng chờ biên tập</p></div><button class="catalog-admin__primary" type="button" (click)="startTour()">Tạo tour demo</button></div>
+      <button type="button" class="catalog-admin__row" *ngFor="let tour of tours" (click)="editTour(tour)"><span><strong>{{ tour.tour_name }}</strong><small>{{ tour.destination }} · {{ tour.days }} ngày · {{ tour.catalog_status }}</small></span><span>Chỉnh sửa →</span></button>
+      <p *ngIf="!tours.length" class="catalog-admin__state">Chưa có tour trong hàng chờ.</p>
+    </article>
+    <article class="catalog-admin__panel">
+      <div class="catalog-admin__panel-head"><div><h2>{{ tourForm.id ? 'Sửa tour biên tập' : 'Tạo tour demo' }}</h2><p>Không nhập giá, đánh giá hay tình trạng chỗ.</p></div><button type="button" class="catalog-admin__quiet" (click)="startTour()">Làm mới</button></div>
+      <form class="catalog-admin__form" (ngSubmit)="saveTour()">
+        <label class="catalog-admin__wide">Tên tour<input [(ngModel)]="tourForm.title" name="tourTitle" required maxlength="160"></label>
+        <label>Điểm đến<select multiple [(ngModel)]="tourForm.destinationIds" name="tourDestinationIds" class="catalog-admin__multi"><option *ngFor="let item of destinations" [value]="item.id">{{ item.name }}</option></select></label>
+        <label>Số ngày<input type="number" min="1" max="30" [(ngModel)]="tourForm.days" name="tourDays" required></label>
+        <label>Trạng thái<select [(ngModel)]="tourForm.status" name="tourStatus"><option value="draft">Nháp</option><option value="editorial">Biên tập</option><option value="demo">Demo</option></select></label>
+        <label>Phong cách<input [(ngModel)]="tourForm.style" name="tourStyle"></label>
+        <label class="catalog-admin__wide">Mô tả<textarea [(ngModel)]="tourForm.description" name="tourDescription" rows="4" maxlength="5000"></textarea></label>
+        <section class="catalog-admin__gallery catalog-admin__wide"><h3>Gallery tour</h3><div class="catalog-admin__media-list"><div *ngFor="let id of tourForm.mediaAssetIds; let i = index"><code>{{ id }}</code><span [class.is-cover]="tourForm.coverMediaAssetId === id">{{ tourForm.coverMediaAssetId === id ? 'Cover' : 'Ảnh gallery' }}</span><button type="button" (click)="moveGalleryItem(tourForm,i,-1)" [disabled]="i===0" aria-label="Di chuyển ảnh lên">↑</button><button type="button" (click)="moveGalleryItem(tourForm,i,1)" [disabled]="i===tourForm.mediaAssetIds.length-1" aria-label="Di chuyển ảnh xuống">↓</button><button type="button" (click)="setCover(tourForm,id)">Chọn cover</button><button type="button" (click)="removeGalleryItem(tourForm,id)">Bỏ</button></div></div></section>
+        <button class="catalog-admin__primary catalog-admin__wide" type="submit" [disabled]="saving">{{ saving ? 'Đang lưu…' : 'Lưu tour biên tập' }}</button>
+      </form>
+    </article>
+  </section>
+
+  <section *ngIf="tab === 'media' || tab === 'review'" class="catalog-admin__layout catalog-admin__layout--single">
+    <article class="catalog-admin__panel">
+      <div class="catalog-admin__panel-head"><div><h2>{{ tab === 'media' ? 'Tải ảnh và khai báo quyền' : 'Hàng chờ kiểm duyệt' }}</h2><p>Không lấy ảnh từ Google Maps/Places. Tối đa 15 ảnh trong một gallery.</p></div></div>
+      <div *ngIf="tab === 'media'" class="catalog-admin__form catalog-admin__upload-form">
+        <label>Lưu ảnh vào gallery<select [(ngModel)]="mediaTarget" name="mediaTarget"><option value="destination">Điểm đến đang sửa</option><option value="tour">Tour đang sửa</option></select></label>
+        <label>Chọn nhiều ảnh<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple (change)="onFilesSelected($event)"></label>
+        <p class="catalog-admin__file-list" *ngIf="selectedFiles.length">{{ selectedFiles.length }} ảnh đã chọn: {{ selectedFiles.map(file => file.name).join(', ') }}</p>
+        <div class="catalog-admin__two"><label>Loại nguồn<select [(ngModel)]="rights.sourceType" name="mediaSourceType"><option value="partner_upload">Đối tác tự tải</option><option value="licensed_stock">Ảnh stock có license</option><option value="official_open_data">Dữ liệu mở chính thức</option></select></label><label>URL nguồn<input [(ngModel)]="rights.sourceUrl" name="mediaSourceUrl" type="url"></label></div>
+        <div class="catalog-admin__two"><label>Nhiếp ảnh gia<input [(ngModel)]="rights.photographer" name="mediaPhotographer"></label><label>Mã license<input [(ngModel)]="rights.licenseId" name="mediaLicense"></label></div>
+        <label>Attribution<input [(ngModel)]="rights.attributionText" name="mediaAttribution"></label>
+        <label>Bằng chứng quyền sử dụng (URL/tài liệu nội bộ)<input [(ngModel)]="rights.rightsEvidence" name="mediaRightsEvidence" required></label>
+        <button type="button" class="catalog-admin__primary" (click)="uploadSelectedMedia()" [disabled]="saving || !selectedFiles.length">{{ uploadProgress || 'Tải ảnh lên' }}</button>
+      </div>
+      <div class="catalog-admin__review-grid">
+        <article class="catalog-admin__review-item" *ngFor="let asset of mediaQueue"><img *ngIf="asset.publicUrl" [src]="asset.publicUrl" alt="Ảnh chờ duyệt"><div><strong>{{ asset.id }}</strong><small>{{ asset.sourceType }} · {{ asset.verificationStatus }}</small><small>{{ asset.attributionText || 'Chưa có attribution' }}</small><button type="button" (click)="verifyMedia(asset)" [disabled]="!asset.rightsEvidence || (!asset.licenseId && asset.sourceType !== 'partner_upload')">Xác minh quyền ảnh</button></div></article>
+        <p *ngIf="!mediaQueue.length" class="catalog-admin__state">Không có ảnh chờ duyệt.</p>
+      </div>
+    </article>
+  </section>
+</main>

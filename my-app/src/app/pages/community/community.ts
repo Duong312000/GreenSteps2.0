@@ -15,6 +15,9 @@ type ComposerType = 'post' | 'reel' | 'question';
   styleUrl: './community.css'
 })
 export class CommunityComponent implements OnInit {
+  private feedRequestSequence = 0;
+  private feedAccountId = '';
+  private hasFeedAccountState = false;
   public standards: Array<{id: string; title: string; description: string}> = [];
   public standardsOpen = false;
   public standardsError = '';
@@ -67,6 +70,7 @@ export class CommunityComponent implements OnInit {
   public activeTab: CommunityTab = 'all';
   public query = '';
   public loading = true;
+  public loadError = false;
   public loadingMore = false;
   public hasMore = true;
   public page = 0;
@@ -101,7 +105,19 @@ export class CommunityComponent implements OnInit {
 
   ngOnInit(): void {
     this.auth.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
+      const nextAccountId = user?.id || user?._id || '';
+      const accountChanged = this.hasFeedAccountState && nextAccountId !== this.feedAccountId;
       this.currentUser = user;
+      this.hasFeedAccountState = true;
+      this.feedAccountId = nextAccountId;
+      if (accountChanged) {
+        ++this.feedRequestSequence;
+        this.posts = [];
+        this.page = 0;
+        this.hasMore = true;
+        this.loadError = false;
+        void this.refreshPage();
+      }
       if (user) this.loadItineraries(user.id || user._id || '');
       this.cdr.markForCheck();
     });
@@ -115,37 +131,61 @@ export class CommunityComponent implements OnInit {
   }
 
   async refreshPage(): Promise<void> {
+    const sequence = ++this.feedRequestSequence;
     this.loading = true;
+    this.loadingMore = false;
+    this.loadError = false;
     this.page = 0;
     this.hasMore = true;
     this.api.clearCache('community_posts_');
+    this.posts = [];
     const type = this.activeTab === 'all' ? 'all' : this.activeTab;
-    const [posts, challenge, ranking, tags] = await Promise.all([
-      this.api.getCommunityPosts(0, 10, type, this.query),
-      this.api.getCommunityChallenge(),
-      this.api.getCommunityLeaderboard(3),
-      this.api.getTrendingCommunityHashtags()
-    ]);
-    this.posts = posts;
-    this.hasMore = posts.length === 10;
-    this.challenge = challenge;
-    this.leaderboard = ranking;
-    this.trendingHashtags = tags;
-    this.loading = false;
-    this.cdr.markForCheck();
+    try {
+      const posts = await this.api.getCommunityPosts(0, 10, type, this.query, true);
+      if (sequence !== this.feedRequestSequence) return;
+      this.posts = posts;
+      this.hasMore = posts.length === 10;
+      this.loading = false;
+      this.cdr.markForCheck();
+
+      const [challenge, ranking, tags] = await Promise.allSettled([
+        this.api.getCommunityChallenge(), this.api.getCommunityLeaderboard(3), this.api.getTrendingCommunityHashtags()
+      ]);
+      if (sequence !== this.feedRequestSequence) return;
+      this.challenge = challenge.status === 'fulfilled' ? challenge.value : null;
+      this.leaderboard = ranking.status === 'fulfilled' ? ranking.value : [];
+      this.trendingHashtags = tags.status === 'fulfilled' ? tags.value : [];
+    } catch {
+      if (sequence !== this.feedRequestSequence) return;
+      this.loadError = true;
+    } finally {
+      if (sequence === this.feedRequestSequence) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
 
   async loadMore(): Promise<void> {
     if (this.loadingMore || !this.hasMore) return;
+    const sequence = this.feedRequestSequence;
     this.loadingMore = true;
     const nextPage = this.page + 1;
     const type = this.activeTab === 'all' ? 'all' : this.activeTab;
-    const posts = await this.api.getCommunityPosts(nextPage, 10, type, this.query);
-    this.page = nextPage;
-    this.posts = [...this.posts, ...posts];
-    this.hasMore = posts.length === 10;
-    this.loadingMore = false;
-    this.cdr.markForCheck();
+    try {
+      const posts = await this.api.getCommunityPosts(nextPage, 10, type, this.query, true);
+      if (sequence !== this.feedRequestSequence) return;
+      this.page = nextPage;
+      this.posts = [...this.posts, ...posts];
+      this.hasMore = posts.length === 10;
+    } catch {
+      if (sequence === this.feedRequestSequence) this.loadError = true;
+    } finally {
+      if (sequence === this.feedRequestSequence) {
+        this.loadingMore = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
 
   changeTab(tab: CommunityTab): void {

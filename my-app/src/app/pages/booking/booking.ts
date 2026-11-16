@@ -12,7 +12,7 @@ import { flashSaleTotal } from '../../utils/flash-sale-price';
 import { TransportService } from '../../services/transport.service';
 
 type BookingFor = 'self' | 'other';
-type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter' | 'momo';
+type PaymentMethod = 'wallet' | 'card' | 'bank' | 'counter' | 'sepay';
 type PayTiming = 'now' | 'later';
 
 interface GuestInfo {
@@ -45,7 +45,8 @@ interface BookingContext {
 @Component({
   selector: 'app-booking',
   standalone: false,
-  templateUrl: './booking.html'
+  templateUrl: './booking.html',
+  styleUrls: ['./booking.css']
 })
 export class BookingComponent implements OnInit, OnDestroy {
   public transportBooking: any = null;
@@ -166,7 +167,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     { id: 'wallet' as PaymentMethod, label: 'Ví điện tử', desc: 'Thanh toán nhanh qua ví liên kết.', icon: 'bi-wallet2' },
     { id: 'card' as PaymentMethod, label: 'Thẻ tín dụng / ghi nợ', desc: 'Thử luồng thanh toán bằng thẻ mẫu, không thu tiền thật.', icon: 'bi-credit-card' },
     { id: 'bank' as PaymentMethod, label: 'Chuyển khoản qua QR', desc: 'Quét VietQR trong ứng dụng ngân hàng của bạn.', icon: 'bi-bank' },
-    { id: 'momo' as PaymentMethod, label: 'Ví MoMo', desc: 'Thanh toán qua cổng MoMo sandbox.', icon: 'bi-wallet2' },
+    { id: 'sepay' as PaymentMethod, label: 'SePay — QR ngân hàng', desc: 'Quét mã QR chuyển khoản qua cổng SePay Sandbox.', icon: 'bi-bank' },
     { id: 'counter' as PaymentMethod, label: 'Thanh toán tại quầy', desc: 'Giữ chỗ tạm thời và xác nhận tại quầy.', icon: 'bi-shop' }
   ];
   public readonly addOnOptions = [
@@ -860,42 +861,57 @@ export class BookingComponent implements OnInit, OnDestroy {
       } finally {
         this.isBookingLoading = false;
       }
-    } else if (this.paymentMethod === 'momo') {
-      await this.startMomoPayment(bookingData);
+    } else if (this.paymentMethod === 'sepay') {
+      await this.startSepayPayment(bookingData);
     }
   }
 
-  private async startMomoPayment(bookingData: any) {
+  private async startSepayPayment(bookingData: any) {
     this.isBookingLoading = true;
     try {
-      const config = await this.apiService.getMomoPaymentConfig();
+      const config = await this.apiService.getSepayPaymentConfig();
       if (!config.configured) {
-        const missing = config.missing?.length ? ` Thiếu: ${config.missing.join(', ')}.` : '';
-        this.showAlert('MoMo chưa được cấu hình', `Thêm Partner Code và Access Key sandbox vào backend/.env rồi khởi động lại backend.${missing}`, 'warning');
+        const missing = config.missing?.join(', ') || 'backend/.env';
+        this.showAlert('SePay chưa được cấu hình', `Còn thiếu: ${missing}. Kiểm tra cấu hình Sandbox và IPN rồi thử lại.`, 'warning');
         return;
       }
 
       const booking = await this.apiService.createBooking(bookingData);
       if (!booking.success || !booking.bookingId) {
-        this.showAlert('Không thể tạo đơn MoMo', booking.message || 'Vui lòng thử lại.', 'error');
+        this.showAlert('Không thể tạo đơn đặt chỗ', booking.message || 'Vui lòng thử lại.', 'error');
         return;
       }
 
       this.currentBookingId = booking.bookingId;
       this.paymentStatus = 'pending';
-      if (booking.autoCreatedUser) {
-        this.authService.loginWithToken(booking.autoCreatedUser.user, booking.autoCreatedUser.token);
+      const capability = booking.sepayPaymentCapability || '';
+      if (capability) {
+        try { sessionStorage.setItem(`greensteps_sepay_capability:${booking.bookingId}`, capability); } catch { /* Session storage may be disabled. */ }
       }
+      if (booking.autoCreatedUser) this.authService.loginWithToken(booking.autoCreatedUser.user, booking.autoCreatedUser.token);
       this.saveDraft();
 
-      const payment = await this.apiService.createMomoPayment(booking.bookingId);
-      if (!payment.success || !payment.payUrl) {
-        this.showAlert('Chưa tạo được giao dịch MoMo', payment.message || 'Đơn đã được giữ lại; bạn có thể thử thanh toán lại.', 'error');
+      const checkout = await this.apiService.createSepayPayment(booking.bookingId, capability || undefined);
+      if (!checkout.success || !checkout.checkoutUrl || !checkout.fields) {
+        this.showAlert('Chưa khởi tạo được SePay', checkout.message || 'Đơn đã được giữ; bạn có thể thử lại sau.', 'error');
         return;
       }
-      window.location.assign(payment.payUrl);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = checkout.checkoutUrl;
+      form.style.display = 'none';
+      for (const [name, value] of Object.entries(checkout.fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = String(value);
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (error: any) {
-      this.showAlert('Không kết nối được MoMo', error?.message || 'Vui lòng thử lại sau.', 'error');
+      this.showAlert('Không kết nối được SePay', error?.message || 'Vui lòng thử lại sau.', 'error');
     } finally {
       this.isBookingLoading = false;
     }
@@ -1405,7 +1421,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get confirmationPaymentMethod(): string {
     const method = this.confirmationPaymentMethodCode;
-    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy', momo: 'Ví MoMo' } as Record<string, string>)[method] || this.selectedPaymentLabel;
+    return ({ wallet: 'Ví GreenSteps', bank_transfer: 'Chuyển khoản / QR', card: 'Thẻ (chạy thử)', counter: 'Thanh toán tại quầy', sepay: 'SePay (Sandbox)' } as Record<string, string>)[method] || this.selectedPaymentLabel;
   }
 
   public get confirmationPaymentMethodCode(): string {
@@ -1446,12 +1462,16 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.confirmationLoading = true;
     this.confirmationFetchFailed = false;
     try {
-      const response = await this.apiService.getBooking(id);
+      let response: any;
+      const sepayCapability = this.getSepayCapability(id);
+      if (this.confirmationPaymentMethodCode === 'sepay') response = await this.apiService.getSepayPaymentStatus(id, sepayCapability || undefined);
+      else response = await this.apiService.getBooking(id);
       if (!response?.booking) {
         this.confirmationFetchFailed = true;
         return;
       }
       this.confirmationBooking = response.booking;
+      if (this.confirmationPaymentMethodCode === 'sepay' && (this.confirmationIsPaid || this.confirmationIsFailed)) this.clearSepayCapability(id);
       if (this.confirmationPaymentMethodCode === 'counter' && !this.confirmationIsFailed) {
         const userId = this.currentUser?.id || this.currentUser?._id;
         const bookingId = this.confirmationBooking?.id || this.confirmationBooking?._id || id;
@@ -1481,9 +1501,13 @@ export class BookingComponent implements OnInit, OnDestroy {
   private async refreshConfirmationStatus() {
     if (!this.currentBookingId) return;
     try {
-      const response = await this.apiService.getBooking(this.currentBookingId);
+      const sepayCapability = this.getSepayCapability(this.currentBookingId);
+      const response = this.confirmationPaymentMethodCode === 'sepay'
+        ? await this.apiService.getSepayPaymentStatus(this.currentBookingId, sepayCapability || undefined)
+        : await this.apiService.getBooking(this.currentBookingId);
       if (response?.booking) {
         this.confirmationBooking = response.booking;
+        if (this.confirmationPaymentMethodCode === 'sepay' && (this.confirmationIsPaid || this.confirmationIsFailed)) this.clearSepayCapability(this.currentBookingId);
         this.paymentStatus = this.confirmationIsPaid ? 'paid' : this.confirmationIsFailed ? 'failed' : 'pending';
         if (this.confirmationIsPaid) this.showSuccessToast();
         this.saveDraft();
@@ -1496,6 +1520,16 @@ export class BookingComponent implements OnInit, OnDestroy {
       clearInterval(this.confirmationPollInterval);
       this.confirmationPollInterval = null;
     }
+  }
+
+  private getSepayCapability(bookingId: string): string {
+    try { return sessionStorage.getItem(`greensteps_sepay_capability:${bookingId}`) || ''; }
+    catch { return ''; }
+  }
+
+  private clearSepayCapability(bookingId: string): void {
+    try { sessionStorage.removeItem(`greensteps_sepay_capability:${bookingId}`); }
+    catch { /* Session storage may be disabled. */ }
   }
 
   public printConfirmation() {

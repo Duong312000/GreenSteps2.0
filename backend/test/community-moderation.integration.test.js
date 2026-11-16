@@ -1,12 +1,13 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
 const jwt = require('jsonwebtoken');
 const app = require('../src/app');
 const { store, User, CommunityPost, CommentPost, CommunityReport, Notification } = require('../src/models');
 const { JWT_SECRET } = require('../src/middlewares/auth.middleware');
 
-test('community reports persist, enforce roles, hide and restore posts and comments', { timeout: 45000 }, async () => {
+test('community reports persist, enforce roles, hide and restore posts and comments', { timeout: 45000, skip: !testMongoAvailable && skipReason }, async () => {
   const tag = `moderation-test-${randomUUID()}`;
   const owner = `${tag}-owner`, reporter = `${tag}-reporter`, admin = `${tag}-admin`;
   const postId = `${tag}-post`, commentId = `${tag}-comment`, replyId = `${tag}-reply`;

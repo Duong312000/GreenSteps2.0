@@ -903,7 +903,6 @@ input[type="radio"] {
 .brand-greensteps-lockup small { color: #658373; font-size: 7px; font-weight: 750; letter-spacing: .12em; }
 .brand-vietqr-image { display: block; width: 78px; height: 29px; object-fit: contain; object-position: center; }
 .brand-card-image { display: block; width: min(96px, 100%); max-width: 100%; height: 28px; margin-inline: auto; object-fit: contain; object-position: center; }
-.brand-momo-image { display: block; width: 48px; height: 48px; object-fit: contain; border-radius: 14px; }
 .brand-counter { width: 100%; justify-content: center; gap: 0 !important; color: #167653; }
 .brand-counter > i { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 0; background: #fff; color: #167653; font-size: 28px; line-height: 1; }
 
@@ -3419,8 +3418,7 @@ input[type="radio"] {
 }
 
 .payment-shell .brand-vietqr-image,
-.payment-shell .brand-card-image,
-.payment-shell .brand-momo-image {
+.payment-shell .brand-card-image {
   max-width: 40px;
   max-height: 32px;
   object-fit: contain;

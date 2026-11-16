@@ -84,7 +84,7 @@ async function run() {
     page.on('pageerror', error => errors.push(error.message));
     await openChat(page, base);
     const panel = page.locator('#greensteps-chat-panel');
-    const headerBefore = await panel.locator('.chat-header').boundingBox();
+    const headerBefore = await panel.locator('.workspace-header').boundingBox();
     const composerBefore = await panel.locator('.chat-composer').boundingBox();
     const input = page.locator('#greensteps-chat-input');
     await input.fill('Lập lịch trình Đà Lạt 3 ngày 2 đêm, ngân sách 5 triệu');
@@ -99,7 +99,7 @@ async function run() {
     assert.equal((await card.locator('.gs-plan-card__cost-unverified').innerText()).includes('Chưa có dữ liệu giá dịch vụ xác thực'), true);
     assert.equal(await card.locator('.gs-plan-card__cover img').evaluate(img => img.naturalWidth > 0), true);
     assert.equal(await card.locator('.gs-plan-card__cover img').evaluate(img => getComputedStyle(img).objectFit), 'cover');
-    assert.ok(Math.abs((await panel.locator('.chat-header').boundingBox()).height - headerBefore.height) < 1);
+    assert.ok(Math.abs((await panel.locator('.workspace-header').boundingBox()).height - headerBefore.height) < 1);
     assert.ok(Math.abs((await panel.locator('.chat-composer').boundingBox()).height - composerBefore.height) < 1);
     await page.screenshot({ path: path.join(artifacts, 'chat-itinerary-proposal.png') });
 

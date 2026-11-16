@@ -157,9 +157,12 @@ export class GreenStepsChatComponent {
     this.mobileActionsOpen.set(false);
     this.historyOpen.set(false);
     this.mobileItineraryOpen.set(false);
-    if (restoreFocus) requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (restoreFocus) window.setTimeout(() => requestAnimationFrame(() => {
+      // The launcher wrapper stays visibility:hidden for its 180ms close
+      // transition. Focusing it before that transition ends is ignored by the
+      // browser, which leaves focus on <body> after Escape closes the dialog.
       if (!this.isChatOpen() && !this.destroyRef.destroyed) this.launcher()?.nativeElement.focus({ preventScroll: true });
-    }));
+    }), 200);
   }
 
   async startNewChat(): Promise<void> {
@@ -245,6 +248,14 @@ export class GreenStepsChatComponent {
   sendSuggestedQuestion(question: string): void {
     this.draftMessage.set(question);
     void this.submitMessage(question);
+  }
+
+  itineraryPrompt(result: GreenStepsChatResult): string {
+    const suggested = result.suggestedQuestions.find(question => /^(?:tự tạo|lập|tạo) lịch trình/i.test(question.trim()));
+    if (suggested) return suggested;
+    const destination = result.tours[0]?.destination?.trim();
+    if (destination) return `Tự tạo lịch trình tại ${destination}`;
+    return 'Tự tạo lịch trình';
   }
 
   visibleToursFor(messageId: string, result: GreenStepsChatResult): number {

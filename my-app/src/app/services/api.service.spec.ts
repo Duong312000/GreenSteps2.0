@@ -136,13 +136,13 @@ describe('ApiService admin queues', () => {
   });
 
 
-  it('sends the guest capability only in the MoMo payment header and retrieves server status', async () => {
+  it('sends the guest capability only in the SePay payment header and retrieves server status', async () => {
     const http = { post: vi.fn(() => of({ success: true })), get: vi.fn(() => of({ success: true, booking: { payment_status: 'pending' } })) };
     const api = new ApiService(http as any);
-    await api.createMomoPayment('booking-1', 'capability-1');
-    await api.getMomoPaymentStatus('booking-1', 'capability-1');
-    expect(http.post).toHaveBeenCalledWith('http://localhost:5055/api/payments/momo/create', { bookingId: 'booking-1' }, { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
-    expect(http.get).toHaveBeenCalledWith('http://localhost:5055/api/payments/momo/status/booking-1', { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
+    await api.createSepayPayment('booking-1', 'capability-1');
+    await api.getSepayPaymentStatus('booking-1', 'capability-1');
+    expect(http.post).toHaveBeenCalledWith('http://localhost:5055/api/payments/sepay/create', { bookingId: 'booking-1' }, { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
+    expect(http.get).toHaveBeenCalledWith('http://localhost:5055/api/payments/sepay/status/booking-1', { withCredentials: true, headers: { 'x-booking-payment-capability': 'capability-1' } });
   });
 
   it('loads the admin catalog through the authenticated API', async () => {

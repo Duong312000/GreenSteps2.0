@@ -7,9 +7,9 @@
       </div>
       <div class="account-modal-identity">
         <span class="account-modal-eyebrow">{{ accountType === 'provider' ? 'HỒ SƠ NHÀ CUNG CẤP' : 'HỒ SƠ NGƯỜI DÙNG' }}</span>
-        <h2 id="account-modal-title">{{ displayName }}</h2>
-        <small>{{ account?.id || '—' }} <span *ngIf="account?.email">· {{ account.email }}</span></small>
-        <div class="account-modal-statuses">
+        <h2 id="account-modal-title">{{ settingsMode ? formTitle : displayName }}</h2>
+        <small *ngIf="!settingsMode">{{ account?.id || '—' }} <span *ngIf="account?.email">· {{ account.email }}</span></small>
+        <div class="account-modal-statuses" *ngIf="!settingsMode">
           <span class="account-status" [class.status-suspended]="suspended" [class.status-pending]="account?.is_verified === false">
             <i class="bi bi-circle-fill"></i>{{ account?.accountStatusLabel || (suspended ? 'Đã khóa' : account?.is_verified === false ? 'Chưa xác minh' : 'Đang hoạt động') }}
           </span>
@@ -39,7 +39,7 @@
             </label>
           </div>
           <label class="account-reason"><span>Lý do cập nhật</span><textarea name="editReason" [ngModel]="editReason" (ngModelChange)="editReasonChange.emit($event)" rows="2" required maxlength="1000"></textarea></label>
-          <div class="account-edit-actions"><button type="button" class="account-button button-muted" (click)="editCancel.emit()">Hủy chỉnh sửa</button><button type="submit" class="account-button button-primary" [disabled]="busy || !editReason.trim()">{{ busy ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
+          <div class="account-edit-actions"><button type="button" class="account-button button-muted" (click)="editCancel.emit()">Hủy chỉnh sửa</button><button type="submit" class="account-button button-primary" [disabled]="busy || !editReason.trim()">{{ busy ? 'Đang lưu...' : submitLabel }}</button></div>
         </form>
 
         <section *ngIf="!editing && (fields.length || records.length)" class="account-field-section">
@@ -61,7 +61,7 @@
     </main>
 
     <footer class="account-modal-footer">
-      <div class="account-action-reason" *ngIf="!editing && account?.role !== 'admin'">
+      <div class="account-action-reason" *ngIf="!settingsMode && !editing && account?.role !== 'admin'">
         <input [(ngModel)]="lockReason" name="lockReason" placeholder="Lý do khóa/mở khóa (bắt buộc)" aria-label="Lý do khóa hoặc mở khóa tài khoản" />
         <button type="button" class="account-button" [class.button-danger]="!suspended" [class.button-primary]="suspended" [disabled]="busy || loading || !lockReason.trim()" (click)="submitLockToggle()">{{ suspended ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</button>
       </div>

@@ -1,0 +1,13 @@
+const express = require('express');
+const { strictAuthMiddleware, checkRole } = require('../middlewares/auth.middleware');
+const controller = require('../controllers/admin-national-catalog.controller');
+const router = express.Router();
+router.use(strictAuthMiddleware, checkRole(['admin']));
+router.get('/review-queue', controller.getReviewQueue);
+router.get('/destinations', controller.getDestinations);
+router.post('/destinations', controller.saveDestination);
+router.put('/destinations/:id', controller.saveDestination);
+router.post('/tours', controller.createTour);
+router.put('/tours/:id', controller.updateTour);
+router.post('/media/:id/verify', controller.verifyMedia);
+module.exports = router;

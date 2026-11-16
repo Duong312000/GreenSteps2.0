@@ -7,6 +7,7 @@ import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
 import { Tour } from '../../models/models';
+import { HOME_DESTINATION_CARDS, HomeDestinationCard } from './destination-card-data';
 
 declare const L: any;
 
@@ -185,29 +186,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   private destinationDrag: { pointerId: number; startX: number; startY: number; dragging: boolean } | null = null;
   private destinationClickSuppressed = false;
   private destinationClickSuppressionTimer?: ReturnType<typeof setTimeout>;
-  public destinationCards: any[] = [
-    {
-      dest: 'Đà Lạt',
-      label: 'Đà Lạt',
-      title: 'Đà Lạt',
-      subtitle: 'Thành phố ngàn hoa',
-      image: this.realPreviewImages.daLat
-    },
-    {
-      dest: 'Đà Nẵng - Hội An',
-      label: 'Đà Nẵng - Hội An',
-      title: 'Đà Nẵng - Hội An',
-      subtitle: 'Di sản, biển xanh và văn hóa sống động',
-      image: this.realPreviewImages.daNang
-    },
-    {
-      dest: 'Phú Yên',
-      label: 'Phú Yên',
-      title: 'Phú Yên',
-      subtitle: 'Bờ biển hoang sơ, kỳ nghỉ bình yên',
-      image: this.realPreviewImages.phuYen
-    }
-  ];
+  public destinationCards: HomeDestinationCard[] = [...HOME_DESTINATION_CARDS];
 
   public activeHighlight: 'eco' | 'guides' | 'dates' | 'ai' = 'eco';
   public isStoryTransitioning = false;
@@ -827,46 +806,36 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     });
+    const destinationTask = this.loadDestinationCards();
+    const tourTask = this.loadTourPreviews();
+    await Promise.allSettled([destinationTask, tourTask]);
+  }
+
+  private async loadDestinationCards(): Promise<void> {
     try {
-      const dbDests = await this.apiService.getDestinations();
-      if (dbDests && dbDests.length > 0) {
-        this.destinationCards = dbDests.map(dest => {
-          let label = dest;
-          let subtitle = 'Điểm đến du lịch xanh thân thiện';
-          let image = this.realPreviewImages.daNang;
-          if (dest === 'Đà Lạt') {
-            label = 'Đà Lạt';
-            subtitle = 'Thành phố ngàn hoa';
-            image = this.realPreviewImages.daLat;
-          } else if (dest === 'Phú Yên') {
-            label = 'Phú Yên';
-            subtitle = 'Bờ biển hoang sơ, kỳ nghỉ bình yên';
-            image = this.realPreviewImages.phuYen;
-          } else if (dest === 'Đà Nẵng - Hội An') {
-            label = 'Đà Nẵng - Hội An';
-            subtitle = 'Di sản, biển xanh và văn hóa sống động';
-            image = this.realPreviewImages.daNang;
-          }
-          return {
-            dest: dest,
-            label: label,
-            title: dest,
-            subtitle: subtitle,
-            image: image
-          };
-        });
-        if (this.destinationCards.length > 0) {
-          this.searchDest = this.destinationCards[0].dest;
-          this.activeDestinationIndex = 0;
-        }
-      }
-      
-      // Load real tours and build previews
-      this.realTours = await this.apiService.getPresetTours() || [];
-      this.updatePreviewFromDatabase();
-      this.generateAiItinerary();
+      const destinationPage = await this.apiService.getNationalDestinations({ page: 1, pageSize: 100 });
+      const availableDestinations = new Set<string>([
+        ...(destinationPage?.items || []).map((destination: any) => destination.name)
+      ].filter(Boolean).map((name: string) => this.normalizeDestination(name)));
+      const dataBackedCards = HOME_DESTINATION_CARDS.filter(card => availableDestinations.has(this.normalizeDestination(card.dest)));
+      if (dataBackedCards.length) this.destinationCards = dataBackedCards;
+      this.searchDest = this.destinationCards[0]?.dest || this.searchDest;
+      this.activeDestinationIndex = 0;
     } catch (e) {
       console.warn('Failed to load dynamic destinations:', e);
+    }
+  }
+
+  private async loadTourPreviews(): Promise<void> {
+    try {
+      const page = await this.apiService.getToursPage({ page: 1, pageSize: 10, sort: 'popular' });
+      this.realTours = page?.items || [];
+      if (this.realTours.length) {
+        this.updatePreviewFromDatabase();
+        this.generateAiItinerary();
+      }
+    } catch (e) {
+      console.warn('Failed to load tour previews:', e);
     }
   }
 
@@ -919,20 +888,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     
     this.isAiLoading = true;
     const searchKey = (this.aiPlannerDest || '').trim();
-    
-    let destination = 'Đà Nẵng';
-    if (searchKey.toLowerCase().includes('đà lạt')) {
-      destination = 'Đà Lạt';
-    } else if (searchKey.toLowerCase().includes('phú yên')) {
-      destination = 'Phú Yên';
-    } else if (searchKey.toLowerCase().includes('đà nẵng') || searchKey.toLowerCase().includes('hội an')) {
-      destination = 'Đà Nẵng';
-    }
-
     const matchedTour = this.realTours.find(t =>
       t.title.toLowerCase().includes(searchKey.toLowerCase()) ||
-      t.destination.toLowerCase().includes(destination.toLowerCase())
+      t.destination.toLowerCase().includes(searchKey.toLowerCase())
     ) || this.realTours[0];
+    const destination = matchedTour?.destination || searchKey;
     if (matchedTour) {
       this.aiPlannerMapDestination = matchedTour.destination || destination;
       const destinationKey = this.aiPlannerMapDestination.toLowerCase();
@@ -960,7 +920,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       // 1. Fetch live response from backend Gemini AI model
-      const prompt = `${searchKey}; thời lượng ${this.aiPlannerDuration} ngày; ${this.aiPlannerTravelers} người`;
+      const prompt = `Lập lịch trình du lịch xanh tại ${destination}; thời lượng ${this.aiPlannerDuration} ngày; ${this.aiPlannerTravelers} người; sở thích: ${searchKey || 'trải nghiệm địa phương'}`;
       const res = await this.apiService.sendAiMessage(prompt, destination, []);
       if (res && res.success) {
         this.aiAssistantMessage = res.reply;
@@ -1177,7 +1137,12 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public goToDestination(dest: string) {
     sessionStorage.setItem('tours_search_dest', dest);
-    this.router.navigate(['/tours'], { queryParams: { dest } });
+    this.router.navigate(['/services'], { queryParams: { type: 'all', dest } });
+  }
+
+  private normalizeDestination(value: string): string {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/gi, 'd')
+      .replace(/[^a-z0-9]+/g, ' ').trim().toLowerCase();
   }
 
   private lockDestinationTransition() {

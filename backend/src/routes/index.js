@@ -19,12 +19,18 @@ const spotRoutes = require('./spot.routes');
 const changeRequestRoutes = require('./change-request.routes');
 const operationsRoutes = require('./operations.routes');
 const adminUsersRoutes = require('./admin-users.routes');
+const nationalCatalogRoutes = require('./national-catalog.routes');
 
 router.use('/transport', require('../transport/routes'));
+router.use('/media', require('./media.routes'));
+router.use('/', nationalCatalogRoutes);
 router.use('/favorites', require('./favorites.routes'));
 router.use('/auth', authRoutes);
+router.use('/admin/settings', require('./admin-settings.routes'));
+router.use('/admin/catalog', require('./admin-national-catalog.routes'));
 router.use('/admin', require('./admin.routes'));
 router.use('/bookings', bookingRoutes);
+router.use('/payments/sepay', require('./sepay-payment.routes'));
 router.use('/wallet', walletRoutes);
 router.use('/ai', aiRoutes);
 router.use('/vouchers', voucherRoutes);

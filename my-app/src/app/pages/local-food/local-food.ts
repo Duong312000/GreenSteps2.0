@@ -72,6 +72,8 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
               ? p.priceMin >= 100000 && p.priceMin <= 200000
               : p.priceMin > 200000))) &&
         this.selectedFeatures.every((f) => p.features.includes(f)) &&
+        // Legacy food records may not have a capacity yet. Keep them visible;
+        // the booking request is still reviewed by the restaurant.
         (p.capacity == null || p.capacity >= this.guests),
     );
     if (this.sort === 'price') list.sort((a, b) => (a.priceMin ?? Infinity) - (b.priceMin ?? Infinity));
