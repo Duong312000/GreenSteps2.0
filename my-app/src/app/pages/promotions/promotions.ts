@@ -18,6 +18,12 @@ interface OfferService { id: string; name: string; image?: string; cost: number;
 
 @Component({ selector: 'app-promotions', standalone: false, templateUrl: './promotions.html', styleUrls: ['./promotions.css'] })
 export class PromotionsComponent implements OnInit, OnDestroy {
+  readonly fallbackImage = '/image/service-photo-pending.svg';
+
+  imageFallback(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    if (image.getAttribute('src') !== this.fallbackImage) image.src = this.fallbackImage;
+  }
   offers: Offer[] = []; filtered: Offer[] = [];
   loading = true; loadError = false; activeTab = 'all';
   selectedCategory = 'all'; selectedDestination = 'all'; selectedOfferType = 'all'; mobileFilters = false;
@@ -42,7 +48,6 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   offerGroups = [
     { id: 'flash', label: 'Flash Sale', icon: 'bi-lightning-fill' },
     { id: 'coupon', label: 'Mã giảm giá', icon: 'bi-ticket-perforated' },
-    { id: 'early', label: 'Đặt sớm', icon: 'bi-clock' },
   ];
   get activeTabInfo() { return this.tabs.find((tab) => tab.id === this.activeTab) || this.tabs[0]; }
   savedCampaigns = new Set<string>();

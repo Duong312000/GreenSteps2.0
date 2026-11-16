@@ -31,13 +31,14 @@
 /* Flash Sale follows the green-and-orange travel offer strip. */
 .flash-sale{--flash-green:#104d2a;--flash-orange:#ff5125;padding:16px;background:#fff;border-radius:18px;box-shadow:0 5px 18px #225f2f08;border:1px solid #edf4ed;position:relative}
 .flash-header{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
-.flash-header h3{display:flex;align-items:center;gap:6px;margin:0;color:var(--flash-green);font-size:22px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.6px;white-space:nowrap}
+.flash-header h3{display:flex;align-items:center;gap:6px;margin:0;color:#25332b;font-size:1.1rem;font-weight:700;font-style:normal;text-transform:none;letter-spacing:normal;white-space:nowrap}
 .flash-header h3 i{color:#2f873a;font-size:1.2em}
-.flash-countdown{display:flex;align-items:center;gap:5px;padding:6px 10px;background:#edf7e9;border-radius:24px;color:var(--flash-green)}
-.countdown-caption{font-size:10px;font-weight:700;margin-right:3px;white-space:nowrap}
-.countdown-unit{display:grid;text-align:center;gap:2px;min-width:27px}
-.countdown-unit b{background:var(--flash-green);color:white;font-size:15px;font-variant-numeric:tabular-nums;line-height:1;padding:5px 4px;border-radius:4px}
-.countdown-unit span{font-size:9px;font-weight:600}
+.flash-countdown{display:flex;align-items:center;gap:10px;padding:7px 12px;background:#f5f8f3;border:1px solid #dce9dc;border-radius:10px;color:var(--flash-green);box-shadow:inset 3px 0 0 var(--flash-orange)}
+.countdown-caption{align-self:stretch;display:flex;align-items:center;padding-right:11px;border-right:1px solid #d5e1d5;color:#486252;font-size:11px;font-weight:650;line-height:1.2;white-space:nowrap}
+.countdown-unit{position:relative;display:grid;grid-template-rows:auto auto;text-align:center;gap:1px;min-width:24px}
+.countdown-unit+.countdown-unit:before{content:":";position:absolute;left:-7px;top:1px;color:#8fa292;font-size:14px;font-weight:700;line-height:1}
+.countdown-unit b{color:var(--flash-green);font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1}
+.countdown-unit span{color:#718276;font-size:8px;font-weight:600;line-height:1.15}
 .flash-view-all{margin-left:auto;background:none;border:0;display:flex;align-items:center;gap:7px;color:var(--flash-green);font-size:13px;font-weight:700;white-space:nowrap;padding:8px 0;cursor:pointer}
 .flash-carousel{position:relative;min-width:0}
 .flash-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,calc((100% - 36px)/4));gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#c7ddc8 transparent;padding:0 2px 6px;margin:0 -2px}
@@ -47,7 +48,7 @@
 .flash-photo>a{display:block;height:100%}
 .flash-photo img{height:100%;width:100%;object-fit:cover}
 .flash-badges{position:absolute;top:10px;left:10px;display:grid;justify-items:start;gap:5px;pointer-events:none}
-.flash-discount{padding:3px 10px;border-radius:18px;background:#2f873a;color:#fff;font-size:18px;font-weight:800;line-height:1.3}
+.flash-discount{padding:3px 8px;border-radius:18px;background:var(--flash-orange);color:#fff;font-size:14px;font-weight:800;line-height:1.3}
 .flash-tag{padding:3px 8px;border-radius:10px;background:var(--flash-orange);color:#fff;font-size:10px;font-weight:800;line-height:1.3}
 .flash-favorite{position:absolute;top:10px;right:10px;z-index:2}
 .flash-body{padding:9px 10px 10px;display:flex;flex:1;flex-direction:column;align-items:flex-start}
@@ -70,7 +71,7 @@
 .flash-controls button{pointer-events:auto;border:1px solid #ecf1ec;border-radius:50%;width:36px;height:36px;background:#fff;color:var(--flash-green);box-shadow:0 4px 10px #183d201a;cursor:pointer}
 .flash-sale :is(a,button):focus-visible,.flash-track:focus-visible{outline:3px solid #2f873a;outline-offset:3px}
 @media(min-width:1200px){.flash-carousel.few-offers .flash-controls{display:none}}
-@media(max-width:700px){.flash-sale{padding:12px;border-radius:16px}.flash-header{gap:10px;margin-bottom:12px}.flash-header h3{font-size:20px}.flash-countdown{order:3}.flash-track{grid-auto-columns:74%;gap:10px}.flash-track.expanded{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.flash-photo{height:140px}.flash-prices strong{font-size:18px}.flash-controls{left:-10px;right:-10px}}
+@media(max-width:700px){.flash-sale{padding:12px;border-radius:16px}.flash-header{gap:10px;margin-bottom:12px}.flash-countdown{order:3;width:100%;box-sizing:border-box;justify-content:center}.flash-track{grid-auto-columns:74%;gap:10px}.flash-track.expanded{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.flash-photo{height:140px}.flash-prices strong{font-size:18px}.flash-controls{left:-10px;right:-10px}}
 @media(prefers-reduced-motion:reduce){.skeleton{animation:none}.flash-track{scroll-behavior:auto}}
 .coupon-quantity{font-size:.7rem;line-height:1.5;margin:.15rem 0;color:#27643c;font-weight:600}
 .coupon-save-error{padding:10px 12px;border-radius:8px;background:#fff0eb;color:#a83218;font-size:12px}

@@ -25,7 +25,7 @@
           <label><input type="radio" name="offerType" value="all" [checked]="selectedOfferType==='all'" (change)="setOfferType('all')">Tất cả</label>
           <label *ngFor="let item of offerGroups">
             <input type="radio" name="offerType" [value]="item.id" [checked]="selectedOfferType===item.id" (change)="setOfferType(item.id)">
-            <i class="bi" [ngClass]="item.icon"></i>{{ item.label }}
+            {{ item.label }}
           </label>
         </section>
       </aside>
@@ -47,7 +47,7 @@
 
         <nav class="tabs section-tabs" aria-label="Danh mục khuyến mãi">
           <a *ngFor="let tab of tabs" [routerLink]="['/promotions', tab.route]" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            <i class="bi" [ngClass]="tab.icon"></i>{{ tab.label }}
+            {{ tab.label }}
           </a>
         </nav>
         <div class="search"><i class="bi bi-search"></i><input [(ngModel)]="query" (input)="applyFilters()" placeholder="Tìm ưu đãi, dịch vụ, điểm đến..."></div>
@@ -56,12 +56,11 @@
         <div class="state" *ngIf="loadError && !loading"><i class="bi bi-wifi-off"></i><h2>Chưa thể tải ưu đãi</h2><p>Vui lòng thử lại sau.</p><button (click)="loadOffers(true)">Thử lại</button></div>
 
         <div #results class="promo-results" *ngIf="!loading && !loadError">
-          <h2 class="category-title"><i class="bi" [ngClass]="activeTabInfo.icon"></i>{{ activeTabInfo.label }}</h2>
           <div class="state" *ngIf="!sectionHasOffers"><i class="bi bi-gift"></i><h2>Chưa có ưu đãi phù hợp</h2><p>Hãy thử điều chỉnh bộ lọc.</p></div>
           <section *ngFor="let group of offerGroups" class="offer-group" [class.flash-sale]="group.id==='flash'" [attr.data-offer-group]="group.id">
             <ng-container *ngIf="group.id==='flash'; else standardGroup">
               <header class="flash-header">
-                <h3><i class="bi bi-lightning-fill" aria-hidden="true"></i> Flash Sale</h3>
+                <h3>Flash Sale</h3>
                 <div class="flash-countdown" *ngIf="flashOffers.length" role="timer" aria-label="Thời gian đến ưu đãi kết thúc gần nhất">
                   <span class="countdown-caption">Kết thúc sau:</span>
                   <div class="countdown-unit" *ngFor="let unit of flashCountdown"><b>{{ unit.value }}</b><span>{{ unit.label }}</span></div>
@@ -73,8 +72,8 @@
                 <div #flashTrack class="flash-track" [class.expanded]="flashExpanded" tabindex="0" aria-label="Danh sách Flash Sale, cuộn ngang để xem thêm">
                   <article class="flash-card" *ngFor="let offer of flashOffers">
                     <div class="flash-photo">
-                      <a [routerLink]="['/services', offer.category==='stay' ? 'stay' : offer.category==='transport' ? 'transport' : 'attraction', offer.service.id]" [queryParams]="{flashSale: campaignKey(offer)}" tabindex="-1" aria-hidden="true"><img [src]="offer.service.image || 'image/Viet Nam.png'" [alt]="offer.service.name" loading="lazy"></a>
-                      <div class="flash-badges"><span class="flash-discount">-{{ offer.discountPercent }}%</span><span class="flash-tag">Flash Sale</span></div>
+                      <a [routerLink]="['/services', offer.category==='stay' ? 'stay' : offer.category==='transport' ? 'transport' : 'attraction', offer.service.id]" [queryParams]="{flashSale: campaignKey(offer)}" tabindex="-1" aria-hidden="true"><img [src]="offer.service.image || fallbackImage" [style.object-position]="offer.category === 'transport' ? 'center 80%' : 'center'" (error)="imageFallback($event)" [alt]="offer.service.name" loading="lazy"></a>
+                      <div class="flash-badges"><span class="flash-discount">-{{ offer.discountPercent }}%</span></div>
                       <app-favorite-button class="flash-favorite" targetType="service" [targetId]="offer.service.id" [label]="offer.service.name" />
                     </div>
                     <div class="flash-body">
@@ -94,7 +93,7 @@
               </div>
             </ng-container>
             <ng-template #standardGroup>
-            <div class="offer-group-heading"><h3><i class="bi" [ngClass]="group.icon"></i>{{ group.label }}</h3><a *ngIf="group.id==='coupon'" routerLink="/profile" [queryParams]="{section:'promotions'}">Mã giảm giá của tôi</a><span>{{ sectionOffers(group.id).length }} ưu đãi</span></div>
+            <div class="offer-group-heading"><h3>{{ group.label }}</h3><a *ngIf="group.id==='coupon'" routerLink="/profile" [queryParams]="{section:'promotions'}">Mã giảm giá của tôi</a><span>{{ sectionOffers(group.id).length }} ưu đãi</span></div>
             <p class="coupon-save-error" *ngIf="group.id==='coupon' && claimError" role="alert">{{ claimError }}</p>
             <p class="coupon-save-success" *ngIf="group.id==='coupon' && claimSuccess" role="status">{{ claimSuccess }} <a routerLink="/profile" [queryParams]="{section:'promotions'}">Xem mã đã lưu</a></p>
             <div class="grid" *ngIf="sectionOffers(group.id).length">
@@ -108,7 +107,7 @@
                   </div>
                 </ng-container>
                 <ng-template #serviceOffer>
-                  <div class="photo"><img [src]="offer.service.image || 'image/Viet Nam.png'" [alt]="offer.service.name"><span class="discount">-{{ offer.discountPercent }}%</span><span class="kind">Flash Sale</span><app-favorite-button style="position:absolute;top:12px;right:12px;z-index:3" targetType="service" [targetId]="offer.service.id" [label]="offer.service.name" /></div>
+                  <div class="photo"><img [src]="offer.service.image || fallbackImage" [style.object-position]="offer.category === 'transport' ? 'center 80%' : 'center'" (error)="imageFallback($event)" [alt]="offer.service.name"><span class="discount">-{{ offer.discountPercent }}%</span><span class="kind">Flash Sale</span><app-favorite-button style="position:absolute;top:12px;right:12px;z-index:3" targetType="service" [targetId]="offer.service.id" [label]="offer.service.name" /></div>
                   <div class="card-body"><span class="recommend">Dành cho bạn</span><h2>{{ offer.service.name }}</h2><p><i class="bi bi-geo-alt"></i> {{ offer.service.destination || 'Việt Nam' }}</p><div class="prices"><del>{{ money(offer.service.cost) }}</del><strong>{{ money(offer.salePrice) }}</strong></div><small *ngIf="offer.min_order">Đơn tối thiểu {{ money(offer.min_order) }}</small></div>
                 </ng-template>
               </article>
