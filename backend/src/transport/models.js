@@ -83,7 +83,7 @@ async function transaction(fn) {
  const hello = await store.db.admin().command({ hello: 1 });
  if (!hello.setName && hello.msg !== 'isdbgrid') throw fail('MongoDB cần replica set để đặt dịch vụ an toàn.', 503);
  const session = store.client.startSession();
- try { return await session.withTransaction(() => fn(session), { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } }); }
+ try { return await session.withTransaction(() => fn(session), { readPreference: 'primary', readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } }); }
  finally { await session.endSession(); }
 }
 module.exports = { store, col, names, props, required, fail, id, num, integer, date, interval, active, init, validate, emissions, rentalPrice, transaction };

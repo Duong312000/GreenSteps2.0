@@ -393,7 +393,7 @@ class MongoStore {
         try { if (session.inTransaction()) await session.abortTransaction(); } finally { this.finished = true; await session.endSession(); }
       }
     };
-    session.startTransaction({ readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
+    session.startTransaction({ readPreference: 'primary', readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
     if (!callback) return tx;
     // Existing controllers may hold record instances and send email in callbacks.
     // Do not replay those side effects after a transient write conflict.
