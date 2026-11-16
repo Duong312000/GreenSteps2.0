@@ -264,7 +264,9 @@ export class ApiService {
         deposit_deadline: iti.deposit_deadline || null,
         start_date: iti.start_date || null,
         end_date: iti.end_date || null,
-        companion_email: iti.companion_email || null
+        companion_email: iti.companion_email || null,
+        imageUrl: iti.imageUrl || iti.image_url || null,
+        dest: iti.dest || null
       }));
       this.setCachedData(cacheKey, data);
       return data;

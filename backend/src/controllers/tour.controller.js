@@ -318,7 +318,7 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
         days: days,
         discount: 0,
         carbon: computedCarbon,
-        image_url: imageUrl || image_url || 'image/Viet Nam.png',
+        image_url: (imageUrl && imageUrl !== 'image/Viet Nam.png') ? imageUrl : (image_url && image_url !== 'image/Viet Nam.png' ? image_url : null),
         tour_description: `Hành trình tự thiết kế đi ${destination}`
       }, { transaction: t });
 

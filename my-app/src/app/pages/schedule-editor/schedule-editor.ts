@@ -391,14 +391,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         const guestIds: string[] = JSON.parse(localStorage.getItem('greensteps_guest_itinerary_ids') || '[]');
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && k.startsWith('greensteps_guest_draft_')) {
-            const id = k.replace('greensteps_guest_draft_', '');
+          if (k && (k.startsWith('greensteps_guest_draft_') || k.startsWith('greensteps_user_draft_') || k.startsWith('greensteps_draft_'))) {
+            const id = k.replace('greensteps_guest_draft_', '').replace('greensteps_user_draft_', '').replace('greensteps_draft_', '');
             if (!guestIds.includes(id)) guestIds.push(id);
           }
         }
 
         for (const gid of guestIds) {
-          const raw = localStorage.getItem(`greensteps_guest_draft_${gid}`);
+          const raw = localStorage.getItem(`greensteps_user_draft_${gid}`) || localStorage.getItem(`greensteps_guest_draft_${gid}`) || localStorage.getItem(`greensteps_draft_${gid}`);
           if (raw) {
             try {
               const parsed = JSON.parse(raw);
@@ -422,7 +422,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
                 days: (parsed.days && parsed.days.length) ? parsed.days.length : 3,
                 totalCost: totalCost,
                 totalCarbon: totalCarbon,
-                status: 'draft',
+                status: parsed.status || 'draft',
                 isGuestDraft: true,
                 isTourBooking: false,
                 daysData: parsed.days
@@ -462,18 +462,32 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             status: b.status === 'deposit' ? 'deposited' : b.status,
             bookingDate: b.booking_date || b.date,
             isTourBooking: true,
+            imageUrl: b.image_url || b.imageUrl || b.image || null,
             bookingStatusText: b.status === 'confirmed' ? 'Đã xác nhận' : (b.status === 'deposit' ? 'Đã đặt cọc' : (b.status === 'completed' ? 'Đã hoàn thành' : 'Đang chuẩn bị'))
           };
         });
 
       // Merge: customs (user remote), guestDrafts (local device), depositedToursMapped
-      const allItis = [...customs];
+      // Enrich customs with any local draft imageUrl overrides
+      const enrichedCustoms = (customs || []).map((c: any) => {
+        const rawLocal = localStorage.getItem(`greensteps_user_draft_${c.id}`) || localStorage.getItem(`greensteps_guest_draft_${c.id}`) || localStorage.getItem(`greensteps_draft_${c.id}`);
+        if (rawLocal) {
+          try {
+            const parsed = JSON.parse(rawLocal);
+            if (parsed.imageUrl || parsed.image_url) {
+              return { ...c, imageUrl: parsed.imageUrl || parsed.image_url };
+            }
+          } catch (e) {}
+        }
+        return c;
+      });
+
+      const allItis = [...enrichedCustoms];
       for (const gd of guestDrafts) {
         if (!allItis.some(x => x.id === gd.id)) {
           allItis.push(gd);
         }
       }
-
       this.savedItineraries = [...allItis, ...depositedToursMapped];
       this.applySearchOrFilter();
     } catch (e) {
@@ -5976,8 +5990,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public getUnifiedCoverImage(iti?: any): string {
     const target = iti || this.activeItinerary;
     if (!target) return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
-    if (target.imageUrl || target.image_url) return target.imageUrl || target.image_url;
 
+    // 1. If custom uploaded image (Base64 data or uploaded URL)
+    const img = target.imageUrl || target.image_url;
+    if (img && typeof img === 'string') {
+      const trimmed = img.trim();
+      if (trimmed !== '' && trimmed !== 'image/Viet Nam.png' && !trimmed.endsWith('/Viet Nam.png') && trimmed !== 'undefined' && trimmed !== 'null') {
+        return trimmed;
+      }
+    }
+
+    // 2. Otherwise normalize destination name / title / destSlug
     const rawText = `${target.dest || ''} ${target.destLabel || ''} ${target.destination || ''} ${target.title || ''} ${target.name || ''}`;
     const norm = this.stripVietnameseAccents(rawText);
 
@@ -6008,7 +6031,18 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         const uploadRes = await this.apiService.uploadImageBase64(base64Data, 'post');
         if (uploadRes && uploadRes.success && uploadRes.url) {
           this.activeItinerary.imageUrl = uploadRes.url;
+          try {
+            localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+            localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          } catch(e) {}
+          if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
+            const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
+            if (found) {
+              found.imageUrl = uploadRes.url;
+            }
+          }
           await this.saveItineraryToDb();
+          this.showAlert('Đã cập nhật và đồng bộ ảnh bìa lịch trình!', 'success');
           this.cdr.detectChanges();
         } else {
           this.showAlert('Tải ảnh bìa lên thất bại!', 'error');
