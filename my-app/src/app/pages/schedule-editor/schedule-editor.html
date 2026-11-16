@@ -388,9 +388,6 @@
         <div class="active-day-header">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <h3 id="activeDayTitle" style="margin: 0;">{{ activeItinerary.days[activeDayIdx]?.title }}</h3>
-                <button type="button" class="btn-add-day-header" *ngIf="!isItineraryLocked()" (click)="addDayToItinerary()" title="Thêm một ngày mới vào lịch trình">
-                    <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
-                </button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -419,6 +416,74 @@
                 <button type="button" class="btn-conflict-tool primary" (click)="autoAdjustIllogicalTimes()" title="Tự động tính lại mốc giờ chuẩn dựa trên thời gian tham quan và di chuyển">
                     <i class="bi bi-magic"></i> Căn lại mốc giờ chuẩn
                 </button>
+            </div>
+        </div>
+
+        <!-- Departure Transit Card: Chặng xuất phát từ nhà đến điểm đến (Ngày 1) -->
+        <div class="departure-transit-card" *ngIf="activeDayIdx === 0">
+            <div class="departure-card-header">
+                <div class="departure-card-route">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>Chặng xuất phát: <strong>{{ activeItinerary.origin || 'TP. Hồ Chí Minh' }}</strong> <i class="bi bi-arrow-right"></i> <strong>{{ activeItinerary.destLabel || activeItinerary.destination || 'Điểm đến' }}</strong></span>
+                </div>
+                <button type="button" class="btn-select-departure" *ngIf="!activeItinerary.departureTransport && !isItineraryLocked()" (click)="openDepartureTransportModal()">
+                    <i class="bi bi-plus-lg"></i> <span>Đặt vé xuất phát (Máy bay / Xe khách)</span>
+                </button>
+            </div>
+            <!-- When departure transport is selected -->
+            <div class="departure-card-body" *ngIf="activeItinerary.departureTransport as dep">
+                <div class="dep-trans-details">
+                    <div class="dep-icon-box">
+                        <i [class]="getTransportIcon(dep.type)"></i>
+                    </div>
+                    <div class="dep-trans-main">
+                        <div class="dep-provider-line">
+                            <span class="dep-provider-name">{{ dep.provider }}</span>
+                            <span class="dep-name">• {{ dep.name }}</span>
+                            <span class="dep-code" *ngIf="dep.code">({{ dep.code }})</span>
+                        </div>
+                        <div class="dep-time-line">
+                            <span>Khởi hành: <strong>{{ dep.departureTime }}</strong></span>
+                            <span class="sep">•</span>
+                            <span>Đến: <strong>{{ dep.arrivalTime }}</strong></span>
+                            <span class="sep">•</span>
+                            <span class="eco-tag"><i class="bi bi-leaf"></i> Giảm {{ dep.carbonSaved }}kg CO₂</span>
+                        </div>
+                    </div>
+                    <div class="dep-price-area">
+                        <span class="dep-price">{{ (dep.price * guestCount) | number }}đ</span>
+                        <span class="dep-price-sub">({{ dep.price | number }}đ × {{ guestCount }} vé)</span>
+                    </div>
+                </div>
+                <div class="dep-actions" *ngIf="!isItineraryLocked()">
+                    <button type="button" class="btn-change-trans" (click)="openDepartureTransportModal()">Đổi</button>
+                    <button type="button" class="btn-remove-trans" (click)="removeDepartureTransport()" title="Hủy vé xuất phát"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Rental Bar (Thuê xe di chuyển trong ngày) -->
+        <div class="daily-rental-bar" *ngIf="!isItineraryLocked()">
+            <div *ngIf="!activeItinerary.days[activeDayIdx]?.vehicleRental" class="rental-prompt" (click)="openDailyRentalModal(activeDayIdx)">
+                <div class="rental-prompt-left">
+                    <i class="bi bi-bicycle"></i>
+                    <span>Thuê xe di chuyển cho {{ activeItinerary.days[activeDayIdx]?.title }}: <strong>Chưa đặt xe</strong></span>
+                </div>
+                <span class="rental-action-link">+ Chọn xe máy điện / ô tô đối tác <i class="bi bi-arrow-right"></i></span>
+            </div>
+            <div *ngIf="activeItinerary.days[activeDayIdx]?.vehicleRental as r" class="rental-active-pill">
+                <div class="rental-active-left">
+                    <i [class]="getTransportIcon(r.vehicleType)"></i>
+                    <div class="rental-active-info">
+                        <strong>{{ r.provider }}</strong> • {{ r.vehicleName }}
+                        <span class="rental-price-tag">{{ r.price | number }}đ/ngày</span>
+                        <span class="eco-tag"><i class="bi bi-leaf"></i> Giảm {{ r.carbonSaved }}kg CO₂</span>
+                    </div>
+                </div>
+                <div class="rental-active-actions">
+                    <button type="button" class="btn-change-rental" (click)="openDailyRentalModal(activeDayIdx)">Đổi</button>
+                    <button type="button" class="btn-remove-rental" (click)="removeDailyRental(activeDayIdx)" title="Hủy thuê xe"><i class="bi bi-x-lg"></i></button>
+                </div>
             </div>
         </div>
 
@@ -571,15 +636,48 @@
                     </div>
                 </div>
 
-                <!-- Organic Travel Transit note in Timeline (Subtle, desaturated) -->
-                <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
-                    (click)="openLegDirections(idx)"
-                    [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
-                    title="Nhấp để xem đường đi và lộ trình chặng này">
-                    <div class="travel-gap-badge">
-                        <i class="bi bi-geo-alt"></i>
-                        <span class="travel-gap-text">{{ getTravelGapText(idx) }}</span>
-                        <span class="travel-gap-cta">Xem đường đi <i class="bi bi-arrow-right"></i></span>
+                <!-- Organic Travel Transit note in Timeline with Real Partner Vehicle Booking -->
+                <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1">
+                    <!-- Case A: Leg Transport is booked -->
+                    <div class="travel-gap-booked-card" *ngIf="getLegTransport(activeDayIdx, idx) as legTrans">
+                        <div class="booked-trans-left">
+                            <div class="booked-icon-box">
+                                <i [class]="getTransportIcon(legTrans.vehicleType)"></i>
+                            </div>
+                            <div class="booked-trans-info">
+                                <div class="booked-trans-title">
+                                    <strong>{{ legTrans.provider }}</strong> • {{ legTrans.vehicleName }}
+                                </div>
+                                <div class="booked-trans-meta">
+                                    <span class="price-val">{{ legTrans.price | number }}đ</span>
+                                    <span class="sep">•</span>
+                                    <span>{{ legTrans.distanceKm }} km</span>
+                                    <span class="sep">•</span>
+                                    <span>Đón lúc {{ legTrans.pickupTime || '09:00' }}</span>
+                                    <span class="sep">•</span>
+                                    <span class="eco-tag"><i class="bi bi-leaf"></i> Giảm {{ legTrans.carbonSaved }}kg CO₂</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="booked-trans-actions" *ngIf="!isItineraryLocked()">
+                            <button type="button" class="btn-change-trans" (click)="openLegTransportModal(idx, $event)" title="Đổi phương tiện chặng này">Đổi xe</button>
+                            <button type="button" class="btn-remove-trans" (click)="removeLegTransport(activeDayIdx, idx, $event)" title="Hủy xe chặng này"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Case B: No Leg Transport booked yet -->
+                    <div class="travel-gap-row" *ngIf="!getLegTransport(activeDayIdx, idx)">
+                        <div class="travel-gap-badge" (click)="openLegDirections(idx)"
+                            [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
+                            title="Nhấp để xem đường đi và lộ trình chặng này">
+                            <i class="bi bi-geo-alt"></i>
+                            <span class="travel-gap-text">{{ getTravelGapText(idx) }}</span>
+                            <span class="travel-gap-cta">Xem đường đi <i class="bi bi-arrow-right"></i></span>
+                        </div>
+                        <button type="button" class="btn-book-leg-trans" *ngIf="!isItineraryLocked()"
+                            (click)="openLegTransportModal(idx, $event)" title="Đặt trước xe di chuyển cho chặng này">
+                            <i class="bi bi-car-front"></i> <span>Đặt xe chặng này</span>
+                        </button>
                     </div>
                 </div>
             </ng-container>
@@ -2104,6 +2202,120 @@
                     <i class="bi bi-messenger text-blue-500"></i> Copy Link Messenger
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     TRANSPORT SERVICE MODAL: ĐẶT TRƯỚC XE CHẶNG & PHƯƠNG TIỆN ĐỐI TÁC
+     ========================================================================= -->
+<div class="custom-modal-backdrop" *ngIf="isTransportModalOpen" (click)="closeTransportModal()" style="z-index: 5050;">
+    <div class="custom-modal-card transport-modal-card" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="transport-modal-header">
+            <div>
+                <div class="transport-modal-badge">
+                    <i class="bi bi-shield-check"></i> Đối tác vận tải chính thức GreenSteps
+                </div>
+                <h3 class="transport-modal-title" *ngIf="transportModalMode === 'leg'">
+                    Đặt trước xe chặng: {{ activeLegOriginName }} <i class="bi bi-arrow-right"></i> {{ activeLegDestName }}
+                </h3>
+                <h3 class="transport-modal-title" *ngIf="transportModalMode === 'departure'">
+                    Phương tiện xuất phát: {{ activeItinerary?.origin || 'TP. Hồ Chí Minh' }} <i class="bi bi-arrow-right"></i> {{ activeItinerary?.destLabel || activeItinerary?.destination }}
+                </h3>
+                <h3 class="transport-modal-title" *ngIf="transportModalMode === 'rental'">
+                    Thuê xe di chuyển trong ngày ({{ activeItinerary?.days[activeDayIdx]?.title }})
+                </h3>
+                <p class="transport-modal-sub" *ngIf="transportModalMode === 'leg'">
+                    Quãng đường khoảng {{ activeLegDistanceKm }} km • Giờ đón dự kiến {{ activeLegEstimatedTime }}
+                </p>
+                <p class="transport-modal-sub" *ngIf="transportModalMode === 'departure'">
+                    Chuyến bay & xe khách liên tỉnh đến điểm du lịch • Giá vé tính theo số khách ({{ guestCount }} người)
+                </p>
+                <p class="transport-modal-sub" *ngIf="transportModalMode === 'rental'">
+                    Nhận xe tại điểm lưu trú hoặc trung tâm • Tiết kiệm chi phí và chủ động lịch trình
+                </p>
+            </div>
+            <button type="button" class="modal-close-btn" (click)="closeTransportModal()" title="Đóng">&times;</button>
+        </div>
+
+        <!-- Tabs / Filters -->
+        <div class="transport-tabs-bar">
+            <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'all'" (click)="setTransportFilterTab('all')">
+                Tất cả
+            </button>
+            <ng-container *ngIf="transportModalMode === 'leg'">
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'taxi'" (click)="setTransportFilterTab('taxi')">
+                    <i class="bi bi-ev-front"></i> Taxi điện
+                </button>
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'bus'" (click)="setTransportFilterTab('bus')">
+                    <i class="bi bi-bus-front"></i> Xe buýt / Trung chuyển
+                </button>
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'bike'" (click)="setTransportFilterTab('bike')">
+                    <i class="bi bi-bicycle"></i> Xe ôm điện
+                </button>
+            </ng-container>
+            <ng-container *ngIf="transportModalMode === 'departure'">
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'flight'" (click)="setTransportFilterTab('flight')">
+                    <i class="bi bi-airplane"></i> Chuyến bay
+                </button>
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'coach'" (click)="setTransportFilterTab('coach')">
+                    <i class="bi bi-bus-front"></i> Xe Limousine
+                </button>
+            </ng-container>
+            <ng-container *ngIf="transportModalMode === 'rental'">
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'electric_motorbike'" (click)="setTransportFilterTab('electric_motorbike')">
+                    <i class="bi bi-bicycle"></i> Xe máy điện
+                </button>
+                <button type="button" class="trans-tab-btn" [class.active]="transportFilterTab === 'electric_car'" (click)="setTransportFilterTab('electric_car')">
+                    <i class="bi bi-ev-front"></i> Ô tô điện
+                </button>
+            </ng-container>
+        </div>
+
+        <!-- Vehicles List -->
+        <div class="transport-options-list">
+            <div class="transport-option-card" *ngFor="let opt of filteredTransportOptions">
+                <div class="opt-left">
+                    <div class="opt-icon-wrap">
+                        <i [class]="getTransportIcon(opt.vehicleType || opt.type)"></i>
+                    </div>
+                    <div class="opt-details">
+                        <div class="opt-title-line">
+                            <span class="opt-provider">{{ opt.provider }}</span>
+                            <span class="opt-vehicle">{{ opt.vehicleName || opt.name }}</span>
+                        </div>
+                        <div class="opt-desc">{{ opt.description || opt.baggage || opt.condition }}</div>
+                        <div class="opt-meta-tags">
+                            <span class="opt-tag" *ngIf="opt.capacity"><i class="bi bi-people"></i> {{ opt.capacity }} chỗ</span>
+                            <span class="opt-tag" *ngIf="opt.departureTime"><i class="bi bi-clock"></i> Khởi hành {{ opt.departureTime }}</span>
+                            <span class="opt-tag eco" *ngIf="opt.carbonSaved"><i class="bi bi-leaf"></i> Giảm {{ opt.carbonSaved }}kg CO₂</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="opt-right">
+                    <div class="opt-price-col">
+                        <span class="opt-price">{{ opt.price | number }}đ</span>
+                        <span class="opt-price-unit" *ngIf="transportModalMode === 'rental'">/ ngày</span>
+                        <span class="opt-price-unit" *ngIf="transportModalMode === 'departure'">/ vé</span>
+                        <span class="opt-price-unit" *ngIf="transportModalMode === 'leg'">/ chặng</span>
+                    </div>
+                    <button type="button" class="btn-choose-vehicle" (click)="confirmChooseTransport(opt)">
+                        <span>Đặt xe này</span> <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="empty-trans-state" *ngIf="filteredTransportOptions.length === 0">
+                <i class="bi bi-info-circle"></i>
+                <span>Không có phương tiện phù hợp với bộ lọc hiện tại.</span>
+            </div>
+        </div>
+
+        <!-- Footer notice -->
+        <div class="transport-modal-footer">
+            <i class="bi bi-info-circle"></i>
+            <span>Chi phí phương tiện được tích hợp tự động vào tổng chi phí lịch trình và thanh toán chung khi xác nhận tour.</span>
         </div>
     </div>
 </div>

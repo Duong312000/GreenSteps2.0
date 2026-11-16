@@ -5051,4 +5051,613 @@
   }
 }
 
+/* =========================================================================
+   REAL TRANSPORT SERVICE INTEGRATION & PARTNER VEHICLES
+   ========================================================================= */
+
+.departure-transit-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.departure-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.departure-card-route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1f2421;
+}
+
+.departure-card-route strong {
+  color: #111827;
+}
+
+.btn-select-departure {
+  background: transparent;
+  border: 1px dashed #184a37;
+  color: #184a37;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-select-departure:hover {
+  background: #f0fdf4;
+  border-style: solid;
+}
+
+.departure-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dep-trans-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dep-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e6f4ea;
+  color: #184a37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.dep-provider-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.dep-provider-name {
+  font-weight: 700;
+  color: #184a37;
+}
+
+.dep-name {
+  font-weight: 600;
+  color: #1f2421;
+}
+
+.dep-code {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.dep-time-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+  margin-top: 2px;
+}
+
+.dep-price-area {
+  text-align: right;
+}
+
+.dep-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2421;
+}
+
+.dep-price-sub {
+  font-size: 11px;
+  color: #6b7280;
+  display: block;
+}
+
+.dep-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eco-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #184a37;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.sep {
+  color: #d1d5db;
+  margin: 0 2px;
+}
+
+.btn-change-trans {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.15s ease;
+}
+
+.btn-change-trans:hover {
+  border-color: #184a37;
+  color: #184a37;
+}
+
+.btn-remove-trans {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.btn-remove-trans:hover {
+  color: #374151;
+}
+
+/* Daily Rental Bar */
+.daily-rental-bar {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.rental-prompt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: #4b5563;
+  gap: 12px;
+}
+
+.rental-prompt-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rental-prompt-left i {
+  color: #184a37;
+  font-size: 16px;
+}
+
+.rental-action-link {
+  font-weight: 600;
+  color: #184a37;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rental-active-pill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.rental-active-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #1f2421;
+}
+
+.rental-active-left i {
+  color: #184a37;
+  font-size: 18px;
+}
+
+.rental-active-info strong {
+  color: #184a37;
+}
+
+.rental-price-tag {
+  font-weight: 700;
+  color: #1f2421;
+  margin: 0 6px;
+}
+
+.rental-active-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-change-rental {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+}
+
+.btn-remove-rental {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Leg Transport on Timeline */
+.travel-gap-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-book-leg-trans {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #184a37;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-book-leg-trans:hover {
+  background: #f9fafb;
+  border-color: #184a37;
+}
+
+.travel-gap-booked-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #184a37;
+  border-radius: 8px;
+  padding: 8px 14px;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  gap: 12px;
+}
+
+.booked-trans-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.booked-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #184a37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.booked-trans-title {
+  font-size: 13px;
+  color: #1f2421;
+}
+
+.booked-trans-title strong {
+  color: #184a37;
+}
+
+.booked-trans-meta {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.booked-trans-meta .price-val {
+  font-weight: 700;
+  color: #1f2421;
+}
+
+.booked-trans-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Modal Styling */
+.transport-modal-card {
+  max-width: 660px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+}
+
+.transport-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.transport-modal-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #184a37;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.transport-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.transport-modal-sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.transport-tabs-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.trans-tab-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.trans-tab-btn.active {
+  background: #184a37;
+  border-color: #184a37;
+  color: #ffffff;
+}
+
+.transport-options-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  max-height: 420px;
+}
+
+.transport-option-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: border-color 0.15s ease;
+  gap: 14px;
+}
+
+.transport-option-card:hover {
+  border-color: #184a37;
+}
+
+.opt-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.opt-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #184a37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.opt-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.opt-provider {
+  font-weight: 700;
+  font-size: 13px;
+  color: #184a37;
+}
+
+.opt-vehicle {
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+}
+
+.opt-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.opt-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.opt-tag {
+  color: #4b5563;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f9fafb;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.opt-tag.eco {
+  color: #184a37;
+  background: #ecfdf5;
+  font-weight: 600;
+}
+
+.opt-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.opt-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.opt-price-unit {
+  font-size: 11px;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+.btn-choose-vehicle {
+  background: #184a37;
+  color: #ffffff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-choose-vehicle:hover {
+  background: #143d2d;
+}
+
+.empty-trans-state {
+  text-align: center;
+  padding: 30px;
+  color: #6b7280;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.transport-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  margin-top: 12px;
+}
+
 

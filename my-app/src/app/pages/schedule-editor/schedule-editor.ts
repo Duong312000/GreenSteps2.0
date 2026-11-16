@@ -137,6 +137,17 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public budgetProgressPct: number = 0;
   public carbonProgressPct: number = 0;
 
+  // Transport Booking Integration Properties
+  public isTransportModalOpen: boolean = false;
+  public transportModalMode: 'leg' | 'departure' | 'rental' = 'leg';
+  public activeLegBookingIdx: number | null = null;
+  public activeLegOriginName: string = '';
+  public activeLegDestName: string = '';
+  public activeLegDistanceKm: number = 0;
+  public activeLegEstimatedTime: string = '09:00';
+  public transportFilterTab: string = 'all';
+  public availableTransportOptions: any[] = [];
+
   // Resizer Panel properties
   public sidebarWidth: number = 290;
   public mapWidthPct: number = 42;
@@ -2462,11 +2473,29 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     let carbonSum = 0;
 
     this.activeItinerary.days.forEach((day: any) => {
-      day.activities.forEach((act: any) => {
-        totalBudget += act.cost;
-        carbonSum += act.carbon;
+      (day.activities || []).forEach((act: any) => {
+        totalBudget += (Number(act.cost) || 0);
+        carbonSum += (Number(act.carbon) || 0);
       });
+      // Leg transports in this day
+      if (day.legTransports) {
+        Object.values(day.legTransports).forEach((lt: any) => {
+          totalBudget += (Number(lt.price) || 0);
+          carbonSum += (Number(lt.carbonSaved) || Number(lt.carbon) || 0);
+        });
+      }
+      // Daily vehicle rental
+      if (day.vehicleRental) {
+        totalBudget += (Number(day.vehicleRental.price) || 0);
+        carbonSum += (Number(day.vehicleRental.carbonSaved) || 0);
+      }
     });
+
+    // Departure transport (flight / coach)
+    if (this.activeItinerary.departureTransport) {
+      totalBudget += (Number(this.activeItinerary.departureTransport.price) || 0) * (Number(this.guestCount) || 1);
+      carbonSum += (Number(this.activeItinerary.departureTransport.carbonSaved) || 0);
+    }
 
     this.totalCost = totalBudget;
     this.totalCarbon = Math.round(carbonSum * 10) / 10;
@@ -4339,6 +4368,33 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.isCheckoutModalOpen = true;
     this.isItineraryPay = isItinerary;
     this.checkoutItems = [];
+
+    if (this.activeItinerary && this.activeItinerary.days) {
+      this.activeItinerary.days.forEach((day: any) => {
+        (day.activities || []).forEach((act: any) => {
+          if (act.cost > 0) {
+            this.checkoutItems.push({ title: `${day.title}: ${act.title}`, cost: act.cost });
+          }
+        });
+        if (day.legTransports) {
+          Object.values(day.legTransports).forEach((lt: any) => {
+            if (lt && lt.price) {
+              this.checkoutItems.push({ title: `${day.title}: Xe chặng (${lt.provider} - ${lt.vehicleName})`, cost: lt.price });
+            }
+          });
+        }
+        if (day.vehicleRental && day.vehicleRental.price) {
+          this.checkoutItems.push({ title: `${day.title}: Thuê xe (${day.vehicleRental.provider} - ${day.vehicleRental.vehicleName})`, cost: day.vehicleRental.price });
+        }
+      });
+    }
+
+    if (this.activeItinerary && this.activeItinerary.departureTransport && this.activeItinerary.departureTransport.price) {
+      const dt = this.activeItinerary.departureTransport;
+      const count = this.guestCount || 1;
+      this.checkoutItems.push({ title: `Vé xuất phát: ${dt.provider} (${dt.name}) x ${count} vé`, cost: dt.price * count });
+    }
+
     this.checkoutTotal = this.itineraryTotalCost || this.totalCost;
     if (!this.currentUser) {
       this.checkoutPaymentMethod = 'qr';
@@ -4400,6 +4456,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         }
       });
     }
+    // Departure transport per person
+    if (this.activeItinerary && this.activeItinerary.departureTransport && this.activeItinerary.departureTransport.price) {
+      cost += Number(this.activeItinerary.departureTransport.price) || 0;
+    }
     return cost;
   }
 
@@ -4415,6 +4475,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             }
           });
         }
+        // Leg transports in this day (flat cost per vehicle)
+        if (day.legTransports) {
+          Object.values(day.legTransports).forEach((lt: any) => {
+            if (lt && lt.price) cost += Number(lt.price) || 0;
+          });
+        }
+        // Daily vehicle rental
+        if (day.vehicleRental && day.vehicleRental.price) {
+          cost += Number(day.vehicleRental.price) || 0;
+        }
       });
     }
     return cost;
@@ -4429,6 +4499,352 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const isShared = act.is_shared === true || act.isShared === true || act.type === 'lodging';
     act.is_shared = !isShared;
     this.saveItineraryToDb();
+  }
+
+  // =========================================================================
+  // REAL TRANSPORT SERVICE INTEGRATION (Đối tác vận tải GreenSteps)
+  // =========================================================================
+
+  public getLegTransport(dayIdx: number, legIdx: number): any {
+    if (!this.activeItinerary || !this.activeItinerary.days || !this.activeItinerary.days[dayIdx]) return null;
+    const day = this.activeItinerary.days[dayIdx];
+    return day.legTransports ? (day.legTransports[legIdx] || null) : null;
+  }
+
+  public getLegDistanceKm(dayIdx: number, idx: number): number {
+    if (!this.activeItinerary) return 5;
+    const activeDay = this.activeItinerary.days[dayIdx];
+    if (!activeDay || !activeDay.activities || idx >= activeDay.activities.length - 1) return 5;
+    if (this.routeLegs && this.routeLegs[idx] && this.routeLegs[idx].distanceKm) {
+      return Number(this.routeLegs[idx].distanceKm) || 5;
+    }
+    const act1 = activeDay.activities[idx];
+    const act2 = activeDay.activities[idx + 1];
+    if (typeof act1?.lat === 'number' && typeof act1?.lng === 'number' && typeof act2?.lat === 'number' && typeof act2?.lng === 'number') {
+      const R = 6371;
+      const dLat = (act2.lat - act1.lat) * Math.PI / 180;
+      const dLng = (act2.lng - act1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(act1.lat * Math.PI / 180) * Math.cos(act2.lat * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.max(1, Math.round(R * c * 10) / 10);
+    }
+    return 5;
+  }
+
+  public openLegTransportModal(legIdx: number, event?: Event) {
+    if (event) event.stopPropagation();
+    if (!this.activeItinerary) return;
+    this.transportModalMode = 'leg';
+    this.activeLegBookingIdx = legIdx;
+    const activeDay = this.activeItinerary.days[this.activeDayIdx];
+    const act1 = activeDay?.activities?.[legIdx];
+    const act2 = activeDay?.activities?.[legIdx + 1];
+    this.activeLegOriginName = act1?.title || 'Điểm đón';
+    this.activeLegDestName = act2?.title || 'Điểm đến';
+    this.activeLegDistanceKm = this.getLegDistanceKm(this.activeDayIdx, legIdx);
+    const startM = this.timeToMinutes(act1?.time || '08:00');
+    const dwellM = this.getDwellMinutesForType(act1?.type || 'attraction');
+    this.activeLegEstimatedTime = this.minutesToTime(startM + dwellM);
+    this.transportFilterTab = 'all';
+    this.loadAvailableLegTransports();
+    this.isTransportModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  public openDepartureTransportModal() {
+    if (!this.activeItinerary) return;
+    this.transportModalMode = 'departure';
+    this.activeLegBookingIdx = null;
+    this.transportFilterTab = 'all';
+    this.loadAvailableDepartureTransports();
+    this.isTransportModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  public openDailyRentalModal(dayIdx: number) {
+    if (!this.activeItinerary) return;
+    this.transportModalMode = 'rental';
+    this.activeDayIdx = dayIdx;
+    this.transportFilterTab = 'all';
+    this.loadAvailableRentalTransports();
+    this.isTransportModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  public closeTransportModal() {
+    this.isTransportModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public setTransportFilterTab(tab: string) {
+    this.transportFilterTab = tab;
+  }
+
+  public get filteredTransportOptions(): any[] {
+    if (!this.availableTransportOptions) return [];
+    if (this.transportFilterTab === 'all') return this.availableTransportOptions;
+    return this.availableTransportOptions.filter(opt => {
+      if (opt.category === this.transportFilterTab || opt.vehicleType === this.transportFilterTab || opt.type === this.transportFilterTab) return true;
+      return false;
+    });
+  }
+
+  public confirmChooseTransport(opt: any) {
+    if (this.transportModalMode === 'leg') {
+      this.selectLegTransport(opt);
+    } else if (this.transportModalMode === 'departure') {
+      this.selectDepartureTransport(opt);
+    } else if (this.transportModalMode === 'rental') {
+      this.selectDailyRental(opt);
+    }
+  }
+
+  public selectLegTransport(option: any) {
+    if (!this.activeItinerary || this.activeLegBookingIdx === null) return;
+    const day = this.activeItinerary.days[this.activeDayIdx];
+    if (!day) return;
+    if (!day.legTransports) day.legTransports = {};
+    day.legTransports[this.activeLegBookingIdx] = {
+      ...option,
+      legIdx: this.activeLegBookingIdx,
+      distanceKm: this.activeLegDistanceKm,
+      pickupTime: this.activeLegEstimatedTime,
+      bookedAt: new Date().toISOString()
+    };
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.closeTransportModal();
+    this.showAlert(`Đã đặt trước xe "${option.vehicleName}" (${option.provider}) cho chặng di chuyển!`, 'success');
+    this.cdr.detectChanges();
+  }
+
+  public removeLegTransport(dayIdx: number, legIdx: number, event?: Event) {
+    if (event) event.stopPropagation();
+    if (!this.activeItinerary || !this.activeItinerary.days || !this.activeItinerary.days[dayIdx]) return;
+    const day = this.activeItinerary.days[dayIdx];
+    if (day.legTransports && day.legTransports[legIdx]) {
+      delete day.legTransports[legIdx];
+      this.recalculateMetrics();
+      this.saveItineraryToDb();
+      this.showAlert('Đã hủy đặt xe cho chặng này.', 'info');
+      this.cdr.detectChanges();
+    }
+  }
+
+  public selectDepartureTransport(option: any) {
+    if (!this.activeItinerary) return;
+    this.activeItinerary.departureTransport = {
+      ...option,
+      bookedAt: new Date().toISOString()
+    };
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.closeTransportModal();
+    this.showAlert(`Đã chọn vé xuất phát "${option.provider} - ${option.name}"!`, 'success');
+    this.cdr.detectChanges();
+  }
+
+  public removeDepartureTransport() {
+    if (!this.activeItinerary) return;
+    delete this.activeItinerary.departureTransport;
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.showAlert('Đã gỡ vé phương tiện xuất phát.', 'info');
+    this.cdr.detectChanges();
+  }
+
+  public selectDailyRental(option: any) {
+    if (!this.activeItinerary) return;
+    const day = this.activeItinerary.days[this.activeDayIdx];
+    if (!day) return;
+    day.vehicleRental = {
+      ...option,
+      bookedAt: new Date().toISOString()
+    };
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.closeTransportModal();
+    this.showAlert(`Đã đặt thuê "${option.vehicleName}" cho ${day.title}!`, 'success');
+    this.cdr.detectChanges();
+  }
+
+  public removeDailyRental(dayIdx: number) {
+    if (!this.activeItinerary || !this.activeItinerary.days || !this.activeItinerary.days[dayIdx]) return;
+    const day = this.activeItinerary.days[dayIdx];
+    delete day.vehicleRental;
+    this.recalculateMetrics();
+    this.saveItineraryToDb();
+    this.showAlert('Đã hủy thuê xe cho ngày này.', 'info');
+    this.cdr.detectChanges();
+  }
+
+  public getTransportIcon(type: string): string {
+    switch (type) {
+      case 'flight':
+        return 'bi bi-airplane';
+      case 'coach':
+      case 'bus':
+        return 'bi bi-bus-front';
+      case 'electric_car':
+      case 'taxi':
+      case 'car':
+        return 'bi bi-ev-front';
+      case 'electric_motorbike':
+      case 'bike':
+      case 'motorbike':
+      case 'bicycle':
+        return 'bi bi-bicycle';
+      default:
+        return 'bi bi-car-front';
+    }
+  }
+
+  private loadAvailableLegTransports() {
+    const km = Math.max(1, this.activeLegDistanceKm);
+    const taxi4Price = Math.max(35000, Math.round(km * 12500 / 1000) * 1000);
+    const taxi7Price = Math.max(50000, Math.round(km * 15500 / 1000) * 1000);
+    const bikePrice = Math.max(18000, Math.round(km * 5500 / 1000) * 1000);
+
+    this.availableTransportOptions = [
+      {
+        provider: 'Xanh SM Taxi',
+        vehicleName: 'VinFast VF e34 (Sedan 4 chỗ)',
+        vehicleType: 'electric_car',
+        category: 'taxi',
+        capacity: 4,
+        price: taxi4Price,
+        carbonSaved: Math.round(km * 0.12 * 10) / 10,
+        description: 'Đón tận nơi đúng giờ, xe điện không phát thải, không mùi xăng dầu.'
+      },
+      {
+        provider: 'Xanh SM Luxury',
+        vehicleName: 'VinFast VF 8 (SUV 7 chỗ VIP)',
+        vehicleType: 'electric_car',
+        category: 'taxi',
+        capacity: 7,
+        price: taxi7Price,
+        carbonSaved: Math.round(km * 0.15 * 10) / 10,
+        description: 'Khoang xe rộng rãi, chứa được nhiều hành lý, di chuyển êm ái cao cấp.'
+      },
+      {
+        provider: 'Suối Ngọc Move',
+        vehicleName: 'Xe buýt trung chuyển sinh thái',
+        vehicleType: 'bus',
+        category: 'bus',
+        capacity: 16,
+        price: 35000,
+        carbonSaved: Math.round(km * 0.18 * 10) / 10,
+        description: 'Tuyến buýt kết nối các điểm du lịch trọng điểm, đón tại trạm gần nhất.'
+      },
+      {
+        provider: 'Xanh SM Bike',
+        vehicleName: 'Xe ôm điện VinFast Feliz S',
+        vehicleType: 'electric_motorbike',
+        category: 'bike',
+        capacity: 1,
+        price: bikePrice,
+        carbonSaved: Math.round(km * 0.08 * 10) / 10,
+        description: 'Tiện lợi, nhanh chóng, tài xế bản địa thân thiện, tối ưu chi phí.'
+      }
+    ];
+  }
+
+  private loadAvailableDepartureTransports() {
+    this.availableTransportOptions = [
+      {
+        provider: 'Vietnam Airlines',
+        name: 'Chuyến bay Eco-Flex',
+        code: 'VN-128',
+        type: 'flight',
+        category: 'flight',
+        departureTime: '06:30',
+        arrivalTime: '07:50',
+        price: 1250000,
+        carbonSaved: 14.5,
+        baggage: 'Bao gồm 23kg hành lý ký gửi + 12kg xách tay, suất ăn nhẹ trên máy bay.'
+      },
+      {
+        provider: 'Vietjet Air',
+        name: 'Chuyến bay Eco Saver',
+        code: 'VJ-624',
+        type: 'flight',
+        category: 'flight',
+        departureTime: '08:15',
+        arrivalTime: '09:35',
+        price: 890000,
+        carbonSaved: 11.8,
+        baggage: 'Bao gồm 7kg hành lý xách tay tiêu chuẩn, thủ tục trực tuyến nhanh gọn.'
+      },
+      {
+        provider: 'Phương Trang Eco',
+        name: 'Limousine Giường Nằm VIP',
+        code: 'FUTA-ECO-08',
+        type: 'coach',
+        category: 'coach',
+        departureTime: '20:30 (Đêm trước)',
+        arrivalTime: '06:00 (Sáng Ngày 1)',
+        price: 450000,
+        carbonSaved: 18.2,
+        baggage: 'Giường nằm massage cao cấp, nước uống, wifi, cổng sạc điện thoại.'
+      },
+      {
+        provider: 'Mộc Lộ Travel',
+        name: 'Xe Limousine Dcar 9 chỗ',
+        code: 'ML-TRANS-92',
+        type: 'coach',
+        category: 'coach',
+        departureTime: '05:30',
+        arrivalTime: '11:45',
+        price: 380000,
+        carbonSaved: 16.5,
+        baggage: 'Đón tận nơi tại văn phòng trung tâm, tối đa 20kg hành lý mỗi khách.'
+      }
+    ];
+  }
+
+  private loadAvailableRentalTransports() {
+    this.availableTransportOptions = [
+      {
+        provider: 'Lá Mây Mobility',
+        vehicleName: 'Xe máy điện VinFast Feliz S',
+        vehicleType: 'electric_motorbike',
+        category: 'electric_motorbike',
+        price: 120000,
+        deposit: 300000,
+        carbonSaved: 4.5,
+        condition: 'Pin LFP chạy 200km/lần sạc. Giao nhận xe tại khách sạn, kèm 2 nón bảo hiểm.'
+      },
+      {
+        provider: 'Đồi Mây Wheels',
+        vehicleName: 'Xe máy điện VinFast Klara S',
+        vehicleType: 'electric_motorbike',
+        category: 'electric_motorbike',
+        price: 150000,
+        deposit: 500000,
+        carbonSaved: 5.2,
+        condition: 'Kiểu dáng thời trang, cốp rộng chứa 2 nón bảo hiểm, hỗ trợ đổi pin nhanh.'
+      },
+      {
+        provider: 'Suối Ngọc Move',
+        vehicleName: 'Ô tô điện VinFast VF e34 (5 chỗ tự lái)',
+        vehicleType: 'electric_car',
+        category: 'electric_car',
+        price: 750000,
+        deposit: 2000000,
+        carbonSaved: 12.8,
+        condition: 'Bảo hiểm vật chất 2 chiều đầy đủ. Sạc miễn phí tại hệ thống trạm V-Green.'
+      },
+      {
+        provider: 'Gió Đồi Shuttle',
+        vehicleName: 'Xe đạp trợ lực điện Eco-Glide',
+        vehicleType: 'bicycle',
+        category: 'bicycle',
+        price: 60000,
+        deposit: 100000,
+        carbonSaved: 2.1,
+        condition: 'Phù hợp dạo phố, ngắm cảnh chậm rãi, có giỏ xe tiện lợi và khóa chống trộm.'
+      }
+    ];
   }
 
   // =========================================================================
