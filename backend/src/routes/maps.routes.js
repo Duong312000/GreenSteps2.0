@@ -1,8 +1,9 @@
 const express = require('express');
-const router = express.Router();
-const { getCache, setCache, getCacheStats } = require('../services/maps-cache.service');
+const { createMapsRateLimiter } = require('../middlewares/maps-rate-limit.middleware');
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBlR9BgBQW4J-HoaA5hlS3Ov8TmPw6nebA';
+function createMapsRouter({ apiKey = process.env.GOOGLE_MAPS_API_KEY, fetchImpl = globalThis.fetch } = {}) {
+  const router = express.Router();
+  const configuredKey = typeof apiKey === 'string' ? apiKey.trim() : '';
 
 const PRESEEDED_POPULAR_PLACES = [
   {
@@ -200,245 +201,167 @@ router.get('/cache/stats', async (req, res) => {
   const stats = await getCacheStats();
   return res.json({ success: true, ...stats });
 });
+  const requireKey = (res) => {
+    if (configuredKey) return true;
+    res.set('Cache-Control', 'no-store');
+    res.status(503).json({ success: false, code: 'MAPS_NOT_CONFIGURED', message: 'Google Maps is not configured.' });
+    return false;
+  };
 
-/**
- * 1. Search Google Places (Places API New) with 7-Day MongoDB Cache
- */
-router.get('/places/search', async (req, res) => {
-  try {
-    const query = req.query.query;
-    if (!query) {
-      return res.status(400).json({ success: false, message: 'query is required' });
+  const fetchGoogleJson = async (url, options) => {
+    const response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(10_000) });
+    if (!response.ok) throw new Error('Google Maps request failed.');
+    return response.json();
+  };
+
+  const placeResponse = (place) => {
+    const openNow = place.currentOpeningHours?.openNow;
+    return {
+      id: place.id,
+      title: place.displayName?.text || '',
+      address: place.formattedAddress || '',
+      rating: place.rating ?? null,
+      reviewsCount: place.userRatingCount ?? 0,
+      lat: place.location?.latitude ?? null,
+      lng: place.location?.longitude ?? null,
+      photos: [],
+      img: '',
+      hours: openNow === undefined ? null : (openNow ? 'Đang mở cửa' : 'Đã đóng cửa'),
+      weekdayText: place.currentOpeningHours?.weekdayDescriptions || [],
+      phone: place.nationalPhoneNumber || '',
+      website: place.websiteUri || '',
+      googleReviews: [],
+      googleMapsUrl: place.googleMapsUri || '',
+      types: place.types || []
+    };
+  };
+
+  router.get('/cache/stats', (_req, res) => res
+    .set('Cache-Control', 'no-store')
+    .json({ success: true, active: false, cacheDisabled: true, count: null }));
+  const mapsRateLimiter = createMapsRateLimiter();
+  router.use(function mapsRateLimitMiddleware(req, res, next) {
+    return mapsRateLimiter(req, res, next);
+  });
+
+  router.get('/places/search', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!requireKey(res)) return;
+    const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    if (!query || query.length > 200) {
+      return res.status(400).json({ success: false, message: 'query must contain between 1 and 200 characters.' });
     }
 
-    const cacheKey = `search:${query.toLowerCase().trim()}`;
-    const cachedPlaces = await getCache(cacheKey);
-    if (cachedPlaces) {
-      return res.json({ success: true, places: cachedPlaces, cached: true });
+    try {
+      const data = await fetchGoogleJson('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': configuredKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.currentOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri'
+        },
+        body: JSON.stringify({ textQuery: query, languageCode: 'vi' })
+      });
+      const places = Array.isArray(data.places) ? data.places.map(placeResponse) : [];
+      return res.json({ success: true, places, cached: false });
+    } catch {
+      return res.status(502).json({ success: false, message: 'Google Places search is temporarily unavailable.' });
+    }
+  });
+
+  router.get('/places/details/:placeId', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!requireKey(res)) return;
+    const placeId = typeof req.params.placeId === 'string' ? req.params.placeId.trim() : '';
+    if (!placeId || placeId.length > 256 || !/^[A-Za-z0-9_-]+$/.test(placeId)) {
+      return res.status(400).json({ success: false, message: 'placeId is invalid.' });
     }
 
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.photos,places.currentOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.reviews,places.types,places.priceLevel'
-      },
-      body: JSON.stringify({
-        textQuery: query,
-        languageCode: 'vi'
-      })
-    });
-
-    const data = await response.json();
-    if (!data.places || data.places.length === 0) {
-      return res.json({ success: true, places: [] });
-    }
-
-    const places = data.places.map(p => {
-      const photoUrls = (p.photos || []).slice(0, 8).map(ph => 
-        `https://places.googleapis.com/v1/${ph.name}/media?key=${GOOGLE_MAPS_API_KEY}&maxWidthPx=800`
-      );
-
-      const reviews = (p.reviews || []).slice(0, 5).map(r => ({
-        author: r.authorAttribution?.displayName || 'Khách Google Maps',
-        photo: r.authorAttribution?.photoUri || '',
-        rating: r.rating || 5,
-        time: r.relativePublishTimeDescription || 'Gần đây',
-        text: r.originalText?.text || r.text?.text || 'Trải nghiệm du lịch xanh tuyệt vời.'
-      }));
-
-      return {
-        id: p.id,
-        title: p.displayName?.text || '',
-        address: p.formattedAddress || '',
-        rating: p.rating || 4.8,
-        reviewsCount: p.userRatingCount || 0,
-        lat: p.location?.latitude || null,
-        lng: p.location?.longitude || null,
-        photos: photoUrls,
-        img: photoUrls.length > 0 ? photoUrls[0] : '',
-        hours: p.currentOpeningHours ? (p.currentOpeningHours.openNow ? 'Đang mở cửa' : 'Đã đóng cửa') : 'Đang mở cửa',
-        weekdayText: p.currentOpeningHours?.weekdayDescriptions || [],
-        phone: p.nationalPhoneNumber || '',
-        website: p.websiteUri || '',
-        googleReviews: reviews,
-        types: p.types || []
-      };
-    });
-
-    // Save to MongoDB Cache for 7 days
-    await setCache(cacheKey, places, 7);
-
-    return res.json({ success: true, places, cached: false });
-  } catch (error) {
-    console.error('Google Places Search error:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-/**
- * 2. Get Place Details by Google Place ID with 7-Day MongoDB Cache
- */
-router.get('/places/details/:placeId', async (req, res) => {
-  try {
-    const { placeId } = req.params;
-
-    const cacheKey = `details:${placeId}`;
-    const cachedPlace = await getCache(cacheKey);
-    if (cachedPlace) {
-      return res.json({ success: true, place: cachedPlace, cached: true });
-    }
-
-    const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}?languageCode=vi`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,location,photos,currentOpeningHours,websiteUri,nationalPhoneNumber,reviews,types,priceLevel'
+    try {
+      const place = await fetchGoogleJson(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=vi`, {
+        method: 'GET',
+        headers: {
+          'X-Goog-Api-Key': configuredKey,
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,location,currentOpeningHours,websiteUri,nationalPhoneNumber,types,googleMapsUri'
+        }
+      });
+      if (!place || place.error) {
+        return res.status(404).json({ success: false, message: 'Place not found.' });
       }
-    });
+      return res.json({ success: true, place: placeResponse(place), cached: false });
+    } catch {
+      return res.status(502).json({ success: false, message: 'Google Place details are temporarily unavailable.' });
+    }
+  });
 
-    const p = await response.json();
-    if (!p || p.error) {
-      return res.status(404).json({ success: false, message: p.error?.message || 'Place not found' });
+  router.post('/routes', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!requireKey(res)) return;
+    const { origin, destination, waypoints, travelMode } = req.body || {};
+    const validPoint = point => point && point.lat !== null && point.lat !== undefined && String(point.lat).trim() !== ''
+      && point.lng !== null && point.lng !== undefined && String(point.lng).trim() !== ''
+      && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng))
+      && Math.abs(Number(point.lat)) <= 90 && Math.abs(Number(point.lng)) <= 180;
+    if (!validPoint(origin) || !validPoint(destination) || (waypoints !== undefined && (!Array.isArray(waypoints) || waypoints.length > 25 || waypoints.some(point => !validPoint(point))))) {
+      return res.status(400).json({ success: false, message: 'Valid origin, destination, and up to 25 waypoints are required.' });
     }
 
-    const photoUrls = (p.photos || []).slice(0, 8).map(ph => 
-      `https://places.googleapis.com/v1/${ph.name}/media?key=${GOOGLE_MAPS_API_KEY}&maxWidthPx=800`
-    );
-
-    const reviews = (p.reviews || []).slice(0, 5).map(r => ({
-      author: r.authorAttribution?.displayName || 'Khách Google Maps',
-      photo: r.authorAttribution?.photoUri || '',
-      rating: r.rating || 5,
-      time: r.relativePublishTimeDescription || 'Gần đây',
-      text: r.originalText?.text || r.text?.text || 'Trải nghiệm rất tốt.'
-    }));
-
-    const result = {
-      id: p.id,
-      title: p.displayName?.text || '',
-      address: p.formattedAddress || '',
-      rating: p.rating || 4.8,
-      reviewsCount: p.userRatingCount || 0,
-      lat: p.location?.latitude || null,
-      lng: p.location?.longitude || null,
-      photos: photoUrls,
-      img: photoUrls.length > 0 ? photoUrls[0] : '',
-      hours: p.currentOpeningHours ? (p.currentOpeningHours.openNow ? 'Đang mở cửa' : 'Đã đóng cửa') : 'Đang mở cửa',
-      weekdayText: p.currentOpeningHours?.weekdayDescriptions || [],
-      phone: p.nationalPhoneNumber || '',
-      website: p.websiteUri || '',
-      googleReviews: reviews,
-      types: p.types || []
-    };
-
-    // Save to MongoDB Cache for 7 days
-    await setCache(cacheKey, result, 7);
-
-    return res.json({ success: true, place: result, cached: false });
-  } catch (error) {
-    console.error('Google Place details error:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-/**
- * 3. Compute Real Route with Google Routes API (v2) with 14-Day MongoDB Cache
- */
-router.post('/routes', async (req, res) => {
-  try {
-    const { origin, destination, waypoints, travelMode } = req.body;
-    if (!origin || !destination) {
-      return res.status(400).json({ success: false, message: 'origin and destination required' });
-    }
-
-    const oLat = Number(origin.lat).toFixed(4);
-    const oLng = Number(origin.lng).toFixed(4);
-    const dLat = Number(destination.lat).toFixed(4);
-    const dLng = Number(destination.lng).toFixed(4);
-    const wpKey = Array.isArray(waypoints) 
-      ? waypoints.map(w => `${Number(w.lat).toFixed(4)},${Number(w.lng).toFixed(4)}`).join('|') 
-      : '';
-    const cacheKey = `route:${oLat},${oLng}->${dLat},${dLng}:${travelMode || 'DRIVE'}:${wpKey}`;
-
-    const cachedRoute = await getCache(cacheKey);
-    if (cachedRoute) {
-      return res.json({ ...cachedRoute, cached: true });
-    }
-
-    const safeMode = (travelMode === 'WALK' || travelMode === 'TWO_WHEELER') ? travelMode : 'DRIVE';
-    const payload = {
-      origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
-      destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
-      travelMode: safeMode,
-      languageCode: 'vi'
-    };
-
-    if (Array.isArray(waypoints) && waypoints.length > 0) {
-      payload.intermediates = waypoints.map(wp => ({
-        location: { latLng: { latitude: wp.lat, longitude: wp.lng } }
-      }));
-    }
-
-    const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json();
-    if (!data.routes || data.routes.length === 0) {
-      return res.status(404).json({ success: false, message: 'No route found' });
-    }
-
-    const route = data.routes[0];
-    const distanceMeters = route.distanceMeters || 0;
-    const durationSec = parseInt(route.duration?.replace('s', '') || '0', 10);
-
-    const km = (distanceMeters / 1000).toFixed(1) + ' km';
-    const mins = Math.max(1, Math.round(durationSec / 60)) + ' phút';
-
-    // Parse turn-by-turn navigation steps
-    const rawSteps = route.legs?.[0]?.steps || [];
-    const steps = rawSteps.map(s => {
-      const stepMeters = s.distanceMeters || 0;
-      const stepDist = stepMeters >= 1000 ? (stepMeters / 1000).toFixed(1) + ' km' : stepMeters + ' m';
-      const stepSec = parseInt(s.staticDuration?.replace('s', '') || '0', 10);
-      const stepDur = stepSec >= 60 ? Math.round(stepSec / 60) + ' phút' : stepSec + ' giây';
-      return {
-        instruction: s.navigationInstruction?.instructions || 'Đi tiếp',
-        maneuver: s.navigationInstruction?.maneuver || 'STRAIGHT',
-        distance: stepDist,
-        duration: stepDur,
-        meters: stepMeters
+    try {
+      const safeMode = ['WALK', 'TWO_WHEELER', 'BICYCLE', 'TRANSIT'].includes(travelMode) ? travelMode : 'DRIVE';
+      const payload = {
+        origin: { location: { latLng: { latitude: Number(origin.lat), longitude: Number(origin.lng) } } },
+        destination: { location: { latLng: { latitude: Number(destination.lat), longitude: Number(destination.lng) } } },
+        travelMode: safeMode,
+        languageCode: 'vi'
       };
-    });
+      if (Array.isArray(waypoints) && waypoints.length) {
+        payload.intermediates = waypoints.map(point => ({ location: { latLng: { latitude: Number(point.lat), longitude: Number(point.lng) } } }));
+      }
 
-    const result = {
-      success: true,
-      distance: km,
-      duration: mins,
-      distanceMeters,
-      durationSeconds: durationSec,
-      encodedPolyline: route.polyline?.encodedPolyline || '',
-      steps,
-      travelMode: safeMode
-    };
+      const data = await fetchGoogleJson('https://routes.googleapis.com/directions/v2:computeRoutes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': configuredKey,
+          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!Array.isArray(data.routes) || !data.routes.length) {
+        return res.status(404).json({ success: false, message: 'No route found.' });
+      }
+      const route = data.routes[0];
+      const distanceMeters = Number(route.distanceMeters) || 0;
+      const durationSec = Number.parseInt(String(route.duration || '').replace(/s$/, ''), 10) || 0;
+      const steps = (route.legs?.[0]?.steps || []).map(step => {
+        const meters = Number(step.distanceMeters) || 0;
+        const seconds = Number.parseInt(String(step.staticDuration || '').replace(/s$/, ''), 10) || 0;
+        return {
+          instruction: step.navigationInstruction?.instructions || 'Đi tiếp',
+          maneuver: step.navigationInstruction?.maneuver || 'STRAIGHT',
+          distance: meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`,
+          duration: seconds >= 60 ? `${Math.round(seconds / 60)} phút` : `${seconds} giây`,
+          meters
+        };
+      });
+      return res.json({
+        success: true,
+        distance: `${(distanceMeters / 1000).toFixed(1)} km`,
+        duration: `${Math.max(1, Math.round(durationSec / 60))} phút`,
+        distanceMeters,
+        durationSeconds: durationSec,
+        encodedPolyline: route.polyline?.encodedPolyline || '',
+        steps,
+        travelMode: safeMode,
+        cached: false
+      });
+    } catch {
+      return res.status(502).json({ success: false, message: 'Google Routes is temporarily unavailable.' });
+    }
+  });
 
-    // Save to MongoDB Cache for 14 days
-    await setCache(cacheKey, result, 14);
+  return router;
+}
 
-    return res.json({ ...result, cached: false });
-  } catch (error) {
-    console.error('Google Routes error:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-module.exports = router;
+module.exports = createMapsRouter();
+module.exports.createMapsRouter = createMapsRouter;

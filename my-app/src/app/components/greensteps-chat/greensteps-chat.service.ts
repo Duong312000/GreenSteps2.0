@@ -29,6 +29,18 @@ function explicitChatMessageIntent(message: string): 'itinerary' | 'tour_search'
     : '';
 }
 
+function requestedItineraryDestination(message: string): string {
+  const normalized = normalizeChatIntent(message);
+  const match = normalized.match(/(?:lich trinh|ke hoach|hanh trinh)\s+(?:di\s+)?([\p{L}][\p{L}\s'-]{1,50}?)(?=\s+\d{1,2}\s*(?:ngay|dem)|[,;.!?]|$)/u);
+  return match?.[1]?.trim().replace(/^(?:cho tui|cho minh|cho toi)\s+/, '') || '';
+}
+
+function itineraryDestinationMismatch(message: string, destination: string): boolean {
+  const requested = requestedItineraryDestination(message);
+  const actual = normalizeChatIntent(destination).trim();
+  return Boolean(requested && actual && requested !== actual && !requested.includes(actual) && !actual.includes(requested));
+}
+
 function parseTextItinerary(reply: string, request: string): ChatItineraryDraft | null {
   const place = request.match(/(?:lịch trình|hành trình|tại|ở|đến)\s+([\p{L}][\p{L}\s'-]{1,55}?)(?=\s+\d{1,2}\s*(?:ngày|day|đêm|night)|[,!?;.]|$)/iu)?.[1]?.trim();
   if (!place || !/(?:lịch trình|hành trình|\bngày\s+\d)/iu.test(reply)) return null;
@@ -281,13 +293,17 @@ export class GreenStepsChatService {
       const showClarification = response.type === 'clarification';
       const isItineraryResponse = response.type === 'itinerary_proposal' || Boolean(response.itinerary);
       const showTourResult = !showClarification && !explicitlyRequestsItinerary && !isItineraryResponse && (explicitlyRequestsTour || isTourResponse);
-      const itinerary = showTourResult || showClarification ? null : response.itinerary || parseTextItinerary(response.reply, message);
+      const rawItinerary = showTourResult || showClarification ? null : response.itinerary || parseTextItinerary(response.reply, message);
+      const invalidItinerary = Boolean(rawItinerary && itineraryDestinationMismatch(message, rawItinerary.destination));
+      const itinerary = invalidItinerary ? null : rawItinerary;
       const totalTours = Math.max(tours.length, Number(response.totalTours) || tours.length);
-      const type: GreenStepsChatResult['type'] = showTourResult
+      const type: GreenStepsChatResult['type'] = invalidItinerary ? 'text' : showTourResult
         ? 'tour_recommendations'
         : showClarification ? 'clarification'
           : itinerary || isItineraryResponse ? 'itinerary_proposal' : 'text';
-      const displayReply = showTourResult
+      const displayReply = invalidItinerary
+        ? `Phản hồi lịch trình không khớp điểm đến bạn yêu cầu. Mình chưa hiển thị lịch trình này; hãy thử lại.`
+        : showTourResult
         ? tours.length
           ? `M\u00ecnh t\u00ecm th\u1ea5y ${totalTours} tour ph\u00f9 h\u1ee3p v\u1edbi b\u1ea1n:`
           : 'M\u00ecnh ch\u01b0a t\u00ecm th\u1ea5y tour ph\u00f9 h\u1ee3p trong danh m\u1ee5c hi\u1ec7n c\u00f3.'
@@ -309,9 +325,9 @@ export class GreenStepsChatService {
         hasMoreTours: response.hasMoreTours ?? totalTours > tours.length,
         catalogAvailable: response.catalogAvailable ?? tours.length > 0,
         itinerary,
-        suggestedQuestions: (showTourResult ? [] : response.suggestedQuestions || (itinerary
+        suggestedQuestions: response.suggestedQuestions || (itinerary
           ? ['Giảm ngân sách lịch trình', 'Thêm địa điểm thiên nhiên', 'Điều chỉnh thời gian di chuyển']
-          : [])).slice(0, 3)
+          : []).slice(0, 3)
       });
       return { content: displayReply, toolCalls: [] };
     } catch (error: unknown) {

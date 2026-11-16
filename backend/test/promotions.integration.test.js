@@ -2,6 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
 require('../src/config/env');
 const app = require('../src/app');
 const {
@@ -14,7 +15,7 @@ const {
 const { JWT_SECRET } = require('../src/middlewares/auth.middleware');
 const jwt = require('jsonwebtoken');
 
-test('partner promotions: real Mongo persistence, CRUD, ownership, validation and history', async (t) => {
+test('partner promotions: real Mongo persistence, CRUD, ownership, validation and history', { skip: !testMongoAvailable && skipReason }, async (t) => {
   const tag = 'promotion-test-' + randomUUID();
   const owner = tag + '-a',
     other = tag + '-b',

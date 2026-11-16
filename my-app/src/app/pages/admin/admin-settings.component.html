@@ -1,0 +1,88 @@
+<section class="settings-page">
+  <header class="settings-page-heading">
+    <div>
+      <nav class="settings-breadcrumb" aria-label="Breadcrumb">
+        <span>Tổng quan</span><i class="bi bi-chevron-right"></i><strong>Danh mục &amp; Cấu hình</strong>
+      </nav>
+      <div class="settings-title-line">
+        <span class="settings-title-icon"><i class="bi bi-sliders"></i></span>
+        <div><h2>Danh mục &amp; Cấu hình</h2><p>Quản lý danh mục dịch vụ và các quy tắc áp dụng cho báo giá mới.</p></div>
+      </div>
+    </div>
+    <button type="button" class="settings-refresh" (click)="load()" [disabled]="isRefreshing"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
+  </header>
+
+  <div class="settings-alert error" *ngIf="error" role="alert">{{ error }}</div>
+  <div class="settings-alert success" *ngIf="message" role="status">{{ message }}</div>
+  <nav class="settings-tabs" aria-label="Cấu hình quản trị">
+    <button type="button" [class.active]="tab === 'categories'" (click)="selectTab('categories')"><i class="bi bi-tags"></i> Danh mục dịch vụ</button>
+    <button type="button" [class.active]="tab === 'booking'" (click)="selectTab('booking')"><i class="bi bi-calendar2-check"></i> Cấu hình đặt chỗ</button>
+  </nav>
+
+  <div class="settings-state" *ngIf="tab === 'categories' && loadingCategories"><span class="settings-spinner"></span> Đang tải danh mục...</div>
+  <div class="settings-load-error" *ngIf="tab === 'categories' && !loadingCategories && categoryLoadError" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ categoryLoadError }}</span><button type="button" class="settings-secondary" (click)="loadCategories(true)">Thử lại</button></div>
+
+  <ng-container *ngIf="!loadingCategories && !categoryLoadError && tab === 'categories'">
+    <div class="settings-stats-grid">
+      <article class="settings-stat-card"><span class="settings-stat-icon blue"><i class="bi bi-tags"></i></span><div><small>Tổng danh mục</small><strong>{{ totalCategoryCount }}</strong></div></article>
+      <article class="settings-stat-card"><span class="settings-stat-icon green"><i class="bi bi-check-circle"></i></span><div><small>Đang hoạt động</small><strong>{{ activeCategoryCount }}</strong></div></article>
+      <article class="settings-stat-card"><span class="settings-stat-icon amber"><i class="bi bi-box-seam"></i></span><div><small>Dịch vụ đang tham chiếu</small><strong>{{ categoryServiceCount }}</strong></div></article>
+    </div>
+
+    <section class="settings-category-panel">
+      <div class="settings-section-title">
+        <div><h3>Danh mục dịch vụ</h3><p>Danh mục đã lưu trữ vẫn được giữ trong dữ liệu lịch sử.</p></div>
+        <button class="settings-primary" type="button" (click)="startCategory()"><i class="bi bi-plus-lg"></i> Thêm danh mục</button>
+      </div>
+      <div class="settings-filter-panel">
+        <label class="settings-search"><i class="bi bi-search"></i><input type="search" [(ngModel)]="categorySearch" placeholder="Tìm theo tên hoặc mã danh mục..." aria-label="Tìm danh mục"></label>
+        <label class="settings-status-filter"><span>Trạng thái</span><select [(ngModel)]="categoryStatus" aria-label="Lọc theo trạng thái"><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="archived">Đã lưu trữ</option></select></label>
+      </div>
+      <div class="settings-table-wrap">
+        <table class="settings-table">
+          <thead><tr><th>Danh mục</th><th>Mã</th><th>Số dịch vụ</th><th>Trạng thái</th><th>Thứ tự</th><th class="settings-actions-heading">Thao tác</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of filteredCategories">
+              <td><div class="settings-category-name"><span class="settings-category-icon"><i class="bi" [ngClass]="row.icon || 'bi-tag'"></i></span><strong>{{ row.name }}</strong></div></td>
+              <td><code class="settings-category-code">{{ row.id }}</code></td>
+              <td>{{ row.serviceCount || 0 }}</td>
+              <td><span class="settings-status" [class.archived]="!row.active"><i class="bi" [ngClass]="row.active ? 'bi-check-circle-fill' : 'bi-archive-fill'"></i>{{ row.active ? 'Đang dùng' : 'Đã lưu trữ' }}</span></td>
+              <td>{{ row.sort_order || 0 }}</td>
+              <td class="settings-row-actions"><button type="button" (click)="startCategory(row)" aria-label="Sửa danh mục"><i class="bi bi-pencil"></i><span>Sửa</span></button><button type="button" *ngIf="row.active" (click)="startArchive(row)" aria-label="Lưu trữ danh mục"><i class="bi bi-archive"></i><span>Lưu trữ</span></button></td>
+            </tr>
+            <tr *ngIf="!filteredCategories.length"><td colspan="6" class="settings-empty"><i class="bi bi-search"></i><strong>{{ categories.length ? 'Không tìm thấy danh mục phù hợp' : 'Chưa có danh mục' }}</strong><span>{{ categories.length ? 'Thử thay đổi từ khóa hoặc bộ lọc.' : 'Thêm danh mục dịch vụ để bắt đầu quản lý.' }}</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="settings-table-footer" *ngIf="filteredCategories.length">Hiển thị {{ filteredCategories.length }} / {{ totalCategoryCount }} danh mục</div>
+    </section>
+  </ng-container>
+
+  <ng-container *ngIf="tab === 'booking'">
+    <div class="settings-state" *ngIf="loadingBooking"><span class="settings-spinner"></span> Đang tải cấu hình đặt chỗ...</div>
+    <div class="settings-load-error" *ngIf="!loadingBooking && bookingLoadError" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ bookingLoadError }}</span><button type="button" class="settings-secondary" (click)="loadBooking(true)">Thử lại</button></div>
+    <ng-container *ngIf="!loadingBooking && !bookingLoadError">
+    <form #pricingForm="ngForm" (ngSubmit)="savePricing(pricingForm)" class="settings-booking-form">
+      <div class="settings-section-title settings-booking-heading"><div><h3>Cấu hình đặt chỗ</h3><p>Các thay đổi chỉ áp dụng cho báo giá và booking mới sau khi lưu.</p></div></div>
+      <div class="settings-config-grid">
+        <section class="settings-config-group"><div class="settings-group-heading"><span class="settings-group-icon green"><i class="bi bi-receipt"></i></span><div><h4>Phí &amp; giảm giá</h4><p>Thiết lập khoản phí và mức giảm chung.</p></div></div>
+          <div class="settings-fields"><label>Giảm giá chung (%)<input type="number" name="discount_percent" min="0" max="100" step="0.01" [(ngModel)]="settings.discount_percent" required></label><label>Phí dịch vụ (VND)<input type="number" name="service_fee_vnd" min="0" step="1" [(ngModel)]="settings.service_fee_vnd" required></label><label class="settings-check"><input type="checkbox" name="service_fee_per_guest" [(ngModel)]="settings.service_fee_per_guest"> Tính phí dịch vụ theo khách</label></div>
+        </section>
+        <section class="settings-config-group"><div class="settings-group-heading"><span class="settings-group-icon blue"><i class="bi bi-wallet2"></i></span><div><h4>Tiền cọc</h4><p>Chọn tỷ lệ và phương thức thu tiền cọc.</p></div></div>
+          <div class="settings-fields"><label>Tỷ lệ đặt cọc (%)<input type="number" name="deposit_percent" min="0" max="100" step="0.01" [(ngModel)]="settings.deposit_percent" required></label><fieldset><legend>Áp dụng đặt cọc cho</legend><label *ngFor="let method of ['wallet','bank_transfer','card','counter']" class="settings-check"><input type="checkbox" [checked]="settings.collect_deposit_for?.includes(method)" (change)="$event.target.checked ? settings.collect_deposit_for.push(method) : settings.collect_deposit_for.splice(settings.collect_deposit_for.indexOf(method), 1)"> {{ method }}</label></fieldset></div>
+        </section>
+      </div>
+      <div class="settings-form-actions"><label class="settings-reason">Lý do thay đổi<input name="reason" [(ngModel)]="settings.reason" required maxlength="1000" placeholder="Nhập lý do cập nhật cấu hình"></label><div class="settings-save-actions"><small>Phiên bản cấu hình: {{ settings.version }}</small><button class="settings-primary" type="submit" [disabled]="saving || pricingForm.invalid"><i class="bi bi-check2"></i> {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div></div>
+    </form>
+
+    <section class="settings-addon-section">
+      <div class="settings-section-title"><div><h3>Dịch vụ thêm</h3><p>Các dịch vụ tùy chọn được cung cấp trong quy trình đặt chỗ.</p></div><button class="settings-secondary" type="button" (click)="startAddon()"><i class="bi bi-plus-lg"></i> Thêm dịch vụ</button></div>
+      <div class="settings-addon-list"><div class="settings-addon-row" *ngFor="let addon of addons"><div class="settings-addon-icon"><i class="bi bi-plus-circle"></i></div><div class="settings-addon-copy"><strong>{{ addon.name }}</strong><small><code>{{ addon.id }}</code><span class="settings-addon-price">{{ addon.unit_price | number }} VND</span></small></div><span class="settings-status" [class.archived]="!addon.active">{{ addon.active ? 'Đang dùng' : 'Đã ẩn' }}</span><button type="button" class="settings-addon-action" (click)="startAddon(addon)">Sửa</button><button type="button" class="settings-addon-action" (click)="toggleAddon(addon)">{{ addon.active ? 'Ẩn' : 'Hiện' }}</button></div><p class="settings-empty" *ngIf="!addons.length">Chưa có dịch vụ thêm.</p></div>
+    </section>
+    </ng-container>
+
+    <section class="settings-history"><div class="settings-section-title"><div><h3>Lịch sử thay đổi</h3><p>Ghi nhận thao tác cấu hình đã được lưu thành công.</p></div></div><div class="settings-history-state" *ngIf="loadingAudit"><span class="settings-spinner"></span> Đang tải lịch sử...</div><div class="settings-load-error" *ngIf="!loadingAudit && auditLoadError" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ auditLoadError }}</span><button type="button" class="settings-secondary" (click)="loadAudit(true)">Thử lại</button></div><ng-container *ngIf="!loadingAudit && !auditLoadError"><article *ngFor="let item of audit"><div class="settings-audit-heading"><strong>{{ item.action }}</strong><span>{{ item.target_type }} · {{ item.target_id }}</span></div><p>{{ item.reason }}</p><small>{{ item.actor_id }} · {{ item.createdAt | date:'medium' }}</small><details><summary>Xem dữ liệu trước và sau</summary><pre>{{ item.previous_state | json }}</pre><pre>{{ item.new_state | json }}</pre></details></article><div class="settings-empty" *ngIf="!audit.length"><i class="bi bi-clock-history"></i><strong>Chưa có thay đổi cấu hình</strong></div></ng-container></section>
+  </ng-container>
+</section>
+
+<app-account-detail-modal *ngIf="modalOpen" [accountType]="'user'" [account]="{}" [settingsMode]="true" [formTitle]="modalTitle" [submitLabel]="modalSubmitLabel" [loading]="false" [error]="error" [editing]="true" [busy]="saving" [fields]="fields" [editValues]="editValues" [editReason]="editReason" (editReasonChange)="editReason = $event" (editSave)="saveModal($event)" (close)="modalOpen = false"></app-account-detail-modal>

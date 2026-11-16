@@ -1,12 +1,13 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { ServiceBooking, GreenService } = require('../src/models');
+const { ServiceBooking, BookingSetting, GreenService } = require('../src/models');
 const { lodgingPrice } = require('../src/services/lodging-pricing.service');
 const { calculatePricing } = require('../src/services/booking-pricing.service');
 
 test('lodging validates catalog data, overlapping inventory and room-night pricing', async () => {
   const original = ServiceBooking.findAll;
   const originalService = GreenService.findByPk;
+  const originalSettings = BookingSetting.findByPk;
   const service = { id: 'stay-test', type: 'lodging', current_data: {
     rooms: [{ id: 'studio', price_per_night: 500000, available_rooms: 3, capacity: 2 }]
   } };
@@ -15,6 +16,7 @@ test('lodging validates catalog data, overlapping inventory and room-night prici
     ServiceBooking.findAll = async () => [];
     assert.equal((await lodgingPrice(service, request)).total, 3000000);
     GreenService.findByPk = async () => ({ ...service, cost: 1 });
+    BookingSetting.findByPk = async () => ({ discount_percent: 8, service_fee_vnd: 120_000, deposit_percent: 30, collect_deposit_for: [] });
     const quote = await calculatePricing({ type: 'service', targetId: service.id, guestCount: 4, ...request });
     assert.equal(quote.tourSubtotal, 3000000);
     assert.equal(quote.total, 2880000);
@@ -33,5 +35,6 @@ test('lodging validates catalog data, overlapping inventory and room-night prici
   } finally {
     ServiceBooking.findAll = original;
     GreenService.findByPk = originalService;
+    BookingSetting.findByPk = originalSettings;
   }
 });

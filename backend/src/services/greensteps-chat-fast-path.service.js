@@ -1,4 +1,5 @@
 // Deliberately small grammar: unknown qualifiers and contextual follow-ups go to AI.
+const { queryFromRequest } = require('./greensteps-agent-catalog.service');
 const normalize = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
 const money = value => `${new Intl.NumberFormat('vi-VN').format(value)} đ`;
 const label = value => String(value).replace(/[\\`*_{}\[\]<>#!|]/g, '').replace(/[\r\n]+/g, ' ').slice(0, 160);
@@ -23,6 +24,17 @@ const types = {
 };
 
 function fixedReply(message) { return fixed.get(normalize(message).replace(/[.!?]+$/, '')); }
+function isCatalogDependentRequest(message) {
+  const value = normalize(message);
+  if (/(?:tra cuu|kiem tra|tim don|ma don|ma ve)|\bBKT-[A-Z0-9_-]+\b|\bSCH[A-Z0-9_-]+\b/.test(value)) return false;
+  if (/\b(?:hoan tien|hoan huy|chinh sach|thanh toan|vietqr|phuong thuc thanh toan|toi uu lich trinh|sua gio|trung gio|tu dong sua|auto adjust)\b/.test(value)) return false;
+  return /\b(?:tour|dich vu|homestay|khach san|luu tru|quan cafe|ca phe|cafe|nha hang|an uong|tham quan|diem den|lich trinh|hanh trinh|chuyen di|itinerary|travel plan)\b/.test(value);
+}
+function isExplicitCatalogSearchRequest(message) {
+  const value = normalize(message);
+  return /\b(?:tim|goi y|de xuat|liet ke|xem)\b/.test(value)
+    && /\b(?:tour|dich vu|homestay|khach san|luu tru|quan cafe|ca phe|cafe|nha hang|an uong|tham quan|diem den)\b/.test(value);
+}
 function destinations(catalog) {
   return [...new Map([...catalog.tours, ...catalog.services].map(row => [normalize(row.destination), row.destination]).filter(([key]) => key)).values()];
 }
@@ -35,6 +47,132 @@ function matchesDestination(requested, actual) {
 }
 function destinationOptions(catalog) {
   return [...new Set(destinations(catalog).flatMap(value => [value, ...destinationParts(value)]))];
+}
+
+function requestedDiscoveryDestination(message, catalog) {
+  const normalized = normalize(message);
+  const options = destinationOptions(catalog).sort((a, b) => normalize(b).length - normalize(a).length);
+  if (/(?:\b(?:hay|hoac)\b|\/)/.test(normalized)) return '';
+  const parsed = queryFromRequest({ message }).destination;
+  if (parsed) return options.find(place => normalize(place) === normalize(parsed)) || parsed;
+  const found = options.filter(place => {
+    const key = normalize(place);
+    const at = normalized.indexOf(key);
+    if (at < 0) return false;
+    const prefix = normalized.slice(Math.max(0, at - 24), at).trim();
+    return !/(?:khong muon di|khong chon|khong phai)\s*$/.test(prefix);
+  });
+  const explicit = found[0];
+  if (!explicit) return '';
+  const also = found.slice(1).filter(place => normalize(place) !== normalize(explicit));
+  if (also.length && /\b(?:hay|hoac)\b|\//.test(normalized)) return '';
+  return explicit;
+}
+
+function destinationChoiceClarification(message, catalog) {
+  if (!catalog?.available || !/(?:\b(?:hay|hoac)\b|\/)/.test(normalize(message))) return null;
+  const value = normalize(message);
+  const options = destinationOptions(catalog).sort((a, b) => normalize(b).length - normalize(a).length);
+  const mentioned = [];
+  for (const place of options) {
+    const key = normalize(place);
+    const index = value.indexOf(key);
+    if (index < 0) continue;
+    const prefix = value.slice(Math.max(0, index - 24), index).trim();
+    if (/(?:khong muon di|khong chon|khong phai)\s*$/.test(prefix)) continue;
+    if (!mentioned.some(existing => normalize(existing) === key)) mentioned.push(place);
+  }
+  if (mentioned.length < 2) return null;
+  const choices = mentioned.slice(0, 3);
+  return {
+    intent: 'destination_clarification',
+    reply: `Bạn muốn chọn điểm đến nào: ${choices.map(label).join(', ')}?`,
+    type: 'clarification', tours: [], itinerary: null, totalTours: 0, hasMoreTours: false,
+    catalogAvailable: true,
+    suggestedQuestions: choices
+  };
+}
+
+function routeConflictClarification(message, catalog) {
+  if (!catalog?.available) return null;
+  const value = normalize(message);
+  const places = destinationOptions(catalog).sort((a, b) => normalize(b).length - normalize(a).length)
+    .filter(place => value.includes(normalize(place)));
+  const unique = [...new Map(places.map(place => [normalize(place), place])).values()];
+  const hasBaNa = /\bba na hills?\b/.test(value);
+  if (unique.length < 2 && !(hasBaNa && unique.length === 1 && !matchesDestination(unique[0], 'Đà Nẵng'))) return null;
+  const choices = unique.slice(0, 3);
+  if (hasBaNa && !choices.some(place => matchesDestination(place, 'Đà Nẵng'))) choices.push('Đà Nẵng');
+  return {
+    intent: 'route_clarification', type: 'clarification', tours: [], itinerary: null,
+    totalTours: 0, hasMoreTours: false, catalogAvailable: true,
+    reply: hasBaNa && unique.length === 1
+      ? `Bà Nà Hills thuộc khu vực Đà Nẵng, khác với ${label(unique[0])}. Bạn muốn giữ ${label(unique[0])} hay đổi sang Đà Nẵng?`
+      : `Mình thấy yêu cầu nhắc đến nhiều điểm đến (${choices.map(label).join(', ')}). Bạn muốn chọn điểm nào?`,
+    suggestedQuestions: choices.slice(0, 3)
+  };
+}
+
+function editDistanceAtMostOne(left, right) {
+  if (Math.abs(left.length - right.length) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] === right[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (left.length > right.length) i++;
+    else if (right.length > left.length) j++;
+    else { i++; j++; }
+  }
+  if (i < left.length || j < right.length) edits++;
+  return edits <= 1;
+}
+
+function destinationCorrectionClarification(message, catalog) {
+  if (!catalog?.available) return null;
+  const requested = queryFromRequest({ message }).destination;
+  const key = normalize(requested);
+  if (!key || destinationOptions(catalog).some(place => normalize(place) === key)) return null;
+  const uniquePlaces = destinationOptions(catalog).reduce((places, place) => {
+    const placeKey = normalize(place);
+    if (!places.has(placeKey)) places.set(placeKey, place);
+    return places;
+  }, new Map());
+  const ranked = [...uniquePlaces.entries()].map(([placeKey, place]) => ({ key: placeKey, place }));
+  const suggestions = ranked.filter(item => item.key.split(' ')[0] === key.split(' ')[0] && editDistanceAtMostOne(item.key, key));
+  if (suggestions.length !== 1) return null;
+  const place = suggestions[0].place;
+  return {
+    intent: 'destination_correction',
+    reply: `Bạn muốn nói ${label(place)} phải không?`,
+    type: 'clarification', tours: [], itinerary: null, totalTours: 0, hasMoreTours: false,
+    catalogAvailable: true, suggestedQuestions: [place, 'Nhập lại điểm đến']
+  };
+}
+
+function tourDiscoveryReply(message, catalog) {
+  const value = normalize(message);
+  const casualDiscovery = /(?:\bmuon di\b|\bmuon den\b|\bmuon toi\b|\btoi muon di\b)/.test(value);
+  const questionDiscovery = /\b(?:co|con) tour\b/.test(value) && /\b(?:khong|ko|khum)\b/.test(value);
+  if (!catalog?.available || (!casualDiscovery && !questionDiscovery)) return null;
+  const place = requestedDiscoveryDestination(message, catalog);
+  if (!place) return null;
+  const rows = (catalog.tours || []).filter(row => matchesDestination(place, row.destination));
+  const selected = rows.slice(0, 6);
+  const suffix = catalog.truncatedTours
+    ? '\nDanh mục đang hiển thị một phần kết quả; có thể còn tour phù hợp khác.'
+    : '';
+  const reply = rows.length
+    ? `Mình tìm thấy ${rows.length}${catalog.truncatedTours ? '+' : ''} tour trong danh mục GreenSteps tại ${label(place)}:\n${selected.map(row => `- ${label(row.title || row.name)} (mã ${label(row.id)})${row.days ? ` — ${row.days} ngày` : ''}: ${finitePrice(row.cost) ? money(row.cost) : 'chưa có giá'}.`).join('\n')}${suffix}`
+    : catalog.truncatedTours
+      ? `Trang danh mục hiện tại chưa có tour phù hợp tại ${label(place)}; danh sách chưa được truy vấn hết.`
+      : `Mình chưa tìm thấy tour tại ${label(place)} trong danh mục GreenSteps hiện có.`;
+  return {
+    intent: rows.length ? 'tours' : catalog.truncatedTours ? 'partial_no_match' : 'tours',
+    type: 'tour_recommendations', reply, tours: selected, itinerary: null,
+    totalTours: rows.length, hasMoreTours: Boolean(catalog.truncatedTours),
+    catalogAvailable: true,
+    suggestedQuestions: [`Tự tạo lịch trình tại ${place}`, 'Tìm tour ở điểm đến khác', 'Xem dịch vụ tại điểm đến này']
+  };
 }
 function listReply(rows, kind, catalog) {
   const suffix = catalog.truncated ? '\nDanh mục được giới hạn; kết quả chưa bao gồm toàn bộ sản phẩm.' : '';
@@ -136,14 +274,23 @@ function compactAiInput(input, catalog) {
   const relevant = row => !places.length || places.some(place => matchesDestination(place, row.destination));
   const compact = row => ({ ...row, description: row.description?.slice(0, 120), tags: undefined });
   const tours = catalog.tours.filter(relevant), services = catalog.services.filter(relevant);
+  const serviceCandidates = Array.isArray(catalog.serviceCandidates)
+    ? catalog.serviceCandidates.slice(0, 40).map(compact)
+    : undefined;
   const selectedIds = new Set((input.currentTours || []).map(tour => tour.id));
   const currentTours = catalog.tours.filter(tour => selectedIds.has(tour.id)).slice(0, 9).map(tour => ({
     id: tour.id, title: tour.title, destination: tour.destination, days: tour.days, cost: tour.cost
   }));
   return {
     ...input, currentTours, history: input.history.slice(-6).map(item => ({ role: item.role, content: item.content.slice(0, 1000) })),
-    catalog: { ...catalog, tours: tours.slice(0, 12).map(compact), services: services.slice(0, 16).map(compact), truncated: Boolean(catalog.truncated || places.length || tours.length > 12 || services.length > 16) }
+    catalog: {
+      ...catalog,
+      tours: tours.slice(0, 20).map(compact),
+      services: services.slice(0, 20).map(compact),
+      ...(serviceCandidates ? { serviceCandidates, serviceCandidatesComplete: catalog.serviceCandidatesComplete === true } : {}),
+      truncated: Boolean(catalog.truncated || places.length || tours.length > 20 || services.length > 20)
+    }
   };
 }
 
-module.exports = { fixedReply, catalogReply, compactAiInput };
+module.exports = { fixedReply, isCatalogDependentRequest, isExplicitCatalogSearchRequest, catalogReply, tourDiscoveryReply, destinationChoiceClarification, routeConflictClarification, destinationCorrectionClarification, compactAiInput };

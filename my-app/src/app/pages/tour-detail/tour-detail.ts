@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
-import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup, ServiceNearbyPlace } from '../../models/models';
+import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup, ServiceNearbyPlace, TourPhotoCredit } from '../../models/models';
 import { ServiceDetailSeoService } from '../../services/service-detail-seo.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { bookingDate } from '../../utils/booking-date';
@@ -21,12 +21,15 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   public slideImages: string[] = [];
   public activeSlideIndex: number = 0;
   public isPageLoading: boolean = true;
+  public loadError = false;
   public isPhotoGalleryOpen: boolean = false;
 
   public reviewsList: any[] = [];
   public filteredReviews: any[] = [];
   public reviewLoadError = false;
   public reviewEligibilityError = false;
+  public isReviewsLoading = false;
+  public isReviewEligibilityLoading = false;
   public isSubmittingReview = false;
   public activeFilter: string = 'Tất cả';
   public activeSort: string = 'Mới nhất';
@@ -47,9 +50,11 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   public selectedRoomId = '';
   public roomQuantities: Record<string, number> = {};
   public bookingError = '';
+  public isCloningTrip = false;
   public roomAmenityFilter = '';
   public locationCategory = 'all';
   private detailDisposed = false;
+  private detailRequestSequence = 0;
   ngOnDestroy() { this.detailDisposed = true; this.seo.clear(); }
   private mapQuery = '';
   private trustedMapUrl?: SafeResourceUrl;
@@ -114,6 +119,14 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get rooms(): ServiceRoom[] { return this.activeTour?.rooms || []; }
+  public get activePhotoCredit() {
+    const image = this.slideImages[this.activeSlideIndex] || '';
+    return this.activeTour?.photoMetadata?.find(photo => photo.path.replace(/^\//, '') === image.replace(/^\//, '')) || null;
+  }
+  public photoSrcSet(photo?: TourPhotoCredit | null): string | null {
+    const variants = photo?.responsiveVariants || [];
+    return variants.length ? variants.map(variant => `${variant.path} ${variant.width}w`).join(', ') : null;
+  }
   public get bookingAvailable(): boolean { return this.activeTour?.bookingEnabled !== false; }
   public imageFallback(event: Event) {
     const img = event.target as HTMLImageElement;
@@ -266,6 +279,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (this.activeTour?.highlights && Array.isArray(this.activeTour.highlights) && this.activeTour.highlights.length > 0) {
       return this.activeTour.highlights;
     }
+    if (this.activeTour?.is_demo) return [];
     return [
       'Lịch trình thong thả, có nhiều thời gian nghỉ ngơi thoải mái',
       'Ưu tiên trải nghiệm văn hóa và ẩm thực bản địa sạch',
@@ -278,6 +292,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (this.activeTour?.included && Array.isArray(this.activeTour.included) && this.activeTour.included.length > 0) {
       return this.activeTour.included;
     }
+    if (this.activeTour?.is_demo) return [];
     return [
       'Phương tiện di chuyển xanh theo lịch trình đã xác nhận',
       'Vé vào cổng các điểm tham quan chính trong tour',
@@ -290,6 +305,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (this.activeTour?.excluded && Array.isArray(this.activeTour.excluded) && this.activeTour.excluded.length > 0) {
       return this.activeTour.excluded;
     }
+    if (this.activeTour?.is_demo) return [];
     return [
       'Chi tiêu cá nhân ngoài chương trình (mua sắm quà lưu niệm...)',
       'Các bữa ăn uống tự do ngoài các bữa chính trong hành trình',
@@ -318,6 +334,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
       return this.activeTour.policy;
     }
+    if (this.activeTour?.is_demo) return [];
     return [
       {
         step: '01',
@@ -338,15 +355,31 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourStyle(): string {
-    return this.activeTour?.style || (this.activeTour?.isService ? this.detailKindLabel : 'Gia đình / Eco Travel');
+    return this.activeTour?.style || (this.activeTour?.is_demo ? 'Chưa phân loại' : this.activeTour?.isService ? this.detailKindLabel : 'Gia đình / Eco Travel');
   }
 
   public get tourGroupSize(): string {
-    return this.activeTour?.group_size || 'Nhóm nhỏ thân mật';
+    return this.activeTour?.group_size || (this.activeTour?.is_demo ? 'Chưa xác nhận' : 'Nhóm nhỏ thân mật');
   }
 
   public get tourFitnessLevel(): string {
-    return this.activeTour?.fitness_level || 'Nhẹ nhàng';
+    return this.activeTour?.fitness_level || (this.activeTour?.is_demo ? 'Chưa xác nhận' : 'Nhẹ nhàng');
+  }
+
+  public itineraryPhotoFor(activity: { name?: string } | undefined): TourPhotoCredit | undefined {
+    const activityName = this.normalizeLandmark(activity?.name || '');
+    if (!activityName || !this.activeTour?.is_demo) return undefined;
+    const genericWords = new Set(['bai', 'ban', 'bo', 'canh', 'co', 'danh', 'dao', 'ho', 'khu', 'pho', 'quan', 'the', 'thang', 'tuyen', 'vuc']);
+    return (this.activeTour.photoMetadata || []).find(photo => {
+      if (photo.relevance?.type !== 'exact_landmark') return false;
+      const landmark = this.normalizeLandmark((photo.subjectLocation || '').split(',')[0]);
+      const terms = landmark.split(/\s+/).filter(term => term.length > 1 && !genericWords.has(term));
+      return terms.length > 0 && terms.every(term => activityName.includes(term));
+    });
+  }
+
+  private normalizeLandmark(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   // Fallback slider images by destination
@@ -399,71 +432,124 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
+      const previousUserId = this.currentUserId;
       this.currentUser = user;
+      if (previousUserId !== this.currentUserId) {
+        this.reviewBookings = [];
+        this.selectedReviewBookingId = '';
+      }
       if (this.activeTour) void this.loadReviewEligibility();
     });
 
     const liked = JSON.parse(localStorage.getItem('greensteps_liked_reviews') || '[]');
     this.likedReviewsSet = new Set<string>(liked);
 
-    this.route.paramMap.subscribe(async (params) => {
+    this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
+      const requestSequence = ++this.detailRequestSequence;
       if (id) {
-        this.isPageLoading = true;
-        this.activeInfoTab = 'overview';
-        this.selectedRoomId = '';
-        this.roomQuantities = {};
-        this.locationCategory = 'all';
-        this.bookingError = '';
-        const isService = this.route.snapshot.routeConfig?.path?.startsWith('services') ||
-                          this.route.snapshot.routeConfig?.path?.startsWith('service-detail') ||
-                          id.toLowerCase().startsWith('srv_') ||
-                          id.toLowerCase().startsWith('srv-');
-
-        if (isService) {
-          this.activeTour = await this.apiService.getServiceAsTour(id, this.route.snapshot.queryParamMap?.get('flashSale') || undefined);
-          if (!this.activeTour) {
-            this.activeTour = await this.apiService.getPresetTour(id);
-          }
-        } else {
-          this.activeTour = await this.apiService.getPresetTour(id);
-          if (!this.activeTour) {
-            this.activeTour = await this.apiService.getServiceAsTour(id);
-          }
-        }
-
-        if (this.detailDisposed) return;
-        this.isServiceDetail = !!this.activeTour?.isService || isService;
-        if (this.activeTour) {
-          if (this.activeTour.isService) this.seo.update(this.activeTour);
-          else this.seo.clear();
-          this.setupSlides();
-          await this.loadReviews(id);
-          await this.loadReviewEligibility();
-        }
-        if (this.detailDisposed) return;
-        if (!this.activeTour) this.seo.clear();
-        this.isPageLoading = false;
-        this.cdr.detectChanges();
+        void this.loadDetail(id, requestSequence);
       } else {
+        this.activeTour = null;
+        this.loadError = false;
         this.isPageLoading = false;
         this.cdr.detectChanges();
       }
     });
   }
 
+  private async loadDetail(id: string, requestSequence: number): Promise<void> {
+    this.isPageLoading = true;
+    this.loadError = false;
+    this.reviewsList = [];
+    this.filteredReviews = [];
+    this.reviewBookings = [];
+    this.selectedReviewBookingId = '';
+    this.reviewLoadError = false;
+    this.reviewEligibilityError = false;
+    this.isReviewsLoading = true;
+    this.isReviewEligibilityLoading = true;
+    this.activeInfoTab = 'overview';
+    this.selectedRoomId = '';
+    this.roomQuantities = {};
+    this.locationCategory = 'all';
+    this.bookingError = '';
+    const isService = this.route.snapshot.routeConfig?.path?.startsWith('services') ||
+      this.route.snapshot.routeConfig?.path?.startsWith('service-detail') ||
+      id.toLowerCase().startsWith('srv_') || id.toLowerCase().startsWith('srv-');
+
+    try {
+      let nextTour: Tour | null;
+      if (isService) {
+        nextTour = await this.apiService.getServiceAsTour(id, this.route.snapshot.queryParamMap?.get('flashSale') || undefined);
+        if (!nextTour) nextTour = await this.apiService.getPresetTour(id);
+      } else {
+        nextTour = await this.apiService.getPresetTour(id);
+        if (!nextTour) nextTour = await this.apiService.getServiceAsTour(id);
+      }
+      if (this.detailDisposed || requestSequence !== this.detailRequestSequence) return;
+
+      this.activeTour = nextTour;
+      this.isServiceDetail = !!nextTour?.isService || isService;
+      if (nextTour?.isService) this.seo.update(nextTour);
+      else this.seo.clear();
+      if (nextTour) {
+        this.setupSlides();
+        void this.loadReviews(id, requestSequence).then(() => {
+          if (!this.detailDisposed && requestSequence === this.detailRequestSequence) {
+            void this.loadReviewEligibility(requestSequence, id);
+          }
+        });
+      } else {
+        this.seo.clear();
+        this.loadError = true;
+        this.isReviewsLoading = false;
+        this.isReviewEligibilityLoading = false;
+      }
+    } catch {
+      if (this.detailDisposed || requestSequence !== this.detailRequestSequence) return;
+      this.activeTour = null;
+      this.loadError = true;
+      this.seo.clear();
+    } finally {
+      if (!this.detailDisposed && requestSequence === this.detailRequestSequence) {
+        this.isPageLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public retryDetail(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) void this.loadDetail(id, ++this.detailRequestSequence);
+  }
+
 
   public onThumbError(event: Event) {
     const target = event.target as HTMLImageElement;
-    if (target) {
-      target.src = 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
-    }
+    if (target && !target.src.includes('travel-placeholder.svg')) target.src = 'image/greensteps/travel-placeholder.svg';
+  }
+
+  public onHeroError(event: Event) {
+    const target = event.target as HTMLImageElement;
+    if (target && !target.src.includes('travel-placeholder.svg')) target.src = 'image/greensteps/travel-placeholder.svg';
   }
 
   private setupSlides() {
     if (!this.activeTour) return;
-    const coverImage = (this.activeTour.image || this.activeTour.image_url || 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg').replace(/^\//, '');
-    const galleryImages = (this.activeTour.gallery || []).map((image: string) => (image || '').replace(/^\//, '')).filter(Boolean);
+    const demoPlaceholder = 'image/greensteps/travel-placeholder.svg';
+    const verifiedDemoCover = this.activeTour.photoMetadata?.find(photo =>
+      photo.path === (this.activeTour?.image || this.activeTour?.image_url)
+      && photo.verificationStatus === 'verified'
+      && photo.path.startsWith('image/greensteps/tours/')
+    )?.path;
+    const coverImage = (this.activeTour.is_demo
+      ? (verifiedDemoCover || demoPlaceholder)
+      : (this.activeTour.image || this.activeTour.image_url || 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg')).replace(/^\//, '');
+    const galleryImages = (this.activeTour.is_demo
+      ? (this.activeTour.photoMetadata || []).filter(photo => photo.verificationStatus === 'verified' && photo.path.startsWith('image/greensteps/tours/')).map(photo => photo.path)
+      : (this.activeTour.gallery || []))
+      .map((image: string) => (image || '').replace(/^\//, '')).filter(Boolean);
     let rawImages = Array.from(new Set([coverImage, ...galleryImages]));
 
     if (this.activeTour.isService) {
@@ -478,7 +564,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!galleryImages.length) {
+    if (!galleryImages.length && !this.activeTour.is_demo) {
       const destination = this.activeTour.destination || 'Đà Lạt';
       const images = this.destinationImages[destination] || this.destinationImages['Đà Lạt'] || [];
       rawImages = Array.from(new Set([coverImage, ...images]));
@@ -649,8 +735,6 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     return 'attraction';
   }
 
-  public isCloningTrip = false;
-
   public async cloneAndEditTrip() {
     if (!this.activeTour || this.isCloningTrip) return;
     this.isCloningTrip = true;
@@ -778,28 +862,37 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   // REVIEWS & COMMENTS FEATURE INTEGRATION
-  public async loadReviews(tourId: string) {
+  public async loadReviews(tourId: string, requestSequence = this.detailRequestSequence) {
     this.reviewLoadError = false;
+    this.isReviewsLoading = true;
     try {
+      let reviews;
       if (this.activeTour?.isService || (tourId && (tourId.toLowerCase().startsWith('srv_') || tourId.toLowerCase().startsWith('srv-') || tourId.startsWith('SRV_')))) {
-        this.reviewsList = await this.apiService.getServiceReviews(tourId);
+        reviews = await this.apiService.getServiceReviews(tourId);
       } else {
-        this.reviewsList = await this.apiService.getTourReviews(tourId);
+        reviews = await this.apiService.getTourReviews(tourId);
       }
+      if (this.detailDisposed || requestSequence !== this.detailRequestSequence || this.route.snapshot.paramMap.get('id') !== tourId) return;
+      this.reviewsList = reviews;
+      this.isReviewsLoading = false;
     } catch {
+      if (this.detailDisposed || requestSequence !== this.detailRequestSequence || this.route.snapshot.paramMap.get('id') !== tourId) return;
       this.reviewsList = [];
       this.reviewLoadError = true;
+      this.isReviewsLoading = false;
     }
     this.applyFilterAndSort();
     this.cdr.detectChanges();
   }
 
-  public async loadReviewEligibility() {
+  public async loadReviewEligibility(requestSequence = this.detailRequestSequence, tourId = this.activeTour?.id || '') {
     this.reviewEligibilityError = false;
+    this.isReviewEligibilityLoading = true;
     const userId = this.currentUser?.id || this.currentUser?._id;
     if (!userId || this.currentUser?.role !== 'traveler' || !this.activeTour) {
       this.reviewBookings = [];
       this.selectedReviewBookingId = '';
+      this.isReviewEligibilityLoading = false;
       return;
     }
     const type = this.activeTour.isService ? 'service' : 'tour';
@@ -807,16 +900,20 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     try {
       bookings = await this.apiService.getBookingsForReviewEligibility(userId);
     } catch {
+      if (this.detailDisposed || requestSequence !== this.detailRequestSequence || this.route.snapshot.paramMap.get('id') !== tourId || this.currentUserId !== userId) return;
       this.reviewBookings = [];
       this.selectedReviewBookingId = '';
       this.reviewEligibilityError = true;
+      this.isReviewEligibilityLoading = false;
       return;
     }
+    if (this.detailDisposed || requestSequence !== this.detailRequestSequence || this.route.snapshot.paramMap.get('id') !== tourId || this.currentUserId !== userId || this.activeTour?.id !== tourId) return;
     const alreadyReviewed = new Set(this.reviewsList.map(review => review.bookingId).filter(Boolean));
     this.reviewBookings = bookings.filter((booking: any) =>
       booking.status === 'completed' && booking.type === type && booking.targetId === this.activeTour?.id && !alreadyReviewed.has(booking.id)
     );
     this.selectedReviewBookingId = this.reviewBookings[0]?.id || '';
+    this.isReviewEligibilityLoading = false;
   }
 
   public applyFilterAndSort() {

@@ -17,4 +17,15 @@ function assertCatalogBookable(service) {
   }
 }
 
-module.exports = { catalogMetadata, assertCatalogBookable };
+function assertTourBookable(tour, { allowPersonal = false } = {}) {
+  const status = String(tour?.catalog_status || '').toLowerCase();
+  const allowedStatus = status === 'bookable' || (!status) || (allowPersonal && status === 'personal');
+  if (tour?.booking_enabled === false || tour?.is_demo === true || !allowedStatus) {
+    throw Object.assign(new Error('Tour đang ở trạng thái tham khảo và chưa được xác minh để đặt.'), {
+      statusCode: 409,
+      code: 'TOUR_NOT_BOOKABLE'
+    });
+  }
+}
+
+module.exports = { catalogMetadata, assertCatalogBookable, assertTourBookable };

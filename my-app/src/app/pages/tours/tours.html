@@ -98,7 +98,7 @@
 
           <div class="toolbar-controls-box">
             <span class="results-count-text">
-              Hiển thị {{ paginatedTours.length }} trên {{ filteredTours.length }} tour sinh thái
+              Hiển thị {{ paginatedTours.length }} trên {{ totalTours }} hành trình
             </span>
             <div class="sort-by-wrapper">
               <span class="sort-by-label">Sắp xếp theo:</span>
@@ -199,17 +199,21 @@
             <!-- Image Container -->
             <div class="card-img-container">
               <app-favorite-button style="position:absolute;bottom:12px;right:12px;z-index:3" targetType="tour" [targetId]="tour.id" [label]="tour.title" />
-              <img [src]="tour.image || 'image/da-lat/da-lat-rung-thong-01.jpg'" [alt]="tour.title" class="card-img"
-                onerror="this.src='image/Viet Nam.png'">
+              <img [src]="tour.image || 'image/greensteps/travel-placeholder.svg'" [alt]="tour.photoMetadata?.[0]?.alt || tour.title" class="card-img"
+                [attr.srcset]="photoSrcSet(tour.photoMetadata?.[0])" sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw"
+                [attr.width]="tour.photoMetadata?.[0]?.width || null" [attr.height]="tour.photoMetadata?.[0]?.height || null"
+                loading="lazy" decoding="async"
+                onerror="this.src='image/greensteps/travel-placeholder.svg'">
 
               <!-- Floating Top Badges -->
               <div class="card-floating-badges">
-                <span class="eco-carbon-badge">
-                  <i class="bi bi-leaf-fill"></i> -{{ tour.carbon || 0 }}kg CO₂
+                <span class="eco-carbon-badge" *ngIf="tour.carbon !== undefined && tour.carbon !== null">
+                  <i class="bi bi-leaf-fill"></i> {{ tour.carbon }}kg CO₂
                 </span>
                 <span class="duration-badge">
                   <i class="bi bi-clock-fill"></i> {{ tour.days }}N{{ tour.days > 1 ? tour.days - 1 : 0 }}Đ
                 </span>
+                <span class="demo-tour-badge" *ngIf="tour.is_demo">Bản giới thiệu</span>
               </div>
             </div>
 
@@ -217,7 +221,7 @@
             <div class="card-body">
               <div class="card-dest-row">
                 <span class="card-dest-tag">{{ tour.destination }}</span>
-                <span class="tour-style-tag">{{ tour.type || 'Sinh Thái' }}</span>
+                <span class="tour-style-tag">{{ tour.is_demo ? (tour.style || 'Trải nghiệm tham khảo') : (tour.type || 'Sinh Thái') }}</span>
                 <span *ngIf="tour.isRecommended" class="recommended-badge">
                   <i class="bi bi-sparkles"></i> Gợi ý
                 </span>
@@ -240,14 +244,14 @@
                   <span class="reviews-count">({{ tour.votes_count }})</span>
                 </ng-container>
                 <ng-template #noTourCardReviews>
-                  <span class="reviews-count text-slate-400 text-xs font-medium">Mới · Chưa có đánh giá</span>
+                  <span class="reviews-count text-slate-400 text-xs font-medium">Chưa có đánh giá</span>
                 </ng-template>
               </div>
 
               <!-- Eco Highlights -->
               <div class="card-eco-desc" *ngIf="tour.ecoFeature || tour.description">
                 <i class="bi bi-check-circle-fill check-icon"></i>
-                <span class="eco-desc-text">{{ tour.ecoFeature || tour.description }}</span>
+                <span class="eco-desc-text">{{ tour.highlights?.[0] || tour.ecoFeature || tour.description }}</span>
               </div>
 
               <!-- Matched activity highlights -->
@@ -264,13 +268,13 @@
 
               <!-- Price Row (Shop.co signature layout) -->
               <div class="card-price-row">
-                <span class="current-price">{{ (tour.cost || 0) | number:'1.0-0' }}đ</span>
-                <span *ngIf="tour.oldCost && tour.oldCost > tour.cost" class="old-price">
-                  {{ tour.oldCost | number:'1.0-0' }}đ
-                </span>
-                <span *ngIf="tour.discountPercent && tour.discountPercent > 0" class="discount-pill">
-                  -{{ tour.discountPercent }}%
-                </span>
+                <ng-container *ngIf="tour.cost !== undefined && tour.cost !== null; else noVerifiedPrice">
+                  <span class="current-price" *ngIf="!tour.is_demo">{{ tour.cost | number:'1.0-0' }}đ</span>
+                  <span class="price-unverified" *ngIf="tour.is_demo">Chưa có giá xác minh</span>
+                  <span *ngIf="tour.oldCost && tour.oldCost > tour.cost" class="old-price">{{ tour.oldCost | number:'1.0-0' }}đ</span>
+                  <span *ngIf="tour.discountPercent && tour.discountPercent > 0" class="discount-pill">-{{ tour.discountPercent }}%</span>
+                </ng-container>
+                <ng-template #noVerifiedPrice><span class="price-unverified">Chưa có giá xác minh</span></ng-template>
               </div>
 
               <!-- Action button -->
@@ -345,11 +349,8 @@
       <form (submit)="submitNewItinerary($event)" class="modal-body">
         <div class="form-group mb-4">
           <label class="form-label">Chọn điểm đến mong muốn:</label>
-          <select [(ngModel)]="modalDest" name="modalDest" (change)="onModalDestChange()" class="form-select">
-            <option value="Đà Lạt">Đà Lạt - Thành phố sinh thái cao nguyên</option>
-            <option value="Phú Yên">Phú Yên - Xứ sở hoa vàng cỏ xanh</option>
-            <option value="Hội An">Hội An - Di sản xanh không khói</option>
-            <option value="Đà Nẵng">Đà Nẵng - Thành phố đáng sống</option>
+          <select [(ngModel)]="modalDest" name="modalDest" (change)="onModalDestChange()" class="form-select" required>
+            <option *ngFor="let destination of destinations.slice(1)" [value]="destination">{{ destination }}</option>
           </select>
         </div>
 
@@ -364,9 +365,8 @@
         </div>
 
         <div class="form-group mb-4">
-          <label class="form-label">Bản đồ điểm đến vệ tinh:</label>
-          <div id="toursModalMap"
-            style="height: 180px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;"></div>
+          <label class="form-label">Điểm đến đã xác minh:</label>
+          <div class="catalog-state" role="note">Bản đồ sẽ hiển thị sau khi tọa độ được xác minh và tích hợp Maps được cho phép.</div>
         </div>
 
         <div class="modal-footer flex justify-end gap-3 pt-3 border-t">

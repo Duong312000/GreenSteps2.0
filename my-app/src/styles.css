@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Geist:wght@300;400;500;600;700;800;900&display=swap');
-@import './app/pages/booking/booking.css';
 
 /* ==========================================================================
            1. DESIGN TOKENS & CSS VARIABLES (LIGHT/DARK THEMES)
@@ -10027,36 +10026,8 @@ header .nav-hover-trigger img {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* ============================================================
-   OVERFLOW PANEL
-   Nằm trong luồng bình thường → header:hover luôn đúng
-   ============================================================ */
 header {
     overflow: visible;
-}
-.header-overflow-panel {
-    width: 100%;
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    background-color: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border-bottom: 1px solid rgba(24, 74, 55, 0.1);
-    box-shadow: 0 8px 24px rgba(24, 74, 55, 0.08);
-    transition: max-height 0.3s ease, opacity 0.3s ease;
-    pointer-events: none;
-}
-[data-theme="dark"] .header-overflow-panel {
-    background-color: rgba(18, 18, 18, 0.82);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-header:hover .header-overflow-panel,
-.header-overflow-panel.open {
-    max-height: 64px;
-    opacity: 1;
-    overflow: visible;
-    pointer-events: auto;
 }
 app-tour-detail{display:block;background:#f7faf8;color:#16231d}.tour-detail-page{--g:#174c39;--t:#16231d;--m:#64706a;--b:#dce4df;--p:#f3f6f4;width:min(1290px,calc(100% - 48px));margin:0 auto;padding:118px 0 88px}.tour-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}.detail-breadcrumb{display:flex;align-items:center;gap:10px;margin-bottom:22px;color:#7b837f;font-size:14px;font-weight:600}.detail-breadcrumb a{display:inline-flex;align-items:center;gap:8px;color:var(--g);text-decoration:none}.tour-heading h1{max-width:760px;margin:0;color:#101a16;font-size:46px;font-weight:800;line-height:1.08;letter-spacing:0}.tour-meta-row{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;color:#46534d;font-size:15px;font-weight:600}.tour-meta-row span,.title-actions button,.rating-line,.booking-card-top,.tour-code-row,.offer-box,.secondary-edit-button,.day-tabs-row,.activity-badges,.simple-tab-panel div{display:flex;align-items:center}.tour-meta-row i{color:var(--g);font-size:18px}.title-actions{display:flex;gap:10px;flex:0 0 auto}.title-actions button{height:44px;gap:9px;padding:0 16px;border:1px solid var(--b);border-radius:999px;background:#fff;color:#27352f;font-weight:700;cursor:pointer;box-shadow:0 8px 22px #0f172a0a}.tour-hero-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.gallery-panel{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.85fr);gap:14px;min-height:430px}.gallery-main,.gallery-tile{position:relative;overflow:hidden;border:0;border-radius:22px;background:#e9ede9;box-shadow:0 14px 34px #0f172a0f}.gallery-main img,.gallery-tile img{display:block;width:100%;height:100%;object-fit:cover}.gallery-main{min-height:430px}.gallery-side-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.gallery-tile{min-height:208px;cursor:pointer}.show-all-tile span{position:absolute;inset:0;z-index:2;display:grid;place-items:center;gap:8px;background:#0f172a75;color:#fff;font-size:15px;font-weight:800}.booking-card,.content-shell{border:1px solid #dde6e0;border-radius:24px;background:#fff;box-shadow:0 20px 50px #0f172a14}.booking-card{position:sticky;top:104px;padding:22px}.booking-card-top{justify-content:space-between;gap:10px;margin-bottom:18px}.availability-pill,.eco-pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:800}.availability-pill{background:#fff4dc;color:#955b05}.eco-pill{background:#eef7f1;color:var(--g)}.booking-summary{padding-bottom:16px;border-bottom:1px solid #edf1ee}.booking-summary h2{margin:0;color:#111816;font-size:24px;font-weight:800}.booking-summary p{margin:8px 0 0;color:#6b746f;font-size:14px}.rating-line{gap:8px;margin:16px 0;color:#5f6863;font-size:14px}.rating-line span:first-child{color:#ad6a00;font-weight:800}.rating-line i{color:#f5b400}.rating-line a{color:#46534d;font-weight:700;text-decoration:underline;text-underline-offset:3px}.price-block{margin-bottom:18px}.price-block>span{color:#6b746f;font-size:13px;font-weight:700}.price-block div{display:flex;align-items:baseline;gap:10px;margin-top:4px}.price-block strong{color:var(--g);font-size:31px;font-weight:900;line-height:1}.price-block del{color:#8d9691;font-size:15px;font-weight:700}.booking-form{display:grid;gap:12px}.guest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-field{display:grid;gap:8px}.form-field span,.tour-code-row span{color:#59655f;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0}.form-field input,.form-field select{width:100%;height:46px;border:1px solid var(--b);border-radius:14px;background:#fbfcfb;color:var(--t);padding:0 13px;font:inherit}.form-field input:focus,.form-field select:focus{border-color:var(--g);background:#fff;box-shadow:0 0 0 4px #174c3914}.tour-code-row{justify-content:space-between;gap:14px;padding:13px 14px;border-radius:14px;background:#f6f8f6}.tour-code-row strong{color:var(--t);font-size:14px;font-weight:800}.primary-booking-button,.mobile-booking-bar button{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:16px;background:var(--g);color:#fff;font-weight:900;cursor:pointer}.primary-booking-button{height:54px;margin-top:2px;box-shadow:0 14px 26px #174c3933}.offer-box{gap:10px;margin-top:14px;padding:13px 14px;border:1px solid #f1dca8;border-radius:16px;background:#fff8e8;color:#7a4b08;font-size:13px;font-weight:800}.secondary-edit-button{justify-content:center;gap:10px;width:100%;height:48px;margin-top:12px;border:1px solid var(--b);border-radius:15px;background:#fff;color:var(--g);font-weight:800;cursor:pointer}.content-shell{margin-top:34px;padding:0 30px 34px}.detail-tabs{display:flex;gap:34px;overflow-x:auto;border-bottom:1px solid #e4ebe6}.detail-tabs button{position:relative;height:70px;flex:0 0 auto;border:0;background:transparent;color:#6a746f;font-size:17px;font-weight:800;cursor:pointer}.detail-tabs button:after{content:"";position:absolute;right:0;bottom:-1px;left:0;height:3px;border-radius:999px 999px 0 0;background:transparent}.detail-tabs button.active{color:var(--g)}.detail-tabs button.active:after{background:var(--g)}.overview-panel,.simple-tab-panel,.itinerary-section{padding-top:30px}.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 32px}.overview-grid article{display:grid;grid-template-columns:42px 1fr;gap:14px;align-items:start}.overview-grid i,.simple-tab-panel i{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:var(--p);color:var(--g);font-size:18px}.overview-grid span{display:block;color:#7a847f;font-size:13px;font-weight:700}.overview-grid strong{display:block;margin-top:4px;color:#15211c;font-size:16px;font-weight:800}.tour-description{max-width:860px;margin:30px 0 0;padding-top:26px;border-top:1px solid #edf1ee;color:#46534d;font-size:16px;line-height:1.8}.simple-tab-panel{display:grid;gap:14px;color:#46534d;font-size:15px;line-height:1.6}.simple-tab-panel div{gap:12px}.section-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}.section-title-row span{color:#ad6a00;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0}.section-title-row h2{margin:6px 0 0;color:#111816;font-size:27px;font-weight:900}.day-tabs-row{flex-wrap:wrap;gap:9px}.day-tab{height:40px;padding:0 17px;border:1px solid var(--b);border-radius:999px;background:#fff;color:#59655f;font-weight:800;cursor:pointer}.day-tab.active{border-color:var(--g);background:var(--g);color:#fff}.timeline-list{display:grid;gap:16px}.timeline-card{display:grid;grid-template-columns:86px 42px 164px 1fr;gap:16px;align-items:center;padding:16px;border:1px solid #e3ebe6;border-radius:22px;background:#fff}.time-col{display:grid;justify-items:end}.time-col span{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:34px;border-radius:999px;background:var(--p);color:var(--g);font-size:13px;font-weight:900}.activity-icon{display:grid;width:42px;height:42px;place-items:center;border-radius:14px;background:var(--g);color:#fff;box-shadow:0 12px 22px #174c3929}.activity-image{width:164px;height:106px;border-radius:16px;object-fit:cover;background:#edf1ee}.activity-copy{min-width:0}.activity-copy h3{margin:0;color:#111816;font-size:17px;font-weight:900}.activity-copy p{margin:7px 0 12px;color:#65706a;font-size:14px;line-height:1.55}.activity-badges{flex-wrap:wrap;gap:9px}.activity-badges span{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:var(--p);color:#46534d;font-size:12px;font-weight:800}.activity-badges .carbon{background:#eef7f1;color:var(--g)}.mobile-booking-bar{display:none}@media(max-width:1180px){.tour-hero-grid{grid-template-columns:1fr}.booking-card{position:static}}@media(max-width:900px){.tour-detail-page{width:min(100% - 32px,1290px);padding-top:102px}.tour-heading{align-items:flex-start;flex-direction:column}.title-actions{width:100%}.title-actions button{flex:1}.gallery-panel{display:block;min-height:0}.gallery-main{height:360px;min-height:0}.gallery-side-grid{display:none}.content-shell{padding:0 20px 28px}.overview-grid{grid-template-columns:1fr}.section-title-row{align-items:flex-start;flex-direction:column}.timeline-card{grid-template-columns:74px 1fr;align-items:start}.activity-icon{display:none}.activity-image{grid-column:1/-1;width:100%;height:190px;order:-1}}@media(max-width:640px){.tour-detail-page{width:100%;padding:88px 0 112px}.tour-heading,.tour-hero-grid,.content-shell{width:calc(100% - 28px);margin-right:auto;margin-left:auto}.detail-breadcrumb{margin-bottom:16px;font-size:13px}.tour-heading h1{font-size:30px;line-height:1.15}.tour-meta-row{gap:12px;font-size:14px}.tour-meta-row span{width:100%}.gallery-main{height:310px;border-radius:20px}.booking-card{border-radius:22px;padding:18px}.price-block strong{font-size:27px}.content-shell{margin-top:24px;border-radius:22px}.detail-tabs{gap:24px;margin:0 -20px;padding:0 20px}.detail-tabs button{height:58px;font-size:15px}.tour-description{font-size:15px}.timeline-card{grid-template-columns:1fr;gap:12px;padding:14px}.time-col{justify-items:start}.activity-image{height:176px}.activity-copy h3{font-size:16px}.mobile-booking-bar{position:fixed;right:0;bottom:0;left:0;z-index:80;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--b);background:#fffffff5;box-shadow:0 -12px 30px #0f172a1a;backdrop-filter:blur(16px)}.mobile-booking-bar span{display:block;color:#6b746f;font-size:12px;font-weight:800}.mobile-booking-bar strong{display:block;color:var(--g);font-size:18px;font-weight:900;white-space:nowrap}.mobile-booking-bar button{min-width:178px;height:48px;padding:0 18px}}
 
@@ -10694,13 +10665,6 @@ app-partner-register {
         width: 3.15rem !important;
         height: 3.15rem !important;
     }
-    app-header .header-overflow-panel > div {
-        max-width: var(--gs-content-wide) !important;
-        height: 46px !important;
-        padding-inline: var(--gs-gutter) !important;
-    }
-    app-header .header-overflow-panel > div > div:first-child { width: 250px !important; }
-
     @media (max-width: 1440px) {
         app-header header > div:first-child > div:first-child,
         app-header header > div:first-child > div:last-child {
@@ -12031,9 +11995,6 @@ app-tour-detail .show-all-tile span {
     padding: 22px 18px !important;
   }
 
-  app-header .header-overflow-panel {
-    display: none !important;
-  }
 }
 
 @media (max-width: 767px) {

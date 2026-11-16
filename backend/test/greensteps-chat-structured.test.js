@@ -105,6 +105,60 @@ test('itinerary activities use verified service data and keep unknown suggestion
   assert.equal(plan.days[0][1].serviceId, 'srv_live_1');
 });
 
+test('itinerary verification requires an exact active service ID and canonicalizes service metadata', () => {
+  const plan = canonicalItinerary({
+    destination: 'Đà Lạt',
+    days: [[
+      { name: 'Vườn quốc gia', time: '09:00', cost: 9000000, carbon: 999 },
+      { name: 'AI gọi sai tên', time: '10:00', serviceId: 'srv_live_1', cost: 1, carbon: 0 }
+    ]]
+  }, catalog);
+
+  assert.equal(plan.days[0][0].verified, false);
+  assert.equal(plan.days[0][0].serviceId, null);
+  assert.equal(plan.days[0][0].cost, 0);
+  assert.equal(plan.days[0][0].carbon, 0);
+  assert.equal(plan.days[0][1].verified, true);
+  assert.equal(plan.days[0][1].name, 'Vườn quốc gia');
+  assert.equal(plan.days[0][1].serviceId, 'srv_live_1');
+  assert.equal(plan.days[0][1].cost, 250000);
+  assert.equal(plan.days[0][1].carbon, 1.2);
+  assert.deepEqual(Object.keys(plan.days[0][1]), ['name', 'time', 'cost', 'carbon', 'type', 'verified', 'serviceId']);
+});
+
+test('an inactive catalog service ID cannot be verified', () => {
+  const inactiveCatalog = {
+    ...catalog,
+    services: [{ ...catalog.services[0], status: 'inactive' }]
+  };
+  const plan = canonicalItinerary({
+    destination: 'Đà Lạt',
+    days: [[{ name: 'Vườn quốc gia', serviceId: 'srv_live_1' }]]
+  }, inactiveCatalog);
+
+  assert.equal(plan.days[0][0].verified, false);
+  assert.equal(plan.days[0][0].serviceId, null);
+  assert.equal(plan.days[0][0].cost, 0);
+  assert.equal(plan.days[0][0].carbon, 0);
+});
+
+test('itinerary services found outside the display page can be verified by their catalog ID', () => {
+  const candidateCatalog = {
+    ...catalog,
+    services: [],
+    serviceCandidates: [{ ...catalog.services[0], id: 'service-page-two' }]
+  };
+  const plan = canonicalItinerary({
+    destination: 'Đà Lạt',
+    days: [[{ name: 'Tên Gemini tự viết', serviceId: 'service-page-two' }]]
+  }, candidateCatalog);
+
+  assert.equal(plan.days[0][0].verified, true);
+  assert.equal(plan.days[0][0].name, 'Vườn quốc gia');
+  assert.equal(plan.days[0][0].serviceId, 'service-page-two');
+  assert.equal(plan.days[0][0].cost, 250000);
+});
+
 test('itinerary rejects an incomplete requested duration instead of padding blank days', () => {
   const plan = canonicalItinerary({ destination: 'Đà Lạt', days: [[{ name: 'Hồ Xuân Hương' }]] }, catalog, 'Đà Lạt', 3);
   assert.equal(plan, null);

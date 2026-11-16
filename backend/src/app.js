@@ -5,19 +5,25 @@ const cookieParser = require('cookie-parser');
 const routes = require('./routes/index');
 const errorHandler = require('./middlewares/errorHandler');
 const { maintenanceMiddleware, maintenanceStatusHandler } = require('./middlewares/maintenance');
+const { parseAllowedOrigins, createCorsOptions } = require('./config/security.config');
+const { attachRequestId, createCookieCsrfProtection } = require('./middlewares/security.middleware');
+const { createDatabaseConnectionMiddleware } = require('./middlewares/database-connection.middleware');
+const { requestPerformanceMiddleware } = require('./middlewares/request-performance.middleware');
+const { compressPublicCatalogJson } = require('./middlewares/json-compression');
 const { store } = require('./config/db.config');
 
 const app = express();
-let isDbConnected = false;
+const allowedOrigins = parseAllowedOrigins();
 
 // Enable standard middlewares
-app.use(cors({
-  origin: true, // Allow frontend origin
-  credentials: true
-}));
+app.use(attachRequestId);
+app.use(cors(createCorsOptions(allowedOrigins)));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
+app.use(createCookieCsrfProtection(allowedOrigins));
+app.use(compressPublicCatalogJson);
+app.use(requestPerformanceMiddleware());
 
 app.get(['/api', '/api/', '/api/v1', '/api/v1/'], (req, res) => {
   const apiRoot = req.path.startsWith('/api/v1') ? '/api/v1' : '/api';
@@ -48,24 +54,8 @@ app.get(['/api/health', '/api/v1/health'], async (req, res) => {
 app.get(['/api/maintenance-status', '/api/v1/maintenance-status'], maintenanceStatusHandler);
 app.use(maintenanceMiddleware);
 
-// Database connection check middleware
-app.use(async (req, res, next) => {
-  try {
-    if (!isDbConnected) {
-      await store.authenticate();
-      isDbConnected = true;
-    }
-    next();
-  } catch (err) {
-    isDbConnected = false;
-    return res.status(503).json({
-      success: false,
-      error: 'DatabaseUnavailable',
-      message: 'Không thể kết nối đến cơ sở dữ liệu MongoDB. Vui lòng kiểm tra lại cấu hình!',
-      details: err.message
-    });
-  }
-});
+// Return database connection failures without exposing connection details.
+app.use(createDatabaseConnectionMiddleware({ store }));
 
 // Mount upload-base64 endpoint directly on app to avoid routes nesting complexities
 const fs = require('fs');

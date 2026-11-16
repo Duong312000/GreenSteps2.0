@@ -250,6 +250,7 @@
 .planner-tour-rail gs-tour-card { display: block; width: 100%; min-width: 0; }
 .planner-more { justify-self: end; border: 0; padding: 5px 3px; background: transparent; color: #176b49; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
 .planner-more:hover { color: #0d5c42; text-decoration: underline; }
+.planner-create { justify-self: start; border: 1px solid #d7e2d4; border-radius: 999px; padding: 7px 12px; background: #fffefa; }
 .planner-empty-state { display: grid; justify-items: start; gap: 7px; padding: 15px; border: 1px solid #e1ebe4; border-radius: 14px; background: #fffefa; }
 .planner-empty-state .empty-icon { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; background: #edf2e7; color: #24724d; font-size: 22px; }
 .planner-empty-state strong { color: #184a37; font-size: 12px; }
@@ -357,7 +358,7 @@
 }
 
 @media (max-width: 600px) {
-  .chat-panel { top: 0; left: 0; width: 100vw; height: var(--gs-chat-viewport, 100dvh); min-height: 280px; border: 0; border-radius: 0; transform: translateY(14px); }
+  .chat-panel { top: 0; left: 0; width: 100vw; height: min(var(--gs-chat-viewport, 100dvh), 100dvh); min-height: 280px; border: 0; border-radius: 0; transform: translateY(14px); }
   .chat-panel.is-open { transform: none; }
   .workspace-header { min-height: 65px; padding: 8px max(11px, env(safe-area-inset-left)) 8px 13px; }
   .brand-mark { width: 39px; height: 39px; flex-basis: 39px; border-radius: 13px; }

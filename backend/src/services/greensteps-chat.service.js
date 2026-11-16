@@ -1,10 +1,11 @@
-const { createCatalogLoader } = require('./greensteps-agent-catalog.service');
-const { fixedReply, catalogReply, compactAiInput } = require('./greensteps-chat-fast-path.service');
+const { createCatalogLoader, queryFromRequest } = require('./greensteps-agent-catalog.service');
+const { fixedReply, isCatalogDependentRequest, isExplicitCatalogSearchRequest, catalogReply, tourDiscoveryReply, destinationChoiceClarification, routeConflictClarification, destinationCorrectionClarification, compactAiInput } = require('./greensteps-chat-fast-path.service');
 const { canonicalTour, normalizeStructuredResponse, suggestedQuestions, isItineraryRequest, isExplicitTourSearchRequest, itineraryClarification, itineraryContextHistory } = require('./greensteps-chat-structured.service');
 const { performance } = require('node:perf_hooks');
 const { randomUUID } = require('node:crypto');
 const fail = (message, statusCode, code) => Object.assign(new Error(message), { statusCode, code });
 const safeDiagnostic = value => typeof value === 'string' && /^[a-zA-Z0-9_.-]{1,64}$/.test(value) ? value : undefined;
+const normalizePlace = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().trim();
 
 function validateChatInput(body) {
   if (!body || typeof body.message !== 'string' || !body.message.trim() || body.message.length > 4000) {
@@ -20,6 +21,7 @@ function validateChatInput(body) {
     throw fail('Lịch sử hội thoại không hợp lệ hoặc quá dài.', 400, 'CHAT_HISTORY_INVALID');
   }
   const result = { message: body.message.trim(), sessionId: body.sessionId, history: history.map(({ role, content }) => ({ role, content })) };
+  if (Number.isInteger(body.catalogPage) && body.catalogPage > 0) result.catalogPage = Math.min(body.catalogPage, 10000);
   if (Array.isArray(body.currentTours)) {
     result.currentTours = body.currentTours.slice(0, 9).map(tour => ({ id: typeof tour?.id === 'string' ? tour.id.slice(0, 80) : '' })).filter(tour => tour.id);
   }
@@ -76,6 +78,16 @@ function normalizeChatResponse(value, responseField = 'output') {
   return reply.trim();
 }
 
+function catalogPageMetadata(catalog) {
+  return {
+    catalogPage: catalog.page,
+    catalogPageSize: catalog.pageSize,
+    nextCatalogPage: catalog.nextPage,
+    hasMoreTours: Boolean(catalog.truncatedTours),
+    hasMoreServices: Boolean(catalog.truncatedServices)
+  };
+}
+
 async function readResponse(response) {
   // Bound upstream output before parsing it; do not expose raw n8n errors/HTML.
   const reader = response.body?.getReader();
@@ -96,8 +108,8 @@ async function readResponse(response) {
   catch { throw fail('Trợ lý chưa gửi được câu trả lời hợp lệ. Vui lòng thử lại.', 502, 'CHAT_RESPONSE_INVALID'); }
 }
 
-function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {}) {
-  const loadCatalog = createCatalogLoader({ env, fetchImpl });
+function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models } = {}) {
+  const loadCatalog = createCatalogLoader({ env, models });
   return async function send(input, { signal, metrics = {} } = {}) {
     if (signal?.aborted) throw fail('Yêu cầu đã được dừng.', 499, 'CHAT_CANCELLED');
     metrics.path = 'fast';
@@ -114,11 +126,56 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
     const requestSignal = signal ? AbortSignal.any([signal, abort]) : abort;
     try {
       const catalogStart = performance.now();
-      const catalog = await loadCatalog({ signal: requestSignal });
+      const itineraryIntent = isItineraryRequest(input);
+      const catalogQuery = queryFromRequest(input);
+      const catalog = await loadCatalog({
+        query: catalogQuery, signal: requestSignal,
+        includeServiceCandidates: itineraryIntent
+      });
       metrics.catalogMs = Math.round((performance.now() - catalogStart) * 100) / 100;
       requestSignal.throwIfAborted();
-      const itineraryIntent = isItineraryRequest(input);
       const requestIntent = itineraryIntent ? 'itinerary' : isExplicitTourSearchRequest(input) ? 'tour_search' : 'general';
+      const catalogRequired = itineraryIntent || isCatalogDependentRequest(input.message);
+      if (catalogRequired && !catalog.available) {
+        throw fail('Danh mục du lịch GreenSteps hiện chưa truy cập được. Mình chưa thể xác minh tour, dịch vụ hoặc giá; vui lòng thử lại sau.', 503, 'CHAT_CATALOG_UNAVAILABLE');
+      }
+      const destinationClarification = destinationChoiceClarification(input.message, catalog);
+      if (destinationClarification) {
+        metrics.path = 'clarification';
+        metrics.intent = destinationClarification.intent;
+        return {
+          success: true, reply: destinationClarification.reply, type: destinationClarification.type,
+          tours: [], itinerary: null, totalTours: 0, hasMoreTours: false, catalogAvailable: true,
+          ...catalogPageMetadata(catalog), suggestedQuestions: destinationClarification.suggestedQuestions,
+          sessionId: input.sessionId
+        };
+      }
+      let correctionCatalog = catalog;
+      const requestedPlace = normalizePlace(catalogQuery.destination);
+      const destinationKnownOnFilteredPage = [...(catalog.tours || []), ...(catalog.services || [])]
+        .some(row => normalizePlace(row.destination) === requestedPlace);
+      if (catalog.available && requestedPlace && !destinationKnownOnFilteredPage) {
+        const broadStart = performance.now();
+        correctionCatalog = await loadCatalog({ query: { page: 1, pageSize: 20 }, signal: requestSignal });
+        metrics.catalogMs = Math.round((metrics.catalogMs + performance.now() - broadStart) * 100) / 100;
+      }
+      const routeConflict = routeConflictClarification(input.message, correctionCatalog);
+      if (routeConflict) {
+        metrics.path = 'clarification';
+        metrics.intent = routeConflict.intent;
+        return { success: true, ...routeConflict, ...catalogPageMetadata(catalog), sessionId: input.sessionId };
+      }
+      const destinationCorrection = destinationCorrectionClarification(input.message, correctionCatalog);
+      if (destinationCorrection) {
+        metrics.path = 'clarification';
+        metrics.intent = destinationCorrection.intent;
+        return {
+          success: true, reply: destinationCorrection.reply, type: destinationCorrection.type,
+          tours: [], itinerary: null, totalTours: 0, hasMoreTours: false, catalogAvailable: true,
+          ...catalogPageMetadata(catalog), suggestedQuestions: destinationCorrection.suggestedQuestions,
+          sessionId: input.sessionId
+        };
+      }
       const clarification = itineraryClarification(input, catalog);
       if (clarification) {
         metrics.path = 'clarification';
@@ -126,10 +183,40 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
         return {
           success: true, reply: clarification.reply, type: 'clarification', tours: [], itinerary: null,
           totalTours: 0, hasMoreTours: false, catalogAvailable: Boolean(catalog?.available),
+          ...catalogPageMetadata(catalog),
           suggestedQuestions: clarification.suggestedQuestions.slice(0, 3), sessionId: input.sessionId
         };
       }
       const catalogFastReply = catalogReply(input.message, catalog);
+      const discoveryReply = !itineraryIntent ? tourDiscoveryReply(input.message, catalog) : null;
+      if (discoveryReply) {
+        metrics.intent = discoveryReply.intent;
+        return {
+          success: true, reply: discoveryReply.reply, type: discoveryReply.type,
+          tours: discoveryReply.tours.map(canonicalTour), itinerary: null,
+          totalTours: discoveryReply.totalTours, hasMoreTours: discoveryReply.hasMoreTours,
+          catalogAvailable: true, ...catalogPageMetadata(catalog),
+          suggestedQuestions: discoveryReply.suggestedQuestions, sessionId: input.sessionId
+        };
+      }
+      if (!itineraryIntent && !catalogFastReply && isExplicitCatalogSearchRequest(input.message)) {
+        const tourSearch = /\b(?:tour)\b/i.test(input.message.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+        const rows = tourSearch ? catalog.tours : catalog.services;
+        const shown = rows.slice(0, 6);
+        const kind = tourSearch ? 'tour' : 'dịch vụ';
+        const reply = shown.length
+          ? `${shown.map(row => `- ${row.title || row.name} (mã ${row.id})${row.destination ? ` — ${row.destination}` : ''}${typeof row.cost === 'number' ? `: ${new Intl.NumberFormat('vi-VN').format(row.cost)} đ` : ': chưa có giá'}.`).join('\n')}\nKết quả lấy từ danh mục GreenSteps hiện có.${catalog.truncated ? ' Danh mục bị giới hạn, có thể còn kết quả khác.' : ''}`
+          : `Chưa tìm thấy ${kind} phù hợp trong danh mục GreenSteps hiện có.${catalog.truncated ? ' Danh mục bị giới hạn, có thể còn kết quả khác.' : ''}`;
+        metrics.intent = tourSearch ? 'tour_search' : 'service_search';
+        return {
+          success: true, reply, type: tourSearch ? 'tour_recommendations' : 'text',
+          tours: tourSearch ? shown.map(canonicalTour) : [], itinerary: null,
+          totalTours: tourSearch ? rows.length : 0, hasMoreTours: tourSearch && Boolean(catalog.truncatedTours),
+          catalogAvailable: true, ...catalogPageMetadata(catalog),
+          suggestedQuestions: suggestedQuestions(tourSearch ? 'tours' : 'services', rows, null),
+          sessionId: input.sessionId
+        };
+      }
       // Recommendations must be selected by the n8n agent so its answer and
       // the cards shown to the user come from the same decision. We still use
       // the local fast path for exact catalog lookups such as prices/services.
@@ -141,6 +228,7 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
           tours: (fast.tours || []).map(canonicalTour), itinerary: null,
           totalTours: fast.totalTours ?? (fast.tours || []).length,
           hasMoreTours: Boolean(fast.hasMoreTours), catalogAvailable: fast.catalogAvailable ?? catalog.available,
+          ...catalogPageMetadata(catalog),
           suggestedQuestions: fast.suggestedQuestions || suggestedQuestions(fast.intent, fast.tours || [], null),
           sessionId: input.sessionId
         };
@@ -176,7 +264,7 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
               requestIntent,
               currentTourRecommendations: aiInput.currentTours || [],
               currentItinerary: aiInput.plannerState || null,
-              uiResponseContract: 'Backend requestIntent=itinerary has strict priority: create a custom itinerary, never switch to catalog tour recommendations because the user mentions budget, dates, or destination. If destination or duration is missing, ask only for the missing detail and do not return tours. When complete, return type="itinerary_proposal" and itinerary {name,destination,durationDays,days:[{activities:[{name,time}]}],assumptions}; preserve the requested number of days exactly. Tour cards are only for an explicit request to find, suggest, or compare package tours without a custom itinerary request. For tour searches return type="tour_recommendations" and tours as IDs from the supplied catalog; never invent tour IDs, prices, images, labels, or availability. For ordinary chat return type="text". Include up to three contextual suggestedQuestions. Never claim unknown activities are verified.'
+              uiResponseContract: 'Backend requestIntent=itinerary has strict priority: create a custom itinerary, never switch to catalog tour recommendations because the user mentions budget, dates, or destination. If destination or duration is missing, ask only for the missing detail and do not return tours. When complete, return type="itinerary_proposal" with itinerary {name,destination,durationDays,days:[{activities:[{name,time,serviceId}]}],assumptions}; preserve the requested number of days exactly. Return a verified service with its exact string ID from context.catalog.serviceCandidates as serviceId. For a free-form suggested activity omit serviceId or set it to null. Never represent a service by name alone. Backend verification requires an active candidate ID and matching destination, and replaces service name, cost, carbon, type, and ID with catalog data. Unknown IDs stay unverified suggestions. Tour cards are only for an explicit request to find, suggest, or compare package tours without a custom itinerary request. For tour searches return type="tour_recommendations" and tours as IDs from the supplied catalog; never invent tour IDs, prices, images, labels, or availability. Use only context.catalog entries as verified GreenSteps data. Never invent names, IDs, prices, images, labels, carbon, or availability. Other activities are reference suggestions and must be labeled unverified with no GreenSteps price, service ID, carbon figure, or availability claim. If catalog.available is false, do not answer GreenSteps business facts. For ordinary chat return type="text". Include up to three contextual suggestedQuestions.'
             }
           }),
           signal: requestSignal
@@ -192,7 +280,7 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch } = {})
         if (typeof item?.performance?.agentMs === 'number' && Number.isFinite(item.performance.agentMs) && item.performance.agentMs >= 0 && item.performance.agentMs <= 300000) metrics.agentMs = item.performance.agentMs;
         const structured = normalizeStructuredResponse(data, config.responseField, catalog, input);
         if (!structured) normalizeChatResponse(data, config.responseField);
-        return { success: true, ...structured, sessionId: input.sessionId };
+        return { success: true, ...structured, ...catalogPageMetadata(catalog), sessionId: input.sessionId };
       } finally { metrics.n8nMs = Math.round((performance.now() - upstreamStart) * 100) / 100; }
     } catch (error) {
       if (error.statusCode) throw error;

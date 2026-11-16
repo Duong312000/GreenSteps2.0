@@ -2,10 +2,11 @@ import { Component, ChangeDetectorRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
+import { LoadingIndicator } from '../../components/loading-indicator/loading-indicator';
 
-@Component({ selector: 'app-green-wallet', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './green-wallet.html', styleUrl: './green-wallet.css' })
+@Component({ selector: 'app-green-wallet', standalone: true, imports: [CommonModule, FormsModule, LoadingIndicator], templateUrl: './green-wallet.html', styleUrl: './green-wallet.css' })
 export class GreenWalletComponent implements OnInit, OnDestroy {
-  data: any; error = ''; notice = ''; busy = false; hidden = false; modal = ''; all = false;
+  data: any; error = ''; notice = ''; busy = false; loading = true; hidden = false; modal = ''; all = false;
   amount = 50000; points = 1000; email = ''; bankName = ''; bankAccount = ''; accountHolder = ''; qrText = '';
   private timer?: ReturnType<typeof setInterval>;
   private key = crypto.randomUUID();
@@ -19,6 +20,7 @@ export class GreenWalletComponent implements OnInit, OnDestroy {
   ngOnInit() { void this.refresh(); this.timer = setInterval(() => { if (!this.busy && document.visibilityState === 'visible') void this.refresh(); }, 15000); }
   ngOnDestroy() { clearInterval(this.timer); }
   async refresh() {
+    if (!this.data) this.loading = true;
     try {
       this.data = await this.api.walletRequest('GET', '/overview');
       if (this.selectedTransaction && this.demoModal === 'demoDetail') await this.readDetail(this.selectedTransaction.id);
@@ -27,6 +29,8 @@ export class GreenWalletComponent implements OnInit, OnDestroy {
       this.error = e.status === 0 ? 'Không kết nối được máy chủ GreenSteps. Vui lòng thử lại khi máy chủ hoạt động.'
         : e.status === 401 ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
         : e.error?.message || 'Không thể tải ví. Vui lòng thử lại.';
+    } finally {
+      this.loading = false;
     }
     this.cdr.markForCheck();
   }

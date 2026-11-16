@@ -1,9 +1,9 @@
 import { TransportBookingsComponent } from './pages/transport/transport-bookings';
 import { GreenWalletComponent } from './pages/profile/green-wallet';
 import { MyVouchersComponent } from './pages/profile/my-vouchers';
-import { FavoriteButtonComponent } from './components/favorites/favorite-button';
 import { FavoriteCollectionComponent } from './components/favorites/favorite-collection';
 import { ErrorHandler, NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { FavoriteButtonComponent } from './components/favorites/favorite-button';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -21,26 +21,13 @@ import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
 import { PromotionsComponent } from './pages/promotions/promotions';
 import { TourDetailComponent } from './pages/tour-detail/tour-detail';
-import { BookingComponent } from './pages/booking/booking';
-import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 import { ServicesComponent } from './pages/services/services';
 import { CommunityComponent } from './pages/community/community';
-import { ProfileComponent } from './pages/profile/profile';
-import { ScheduleEditorComponent } from './pages/schedule-editor/schedule-editor';
-import { AdminComponent } from './pages/admin/admin';
 import { AdminUsersComponent } from './pages/admin/admin-users';
 import { AccountDetailModalComponent } from './pages/admin/account-detail-modal.component';
 import { AdminTableComponent } from './pages/admin/admin-table.component';
 import { StatusBadgeComponent } from './components/shared/status-badge';
 import { CopyableIdComponent } from './pages/admin/copyable-id.component';
-import { PartnerDashboardComponent } from './pages/partner/partner-dashboard/partner-dashboard';
-import { PartnerServicesComponent } from './pages/partner/partner-services/partner-services';
-import { PartnerBookingsComponent } from './pages/partner/partner-bookings/partner-bookings';
-import { PartnerAdsComponent } from './pages/partner/partner-ads/partner-ads';
-import { PartnerPromotionsComponent } from './pages/partner/partner-promotions/partner-promotions';
-import { PartnerRegisterComponent } from './pages/partner/partner-register/partner-register';
-import { PartnerLegalComponent } from './pages/partner/partner-legal/partner-legal';
-import { LegalPageLayoutComponent } from './components/legal-page-layout/legal-page-layout';
 import { ServerErrorComponent } from './pages/server-error/server-error';
 import { MaintenanceComponent } from './pages/maintenance/maintenance';
 import { GlobalErrorHandler } from './services/global-error-handler';
@@ -53,10 +40,11 @@ import { NetworkErrorComponent } from './pages/network-error/network-error';
 import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
 import { LocalFoodComponent } from './pages/local-food/local-food';
 import { ProfileNavigationComponent } from './components/profile-navigation/profile-navigation';
+import { BookingLookupComponent } from './pages/booking-lookup/booking-lookup';
 
 const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, window.location.origin);
-  const allowedOrigins = new Set(['http://localhost:5055', 'http://127.0.0.1:5055', 'https://greensteps-6swn.onrender.com', window.location.origin]);
+  const allowedOrigins = new Set(['http://localhost:5055', 'http://127.0.0.1:5055', 'https://greensteps-6swn.onrender.com', 'https://greensteps2-0-backend.onrender.com', window.location.origin]);
   if (!allowedOrigins.has(url.origin) || !url.pathname.startsWith('/api/')) return next(req);
 
   const token = localStorage.getItem('greensteps_token');
@@ -83,21 +71,8 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     ToursComponent,
     PromotionsComponent,
     TourDetailComponent,
-    BookingComponent,
-    BookingLookupComponent,
     ServicesComponent,
     CommunityComponent,
-    ProfileComponent,
-    ScheduleEditorComponent,
-    AdminComponent,
-    PartnerDashboardComponent,
-    PartnerServicesComponent,
-    PartnerBookingsComponent,
-    PartnerAdsComponent,
-    PartnerPromotionsComponent,
-    PartnerRegisterComponent,
-    PartnerLegalComponent,
-    LegalPageLayoutComponent,
     ServerErrorComponent,
     MaintenanceComponent,
     HelpCenterComponent,
@@ -105,6 +80,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     HowItWorksComponent,
     CancellationPolicyComponent,
     NetworkErrorComponent,
+    BookingLookupComponent,
   ],
   imports: [
     LocalFoodComponent,

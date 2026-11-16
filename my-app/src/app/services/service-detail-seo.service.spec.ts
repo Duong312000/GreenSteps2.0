@@ -11,7 +11,7 @@ describe('service SEO', () => {
       getTag: (selector: string) => doc.querySelector(`meta[${selector}]`),
       removeTag: (selector: string) => doc.querySelector(`meta[${selector}]`)?.remove(),
       updateTag: (attributes: Record<string, string>) => {
-        const key = attributes.name ? 'name' : 'property';
+        const key = attributes['name'] ? 'name' : 'property';
         let element = doc.querySelector(`meta[${key}="${attributes[key]}"]`);
         if (!element) { element = doc.createElement('meta'); doc.head.appendChild(element); }
         Object.entries(attributes).forEach(([name, value]) => element!.setAttribute(name, value));

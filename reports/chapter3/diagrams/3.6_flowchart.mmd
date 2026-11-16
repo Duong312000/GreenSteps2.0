@@ -1,0 +1,36 @@
+flowchart TD
+  A([Bắt đầu]) --> B{Nguồn khởi tạo}
+  B -->|Tự tạo| C[Nhập điểm đến, tên, ngày đi và ngày về]
+  C --> D{Ngày hợp lệ?}
+  D -->|Không| E[Hiển thị cảnh báo và giữ biểu mẫu]
+  E --> C
+  D -->|Có| F[Tạo lịch trình rỗng theo số ngày]
+  B -->|Yêu cầu AI| G[Nhập yêu cầu bằng ngôn ngữ tự nhiên]
+  G --> H[Backend nhận yêu cầu và dữ liệu catalog]
+  H --> I{Đủ điểm đến và thời lượng?}
+  I -->|Không| J[Hỏi bổ sung thông tin]
+  J --> G
+  I -->|Có| K[Gửi yêu cầu và catalog tới n8n]
+  K --> L{Phản hồi hợp lệ?}
+  L -->|Không hoặc lỗi| M[Thông báo lỗi hoặc trả lời hướng dẫn]
+  L -->|Có| N[Chuẩn hóa số ngày, hoạt động và dịch vụ được xác minh]
+  N --> O[Hiển thị bản đề xuất]
+  O --> P{Người dùng chọn lưu?}
+  P -->|Không| Q[Tiếp tục trao đổi hoặc điều chỉnh]
+  Q --> G
+  P -->|Có| R{Đã đăng nhập?}
+  R -->|Không| S[Yêu cầu đăng nhập]
+  R -->|Có| T[Backend kiểm tra lại dịch vụ, giá và carbon]
+  T --> U[Lưu Schedule, ScheduleCustom và ScheduleActivity]
+  F --> V{Đã đăng nhập?}
+  V -->|Không| W[Lưu bản nháp trong localStorage]
+  V -->|Có| U
+  U --> X[Mở trình biên tập]
+  W --> X
+  X --> Y[Thêm, xóa, đổi giờ hoặc sắp xếp hoạt động]
+  Y --> Z[Tính chi phí, carbon, thời gian di chuyển và kiểm tra xung đột giờ]
+  Z --> AA{Có xung đột giờ?}
+  AA -->|Có| AB[Cảnh báo và cho phép điều chỉnh giờ]
+  AB --> Y
+  AA -->|Không| AC[Lưu thay đổi]
+  AC --> AD([Kết thúc])

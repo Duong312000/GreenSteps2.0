@@ -1,0 +1,35 @@
+sequenceDiagram
+  actor U as Người dùng
+  participant F as Angular: Chat/Editor
+  participant B as Express API
+  participant C as Catalog MongoDB
+  participant N as n8n/AI
+  participant D as MongoDB lịch trình
+  U->>F: Nhập yêu cầu lập lịch trình
+  F->>B: POST /api/support/chat
+  B->>C: Đọc tour/dịch vụ công khai
+  C-->>B: Catalog và trạng thái dữ liệu
+  alt Thiếu điểm đến hoặc thời lượng
+    B-->>F: Câu hỏi làm rõ
+    F-->>U: Yêu cầu bổ sung
+  else Đủ dữ liệu
+    B->>N: Gửi yêu cầu, lịch sử liên quan và catalog
+    N-->>B: Đề xuất có cấu trúc
+    B->>B: Chuẩn hóa ngày, đối chiếu serviceId và điểm đến
+    B-->>F: itinerary_proposal hoặc thông báo lỗi
+    F-->>U: Hiển thị bản nháp và chi phí ước tính
+    opt Người dùng đăng nhập và chọn lưu
+      U->>F: Lưu lịch trình
+      F->>B: POST /api/itineraries, source=ai
+      B->>C: Đọc lại dịch vụ đang hoạt động
+      B->>B: Tính lại giá và carbon từ catalog
+      B->>D: Ghi lịch trình và hoạt động trong transaction
+      D-->>B: Kết quả lưu
+      B-->>F: itineraryId
+      F->>B: GET /api/itineraries/:id
+      B->>D: Đọc lịch trình
+      D-->>B: Ngày và hoạt động
+      B-->>F: Chi tiết lịch trình
+      F-->>U: Mở trình biên tập
+    end
+  end

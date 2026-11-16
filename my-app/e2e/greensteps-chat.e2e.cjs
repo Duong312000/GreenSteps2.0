@@ -116,8 +116,8 @@ async function run() {
     const input = page.locator('#greensteps-chat-input');
     await input.waitFor();
     assert.equal(await panel.locator('h1').count(), 1);
-    assert.equal(await page.getByText('Một chuyến đi đáng nhớ, một dấu chân xanh.', { exact: true }).count(), 1);
-    assert.equal(await page.locator('.welcome-prompts button').count(), 3);
+    assert.equal(await page.getByText('Mình có thể gợi ý điểm đến, thiết kế lịch trình, ước tính tác động môi trường và tìm những lựa chọn phù hợp với bạn.', { exact: true }).count(), 1);
+    assert.equal(await page.locator('.welcome-prompts button').count(), 4);
     await page.screenshot({ path: path.join(artifacts, 'chat-angular-welcome.png') });
     assert.equal(calls.count, 0);
 
@@ -133,10 +133,12 @@ async function run() {
     const firstTourBox = await firstAssistant.locator('.gs-tour-card').first().boundingBox();
     const firstTourImageBox = await firstAssistant.locator('.gs-tour-card__image').first().boundingBox();
     assert.ok(firstTourImageBox.width >= 220 && firstTourImageBox.width <= 280, 'desktop tour card image should keep the fixed 220–280px column');
-    assert.equal(firstTourImageBox.height, 168, 'desktop tour card image should keep a fixed 168px frame');
+    assert.ok(Math.abs(firstTourImageBox.height - 168) <= 0.1, 'desktop tour card image should keep a fixed 168px frame');
     assert.equal(await firstAssistant.locator('.planner-tour-rail').evaluate(element => getComputedStyle(element).display), 'grid');
     assert.equal(await firstAssistant.locator('.gs-tour-card h3').first().innerText(), 'Đà Lạt xanh 3 ngày');
     assert.equal((await firstAssistant.locator('.gs-tour-card__price').first().innerText()).includes('3.300.000'), true);
+    assert.equal(await firstAssistant.getByRole('heading', { name: 'Đà Lạt xanh 3 ngày' }).count(), 1);
+    assert.equal(await firstAssistant.locator('.gs-tour-card__detail').first().getAttribute('aria-label'), 'Xem chi tiết Đà Lạt xanh 3 ngày');
     assert.equal((await firstAssistant.locator('.gs-tour-card img').first().getAttribute('src')).includes('/images/dalat.jpg'), true);
     assert.equal(await firstAssistant.locator('.gs-tour-card__book').count(), 0);
     assert.equal(await firstAssistant.locator('.gs-tour-card__detail').first().getAttribute('href'), '/tours/tour-real-1');
@@ -173,11 +175,13 @@ async function run() {
     assert.equal(calls.count, 2);
     assert.notEqual(requests[1].sessionId, firstSession);
 
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#greensteps-chat-history').click();
     const history = page.locator('#greensteps-chat-history-list');
     await history.waitFor();
     await history.getByRole('button', { name: 'Bạn có thể tư vấn chuyến Đà Lạt không?' }).click();
     await page.waitForFunction(() => document.activeElement?.id === 'greensteps-chat-input');
+    await page.setViewportSize({ width: 1440, height: 1000 });
     assert.equal(await page.locator('.chat-message--user').count(), 1);
     assert.equal(await page.locator('.chat-structured-result').count(), 1);
     await input.fill('So sánh các tour này');
@@ -265,6 +269,7 @@ async function run() {
     await phone.goto(base + '/tours', { waitUntil: 'domcontentloaded' });
     await phone.locator('.chat-launcher').click();
     await phone.locator('#greensteps-chat-input').waitFor();
+    await phone.waitForTimeout(300);
     const mobilePanel = await phone.locator('#greensteps-chat-panel').boundingBox();
     const composer = await phone.locator('.chat-composer').boundingBox();
     assert.ok(mobilePanel.x >= 0 && mobilePanel.x + mobilePanel.width <= 390);

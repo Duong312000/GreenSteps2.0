@@ -7,7 +7,7 @@ const {
   WalletTransaction,
   CommunityReport,
   WithdrawalRequest,
-  MomoPaymentAttempt,
+  SepayPaymentAttempt,
 } = require('../models');
 
 function vietnamBusinessDay(now = new Date()) {
@@ -82,7 +82,7 @@ async function platformRevenueForDay(models, { start, end }) {
 async function getSummary(now = new Date(), models = require('../models')) {
   const {
     User, GreenService, ServiceBooking, TourBooking, WalletTransaction,
-    CommunityReport, WithdrawalRequest, MomoPaymentAttempt, VenderContract
+    CommunityReport, WithdrawalRequest, SepayPaymentAttempt, VenderContract
   } = models;
   const { start, end } = vietnamBusinessDay(now);
   const [activeUsers, pendingProviders, pendingServices, pendingServiceBookings,
@@ -100,7 +100,7 @@ async function getSummary(now = new Date(), models = require('../models')) {
     platformRevenueForDay(models, { start, end }),
     CommunityReport.collection.countDocuments({ status: 'pending' }),
     WithdrawalRequest.collection.countDocuments({ status: 'pending' }),
-    MomoPaymentAttempt.collection.countDocuments({
+    SepayPaymentAttempt.collection.countDocuments({
       $or: [{ status: 'reconciliation_required' }, { reconciliation_required: true }]
     })
   ]);
@@ -111,7 +111,7 @@ async function getSummary(now = new Date(), models = require('../models')) {
     { key: 'bookings', label: 'Booking chờ xử lý', count: pendingBookings, section: 'bookings' },
     { key: 'withdrawals', label: 'Yêu cầu rút tiền chờ xử lý', count: pendingWithdrawals, section: 'withdrawals' },
     { key: 'reports', label: 'Báo cáo cộng đồng chờ duyệt', count: pendingReports, section: 'community' },
-    { key: 'reconciliation', label: 'Thanh toán MoMo cần đối soát', count: paymentReconciliation, section: 'deposits' }
+    { key: 'reconciliation', label: 'Thanh toán SePay cần đối soát', count: paymentReconciliation, section: 'deposits' }
   ].filter(alert => alert.count > 0);
 
   return {
@@ -146,7 +146,7 @@ async function getSummary(now = new Date(), models = require('../models')) {
       walletTransactions: WalletTransaction.collection.collectionName,
       communityReports: CommunityReport.collection.collectionName,
       withdrawals: WithdrawalRequest.collection.collectionName,
-      momoPaymentAttempts: MomoPaymentAttempt.collection.collectionName
+      sepayPaymentAttempts: SepayPaymentAttempt.collection.collectionName
     }
   };
 }

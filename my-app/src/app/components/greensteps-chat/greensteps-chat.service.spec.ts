@@ -88,7 +88,7 @@ describe('GreenStepsChatService transcript operations', () => {
     expect(chat.latestResult()?.type).toBe('text');
   });
 
-  it('aborts the active request without adding a fabricated assistant reply', async () => {
+  it('UI-010: aborts the active request without adding a fabricated assistant reply', async () => {
     expect(typeof chat.cancelMessage).toBe('function');
 
     const pending = chat.sendMessage('Tìm tour Đà Lạt');
@@ -121,7 +121,7 @@ describe('GreenStepsChatService transcript operations', () => {
     await third;
   });
 
-  it('keeps earlier conversations and restores their transcript and recommendation context', async () => {
+  it('UI-012: restores the selected conversation transcript and recommendation context', async () => {
     expect(typeof chat.startNewConversation).toBe('function');
     expect(typeof chat.loadConversation).toBe('function');
     expect(typeof chat.listConversations).toBe('function');
@@ -143,5 +143,45 @@ describe('GreenStepsChatService transcript operations', () => {
     expect(chat.transcript()).toHaveLength(2);
     expect(chat.transcript()[1].result?.tours[0].id).toBe('tour-live-1');
     expect(chat.latestResult()?.tours[0].id).toBe('tour-live-1');
+  });
+
+  it('UI-011 / UI-025 / CTX-020: locks the view during a pending response and never accepts a superseding stale turn', async () => {
+    const pending = chat.sendMessage('TÃ¬m tour ÄÃ  Láº¡t');
+    const request = await expectChatRequest(http);
+    await chat.sendMessage('TÃ¬m tour ÄÃ  Náºµng');
+    http.expectNone(candidate => candidate.url.endsWith('/api/support/chat') && candidate.body.message === 'TÃ¬m tour ÄÃ  Náºµng');
+    expect(chat.transcript().map(message => message.content)).toEqual(['TÃ¬m tour ÄÃ  Láº¡t']);
+
+    request.flush(tourReply(request.request.body.sessionId));
+    await pending;
+    expect(chat.latestResult()?.tours.map(item => item.id)).toEqual(['tour-live-1']);
+    expect(chat.transcript().map(message => message.content)).not.toContain('TÃ¬m tour ÄÃ  Náºµng');
+  });
+
+  it('UI-014: rejects and does not render an itinerary whose destination conflicts with the request', async () => {
+    const pending = chat.sendMessage('Tao lich trinh Da Nang 1 ngay');
+    const request = await expectChatRequest(http);
+    request.flush({ success: true, reply: 'Phu Yen plan', type: 'itinerary_proposal', sessionId: request.request.body.sessionId,
+      itinerary: { name: 'Phu Yen', destination: 'Phu Yen', days: [[{ name: 'Tuy Hoa beach', time: '08:00', cost: 0, carbon: 0, type: 'attraction', verified: false, serviceId: null }]], estimatedCost: 0, assumptions: [] } });
+    await pending;
+    expect(chat.latestResult()?.type).toBe('text');
+    expect(chat.latestResult()?.itinerary).toBeNull();
+    expect(chat.latestResult()?.reply).toMatch(/không khớp điểm đến|chưa hiển thị/i);
+    expect(chat.currentItinerary()).toBeNull();
+  });
+
+  it('UI-025: a successful later plan becomes the active result and clears stale tour context', async () => {
+    const first = chat.sendMessage('TÃ¬m tour ÄÃ  Láº¡t');
+    const firstRequest = await expectChatRequest(http);
+    firstRequest.flush(tourReply(firstRequest.request.body.sessionId));
+    await first;
+
+    const second = chat.sendMessage('Táº¡o lá»‹ch trÃ¬nh ÄÃ  Náºµng 1 ngÃ y');
+    const secondRequest = await expectChatRequest(http);
+    secondRequest.flush({ success: true, reply: 'Lá»‹ch trÃ¬nh ÄÃ  Náºµng', type: 'itinerary_proposal', sessionId: secondRequest.request.body.sessionId,
+      itinerary: { name: 'ÄÃ  Náºµng', destination: 'ÄÃ  Náºµng', days: [[{ name: 'SÆ¡n TrÃ ', time: '08:00', cost: 0, carbon: 0, type: 'attraction', verified: false, serviceId: null }]], estimatedCost: 0, assumptions: [] } });
+    await second;
+    expect(chat.latestResult()?.type).toBe('itinerary_proposal');
+    expect(chat.latestResult()?.tours).toEqual([]);
   });
 });

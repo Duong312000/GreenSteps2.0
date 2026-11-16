@@ -1,12 +1,13 @@
 ﻿const { test } = require('node:test');
 const assert=require('node:assert/strict');
+const {testMongoAvailable,skipReason}=require('./helpers/test-mongodb-guard');
 const { ObjectId }=require('mongodb');
 const jwt=require('jsonwebtoken');
 const M=require('../src/transport/models');
 const { User }=require('../src/models');
 const { JWT_SECRET }=require('../src/middlewares/auth.middleware');
 const app=require('../src/app');
-test('Transport MongoDB/API integration: search, concurrency, ownership, cancellation and admin', {skip:process.env.TRANSPORT_INTEGRATION!=='1',timeout:180000},async t=>{
+test('Transport MongoDB/API integration: search, concurrency, ownership, cancellation and admin', {skip:!testMongoAvailable||process.env.TRANSPORT_INTEGRATION!=='1'?skipReason:undefined,timeout:180000},async t=>{
  await M.init();const suffix=new ObjectId().toHexString(),ids={},users=[],server=app.listen(0);const base=`http://127.0.0.1:${server.address().port}/api/transport`;
  async function request(path,method='GET',body,token){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,...await r.json()};}
  async function make(name,data){const _id=new ObjectId();(ids[name]??=[]).push(_id);await M.col(name).insertOne({_id,...data,createdAt:new Date(),updatedAt:new Date()});return _id;}
@@ -15,6 +16,7 @@ test('Transport MongoDB/API integration: search, concurrency, ownership, cancell
   const partner=await make('partners',{name:`Transport check ${suffix}`,status:'active',booking_mode:'internal',is_seed_data:true});
   const vehicle=await make('vehicles',{partner_id:partner,name:'Integration shuttle',vehicle_type:'minibus',transport_type:'shared',capacity:6,fuel_type:'electric',amenities:['USB'],images:['/image/services/transport_electric_car.png'],status:'active',is_seed_data:true});
   const route=await make('routes',{origin:`Origin ${suffix}`,destination:'Hội An',distance_km:30,estimated_duration:60,status:'active'});
+  await make('emission_factors',{fuel_type:'electric',vehicle_kg_per_km:0.082,baseline_kg_per_km:0.192,scope:'test fixture',source:'integration test fixture'});
   const departure=new Date(Date.now()+5*86400000),arrival=new Date(+departure+3600000);
   const trip=await make('trips',{partner_id:partner,vehicle_id:vehicle,route_id:route,transport_type:'shared',departure_time:departure,arrival_time:arrival,total_seats:6,available_seats:6,price_per_person:123000,currency:'VND',allocated_passengers:4,cancellation_hours:2,status:'active',is_seed_data:true});
   const rv=await make('vehicles',{partner_id:partner,name:'Integration rental',vehicle_type:'electric_car',transport_type:'rental',capacity:5,fuel_type:'electric',amenities:[],images:[],status:'active',is_seed_data:true});

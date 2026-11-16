@@ -282,7 +282,9 @@ const ScheduleSample = store.define('ScheduleSample', {
   old_cost: { type: FieldTypes.DOUBLE },
   rating: { type: FieldTypes.DOUBLE, allowNull: true, defaultValue: null },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
-}, { timestamps: true });
+}, { timestamps: true, indexes: [
+  { key: { cost: 1, id: 1 } }, { key: { rating: -1, id: 1 } }
+] });
 
 // 14. ScheduleCustom Model
 const ScheduleCustom = store.define('ScheduleCustom', {
@@ -311,14 +313,20 @@ const GreenService = store.define('GreenService', {
   bookings_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   reviews_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   current_data: { type: FieldTypes.JSONB },
+  category_id: { type: FieldTypes.STRING },
   max_capacity: { type: FieldTypes.INTEGER, defaultValue: 10 },
   status: { type: FieldTypes.STRING, defaultValue: 'active', allowNull: false },
   views_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   rejection_reason: { type: FieldTypes.TEXT },
   is_partner: { type: FieldTypes.BOOLEAN, defaultValue: true },
   source: { type: FieldTypes.STRING, defaultValue: 'partner' },
-  google_place_id: { type: FieldTypes.STRING, allowNull: true }
-}, { timestamps: true });
+  google_place_id: { type: FieldTypes.STRING, allowNull: true },
+  destination_ids: { type: FieldTypes.JSONB, defaultValue: [] },
+  catalog_status: { type: FieldTypes.STRING, defaultValue: 'verified' },
+  coverMediaAssetId: { type: FieldTypes.STRING }, coverMediaVerified: { type: FieldTypes.BOOLEAN, defaultValue: false }
+}, { timestamps: true, indexes: [
+  { key: { type: 1, status: 1, destination_ids: 1 } }, { key: { cost: 1, status: 1 } }
+] });
 
 // 17. BadgeService Junction
 const BadgeService = store.define('BadgeService', {}, { timestamps: true });
@@ -331,7 +339,8 @@ const ServiceBooking = store.define('ServiceBooking', {
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
   value: { type: FieldTypes.INTEGER, allowNull: false },
-  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter') },
+  // Keep legacy momo rows readable and editable; new bookings reject momo in booking.controller.
+  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter', 'momo', 'sepay') },
   status: { type: FieldTypes.ENUM('pending', 'deposit', 'completed', 'rejected', 'refunded'), defaultValue: 'pending', allowNull: false },
   votes_count: { type: FieldTypes.INTEGER, defaultValue: 0 },
   voucher_code: { type: FieldTypes.STRING },
@@ -352,7 +361,8 @@ const ServiceBooking = store.define('ServiceBooking', {
   special_requests: { type: FieldTypes.TEXT },
   rejection_reason: { type: FieldTypes.TEXT },
   customer_phone: { type: FieldTypes.STRING(20) },
-  customer_email: { type: FieldTypes.STRING(100) }
+  customer_email: { type: FieldTypes.STRING(100) },
+  sepay_capability_hash: { type: FieldTypes.STRING }
 }, { timestamps: true });
 
 // 19. TourBooking Model (NEW - for preset & custom tours checkouts)
@@ -363,7 +373,8 @@ const TourBooking = store.define('TourBooking', {
   booking_date: { type: FieldTypes.DATEONLY, allowNull: false }, // DATEONLY
   guests: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 1 } },
   value: { type: FieldTypes.INTEGER, allowNull: false },
-  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter'), allowNull: false },
+  // Retain the legacy value for historical records; new bookings reject it in booking.controller.
+  payment_method: { type: FieldTypes.ENUM('wallet', 'bank_transfer', 'card', 'counter', 'momo', 'sepay'), allowNull: false },
   voucher_code: { type: FieldTypes.STRING },
   evoucher_code: { type: FieldTypes.STRING, allowNull: false },
   status: { type: FieldTypes.ENUM('pending', 'deposit', 'completed', 'rejected', 'refunded'), defaultValue: 'pending', allowNull: false },
@@ -381,7 +392,8 @@ const TourBooking = store.define('TourBooking', {
   special_requests: { type: FieldTypes.TEXT },
   rejection_reason: { type: FieldTypes.TEXT },
   customer_phone: { type: FieldTypes.STRING(20) },
-  customer_email: { type: FieldTypes.STRING(100) }
+  customer_email: { type: FieldTypes.STRING(100) },
+  sepay_capability_hash: { type: FieldTypes.STRING }
 }, { timestamps: true });
 
 const BookingAddon = store.define('BookingAddon', {
@@ -390,6 +402,80 @@ const BookingAddon = store.define('BookingAddon', {
   unit_price: { type: FieldTypes.INTEGER, allowNull: false, validate: { min: 0 } },
   active: { type: FieldTypes.BOOLEAN, defaultValue: true, allowNull: false }
 }, { timestamps: true });
+
+const SepayPaymentAttempt = store.define('SepayPaymentAttempt', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  booking_id: { type: FieldTypes.STRING, allowNull: false },
+  order_invoice_number: { type: FieldTypes.STRING, unique: true, allowNull: false },
+  amount: { type: FieldTypes.INTEGER, allowNull: false },
+  status: { type: FieldTypes.ENUM('pending', 'failed', 'succeeded', 'void', 'reconciliation_required'), defaultValue: 'pending', allowNull: false },
+  checkout_fields: { type: FieldTypes.JSONB, allowNull: false },
+  transaction_id: { type: FieldTypes.STRING },
+  notification_type: { type: FieldTypes.STRING },
+  reconciliation_required: { type: FieldTypes.BOOLEAN, defaultValue: false, allowNull: false }
+}, { timestamps: true, indexes: [
+  { key: { booking_id: 1, createdAt: -1 }, options: { name: 'sepay_booking_createdAt' } },
+  { key: { booking_id: 1 }, options: { unique: true, partialFilterExpression: { status: 'pending' }, name: 'one_pending_sepay_attempt_per_booking' } },
+  { key: { transaction_id: 1 }, options: { unique: true, partialFilterExpression: { transaction_id: { $type: 'string' } }, name: 'unique_sepay_transaction' } }
+] });
+
+const ServiceCategory = store.define('ServiceCategory', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  name: { type: FieldTypes.STRING, allowNull: false },
+  active: { type: FieldTypes.BOOLEAN, defaultValue: true, allowNull: false },
+  sort_order: { type: FieldTypes.INTEGER, defaultValue: 0, allowNull: false },
+  icon: { type: FieldTypes.STRING }
+}, { timestamps: true, indexes: [
+  { key: { active: 1, sort_order: 1 }, options: { name: 'active_sort_order' } }
+] });
+
+const BookingSetting = store.define('BookingSetting', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  discount_percent: { type: FieldTypes.DOUBLE, defaultValue: 0, allowNull: false },
+  service_fee_vnd: { type: FieldTypes.INTEGER, defaultValue: 0, allowNull: false },
+  service_fee_per_guest: { type: FieldTypes.BOOLEAN, defaultValue: false, allowNull: false },
+  deposit_percent: { type: FieldTypes.DOUBLE, defaultValue: 0, allowNull: false },
+  collect_deposit_for: { type: FieldTypes.JSONB, defaultValue: [], allowNull: false },
+  version: { type: FieldTypes.INTEGER, defaultValue: 1, allowNull: false },
+  updated_at: { type: FieldTypes.DATE },
+  updated_by: { type: FieldTypes.STRING }
+}, { timestamps: true });
+
+const AdminConfigAuditLog = store.define('AdminConfigAuditLog', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  actor_id: { type: FieldTypes.STRING, allowNull: false },
+  action: { type: FieldTypes.STRING, allowNull: false },
+  target_type: { type: FieldTypes.STRING, allowNull: false },
+  target_id: { type: FieldTypes.STRING, allowNull: false },
+  reason: { type: FieldTypes.TEXT, allowNull: false },
+  previous_state: { type: FieldTypes.JSONB },
+  new_state: { type: FieldTypes.JSONB },
+  config_version: { type: FieldTypes.INTEGER }
+}, { timestamps: true, indexes: [
+  { key: { createdAt: -1 }, options: { name: 'createdAt_desc' } },
+  { key: { target_type: 1, target_id: 1, createdAt: -1 }, options: { name: 'target_createdAt' } }
+] });
+
+const SystemEventLog = store.define('SystemEventLog', {
+  id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
+  kind: { type: FieldTypes.ENUM('security', 'error'), allowNull: false },
+  action: { type: FieldTypes.STRING, allowNull: false },
+  actor_id: { type: FieldTypes.STRING },
+  target_type: { type: FieldTypes.STRING },
+  target_id: { type: FieldTypes.STRING },
+  request_id: { type: FieldTypes.STRING },
+  endpoint: { type: FieldTypes.STRING },
+  method: { type: FieldTypes.STRING },
+  status: { type: FieldTypes.INTEGER },
+  error_type: { type: FieldTypes.STRING },
+  message: { type: FieldTypes.STRING },
+  result: { type: FieldTypes.ENUM('success', 'failure') },
+  metadata: { type: FieldTypes.JSONB, defaultValue: {} },
+  expires_at: { type: FieldTypes.DATE, allowNull: false }
+}, { timestamps: true, indexes: [
+  { key: { kind: 1, createdAt: -1 }, options: { name: 'kind_createdAt_desc' } },
+  { key: { expires_at: 1 }, options: { name: 'expires_at_ttl', expireAfterSeconds: 0 } }
+] });
 
 // 20. WithdrawalRequest Model (NEW - B2B withdrawal tracking)
 const WithdrawalRequest = store.define('WithdrawalRequest', {
@@ -905,6 +991,11 @@ module.exports = {
   ServiceBooking,
   TourBooking,
   BookingAddon,
+  SepayPaymentAttempt,
+  ServiceCategory,
+  BookingSetting,
+  AdminConfigAuditLog,
+  SystemEventLog,
   WithdrawalRequest,
   ScheduleActivity,
   AdCampaign,

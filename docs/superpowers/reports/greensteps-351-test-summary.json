@@ -1,0 +1,234 @@
+{
+  "sourceWorkbook": "GreenSteps_AI_Chatbot_351_Testcases_Full_Coverage.xlsx",
+  "totalCases": 351,
+  "uniqueTestIds": 351,
+  "statuses": {
+    "PASS": 125,
+    "NOT TESTED": 166,
+    "BLOCKED": 60
+  },
+  "verificationLevels": {
+    "PASS_UNIT": 108,
+    "NOT TESTED": 166,
+    "PASS_UI_FIXTURE": 17,
+    "BLOCKED": 60
+  },
+  "byPriority": {
+    "P0": {
+      "total": 156,
+      "statuses": {
+        "PASS": 109,
+        "NOT TESTED": 8,
+        "BLOCKED": 39
+      }
+    },
+    "P1": {
+      "total": 177,
+      "statuses": {
+        "PASS": 16,
+        "NOT TESTED": 141,
+        "BLOCKED": 20
+      }
+    },
+    "P2": {
+      "total": 18,
+      "statuses": {
+        "NOT TESTED": 17,
+        "BLOCKED": 1
+      }
+    }
+  },
+  "byGroup": {
+    "API": {
+      "total": 25,
+      "statuses": {
+        "BLOCKED": 25
+      }
+    },
+    "CAT": {
+      "total": 30,
+      "statuses": {
+        "BLOCKED": 30
+      }
+    },
+    "CTX": {
+      "total": 35,
+      "statuses": {
+        "PASS": 16,
+        "NOT TESTED": 19
+      }
+    },
+    "DEST": {
+      "total": 30,
+      "statuses": {
+        "PASS": 13,
+        "NOT TESTED": 17
+      }
+    },
+    "INT": {
+      "total": 40,
+      "statuses": {
+        "PASS": 23,
+        "NOT TESTED": 17
+      }
+    },
+    "PLAN": {
+      "total": 35,
+      "statuses": {
+        "PASS": 13,
+        "NOT TESTED": 22
+      }
+    },
+    "SEC": {
+      "total": 25,
+      "statuses": {
+        "PASS": 9,
+        "NOT TESTED": 13,
+        "BLOCKED": 3
+      }
+    },
+    "SLOT": {
+      "total": 41,
+      "statuses": {
+        "PASS": 14,
+        "NOT TESTED": 27
+      }
+    },
+    "TOUR": {
+      "total": 30,
+      "statuses": {
+        "NOT TESTED": 22,
+        "PASS": 8
+      }
+    },
+    "UI": {
+      "total": 30,
+      "statuses": {
+        "PASS": 13,
+        "NOT TESTED": 17
+      }
+    },
+    "VER": {
+      "total": 30,
+      "statuses": {
+        "BLOCKED": 2,
+        "PASS": 16,
+        "NOT TESTED": 12
+      }
+    }
+  },
+  "p0NotPassed": [
+    "TOUR-001",
+    "TOUR-003",
+    "TOUR-012",
+    "CAT-001",
+    "CAT-005",
+    "CAT-006",
+    "CAT-007",
+    "CAT-008",
+    "CAT-009",
+    "CAT-010",
+    "CAT-013",
+    "CAT-015",
+    "CAT-016",
+    "CAT-017",
+    "CAT-022",
+    "CAT-023",
+    "CAT-026",
+    "CAT-027",
+    "CAT-030",
+    "PLAN-009",
+    "PLAN-030",
+    "VER-001",
+    "VER-012",
+    "API-001",
+    "API-002",
+    "API-003",
+    "API-004",
+    "API-005",
+    "API-006",
+    "API-007",
+    "API-008",
+    "API-009",
+    "API-011",
+    "API-012",
+    "API-015",
+    "API-017",
+    "API-020",
+    "API-022",
+    "API-023",
+    "API-024",
+    "API-025",
+    "UI-012",
+    "SEC-004",
+    "SEC-005",
+    "SEC-010",
+    "SEC-011",
+    "SEC-020"
+  ],
+  "e2eFlows": {
+    "totalRows": 61,
+    "uniqueFlows": 29,
+    "statuses": {
+      "PASS": 22,
+      "NOT TESTED": 39
+    }
+  },
+  "verificationRuns": [
+    {
+      "command": "node --test backend/test/greensteps-p0-closeout.test.js",
+      "result": "PASS: 41 tests, 0 failed; named closeout assertions run on isolated fixtures."
+    },
+    {
+      "command": "node --test backend/test/greensteps-chat-workbook-regression.test.js",
+      "result": "PASS: 34 tests, 0 failed; source workbook utterances exercised against isolated catalog fixtures."
+    },
+    {
+      "command": "npm.cmd test (backend)",
+      "result": "PASS: 247 passed, 0 failed, 8 skipped; 255 total. Eight skips require TEST_MONGODB_URI at loopback:27019."
+    },
+    {
+      "command": "npm.cmd test -- --watch=false (my-app)",
+      "result": "PASS: 127 tests across 40 files; fixture/unit suite, no live database or n8n."
+    },
+    {
+      "command": "npm.cmd run build (my-app)",
+      "result": "PASS; existing NG8107 warning and initial bundle exceeds 2 MB budget by 1.29 MB."
+    },
+    {
+      "command": "node my-app/e2e/greensteps-workbook-flow.e2e.cjs",
+      "result": "PASS: local Angular/Chrome fixture UI for discovery, CTA, slot filling, empty results, three-day FLOW-01 and completed two-day FLOW-02; API intercepted."
+    },
+    {
+      "command": "node my-app/e2e/greensteps-p0-flows.e2e.cjs",
+      "result": "PASS_UI_FIXTURE: browser scenarios FLOW-03/04/05/06/07/09/10/G passed with intercepted API responses; no live backend, database, n8n, Gemini or production webhook."
+    },
+    {
+      "command": "node my-app/e2e/greensteps-chat.e2e.cjs",
+      "result": "PASS after close-focus correction: local browser fixture checks cards, history, retry, booking CTA, save/login, XSS output and mobile layout."
+    },
+    {
+      "command": "node my-app/e2e/itinerary-proposal.e2e.cjs",
+      "result": "PASS: local fixture browser checks budget label, unverified cost, 1/3/5-day rendering, mobile overflow, adjust, save and schedule route."
+    }
+  ],
+  "p0InitialNotTested": 52,
+  "p0NewPassesThisCloseout": 42,
+  "p0StillNotTested": 8,
+  "p0BlockedThisCloseout": 2,
+  "p0PassBaseline": 67,
+  "p0PassIncrease": 42,
+  "releaseDecision": "NO-GO",
+  "releaseBlockers": [
+    "Exposed webhook credential rotation/revocation is not evidenced.",
+    "TEST_MONGODB_URI is unset; live MongoDB cases remain blocked.",
+    "No isolated n8n sandbox runtime was exercised.",
+    "Frontend browser flows use intercepted API fixtures, not end-to-end live services.",
+    "GreenService schema does not provide a service URL or carbon unit/scope metadata."
+  ],
+  "limitations": [
+    "No Atlas writes or production webhook calls were made.",
+    "PASS statuses are limited to the verification level recorded per row.",
+    "No full live MongoDB → backend → n8n → Gemini conversation was verified."
+  ]
+}

@@ -118,8 +118,9 @@ exports.getProviderServices = async (req, res, next) => {
     const result = await GreenService.findAll({
       where: { vender_id: venderId },
       ...(compact ? { attributes: [
-        'id', 'name_service', 'type', 'destination', 'cost', 'status',
+        'id', 'name_service', 'type', 'destination', 'cost', 'status', 'image_url',
         'views_count', 'bookings_count', 'max_capacity', 'carbon', 'rating',
+        'current_data.imageMetadata',
         'current_data.priceStatus', 'current_data.bookingEnabled',
         'current_data.carbonStatus', 'current_data.capacityStatus'
       ] } : {})
@@ -135,7 +136,7 @@ exports.getProviderServices = async (req, res, next) => {
       bookingsCount: s.bookings_count,
       max_capacity: s.max_capacity,
       carbon: s.carbon,
-      image_url: s.image_url,
+      image_url: typeof s.image_url === 'string' && !s.image_url.startsWith('data:') ? s.image_url : null,
       current_data: s.current_data || {},
       ...catalogMetadata(s)
     }));

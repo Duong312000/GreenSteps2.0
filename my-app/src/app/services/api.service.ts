@@ -821,7 +821,7 @@ export class ApiService {
     }
   }
 
-  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any; momoPaymentCapability?: string }> {
+  public async createBooking(bookingData: any): Promise<{ success: boolean; bookingId?: string; bookingCode?: string; paymentStatus?: string; payment?: any; pricing?: any; message?: string; emailAlreadyExists?: boolean; autoCreatedUser?: any; sepayPaymentCapability?: string }> {
     try {
       const payload = {
         type: bookingData.type ?? bookingData.kind,
@@ -858,27 +858,27 @@ export class ApiService {
         message: res.message,
         emailAlreadyExists: res.emailAlreadyExists,
         autoCreatedUser: res.autoCreatedUser,
-        momoPaymentCapability: res.momoPaymentCapability
+        sepayPaymentCapability: res.sepayPaymentCapability
       };
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Có lỗi xảy ra khi tạo đặt chỗ.' };
     }
   }
 
-  public async getMomoPaymentConfig(): Promise<{ configured: boolean; environment?: string; missing?: string[] }> {
-    return await firstValueFrom(this.http.get<{ configured: boolean; environment?: string; missing?: string[] }>(`${this.BACKEND_URL}/payments/momo/config`));
+  public async getSepayPaymentConfig(): Promise<{ configured: boolean; environment?: string; missing?: string[] }> {
+    return await firstValueFrom(this.http.get<{ configured: boolean; environment?: string; missing?: string[] }>(`${this.BACKEND_URL}/payments/sepay/config`));
   }
 
-  public async createMomoPayment(bookingId: string, capability?: string): Promise<{ success: boolean; bookingId?: string; payUrl?: string; message?: string }> {
+  public async createSepayPayment(bookingId: string, capability?: string): Promise<{ success: boolean; bookingId?: string; checkoutUrl?: string; fields?: Record<string, string | number>; message?: string }> {
     try {
-      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/payments/momo/create`, { bookingId }, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
+      return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/payments/sepay/create`, { bookingId }, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
     } catch (e: any) {
-      return { success: false, message: e?.error?.message || 'MoMo payment creation failed.' };
+      return { success: false, message: e?.error?.message || 'Không thể khởi tạo thanh toán SePay.' };
     }
   }
 
-  public async getMomoPaymentStatus(bookingId: string, capability?: string): Promise<any> {
-    return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/payments/momo/status/${encodeURIComponent(bookingId)}`, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
+  public async getSepayPaymentStatus(bookingId: string, capability?: string): Promise<any> {
+    return await firstValueFrom(this.http.get<any>(`${this.BACKEND_URL}/payments/sepay/status/${encodeURIComponent(bookingId)}`, { withCredentials: true, headers: capability ? { 'x-booking-payment-capability': capability } : {} }));
   }
 
   public getLocalCounterBookingNotifications(userId: string): any[] {

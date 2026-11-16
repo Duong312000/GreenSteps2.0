@@ -19,8 +19,8 @@ export interface Activity {
   id: string;
   time: string;
   name: string;
-  cost: number;
-  carbon: number;
+  cost: number | null;
+  carbon: number | null;
   icon: string;
   type: 'lodging' | 'dining' | 'transport' | 'attraction';
   lat?: number;
@@ -56,21 +56,12 @@ export interface ServiceGreenFeature { title: string; description?: string; }
 export interface TourPhotoVariant {
   path: string;
   width: number;
-}
-
-export interface TourPhotoCredit {
-  path?: string;
-  alt?: string;
-  author?: string;
-  sourceUrl?: string;
-  license?: string;
-  verificationStatus?: string;
-  responsiveVariants?: TourPhotoVariant[];
+  height?: number;
 }
 
 export interface CatalogMetadata {
   flashSale?: { id: string; name: string; discount_type: 'percent' | 'fixed'; discount_value: number; start_at: string; end_at: string; min_order: number; remaining: number; sale_price: number } | null;
-  priceStatus?: 'reference' | 'on_request';
+  priceStatus?: 'verified' | 'reference' | 'on_request';
   bookingEnabled?: boolean;
   sourceUrls?: string[];
   sourceCheckedAt?: string;
@@ -78,6 +69,25 @@ export interface CatalogMetadata {
   capacityKnown?: boolean;
   coverMediaVerified?: boolean;
   photoMetadata?: TourPhotoCredit[];
+}
+
+export interface TourPhotoCredit {
+  path: string;
+  width?: number;
+  height?: number;
+  responsiveVariants?: Array<{ path: string; width: number; height?: number }>;
+  caption: string;
+  alt: string;
+  sourcePage: string;
+  author: string;
+  licenseId: string;
+  licenseUrl: string;
+  attribution: string;
+  subjectLocation: string;
+  verificationStatus: 'verified' | 'unverified';
+  relevance?: { type: 'exact_landmark' | 'destination_context' | 'regional_context'; explanation: string };
+  verifiedOn?: string;
+  modifications: string;
 }
 
 export interface Tour extends CatalogMetadata {
@@ -92,8 +102,14 @@ export interface Tour extends CatalogMetadata {
   carbon: number;
   image?: string;
   image_url?: string;
+  coverMediaVerified?: boolean;
+  coverMediaVariants?: Array<{ url: string; width?: number; height?: number; format?: string }>;
   gallery?: string[];
+  photoMetadata?: TourPhotoCredit[];
   description?: string;
+  responsibleTravel?: string;
+  practicalNotes?: string;
+  editorialItineraryNotice?: string;
   rating?: number | null;
   votes?: number;
   votes_count?: number;
@@ -102,18 +118,16 @@ export interface Tour extends CatalogMetadata {
   ecoFeature?: string;
   badges?: string[];
   tags?: string[];
-  responsibleTravel?: string;
-  practicalNotes?: string;
-  editorialItineraryNotice?: string;
   styleExplanation?: string;
   fitnessIsEstimate?: boolean;
   fitnessExplanation?: string;
-  is_demo?: boolean;
   isDemo?: boolean;
   data: Activity[][];
   isRecommended?: boolean;
   source?: string;
   is_partner?: boolean;
+  catalog_status?: string;
+  destination_ids?: string[];
   google_place_id?: string;
   isService?: boolean;
   maxCapacity?: number;
@@ -134,6 +148,9 @@ export interface Tour extends CatalogMetadata {
   greenFeatures?: ServiceGreenFeature[];
   contactPhone?: string;
   highlights?: string[];
+  styleExplanation?: string;
+  fitnessIsEstimate?: boolean;
+  fitnessExplanation?: string;
   included?: string[];
   excluded?: string[];
   policy?: Array<{ step?: string; title: string; desc: string }>;
@@ -173,8 +190,8 @@ export interface Service extends CatalogMetadata {
   name: string;
   type: string;
   destination: string;
-  cost: number;
-  carbon: number;
+  cost: number | null;
+  carbon: number | null;
   icon?: string;
   status: string;
   views_count?: number;
@@ -189,6 +206,10 @@ export interface Service extends CatalogMetadata {
   bookingsCount?: number;
   badges?: string[];
   image_url?: string;
+  coverMediaVerified?: boolean;
+  gallery?: string[];
+  photoMetadata?: TourPhotoCredit[];
+  current_data?: Record<string, any>;
   max_capacity?: number;
   rejection_reason?: string;
   isRecommended?: boolean;

@@ -43,6 +43,8 @@ import type { ChatActivity, ChatItineraryDraft } from './greensteps-chat.types';
             <div class="gs-plan-day__copy">
               <h5>{{ dayTitle(day) }}</h5>
               <p>{{ activitySummary(day) }}</p>
+              <small *ngIf="verifiedActivityCountForDay(day) > 0" class="gs-plan-day__verification">{{ verifiedActivityCountForDay(day) }} dịch vụ GreenSteps đã xác minh</small>
+              <small *ngIf="suggestedActivityCountForDay(day) > 0" class="gs-plan-day__suggestion">{{ suggestedActivityCountForDay(day) }} hoạt động gợi ý tham khảo</small>
             </div>
           </article>
         </div>
@@ -54,6 +56,8 @@ import type { ChatActivity, ChatItineraryDraft } from './greensteps-chat.types';
               <div class="gs-plan-day__copy">
                 <h5>{{ dayTitle(day) }}</h5>
                 <p>{{ activitySummary(day) }}</p>
+              <small *ngIf="verifiedActivityCountForDay(day) > 0" class="gs-plan-day__verification">{{ verifiedActivityCountForDay(day) }} dịch vụ GreenSteps đã xác minh</small>
+              <small *ngIf="suggestedActivityCountForDay(day) > 0" class="gs-plan-day__suggestion">{{ suggestedActivityCountForDay(day) }} hoạt động gợi ý tham khảo</small>
               </div>
             </article>
           </div>
@@ -110,6 +114,9 @@ import type { ChatActivity, ChatItineraryDraft } from './greensteps-chat.types';
     .gs-plan-day__copy { min-width: 0; }
     .gs-plan-day h5 { display: -webkit-box; margin: 0; overflow: hidden; color: var(--gs-natural-forest, #123D32); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .gs-plan-day p { margin: 3px 0 0; color: var(--gs-chat-secondary, #526159); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+    .gs-plan-day__verification, .gs-plan-day__suggestion { display: block; margin-top: 3px; font-size: 9px; line-height: 1.35; }
+    .gs-plan-day__verification { color: var(--gs-chat-success, #286447); font-weight: 700; }
+    .gs-plan-day__suggestion { color: var(--gs-chat-secondary, #526159); }
     .gs-plan-card__more { min-width: 0; }
     .gs-plan-card__more summary { width: fit-content; padding: 3px 0; color: var(--gs-natural-forest, #123D32); font-size: 10px; font-weight: 750; cursor: pointer; }
     .gs-plan-card__more summary:focus-visible { outline: 2px solid var(--gs-natural-forest, #123D32); outline-offset: 2px; }
@@ -173,5 +180,13 @@ export class ItineraryTimelineComponent {
 
   verifiedActivityCount(plan: ChatItineraryDraft): number {
     return plan.days.flat().filter(activity => activity.verified).length;
+  }
+
+  verifiedActivityCountForDay(day: ChatActivity[]): number {
+    return day.filter(activity => activity.verified && Boolean(activity.serviceId)).length;
+  }
+
+  suggestedActivityCountForDay(day: ChatActivity[]): number {
+    return day.filter(activity => !activity.verified || !activity.serviceId).length;
   }
 }

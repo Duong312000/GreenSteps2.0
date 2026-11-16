@@ -85,10 +85,10 @@
             type="button" class="gs-destination-card"
             [ngClass]="getDestinationPosition(idx)"
             [class.wrapping]="isDestinationWrapping(idx)"
-            data-reveal [attr.data-delay]="idx > 0 ? idx : null"
             [attr.aria-current]="idx === activeDestinationIndex ? 'true' : null"
+            [attr.aria-label]="'Khám phá dịch vụ tại ' + card.title"
             (click)="onDestinationCardClick(card.dest, $event)">
-            <img [src]="card.image" [alt]="card.title" loading="lazy" data-parallax>
+            <img [src]="card.image" [alt]="card.imageAlt" loading="lazy" decoding="async">
             <span class="gs-destination-shade" aria-hidden="true"></span>
             <span class="gs-destination-copy">
               <span class="gs-destination-region"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ card.label }}</span>

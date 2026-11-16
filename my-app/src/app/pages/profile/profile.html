@@ -306,7 +306,7 @@
                 <h1>Thông tin cá nhân</h1>
                 <span>Cập nhật hồ sơ, liên hệ và gu du lịch để GreenSteps gợi ý lịch trình đúng với bạn hơn.</span>
             </div>
-            <button type="button" (click)="saveDetails($event)"><i class="bi bi-check2-circle"></i> Lưu hồ sơ</button>
+            <button type="button" (click)="saveDetails($event)" [disabled]="isSavingProfile"><i class="bi bi-check2-circle"></i> {{ isSavingProfile ? 'Đang lưu...' : 'Lưu hồ sơ' }}</button>
         </header>
 
         <div class="personal-info-grid personal-redesign-grid">
@@ -379,7 +379,7 @@
                     <label class="form-wide">Mô tả ngắn<textarea [(ngModel)]="detBio" name="detBio" maxlength="200"
                             placeholder="Bạn thích kiểu du lịch nào?"></textarea><small>{{ detBio.length
                             }}/200</small></label>
-                    <button type="submit"><i class="bi bi-check2"></i> Lưu thay đổi</button>
+                    <button type="submit" [disabled]="isSavingProfile"><i class="bi bi-check2"></i> {{ isSavingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
                 </form>
             </article>
 
@@ -418,7 +418,7 @@
                             placeholder="Đơn vị cung cấp các trải nghiệm du lịch bền vững và khám phá văn hóa bản địa..."></textarea>
                         <small>{{ detBio.length }}/200</small>
                     </label>
-                    <button type="submit"><i class="bi bi-check2"></i> Lưu thay đổi</button>
+                    <button type="submit" [disabled]="isSavingProfile"><i class="bi bi-check2"></i> {{ isSavingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
                 </form>
             </article>
 
@@ -1425,9 +1425,8 @@
                 style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f0f4f2; padding: 16px 24px; background: #fafdfb; flex-shrink: 0;">
                 <button type="button" (click)="closeAvatarModal()"
                     style="border: 1px solid #dde6e0; background: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; color: #5f6863;">Hủy</button>
-                <button type="button" (click)="saveAvatar()"
-                    style="border: none; background: #174c39; color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">Lưu
-                    thay đổi</button>
+                <button type="button" (click)="saveAvatar()" [disabled]="isSavingAvatar"
+                    style="border: none; background: #174c39; color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">{{ isSavingAvatar ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
             </div>
         </div>
     </div>

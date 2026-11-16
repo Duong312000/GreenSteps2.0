@@ -1,4 +1,5 @@
 const normalize = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u0111\u0110]/g, character => character === '\u0111' ? 'd' : 'D').toLowerCase().replace(/\s+/g, ' ').trim();
+const { parseDestination, queryFromRequest } = require('./greensteps-agent-catalog.service');
 const text = (value, max = 240) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const safeNumber = value => Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : 0;
 
@@ -43,6 +44,31 @@ function resolveTour(reference, catalog) {
     || null;
 }
 
+function resolveServiceId(reference, catalog) {
+  const id = typeof reference?.serviceId === 'string' ? reference.serviceId
+    : typeof reference?.service_id === 'string' ? reference.service_id
+      : '';
+  if (!id) return null;
+  const services = Array.isArray(catalog?.serviceCandidates) ? catalog.serviceCandidates : catalog?.services || [];
+  return services.find(service => typeof service.id === 'string' && service.id === id
+    && service.status === 'active' && service.catalogHidden !== true) || null;
+}
+
+function serviceTypeMatches(activity, service) {
+  const requested = normalize(activity?.type || activity?.category);
+  if (!requested) return true;
+  const canonical = value => {
+    const type = normalize(value);
+    if (/stay|lodging|hotel|homestay|luu tru|khach san/.test(type)) return 'stay';
+    if (/food|dining|restaurant|an uong|nha hang|meal/.test(type)) return 'food';
+    if (/transport|transportation|di chuyen/.test(type)) return 'transport';
+    if (/attraction|activity|tham quan|diem den/.test(type)) return 'attraction';
+    return '';
+  };
+  const wanted = canonical(requested);
+  return !wanted || wanted === canonical(service?.type);
+}
+
 function sameDestination(expected, returned) {
   const expectedValue = normalize(expected);
   const returnedValue = normalize(returned);
@@ -50,9 +76,20 @@ function sameDestination(expected, returned) {
     && (expectedValue === returnedValue || expectedValue.includes(returnedValue) || returnedValue.includes(expectedValue)));
 }
 
+function requestedCatalogDestination(message, catalog) {
+  const parsed = parseDestination(message);
+  if (parsed) return parsed;
+  return inferDestination(message, [], catalog);
+}
+
 function canonicalItinerary(raw, catalog, fallbackDestination = '', requestedDays = 0) {
   if (!raw || typeof raw !== 'object') return null;
   const destination = text(fallbackDestination || raw.destination, 100);
+  // Do not render an itinerary whose model-supplied title/day/activity labels
+  // name a different known catalog destination than the user's canonical one.
+  // These labels are user-visible and otherwise can contradict the verified
+  // destination field even when that field itself passes validation.
+  if (itineraryHasDestinationConflict(raw, catalog, destination)) return null;
   const declaredDays = [raw.durationDays, raw.duration_days, raw.totalDays, raw.total_days, raw.dayCount, raw.day_count]
     .map(value => Number(value)).find(value => Number.isInteger(value) && value > 0 && value <= 14) || 0;
   const declaredText = normalize(raw.duration || raw.durationText || raw.duration_text);
@@ -99,11 +136,18 @@ function canonicalItinerary(raw, catalog, fallbackDestination = '', requestedDay
     return activities.slice(0, 12).map(activity => {
       const name = text(typeof activity === 'string' ? activity : activity?.name || activity?.title || activity?.activity, 140);
       if (!name) return null;
-      const candidate = resolveTour({ id: activity.serviceId || activity.service_id, name }, { tours: catalog?.services || [] });
-      const service = candidate && sameDestination(destination, candidate.destination) ? candidate : null;
+      const candidate = resolveServiceId(activity, catalog);
+      const service = candidate && sameDestination(destination, candidate.destination)
+        && serviceTypeMatches(activity, candidate) ? candidate : null;
+      if (service) {
+        const mismatches = [];
+        if (Number.isFinite(Number(activity?.cost)) && Number(activity.cost) !== safeNumber(service.cost)) mismatches.push('cost');
+        if (Number.isFinite(Number(activity?.carbon)) && Number(activity.carbon) !== safeNumber(service.carbon)) mismatches.push('carbon');
+        if (mismatches.length) console.warn(JSON.stringify({ event: 'greensteps_service_ai_field_mismatch', serviceId: service.id, fields: mismatches }));
+      }
       const verified = Boolean(service);
       return {
-        name,
+        name: verified ? text(service.name, 140) : name,
         time: /^([01]\d|2[0-3]):[0-5]\d$/.test(activity.time || '') ? activity.time : '08:00',
         cost: verified ? safeNumber(service.cost) : 0,
         carbon: verified ? safeNumber(service.carbon) : 0,
@@ -135,6 +179,43 @@ function canonicalItinerary(raw, catalog, fallbackDestination = '', requestedDay
   };
 }
 
+function activityListForDestinationCheck(day) {
+  if (!day || typeof day !== 'object') return [];
+  const activities = ['activities', 'items', 'schedule', 'places', 'stops'].find(key => Array.isArray(day[key]));
+  return activities ? day[activities].map(item => typeof item === 'string' ? item : item?.name || item?.title || '') : [];
+}
+
+function itineraryHasDestinationConflict(raw, catalog, destination) {
+  if (!raw || !destination) return false;
+  const labels = [raw.name, raw.title, ...(Array.isArray(raw.days) ? raw.days.flatMap(day => [day?.title, day?.name, ...activityListForDestinationCheck(day)]) : [])]
+    .filter(value => typeof value === 'string' && value.trim());
+  return labels.some(value => {
+    const mentioned = inferDestination(value, [], catalog);
+    if (mentioned && !sameDestination(destination, mentioned)) return true;
+    const normalized = normalize(value);
+    const landmarkRegion = /\bba na hills?\b/.test(normalized) ? 'da nang'
+      : /\bhoi an\b/.test(normalized) ? 'hoi an' : '';
+    return Boolean(landmarkRegion && !sameDestination(destination, landmarkRegion));
+  });
+}
+
+function itineraryExcludesRequestedActivity(raw, input) {
+  const exclusions = [];
+  for (const message of itineraryUserMessages(input).map(normalize)) {
+    for (const match of message.matchAll(/\bkhong\s+(?:di|ghe|den|tham quan)\s+([\p{L}\p{N}][\p{L}\p{N}\s.'-]{1,60}?)(?=\s+(?:trong|voi|ngan sach|budget|\d+\s+ngay)|[,;.!?]|$)/gu)) {
+      exclusions.push(normalize(match[1]));
+    }
+  }
+  if (!exclusions.length) return false;
+  const activities = Array.isArray(raw?.days) ? raw.days.flatMap(day => [
+    ...(day?.title ? [day.title] : []), ...activityListForDestinationCheck(day)
+  ]) : [];
+  return activities.some(value => exclusions.some(excluded => {
+    const item = normalize(value);
+    return item === excluded || item.includes(excluded) || excluded.includes(item);
+  }));
+}
+
 function inferDestination(message, history = [], catalog) {
   const context = [message, ...(history || []).filter(item => item?.role === 'user').slice(-6).map(item => item.content)].join(' ');
   const known = [...new Set([...(catalog?.tours || []), ...(catalog?.services || [])]
@@ -145,8 +226,8 @@ function inferDestination(message, history = [], catalog) {
 
 function isExplicitItineraryRequest(message) {
   const value = normalize(message);
-  const hasPlanAction = /\b(?:lap|tao|len|xay dung|thiet ke|lam|sap xep|soan)\b/.test(value);
-  const mentionsPlan = /\b(?:lich trinh|lap lich(?: trinh| di(?: choi)?)?|len lich(?: trinh| di(?: choi)?)?|lich di(?: choi)?|hanh trinh|ke hoach(?: du lich| chuyen di)?)\b/.test(value)
+  const hasPlanAction = /\b(?:lap|tao|len|xay dung|thiet ke|lam|sap xep|soan|dung|xep)\b/.test(value);
+  const mentionsPlan = /\b(?:lich trinh|lap lich(?: trinh| di(?: choi)?)?|len lich(?: trinh| di(?: choi)?)?|lich di(?: choi)?|lich an choi|hanh trinh|ke hoach(?: du lich| chuyen di)?|itinerary|plan)\b/.test(value)
     || (hasPlanAction && /\b(?:tour|chuyen di)\b/.test(value));
   if (!mentionsPlan) return false;
 
@@ -155,14 +236,18 @@ function isExplicitItineraryRequest(message) {
   // itinerary, even when the user also mentions budget or tours.
   if (hasPlanAction) return true;
 
-  const asksForPlan = /\b(?:goi y|de xuat|tu van|muon)\b/.test(value);
+  const asksForPlan = /\b(?:goi y|de xuat|tu van|muon|can|cho minh|cho toi)\b/.test(value)
+    || /\bplan trip\b/.test(value);
   const explicitlySearchesTours = /\btour\b/.test(value) && /\b(?:tim|goi y|de xuat|so sanh|chon|tu van|muon)\b/.test(value);
   return asksForPlan && !explicitlySearchesTours;
 }
 
 function itineraryContextHistory(input) {
   const history = Array.isArray(input?.history) ? input.history : [];
-  if (isExplicitItineraryRequest(input?.message)) return [];
+  if (isExplicitItineraryRequest(input?.message)) {
+    if (queryFromRequest({ message: input.message }).destination) return [];
+    return history.slice(-6);
+  }
 
   let requestIndex = -1;
   for (let index = history.length - 1; index >= 0; index--) {
@@ -212,22 +297,27 @@ function isItineraryRequest(input) {
   const value = normalize(input.message);
   if (explicitMessageIntent(input.message) === 'tour_search') return false;
   const suppliesDuration = /\b\d{1,2}\s*(?:ngay|day|dem|night)\b/.test(value);
+  const updatesCurrentPlan = /\b(?:doi sang|sua thanh|chuyen sang|thay bang|doi diem den|cap nhat lich trinh)\b/.test(value);
   return latestConversationIntent(input) === 'itinerary'
-    && Boolean(pendingItineraryQuestion(input) || suppliesDuration);
+    && Boolean(pendingItineraryQuestion(input) || suppliesDuration || updatesCurrentPlan);
 }
 
 function isExplicitTourSearchRequest(input) {
-  return !isItineraryRequest(input) && explicitMessageIntent(input?.message) === 'tour_search';
+  const value = normalize(input?.message);
+  const asksTourQuestion = /\b(?:co|con) tour\b/.test(value) && /\b(?:khong|ko|khum)\b/.test(value);
+  return !isItineraryRequest(input) && (explicitMessageIntent(input?.message) === 'tour_search' || asksTourQuestion);
 }
 
 function planDestination(input, catalog) {
   const userTexts = itineraryUserMessages(input);
   for (const source of [...userTexts].reverse()) {
+    const parsedDestination = queryFromRequest({ message: source }).destination;
+    if (parsedDestination) return parsedDestination;
     const knownDestination = inferDestination(source, [], catalog);
     if (knownDestination) return knownDestination;
   }
   for (const source of userTexts.reverse()) {
-    const place = String(source).match(/(?:t\u1ea1i|\u1edf|\u0111i \u0111\u1ebfn|\u0111\u1ebfn|tai|o|den)\s+([\p{L}][\p{L}\s'-]{1,40}?)(?=\s+(?:trong|voi|ngan sach|duoi|toi da)|\s+\d|[,!?;.]|$)/iu);
+    const place = String(source).match(/(?:t\u1ea1i|\u1edf|\u0111i \u0111\u1ebfn|\u0111\u1ebfn|\btai\b|(?<![\p{L}])o(?![\p{L}])|\bden\b)\s+([\p{L}][\p{L}\s'-]{1,40}?)(?=\s+(?:trong|voi|ngan sach|duoi|toi da)|\s+\d|[,!?;.]|$)/iu);
     if (place?.[1]) return place[1].trim();
   }
   if (pendingItineraryQuestion(input) !== 'destination') return '';
@@ -244,21 +334,38 @@ function planDestination(input, catalog) {
 
 function planDurationDays(input) {
   const context = normalize(itineraryUserMessages(input).join(' '));
+  if (pendingItineraryQuestion(input) === 'duration' && /^\s*\d{1,2}\s*$/.test(input.message || '')) {
+    const answer = Number(input.message.trim());
+    if (answer >= 1 && answer <= 14) return answer;
+  }
   const vietnameseShorthand = context.match(/\b(\d{1,2})\s*n\s*\d{1,2}\s*d\b/);
-  if (vietnameseShorthand && Number(vietnameseShorthand[1]) >= 1 && Number(vietnameseShorthand[1]) <= 30) return Number(vietnameseShorthand[1]);
+  if (vietnameseShorthand && Number(vietnameseShorthand[1]) >= 1 && Number(vietnameseShorthand[1]) <= 14) return Number(vietnameseShorthand[1]);
   const englishShorthand = context.match(/\b(\d{1,2})\s*d\s*\d{1,2}\s*n\b/);
-  if (englishShorthand && Number(englishShorthand[1]) >= 1 && Number(englishShorthand[1]) <= 30) return Number(englishShorthand[1]);
+  if (englishShorthand && Number(englishShorthand[1]) >= 1 && Number(englishShorthand[1]) <= 14) return Number(englishShorthand[1]);
   const dayMatch = context.match(/\b(\d{1,2})\s*(?:ngay|day)\b/);
-  if (dayMatch && Number(dayMatch[1]) >= 1 && Number(dayMatch[1]) <= 30) return Number(dayMatch[1]);
+  if (dayMatch && Number(dayMatch[1]) >= 1 && Number(dayMatch[1]) <= 14) return Number(dayMatch[1]);
   const weekMatch = context.match(/\b(\d)\s*tuan\b/);
-  if (weekMatch) return Number(weekMatch[1]) * 7;
+  if (weekMatch && Number(weekMatch[1]) >= 1 && Number(weekMatch[1]) <= 2) return Number(weekMatch[1]) * 7;
   const nightMatch = context.match(/\b(\d{1,2})\s*(?:dem|night)\b/);
-  if (nightMatch && Number(nightMatch[1]) <= 29) return Number(nightMatch[1]) + 1;
+  if (nightMatch && Number(nightMatch[1]) <= 13) return Number(nightMatch[1]) + 1;
   return 0;
 }
 
 function itineraryClarification(input, catalog) {
   if (!isItineraryRequest(input)) return null;
+  const currentMessage = normalize(input.message);
+  const destinations = [...new Set([...(catalog?.tours || []), ...(catalog?.services || [])]
+    .map(row => row.destination).filter(Boolean))];
+  const mentioned = destinations.filter(place => currentMessage.includes(normalize(place)));
+  const containsBaNa = /\bba na hills?\b/.test(currentMessage);
+  if (mentioned.length > 1 || (containsBaNa && mentioned.some(place => !sameDestination(place, 'Đà Nẵng')))) {
+    return {
+      reply: mentioned.length > 1
+        ? `Mình thấy có nhiều điểm đến (${mentioned.join(', ')}). Bạn muốn lập lịch trình ở điểm nào?`
+        : `Bà Nà Hills ở khu vực Đà Nẵng, khác với ${mentioned[0]}. Bạn muốn giữ ${mentioned[0]} hay đổi sang Đà Nẵng?`,
+      suggestedQuestions: [...mentioned.slice(0, 2), ...(containsBaNa ? ['Đà Nẵng'] : [])].slice(0, 3)
+    };
+  }
   const destination = planDestination(input, catalog);
   if (!destination) {
     const counts = new Map();
@@ -267,6 +374,16 @@ function itineraryClarification(input, catalog) {
     return {
       reply: 'B\u1ea1n mu\u1ed1n l\u1eadp l\u1ecbch tr\u00ecnh \u1edf \u0111\u00e2u? Ch\u1ecdn m\u1ed9t \u0111i\u1ec3m \u0111\u1ebfn b\u00ean d\u01b0\u1edbi ho\u1eb7c nh\u1eadp t\u00ean \u0111i\u1ec3m \u0111\u1ebfn kh\u00e1c.',
       suggestedQuestions: choices
+    };
+  }
+  const current = normalize(input.message);
+  const invalidDuration = /(?:^|\s)-\s*\d{1,2}\s*(?:ngay|day)\b/.test(current)
+    || /\b0\s*(?:ngay|day)\b/.test(current)
+    || /\b(?:1[5-9]|[2-9]\d)\s*(?:ngay|day)\b/.test(current);
+  if (invalidDuration) {
+    return {
+      reply: `Thời lượng cần từ 1 đến 14 ngày. Bạn muốn đi ${destination} bao nhiêu ngày?`,
+      suggestedQuestions: ['1 ngày', '2 ngày 1 đêm', '3 ngày 2 đêm']
     };
   }
   if (!planDurationDays(input)) {
@@ -349,15 +466,26 @@ function normalizeStructuredResponse(value, responseField, catalog, input) {
     try {
       const parsed = JSON.parse(reply);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) { structured = parsed; reply = ''; }
-    } catch { /* Keep ordinary text responses unchanged. */ }
+    } catch { return null; }
   }
   if (structured) reply = text(structured.message || structured.reply || structured.text, 32000);
+  if (/\b(?:dat tour|dat dich vu|mua tour|checkout|thanh toan)\b/.test(normalize(input?.message))
+    && /\b(?:da dat|dat thanh cong|thanh toan thanh cong|booking confirmed|payment successful)\b/.test(normalize(reply))) {
+    return {
+      reply: 'Mình không thể xác nhận đặt chỗ hoặc thanh toán trong chat. Hãy mở trang chi tiết tour và hoàn tất qua quy trình booking chính thức.',
+      type: 'text', tours: [], itinerary: null, totalTours: 0, hasMoreTours: false,
+      catalogAvailable: Boolean(catalog?.available), suggestedQuestions: []
+    };
+  }
   if (!reply && (Array.isArray(structured?.tours) || structured?.itinerary || structured?.itineraryDraft || structured?.plan)) {
     reply = Array.isArray(structured.tours) ? 'Mình đã tìm các tour phù hợp trong danh mục GreenSteps.' : 'Mình đã chuẩn bị phương án lịch trình để bạn xem lại.';
   }
   if (!reply) return null;
 
   const itineraryRequest = isItineraryRequest(input);
+  const normalizedMessage = normalize(input.message);
+  const explicitlyRequestsTour = /\btour\b/.test(normalizedMessage) && !itineraryRequest;
+  const expectedTourDestination = explicitlyRequestsTour ? requestedCatalogDestination(input.message, catalog) : '';
   const expectedDestination = itineraryRequest ? planDestination(input, catalog) : '';
   const rawPlan = structured?.itinerary || structured?.itineraryDraft || structured?.plan;
   const returnedDestination = text(rawPlan?.destination, 100) || inferDestination(reply, [], catalog);
@@ -369,16 +497,27 @@ function normalizeStructuredResponse(value, responseField, catalog, input) {
       catalogAvailable: Boolean(catalog?.available), suggestedQuestions: []
     };
   }
+  if (itineraryRequest && expectedDestination && (itineraryHasDestinationConflict(rawPlan, catalog, expectedDestination)
+    || itineraryExcludesRequestedActivity(rawPlan, input))) {
+    return {
+      reply: `Mình xin lỗi, tiêu đề hoặc hoạt động trong lịch trình vừa rồi nhắc đến điểm đến khác. Mình chưa hiển thị lịch trình này; vui lòng yêu cầu tạo lại cho ${expectedDestination}.`,
+      type: 'text', tours: [], itinerary: null, totalTours: 0, hasMoreTours: false,
+      catalogAvailable: Boolean(catalog?.available), suggestedQuestions: []
+    };
+  }
 
   const refs = Array.isArray(structured?.tours) ? structured.tours : [];
   const canonical = [];
   for (const ref of refs.slice(0, 9)) {
     const tour = resolveTour(ref, catalog);
-    if (tour && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
+    if (tour && (!expectedTourDestination || sameDestination(expectedTourDestination, tour.destination))
+      && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
   }
   if (!canonical.length && catalog?.available) {
     for (const tour of catalog.tours || []) {
-      if (tour.title && normalize(reply).includes(normalize(tour.title)) && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
+      if (tour.title && normalize(reply).includes(normalize(tour.title))
+        && (!expectedTourDestination || sameDestination(expectedTourDestination, tour.destination))
+        && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
       if (canonical.length >= 6) break;
     }
   }
@@ -387,16 +526,28 @@ function normalizeStructuredResponse(value, responseField, catalog, input) {
   if (followUp && Array.isArray(input.currentTours)) {
     for (const reference of input.currentTours.slice(0, 9)) {
       const tour = resolveTour(reference, catalog);
-      if (tour && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
+      if (tour && (!expectedTourDestination || sameDestination(expectedTourDestination, tour.destination))
+        && !canonical.some(item => item.id === tour.id)) canonical.push(canonicalTour(tour));
     }
   }
 
-  const normalizedMessage = normalize(input.message);
-  const explicitlyRequestsTour = /\btour\b/.test(normalizedMessage) && !itineraryRequest;
+  if (explicitlyRequestsTour && expectedTourDestination && !canonical.length && catalog?.available) {
+    reply = `Mình chưa tìm thấy tour tại ${expectedTourDestination} trong danh mục GreenSteps hiện có.`;
+  }
   const fallbackDestination = itineraryRequest ? planDestination(input, catalog) : inferDestination(input.message, input.history, catalog);
   const requestedDays = itineraryRequest ? planDurationDays(input) : 0;
   const itinerary = explicitlyRequestsTour ? null : canonicalItinerary(structured?.itinerary || structured?.itineraryDraft || structured?.plan, catalog, fallbackDestination, requestedDays)
     || parseTextItinerary(reply, input, catalog);
+  const submittedActivities = Array.isArray(rawPlan?.days) ? rawPlan.days.flatMap(day => Array.isArray(day?.activities) ? day.activities : Array.isArray(day) ? day : []) : [];
+  const wrongDestinationService = submittedActivities.some(activity => {
+    const id = activity?.serviceId || activity?.service_id;
+    const candidate = (catalog?.serviceCandidates || catalog?.services || []).find(service => service.id === id);
+    return candidate && expectedDestination && !sameDestination(expectedDestination, candidate.destination);
+  });
+  if (wrongDestinationService) reply += ' Dịch vụ được chọn thuộc điểm đến khác nên đã bị loại khỏi các hoạt động xác thực.';
+  if (itineraryRequest && itinerary && itinerary.days.flat().every(activity => !activity.verified)) {
+    reply += ' Các hoạt động trong lịch này là gợi ý tham khảo; chưa có dịch vụ GreenSteps phù hợp được xác minh.';
+  }
   const requestedType = text(structured?.type, 40);
   const requestedTours = ['tour_recommendations', 'tour_recommendation'].includes(requestedType);
   const tourIntent = /\btour\b|goi y|recommend/.test(normalize(input.message));
@@ -405,7 +556,9 @@ function normalizeStructuredResponse(value, responseField, catalog, input) {
   return {
     reply, type, tours: responseTours, itinerary,
     totalTours: responseTours.length, hasMoreTours: false, catalogAvailable: Boolean(catalog?.available),
-    suggestedQuestions: suggestedQuestions(type, responseTours, itinerary, structured?.suggestedQuestions, input.message)
+    suggestedQuestions: explicitlyRequestsTour && expectedTourDestination
+      ? [`Tự tạo lịch trình tại ${expectedTourDestination}`, ...suggestedQuestions(type, responseTours, itinerary, structured?.suggestedQuestions, input.message).slice(0, 2)]
+      : suggestedQuestions(type, responseTours, itinerary, structured?.suggestedQuestions, input.message)
   };
 }
 

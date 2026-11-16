@@ -1,14 +1,28 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { BookingAddon, Schedule, ScheduleSample } = require('../src/models');
+const { BookingAddon, BookingSetting, Schedule, ScheduleSample } = require('../src/models');
 const { Op } = require('../src/db/mongo-store');
-const { calculatePricing } = require('../src/services/booking-pricing.service');
+const { calculatePricing, ensureDefaultBookingAddons } = require('../src/services/booking-pricing.service');
+
+test('startup seeds missing default booking add-ons without overwriting admin edits', async () => {
+  const originalFindOrCreate = BookingAddon.findOrCreate;
+  const calls = [];
+  try {
+    BookingAddon.findOrCreate = async options => { calls.push(options); return [options.defaults, true]; };
+    await ensureDefaultBookingAddons();
+    assert.equal(calls.length, require('../src/config/booking-addons.seed').length);
+    assert.ok(calls.every(call => call.where.id === call.defaults.id));
+  } finally {
+    BookingAddon.findOrCreate = originalFindOrCreate;
+  }
+});
 
 test('pricing uses server catalog prices, guest count, and the configured order fee', async () => {
   const originals = {
     schedule: Schedule.findByPk,
     sample: ScheduleSample.findByPk,
-    addons: BookingAddon.findAll
+    addons: BookingAddon.findAll,
+    settings: BookingSetting.findByPk
   };
   try {
     Schedule.findByPk = async id => ({ id });
@@ -19,6 +33,7 @@ test('pricing uses server catalog prices, guest count, and the configured order 
       unit_price: 200_000,
       active: true
     }));
+    BookingSetting.findByPk = async () => ({ discount_percent: 8, service_fee_vnd: 120_000, deposit_percent: 30, collect_deposit_for: [] });
 
     const quote = await calculatePricing({
       type: 'tour', targetId: 'tour-1', guestCount: 2,
@@ -37,14 +52,16 @@ test('pricing uses server catalog prices, guest count, and the configured order 
     Schedule.findByPk = originals.schedule;
     ScheduleSample.findByPk = originals.sample;
     BookingAddon.findAll = originals.addons;
+    BookingSetting.findByPk = originals.settings;
   }
 });
 
 test('pricing handles multiple guests without add-ons and rounds discount down', async () => {
-  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk };
+  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk, settings: BookingSetting.findByPk };
   try {
     Schedule.findByPk = async id => ({ id });
     ScheduleSample.findByPk = async () => ({ cost: 1_000_000 });
+    BookingSetting.findByPk = async () => ({ discount_percent: 8, service_fee_vnd: 120_000, deposit_percent: 30, collect_deposit_for: [] });
     const quote = await calculatePricing({ type: 'tour', targetId: 'tour-1', guestCount: 3, addonIds: [] });
     assert.equal(quote.subtotal, 3_000_000);
     assert.equal(quote.discount, 240_000);
@@ -54,14 +71,16 @@ test('pricing handles multiple guests without add-ons and rounds discount down',
   } finally {
     Schedule.findByPk = originals.schedule;
     ScheduleSample.findByPk = originals.sample;
+    BookingSetting.findByPk = originals.settings;
   }
 });
 
 test('pricing rounds percentage amounts to integer VND and ignores untrusted client amounts', async () => {
-  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk };
+  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk, settings: BookingSetting.findByPk };
   try {
     Schedule.findByPk = async id => ({ id });
     ScheduleSample.findByPk = async () => ({ cost: 101 });
+    BookingSetting.findByPk = async () => ({ discount_percent: 8, service_fee_vnd: 120_000, deposit_percent: 30, collect_deposit_for: [] });
     const quote = await calculatePricing({
       type: 'tour', targetId: 'tour-1', guestCount: 1, addonIds: [],
       paymentMethod: 'wallet', amount: 1, total: 1, value: 1
@@ -76,5 +95,6 @@ test('pricing rounds percentage amounts to integer VND and ignores untrusted cli
   } finally {
     Schedule.findByPk = originals.schedule;
     ScheduleSample.findByPk = originals.sample;
+    BookingSetting.findByPk = originals.settings;
   }
 });

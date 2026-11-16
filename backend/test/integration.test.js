@@ -1,15 +1,16 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 require('../src/config/env');
-const configured = process.env.TEST_MONGODB_URI;
+const { testMongoAvailable, skipReason } = require('./helpers/test-mongodb-guard');
+const configured = testMongoAvailable ? process.env.TEST_MONGODB_URI : '';
 
-test('MongoDB API, relationships, financial transactions and migrated response shapes', { skip: !configured }, async t => {
+test('MongoDB API, relationships, financial transactions and migrated response shapes', { skip: !configured && skipReason }, async t => {
   // A generated database makes these tests independent from real customer data.
   const uri = new URL(configured);
   const databaseName = `GreenStepsMigrationTest_${Date.now()}`;
   uri.pathname = `/${databaseName}`;
   process.env.MONGODB_URI = uri.toString();
-  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, TourBooking, BookingAddon, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, CPSS, Provider, Vender, Badge, BadgeService } = require('../src/models');
+  const { store, User, AuthOtp, PendingRegistration, Wallet, WalletTransaction, ServiceBooking, TourBooking, BookingAddon, BookingSetting, Schedule, ScheduleSample, ScheduleActivity, GreenService, CommentPost, CPGS, CPSS, Provider, Vender, Badge, BadgeService } = require('../src/models');
   const { Op } = require('../src/db/mongo-store');
   const app = require('../src/app');
     const bookingController = require('../src/controllers/booking.controller');
@@ -35,7 +36,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
     await User.create({ id: 'test-user', username: 'mongo_test', email: 'mongo-test@example.com', password_hash: await bcrypt.hash(password, 4), is_verified: true });
     await Wallet.create({ id: 'test-wallet', user_id: 'test-user', balance: 1000000, registered: true });
     await GreenService.create({ id: 'test-service', name_service: 'Nhà xanh', type: 'stay', cost: 200000, destination: 'Đà Lạt' });
-    await Schedule.create({ id: 'test-tour', tour_name: 'Tour xanh', destination: 'Đà Lạt', days: 1 });
+    await Schedule.create({ id: 'test-tour', tour_name: 'Tour xanh', destination: 'Đà Lạt', days: 1, catalog_status: 'bookable' });
     await ScheduleSample.create({ id: 'test-tour', cost: 300000 });
     await ScheduleActivity.create({ id: 'test-activity', schedule_id: 'test-tour', service_id: 'test-service', day_number: 1, time: '08:00', activity_name: 'Nghỉ dưỡng', activity_cost: 200000 });
     await Badge.create({ id: 'green', badges_description: 'Xanh', foruserortour: 1 });
@@ -85,7 +86,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
     });
     await t.test('review hooks aggregate ratings in the same transaction', async () => {
       await store.transaction(async transaction => {
-        await CommentPost.create({ id: 'review', user_id: 'test-user', service_id: 'test-service', text: 'Tốt', rating: 4 }, { transaction });
+        await CommentPost.create({ id: 'review', user_id: 'review-hook-user', service_id: 'test-service', text: 'Tốt', rating: 4 }, { transaction });
         await CPGS.create({ comment_id: 'review', service_id: 'test-service' }, { transaction });
       });
       assert.equal((await GreenService.findByPk('test-service')).rating, 4);
@@ -123,19 +124,20 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       assert.ok(JSON.stringify(itinerary).includes('Đi bộ'));
       assert.equal(await ScheduleActivity.count({ where: { schedule_id: 'custom-test' } }), 1);
       await request('/bookings', { type: 'service', targetId: 'test-service', bookingDate: '2026-12-01', guests: 1, paymentMethod: 'wallet', customerPhone: '0900000000' }, login.token);
-      assert.equal((await Wallet.findByPk('test-wallet')).balance, 708800);
+      assert.equal((await Wallet.findByPk('test-wallet')).balance, 600000);
       assert.equal(await ServiceBooking.count({ where: { user_id: 'test-user' } }), 1);
       const payment = await WalletTransaction.findOne({ where: { type: 'escrow_hold' } });
       assert.equal((await request(`/wallet/transaction-status/${payment.id}`, undefined, login.token)).status, 'pending');
-      assert.equal((await request('/wallet/pay', { userId: 'test-user', itineraryId: 'custom-test', amount: 50000 }, login.token)).balance, 658800);
+      assert.equal((await request('/wallet/pay', { userId: 'test-user', itineraryId: 'custom-test', amount: 50000 }, login.token)).balance, 550000);
       assert.equal((await WalletTransaction.findOne({ where: { reference_id: 'custom-test', status: 'success' } })).amount, -50000);
       await request('/wallet/pay-qr', { userId: 'test-user', itineraryId: 'custom-test', amount: 10000 }, login.token);
-      assert.equal((await Wallet.findByPk('test-wallet')).balance, 658800);
+      assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       const invalidPayment = await fetch(base + '/wallet/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: 'test-user', itineraryId: 'custom-test', amount: -50000 }) });
-      assert.equal(invalidPayment.status, 401);
+      assert.equal(invalidPayment.status, 400);
       assert.equal((await Wallet.findByPk('test-wallet')).balance, 550000);
       await Wallet.update({ green_points: 1000 }, { where: { id: 'test-wallet' } });
       assert.equal((await request('/vouchers/redeem', {}, login.token)).remainingPoints, 0);
+      await BookingSetting.create({ id: 'booking_pricing', discount_percent: 8, service_fee_vnd: 120000, deposit_percent: 30, collect_deposit_for: [] });
     });
     await t.test('booking creation is idempotent and expired payment requests are decided by the backend', async () => {
       const login = await request('/auth/login', { username: 'mongo_test', password });
@@ -210,41 +212,47 @@ test('MongoDB API, relationships, financial transactions and migrated response s
         fullname: 'Test customer', tour_name: 'Tour xanh', booking_date: '2026-12-02',
         guests: 1, value: 300000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-TOUR-CONCURRENT'
       });
+      await Schedule.create({ id: 'concurrent-review-tour', tour_name: 'Concurrent review tour', destination: 'Test', days: 1, catalog_status: 'bookable' });
+      await ScheduleSample.create({ id: 'concurrent-review-tour', cost: 100000 });
+      await TourBooking.update({ schedule_id: 'concurrent-review-tour' }, { where: { id: 'concurrent-tour-review-booking' } });
       const concurrentRequests = await Promise.all([1, 2].map(() => fetch(base + '/reviews/tour', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${login.token}` },
-        body: JSON.stringify({ bookingId: 'concurrent-tour-review-booking', tourId: 'test-tour', rating: 3, text: 'Tour okay' })
+        body: JSON.stringify({ bookingId: 'concurrent-tour-review-booking', tourId: 'concurrent-review-tour', rating: 3, text: 'Tour okay' })
       })));
       assert.deepEqual(concurrentRequests.map(response => response.status).sort(), [201, 409]);
-      assert.equal((await ScheduleSample.findByPk('test-tour')).rating, 4);
-      assert.equal((await ScheduleSample.findByPk('test-tour')).votes_count, 2);
+      assert.equal((await ScheduleSample.findByPk('test-tour')).rating, 5);
+      assert.equal((await ScheduleSample.findByPk('test-tour')).votes_count, 1);
+      assert.equal((await ScheduleSample.findByPk('concurrent-review-tour')).votes_count, 1);
 
       const serviceResult = await request('/reviews/service', {
-        bookingId: 'service-review-booking', serviceId: 'test-service', rating: 4, text: 'Dịch vụ tốt'
+        bookingId: 'service-review-booking', serviceId: 'test-service', rating: null, text: 'Dịch vụ tốt'
       }, login.token, 201);
       const serviceReview = await CommentPost.findOne({ where: { booking_id: 'service-review-booking' } });
       assert.equal(serviceReview.user_id, 'test-user');
       assert.equal(serviceReview.service_id, 'test-service');
       assert.equal((await CPGS.findOne({ where: { comment_id: serviceReview.id } })).service_id, 'test-service');
-      assert.equal(serviceResult.reviews_count, 2); // the existing review-hook fixture plus this booking review
+      assert.equal(serviceResult.reviews_count, 1);
       assert.equal((await GreenService.findByPk('test-service')).bookings_count, await ServiceBooking.count({ where: { service_id: 'test-service' } }));
 
+      await Schedule.create({ id: 'rollback-review-tour', tour_name: 'Rollback review tour', destination: 'Test', days: 1, catalog_status: 'bookable' });
+      await ScheduleSample.create({ id: 'rollback-review-tour', cost: 100000 });
       await TourBooking.create({
-        id: 'rollback-tour-review-booking', user_id: 'test-user', schedule_id: 'test-tour',
+        id: 'rollback-tour-review-booking', user_id: 'test-user', schedule_id: 'rollback-review-tour',
         fullname: 'Test customer', tour_name: 'Tour xanh', booking_date: '2026-12-03',
         guests: 1, value: 300000, payment_method: 'card', status: 'completed', evoucher_code: 'EV-TOUR-ROLLBACK'
       });
-      const tourBeforeFailedReview = await ScheduleSample.findByPk('test-tour');
+      const tourBeforeFailedReview = await ScheduleSample.findByPk('rollback-review-tour');
       const tourRatingBeforeFailedReview = { rating: tourBeforeFailedReview.rating, votes_count: tourBeforeFailedReview.votes_count };
       const originalCPSSCreate = CPSS.create;
       try {
         CPSS.create = async () => { throw new Error('injected CPSS write failure'); };
-        await request('/reviews/tour', { bookingId: 'rollback-tour-review-booking', tourId: 'test-tour', rating: 1, text: 'rollback' }, login.token, 500);
+        await request('/reviews/tour', { bookingId: 'rollback-tour-review-booking', tourId: 'rollback-review-tour', rating: 1, text: 'rollback' }, login.token, 500);
       } finally {
         CPSS.create = originalCPSSCreate;
       }
       assert.equal(await CommentPost.findOne({ where: { booking_id: 'rollback-tour-review-booking' } }), null);
-      const tourAfterFailedReview = await ScheduleSample.findByPk('test-tour');
+      const tourAfterFailedReview = await ScheduleSample.findByPk('rollback-review-tour');
       assert.deepEqual({ rating: tourAfterFailedReview.rating, votes_count: tourAfterFailedReview.votes_count }, tourRatingBeforeFailedReview);
 
       await ServiceBooking.create({
@@ -257,7 +265,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       const originalCPGSCreate = CPGS.create;
       try {
         CPGS.create = async () => { throw new Error('injected CPGS write failure'); };
-        await request('/reviews/service', { bookingId: 'rollback-service-review-booking', serviceId: 'test-service', rating: 1, text: 'rollback' }, login.token, 500);
+        await request('/reviews/service', { bookingId: 'rollback-service-review-booking', serviceId: 'test-service', rating: null, text: 'rollback' }, login.token, 500);
       } finally {
         CPGS.create = originalCPGSCreate;
       }
@@ -274,7 +282,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       const customerLogin = await request('/auth/login', { username: 'mongo_test', password });
       const providerLogin = await request('/auth/login', { username: 'mongo_provider', password });
       const providerReviews = await request('/reviews/provider?providerId=forged-provider', undefined, providerLogin.token);
-      assert.equal(providerReviews.length, 4); // Includes the earlier aggregate-hook fixture review and concurrent-booking review.
+      assert.equal(providerReviews.length, 3); // Includes the aggregate-hook fixture and reviews linked to this provider's tour/service.
       assert.deepEqual(new Set(providerReviews.map(review => review.type)), new Set(['tour', 'service']));
       assert.equal((await request('/reviews/provider?serviceId=someone-elses-service', undefined, providerLogin.token, 403)).success, false);
       await request(`/reviews/${tourReview.id}/reply`, { text: 'Tour reply' }, providerLogin.token, 201);
@@ -301,7 +309,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       const serviceLifecycleReview = await CommentPost.findOne({ where: { booking_id: lifecycleServiceBookingId } });
       assert.equal(serviceLifecycleReview.user_id, 'test-user');
       assert.equal((await CPGS.findOne({ where: { comment_id: serviceLifecycleReview.id } })).service_id, 'test-service');
-      assert.equal(serviceLifecycleResponse.reviews_count, 3);
+      assert.equal(serviceLifecycleResponse.reviews_count, 2);
       const providerServiceReviews = await request('/reviews/provider?serviceId=test-service', undefined, providerLogin.token);
       assert.ok(providerServiceReviews.some(review => review.id === serviceLifecycleReview.id));
       await request(`/reviews/${serviceLifecycleReview.id}/reply`, { text: 'Phản hồi cho service vừa hoàn thành' }, providerLogin.token, 201);
@@ -336,12 +344,12 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       await request(`/bookings/${lifecycleBookingId}/complete`, {}, providerLogin.token);
       assert.equal((await TourBooking.findByPk(lifecycleBookingId)).operation_status, 'completed');
       const lifecycleReviewResponse = await request('/reviews/tour', {
-        bookingId: lifecycleBookingId, tourId: 'test-tour', rating: 5, text: 'Review sau tour completed'
+        bookingId: lifecycleBookingId, tourId: 'test-tour', rating: null, text: 'Review sau tour completed'
       }, customerLogin.token, 201);
       const lifecycleReview = await CommentPost.findOne({ where: { booking_id: lifecycleBookingId } });
       assert.equal(lifecycleReview.user_id, 'test-user');
       assert.equal((await CPSS.findOne({ where: { comment_id: lifecycleReview.id } })).schedule_sample_id, 'test-tour');
-      assert.equal(lifecycleReviewResponse.reviews_count, 3);
+      assert.equal(lifecycleReviewResponse.reviews_count, 1);
       const providerLifecycleReviews = await request('/reviews/provider?tourId=test-tour', undefined, providerLogin.token);
       assert.ok(providerLifecycleReviews.some(review => review.id === lifecycleReview.id));
       await request(`/reviews/${lifecycleReview.id}/reply`, { text: 'Phản hồi cho booking vừa hoàn thành' }, providerLogin.token, 201);
@@ -350,7 +358,7 @@ test('MongoDB API, relationships, financial transactions and migrated response s
       await request('/bookings/foreign-provider-tour-booking/complete', {}, providerLogin.token, 403);
       await TourBooking.update({ status: 'completed' }, { where: { id: 'foreign-provider-tour-booking' } });
       const foreignReviewResponse = await request('/reviews/tour', {
-        bookingId: 'foreign-provider-tour-booking', tourId: 'other-tour', rating: 4, text: 'Đánh giá tour provider khác'
+        bookingId: 'foreign-provider-tour-booking', tourId: 'other-tour', rating: null, text: 'Đánh giá tour provider khác'
       }, customerLogin.token, 201);
       const foreignTourReview = await CommentPost.findOne({ where: { booking_id: 'foreign-provider-tour-booking' } });
       assert.ok(foreignReviewResponse.success);

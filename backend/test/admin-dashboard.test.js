@@ -28,7 +28,7 @@ function models() {
     WalletTransaction: { collection: collection('app_wallettransactions', 0, [{ amount: 123456, transactions: 2 }]) },
     CommunityReport: { collection: collection('app_community_reports', 1) },
     WithdrawalRequest: { collection: collection('app_withdrawalrequests', 0) },
-    MomoPaymentAttempt: { collection: collection('app_momopaymentattempts', 0) }
+    SepayPaymentAttempt: { collection: collection('app_sepaypaymentattempts', 0) }
   };
 }
 
