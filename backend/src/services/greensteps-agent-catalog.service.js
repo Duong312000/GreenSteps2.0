@@ -258,14 +258,14 @@ async function searchItineraryServiceCandidates(models, query, firstPage, signal
   };
 }
 
-async function loadAgentCatalog({ query: rawQuery = {}, models: injectedModels, signal, includeServiceCandidates = false } = {}) {
+async function loadAgentCatalog({ query: rawQuery = {}, models: injectedModels, signal, includeServiceCandidates = false, includeServices = true } = {}) {
   const query = normalizeCatalogQuery(rawQuery);
   try {
     signal?.throwIfAborted();
     const models = getModels(injectedModels);
     const [tours, services] = await Promise.all([
       searchTours(models, query, signal),
-      searchServices(models, query, signal)
+      includeServices ? searchServices(models, query, signal) : Promise.resolve({ rows: [], hasMore: false })
     ]);
     const serviceCandidates = includeServiceCandidates
       ? await searchItineraryServiceCandidates(models, query, services, signal)
@@ -292,16 +292,17 @@ async function loadAgentCatalog({ query: rawQuery = {}, models: injectedModels, 
 function createCatalogLoader(options = {}) {
   const cache = new Map();
   const inFlight = new Map();
-  return async ({ query = {}, signal, includeServiceCandidates = false } = {}) => {
+  return async ({ query = {}, signal, includeServiceCandidates = false, includeServices = true } = {}) => {
     signal?.throwIfAborted();
     const normalized = normalizeCatalogQuery(query);
     const includeCandidates = includeServiceCandidates === true;
-    const key = JSON.stringify({ query: normalized, includeServiceCandidates: includeCandidates });
+    const includeServiceCatalog = includeServices !== false;
+    const key = JSON.stringify({ query: normalized, includeServiceCandidates: includeCandidates, includeServices: includeServiceCatalog });
     const now = Date.now();
     const cached = cache.get(key);
     if (cached && cached.expires > now) return cached.value;
     if (inFlight.has(key)) return inFlight.get(key);
-    const pending = loadAgentCatalog({ ...options, query: normalized, signal, includeServiceCandidates: includeCandidates }).then(catalog => {
+    const pending = loadAgentCatalog({ ...options, query: normalized, signal, includeServiceCandidates: includeCandidates, includeServices: includeServiceCatalog }).then(catalog => {
       if (catalog.available && !signal?.aborted) {
         const configured = Number((options.env || process.env).N8N_CATALOG_CACHE_MS ?? 5000);
         const ttl = Number.isFinite(configured) ? Math.max(0, Math.min(15000, configured)) : 5000;

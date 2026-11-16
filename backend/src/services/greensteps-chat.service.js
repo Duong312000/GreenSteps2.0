@@ -130,7 +130,8 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
       const catalogQuery = queryFromRequest(input);
       const catalog = await loadCatalog({
         query: catalogQuery, signal: requestSignal,
-        includeServiceCandidates: itineraryIntent
+        includeServiceCandidates: itineraryIntent,
+        includeServices: !isExplicitTourSearchRequest(input)
       });
       metrics.catalogMs = Math.round((performance.now() - catalogStart) * 100) / 100;
       requestSignal.throwIfAborted();
