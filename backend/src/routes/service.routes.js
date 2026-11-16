@@ -10,6 +10,7 @@ router.get('/recommendations/:userId', serviceController.getRecommendations);
 router.get('/provider/:providerId', authMiddleware, checkRole(['provider', 'admin']), serviceController.getProviderServices);
 router.post('/', authMiddleware, checkRole(['provider', 'admin']), serviceController.addService);
 router.put('/:id', authMiddleware, checkRole(['provider', 'admin']), serviceController.updateService);
+router.delete('/:id', authMiddleware, checkRole(['provider', 'admin']), serviceController.deleteService);
 router.get('/:id', serviceController.getServiceDetails);
 router.post('/:id/clone', authMiddleware, checkRole(['provider', 'admin']), serviceController.cloneService);
 router.post('/:id/suspend', authMiddleware, checkRole(['provider', 'admin']), serviceController.suspendService);
