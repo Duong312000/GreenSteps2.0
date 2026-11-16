@@ -169,6 +169,12 @@ export class ApiService {
       this.cache.clear();
       this.adminUserCacheVersion++;
       this.adminUserRequests.clear();
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i) || '';
+          if (k.startsWith('greensteps_swr_v2:')) localStorage.removeItem(k);
+        }
+      } catch {}
     } else {
       for (const key of this.cache.keys()) {
         if (key.startsWith(prefix)
@@ -176,6 +182,19 @@ export class ApiService {
           || (prefix.startsWith('preset_tour') && key.startsWith('public_catalog:') && key.includes('/tours/search?'))) {
           this.cache.delete(key);
         }
+      }
+      if (prefix.startsWith('services_') || prefix.startsWith('preset_tour')) {
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i) || '';
+            if (k.startsWith('greensteps_swr_v2:') && (
+              (prefix.startsWith('services_') && k.includes('/services/search')) ||
+              (prefix.startsWith('preset_tour') && k.includes('/tours/search'))
+            )) {
+              localStorage.removeItem(k);
+            }
+          }
+        } catch {}
       }
       if (prefix.startsWith('admin_users:') || prefix.startsWith('admin_user_') || prefix === 'admin_user_stats') {
         this.adminUserCacheVersion++;
@@ -755,10 +774,15 @@ export class ApiService {
   // 5. Services & Bookings APIs
   private normalizeCatalogService(raw: any): Service {
     const data = raw.current_data || {};
+    const rawImg = raw.image_url || raw.imageUrl || data.img;
+    const resolvedImg = rawImg ? this.resolveCommunityMediaUrl(rawImg) : rawImg;
     return {
       ...raw, name: raw.name ?? raw.name_service, destination: raw.destination ?? raw.dest,
+      image_url: resolvedImg,
+      imageUrl: resolvedImg,
+      current_data: { ...data, img: data.img ? this.resolveCommunityMediaUrl(data.img) : resolvedImg },
       description: data.description || data.shortDesc || raw.description,
-      gallery: Array.isArray(data.gallery) && data.gallery.length ? data.gallery : (Array.isArray(data.images) ? data.images : []),
+      gallery: (Array.isArray(data.gallery) && data.gallery.length ? data.gallery : (Array.isArray(data.images) ? data.images : [])).map((u: string) => this.resolveCommunityMediaUrl(u)),
       photoMetadata: Array.isArray(data.imageMetadata) ? data.imageMetadata : [],
       priceStatus: data.priceStatus ?? raw.priceStatus, bookingEnabled: data.bookingEnabled ?? raw.bookingEnabled,
       carbonKnown: raw.carbonKnown === true || data.carbonStatus === 'verified', capacityKnown: raw.capacityKnown === true || data.capacityStatus === 'verified',

@@ -42,9 +42,12 @@ function saveBase64Image(base64Data, subfolder = 'services') {
 
   const filename = `image_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
   const filePath = path.join(dirPath, filename);
-  fs.writeFileSync(filePath, buffer);
+  try {
+    fs.writeFileSync(filePath, buffer);
+  } catch {}
 
-  return `/uploads/${subfolder}/${filename}`;
+  // Return base64 data URI directly so MongoDB persists it permanently across Render restarts and cross-origin frontends
+  return base64Data;
 }
 
 // --- Server-Side In-Memory SWR Cache for Green Services ---
@@ -161,6 +164,7 @@ exports.getProviderServices = async (req, res, next) => {
       ...(compact ? { attributes: [
         'id', 'name_service', 'type', 'destination', 'cost', 'status',
         'views_count', 'bookings_count', 'max_capacity', 'carbon', 'rating',
+        'image_url', 'current_data.img',
         'current_data.priceStatus', 'current_data.bookingEnabled',
         'current_data.carbonStatus', 'current_data.capacityStatus'
       ] } : {})
@@ -176,7 +180,7 @@ exports.getProviderServices = async (req, res, next) => {
       bookingsCount: s.bookings_count,
       max_capacity: s.max_capacity,
       carbon: s.carbon,
-      image_url: s.image_url,
+      image_url: s.image_url || s.current_data?.img || null,
       current_data: s.current_data || {},
       ...catalogMetadata(s)
     }));
@@ -500,6 +504,7 @@ exports.updateService = async (req, res, next) => {
     service.changed('current_data', true);
 
     await service.save();
+    servicesCache.expiresAt = 0;
 
     res.json({ success: true, service });
   } catch (error) {

@@ -6247,11 +6247,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const target = iti || this.activeItinerary;
     if (!target) return 'image/52627caa0015b2f833fbdc632d37dc82.jpg';
 
-    // 1. If custom uploaded image (Base64 data or uploaded URL)
-    const img = target.imageUrl || target.image_url;
+    // 1. If custom uploaded image (Base64 data, uploaded URL, or dedicated cover cache)
+    let img = target.imageUrl || target.image_url;
+    if (!img && target.id) {
+      try {
+        img = localStorage.getItem(`greensteps_cover_${target.id}`);
+      } catch {}
+    }
     if (img && typeof img === 'string') {
       const trimmed = img.trim();
       if (trimmed !== '' && trimmed !== 'image/Viet Nam.png' && !trimmed.endsWith('/Viet Nam.png') && trimmed !== 'undefined' && trimmed !== 'null') {
+        if (trimmed.startsWith('/uploads/')) {
+          return this.apiService.resolveCommunityMediaUrl(trimmed);
+        }
         return trimmed;
       }
     }
@@ -6276,36 +6284,79 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return this.getUnifiedCoverImage(this.activeItinerary);
   }
 
+  private compressCoverDataUrl(dataUrl: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = 1280;
+          const maxH = 720;
+          let w = img.width || maxW;
+          let h = img.height || maxH;
+          if (w > maxW) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          }
+          if (h > maxH) {
+            w = Math.round((w * maxH) / h);
+            h = maxH;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(dataUrl);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   public async onCoverFileSelected(event: any) {
     const file = event.target.files?.[0];
     if (!file || !this.activeItinerary) return;
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const base64Data = reader.result as string;
+      const rawData = reader.result as string;
+      const base64Data = await this.compressCoverDataUrl(rawData);
       try {
+        // Apply immediately so user sees 0ms update and persist locally right away
+        this.activeItinerary.imageUrl = base64Data;
+        try {
+          localStorage.setItem(`greensteps_cover_${this.activeItinerary.id}`, base64Data);
+          localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+        } catch (e) {}
+        this.cdr.detectChanges();
+
         const uploadRes = await this.apiService.uploadImageBase64(base64Data, 'post');
-        if (uploadRes && uploadRes.success && uploadRes.url) {
-          this.activeItinerary.imageUrl = uploadRes.url;
-          try {
-            localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-            localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-          } catch(e) {}
-          if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
-            const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
-            if (found) {
-              found.imageUrl = uploadRes.url;
-            }
+        const persistedUrl = (uploadRes && uploadRes.success && uploadRes.url) ? uploadRes.url : base64Data;
+        this.activeItinerary.imageUrl = persistedUrl;
+        try {
+          localStorage.setItem(`greensteps_cover_${this.activeItinerary.id}`, persistedUrl);
+          localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+        } catch (e) {}
+        if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
+          const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
+          if (found) {
+            found.imageUrl = persistedUrl;
           }
-          await this.saveItineraryToDb();
-          this.showAlert('Đã cập nhật và đồng bộ ảnh bìa lịch trình!', 'success');
-          this.cdr.detectChanges();
-        } else {
-          this.showAlert('Tải ảnh bìa lên thất bại!', 'error');
         }
+        await this.saveItineraryToDb();
+        this.showAlert('Đã cập nhật và đồng bộ ảnh bìa lịch trình!', 'success');
+        this.cdr.detectChanges();
       } catch (err) {
         console.error('Upload cover failed:', err);
-        this.showAlert('Tải ảnh bìa lên thất bại!', 'error');
+        this.showAlert('Đã lưu ảnh bìa trên trình duyệt!', 'info');
       }
     };
     reader.readAsDataURL(file);

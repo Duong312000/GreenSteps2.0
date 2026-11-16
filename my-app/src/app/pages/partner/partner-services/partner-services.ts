@@ -753,14 +753,47 @@ export class PartnerServicesComponent implements OnInit {
     }
   }
 
+  private compressImageDataUrl(dataUrl: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = 1200;
+          const maxH = 800;
+          let w = img.width || maxW;
+          let h = img.height || maxH;
+          if (w > maxW) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          }
+          if (h > maxH) {
+            w = Math.round((w * maxH) / h);
+            h = maxH;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(dataUrl);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   private uploadSingleFile(file: File) {
-    if (file.size > 5 * 1024 * 1024) {
-      this.showAlert('File quá lớn! Vui lòng chọn ảnh dưới 5MB.', 'error');
+    if (file.size > 8 * 1024 * 1024) {
+      this.showAlert('File quá lớn! Vui lòng chọn ảnh dưới 8MB.', 'error');
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      this.imageUrl = reader.result as string;
+    reader.onload = async () => {
+      this.imageUrl = await this.compressImageDataUrl(reader.result as string);
       this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
@@ -801,13 +834,14 @@ export class PartnerServicesComponent implements OnInit {
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.size > 5 * 1024 * 1024) {
-          this.showAlert(`Ảnh "${file.name}" quá lớn! Vui lòng chọn ảnh dưới 5MB.`, 'error');
+        if (file.size > 8 * 1024 * 1024) {
+          this.showAlert(`Ảnh "${file.name}" quá lớn! Vui lòng chọn ảnh dưới 8MB.`, 'error');
           continue;
         }
         const reader = new FileReader();
-        reader.onload = () => {
-          this.galleryImages.push(reader.result as string);
+        reader.onload = async () => {
+          const compressed = await this.compressImageDataUrl(reader.result as string);
+          this.galleryImages.push(compressed);
           this.cdr.detectChanges();
         };
         reader.readAsDataURL(file);
