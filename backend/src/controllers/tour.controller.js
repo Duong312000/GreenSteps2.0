@@ -20,6 +20,19 @@ const {
   UserSchedule
 } = require('../models/index');
 
+// High-speed in-memory cache for tours & tour details
+const tourCache = new Map();
+function getCachedTour(key) {
+  const item = tourCache.get(key);
+  if (item && item.expiresAt > Date.now()) return item.data;
+  tourCache.delete(key);
+  return null;
+}
+function setCachedTour(key, data, ttlMs = 180000) {
+  tourCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+
 // Helper: Format activities from Schedule into days array
 function formatActivitiesIntoDays(schedule, activities) {
   const days = schedule.days || 1;
@@ -79,6 +92,7 @@ const bcrypt = require('bcrypt');
 
 // 1. Get All Preset Tours (Eager Loading — single query)
 exports.getPresetTours = async (req, res, next) => {
+  console.log("[TourController] getPresetTours called, query:", req.query);
   try {
     const { userId } = req.query;
     let whereClause = {};
@@ -137,6 +151,7 @@ exports.getPresetTours = async (req, res, next) => {
 
 // 2. Get Single Preset Tour (Eager Loading — single query)
 exports.getPresetTourById = async (req, res, next) => {
+  console.log("[TourController] getPresetTourById called, id:", req.params.id);
   const { id } = req.params;
   try {
     const s = await ScheduleSample.findByPk(id, {

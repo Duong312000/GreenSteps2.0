@@ -188,8 +188,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public isLoadingEditor: boolean = false;
 
   // Dual View Mode & Route Pipeline Canvas
-  public activeTimelineViewMode: 'timeline' | 'pipeline' = 'timeline';
+  public activeTimelineViewMode: 'timeline' | 'pipeline' = (typeof localStorage !== 'undefined' && localStorage.getItem('greensteps_timeline_view_mode') as any) || 'timeline';
   public pipelineZoomScale: number = 1.0;
+
+  public formatStationIndex(idx: number): string {
+    const n = (idx || 0) + 1;
+    return n < 10 ? '0' + n : '' + n;
+  }
 
   // Drag & Drop State with Smooth Gap & Dashed Indicator
   public dragSrcIdx: number | null = null;
@@ -1134,7 +1139,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         else if (act.type === "transport") icon = "bi-scooter";
 
         dayActivities.push({
-          id: "act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+          id: act.id || ("act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7)),
           time: act.time,
           name: act.title,
           cost: act.cost,
@@ -1203,6 +1208,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.savePending = false;
         const apiIti = this.convertEditorToApiItinerary(this.activeItinerary);
         try {
+          try {
+            localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
+          } catch (le) {}
           await this.apiService.saveItinerary(apiIti);
         } catch (e) {
           console.warn('Save failed, will retry with latest state:', e);
@@ -1512,21 +1520,21 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private async loadItineraryToEditor(tourId: string) {
-    // For Guest: restore their active working draft from localStorage if available
-    if (!this.currentUser) {
-      try {
-        const guestDraft = localStorage.getItem(`greensteps_guest_draft_${tourId}`);
-        if (guestDraft) {
-          const parsed = JSON.parse(guestDraft);
-          if (parsed && parsed.days && parsed.days.length > 0) {
-            this.isSampleItinerary = tourId.startsWith('SCH');
-            this.openEditorWithItinerary(parsed);
-            return;
-          }
+    // Check local draft first for instant offline/working state restoration
+    try {
+      const draftKey = `greensteps_user_draft_${tourId}`;
+      const guestKey = `greensteps_guest_draft_${tourId}`;
+      const rawDraft = localStorage.getItem(draftKey) || localStorage.getItem(guestKey) || localStorage.getItem(`greensteps_draft_${tourId}`);
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft);
+        if (parsed && parsed.days && parsed.days.length > 0) {
+          this.isSampleItinerary = tourId.startsWith('SCH');
+          this.openEditorWithItinerary(parsed);
+          return;
         }
-      } catch (e) {
-        console.warn('Error reading guest draft:', e);
       }
+    } catch (e) {
+      console.warn('Error reading local working draft:', e);
     }
 
     if (tourId === 'new') {
@@ -1549,26 +1557,37 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
-    // Try loading custom itinerary first
-    const custom = await this.apiService.getItinerary(tourId);
-    if (custom) {
-      this.isSampleItinerary = false;
-      const cloned = this.convertApiToEditorItinerary(custom);
-      this.openEditorWithItinerary(cloned);
-      return;
+    // Try loading custom itinerary from backend
+    try {
+      const custom = await this.apiService.getItinerary(tourId);
+      if (custom) {
+        this.isSampleItinerary = false;
+        const cloned = this.convertApiToEditorItinerary(custom);
+        this.openEditorWithItinerary(cloned);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend custom itinerary fetch error:', err);
     }
 
     // Load preset tours
-    const preset = await this.apiService.getPresetTour(tourId);
-    if (preset) {
-      this.isSampleItinerary = true;
-      const cloned = this.convertApiToEditorItinerary(preset);
-      cloned.title = preset.title;
-      this.openEditorWithItinerary(cloned);
-    } else {
-      this.showAlert('Không tìm thấy lịch trình này, đang quay về danh sách!', 'warning');
-      this.router.navigate(['/schedule']);
+    try {
+      const preset = await this.apiService.getPresetTour(tourId);
+      if (preset) {
+        this.isSampleItinerary = true;
+        const cloned = this.convertApiToEditorItinerary(preset);
+        cloned.title = preset.title;
+        this.openEditorWithItinerary(cloned);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend preset tour fetch error:', err);
     }
+
+    // Fallback: If not found anywhere, stop loading screen without abrupt redirect
+    this.isLoadingEditor = false;
+    this.showAlert('Không tìm thấy dữ liệu lịch trình này. Bạn có thể tạo lịch trình mới hoặc quay về danh sách.', 'info');
+    this.cdr.detectChanges();
     this.cdr.detectChanges();
   }
 
@@ -4056,6 +4075,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // View Mode & Pipeline Zoom Handlers
   public switchTimelineViewMode(mode: 'timeline' | 'pipeline') {
     this.activeTimelineViewMode = mode;
+    try {
+      localStorage.setItem('greensteps_timeline_view_mode', mode);
+    } catch (e) {}
     this.cdr.detectChanges();
     if (mode === 'pipeline') {
       setTimeout(() => {
@@ -5225,7 +5247,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             return;
           }
 
-          if (localDaysStr !== freshDaysStr) {
+          // Semantic check: Only update activities if real data (not ephemeral IDs) has changed
+          const isSameContent = this.areDaysSemanticallyEqual(this.activeItinerary.days, freshEditor.days);
+          if (!isSameContent) {
             const currentDayIdx = this.activeDayIdx;
             this.activeItinerary.days = freshEditor.days;
             this.activeDayIdx = currentDayIdx < freshEditor.days.length ? currentDayIdx : 0;
@@ -5236,9 +5260,29 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           }
         }
       } catch (e) {
-        console.error('Background sync failed:', e);
+        console.warn('Silent background sync skipped (network/offline):', e);
       }
-    }, 4000);
+    }, 20000);
+  }
+
+  private areDaysSemanticallyEqual(daysA: any[], daysB: any[]): boolean {
+    if (!daysA && !daysB) return true;
+    if (!daysA || !daysB) return false;
+    if (daysA.length !== daysB.length) return false;
+    for (let i = 0; i < daysA.length; i++) {
+      const actsA = daysA[i]?.activities || [];
+      const actsB = daysB[i]?.activities || [];
+      if (actsA.length !== actsB.length) return false;
+      for (let j = 0; j < actsA.length; j++) {
+        const a = actsA[j];
+        const b = actsB[j];
+        if (!a || !b) return false;
+        if (a.title !== b.title || a.time !== b.time || a.cost !== b.cost || a.type !== b.type || a.lat !== b.lat || a.lng !== b.lng) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private stopBackgroundSync() {

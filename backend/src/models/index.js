@@ -861,7 +861,7 @@ CommentPost.addHook('afterDestroy', async (comment, options) => {
 
 // Default scope to eager load GreenService for dynamic virtual field evaluation
 ScheduleActivity.addScope('defaultScope', {
-  include: [{ model: GreenService, required: false }]
+  include: [{ model: GreenService, required: false, attributes: ['id', 'type', 'cost', 'name_service'] }]
 }, { override: true });
 
 module.exports = {

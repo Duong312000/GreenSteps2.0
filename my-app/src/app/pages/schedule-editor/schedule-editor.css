@@ -4137,14 +4137,42 @@
   text-align: center;
 }
 
+.pipeline-scroll-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .pipeline-canvas-viewport {
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 28px 20px;
+  padding: 24px 20px;
   background-color: #fafaf7;
   min-height: 180px;
   display: flex;
   align-items: center;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.pipeline-canvas-viewport::-webkit-scrollbar {
+  height: 6px;
+}
+
+.pipeline-canvas-viewport::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.pipeline-canvas-viewport::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.pipeline-canvas-viewport::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .pipeline-track {

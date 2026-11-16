@@ -554,10 +554,15 @@
         <!-- Mode 2: Sequential Journey Pipeline / Sơ đồ Tuyến trình -->
         <div class="pipeline-canvas-container" *ngIf="activeTimelineViewMode === 'pipeline'">
             <div class="pipeline-header-bar">
-                <span class="pipeline-station-count">
-                    <i class="bi bi-geo-alt"></i>
-                    {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
-                </span>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="pipeline-station-count">
+                        <i class="bi bi-geo-alt"></i>
+                        {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} trạm dừng · {{ activeItinerary.days[activeDayIdx]?.title }}
+                    </span>
+                    <span class="pipeline-scroll-hint">
+                        <i class="bi bi-arrow-left-right"></i> Cuộn ngang để xem toàn bộ
+                    </span>
+                </div>
                 <div class="pipeline-zoom-controls">
                     <button type="button" (click)="zoomPipeline(-0.1)" title="Thu nhỏ (-10%)" class="pipeline-zoom-btn">
                         <i class="bi bi-dash"></i>
@@ -611,7 +616,7 @@
                             <div class="pipeline-node-thumb">
                                 <img [src]="getPlacePlaceholderImage(act.title)" [alt]="act.title"
                                      (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-                                <span class="pipeline-node-order">{{ idx + 1 < 10 ? '0' + (idx + 1) : idx + 1 }}</span>
+                                <span class="pipeline-node-order">{{ formatStationIndex(idx) }}</span>
                             </div>
                             <div class="pipeline-node-info">
                                 <span class="pipeline-node-time" [class.text-red-700]="act.hasTimeConflict">

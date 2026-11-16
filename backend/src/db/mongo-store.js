@@ -226,6 +226,12 @@ class Repository {
       targetIds = links.map(link => link[a.otherKey]);
     }
     const key = ['belongs', 'junction'].includes(a.kind) ? 'id' : a.foreignKey;
+    if (!targetIds.length) {
+      for (const row of rows) {
+        row[a.as] = ['many', 'junction'].includes(a.kind) ? [] : null;
+      }
+      return rows.filter(row => !(spec.required ?? Boolean(spec.where)));
+    }
     // Keep join keys available even when the caller selects a subset of fields.
     const attributes = Array.isArray(spec.attributes) ? [...new Set([...spec.attributes, key])] : spec.attributes;
     const children = await a.target.findAll({ ...spec, attributes, where: { [Op.and]: [{ [key]: { [Op.in]: targetIds } }, spec.where || {}] }, transaction: options.transaction });
@@ -288,7 +294,7 @@ class Repository {
 
 class MongoStore {
   constructor(uri, { prefix = 'app_' } = {}) {
-    this.client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    this.client = new MongoClient(uri, { serverSelectionTimeoutMS: 30000, connectTimeoutMS: 20000, readPreference: 'primaryPreferred' });
     Object.assign(this, { db: this.client.db(), prefix, models: {}, context: new AsyncLocalStorage() });
   }
   define(name, fields, settings = {}) { return this.models[name] = new Repository(this, name, fields, settings); }
@@ -340,7 +346,7 @@ class MongoStore {
         if (legacyIndex) await reviewModel.collection.dropIndex(legacyIndex.name);
       }
     }
-    for (const model of Object.values(this.models)) {
+    await Promise.all(Object.values(this.models).map(async model => {
       try {
         await model.collection.createIndex({ id: 1 }, { unique: true, sparse: true });
       } catch (error) {
@@ -364,7 +370,7 @@ class MongoStore {
       }
       for (const index of model.indexes) await model.collection.createIndex(index.key, index.options || {});
       if (model.junctionKeys) await model.collection.createIndex(Object.fromEntries(model.junctionKeys.map(k => [k, 1])), { unique: true });
-    }
+    }));
   }
   async transaction(callback) {
     await this.authenticate();
