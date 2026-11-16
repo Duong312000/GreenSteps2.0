@@ -3933,81 +3933,80 @@
   border: 1px dashed #94a3b8 !important;
 }
 
-/* 2. Smooth Drop Gap with 2px dashed #10B981 */
-.smooth-drop-gap {
-  height: 54px;
-  margin: 6px 0 6px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: gap-expand 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* 2. Drag & Drop Child Protection & Precision Drop Indicators */
+.timeline-list-container.dragging-active .timeline-item * {
+  pointer-events: none !important;
 }
 
-.drop-dashed-slot {
-  width: 100%;
-  height: 100%;
-  border: 2px dashed #10b981;
-  border-radius: 8px;
-  background-color: rgba(16, 185, 129, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.pipeline-track.dragging-active .pipeline-node-card * {
+  pointer-events: none !important;
 }
 
-.slot-text {
-  font-size: 11px;
-  font-weight: 600;
-  color: #047857;
-  letter-spacing: 0.3px;
+/* Timeline Item Precision Drop Line (Before & After) */
+.timeline-item {
+  position: relative;
+  transition: transform 0.15s ease;
 }
 
-@keyframes gap-expand {
-  from {
-    height: 0;
-    opacity: 0;
-    transform: scaleY(0.4);
-  }
-  to {
-    height: 54px;
-    opacity: 1;
-    transform: scaleY(1);
-  }
+.timeline-item.drop-target-before::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #10b981;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  z-index: 60;
+  pointer-events: none;
 }
 
-/* 3. Horizontal Smooth Drop Gap in Pipeline View */
-.pipeline-smooth-drop-gap {
-  width: 130px;
-  height: 68px;
-  margin: 0 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  animation: pipeline-gap-expand 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.timeline-item.drop-target-after::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #10b981;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  z-index: 60;
+  pointer-events: none;
 }
 
-.pipeline-smooth-drop-gap .drop-dashed-slot {
-  width: 100%;
-  height: 100%;
-  border: 2px dashed #10b981;
-  border-radius: 8px;
-  background-color: rgba(16, 185, 129, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Pipeline Node Precision Drop Line (Before & After) */
+.pipeline-node-card {
+  position: relative;
 }
 
-@keyframes pipeline-gap-expand {
-  from {
-    width: 0;
-    opacity: 0;
-    transform: scaleX(0.4);
-  }
-  to {
-    width: 130px;
-    opacity: 1;
-    transform: scaleX(1);
-  }
+.pipeline-node-card.drop-target-before::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 4px;
+  background: #10b981;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  z-index: 60;
+  pointer-events: none;
+}
+
+.pipeline-node-card.drop-target-after::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -5px;
+  width: 4px;
+  background: #10b981;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  z-index: 60;
+  pointer-events: none;
 }
 
 /* 4. Cross-day Sidebar Target Highlight */

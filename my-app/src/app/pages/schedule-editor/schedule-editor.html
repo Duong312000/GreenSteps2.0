@@ -399,7 +399,8 @@
         </div>
 
         <!-- Timeline Activities List (Mode 1: Danh sách) -->
-        <div class="timeline-list-container" id="timelineList" *ngIf="activeTimelineViewMode === 'timeline'">
+        <div class="timeline-list-container" id="timelineList" *ngIf="activeTimelineViewMode === 'timeline'"
+             [class.dragging-active]="isDraggingCard">
             <!-- Empty state -->
             <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0"
                 style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-size:14px; position:relative; z-index:2;">
@@ -411,18 +412,13 @@
             </div>
 
             <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
-                <!-- Smooth Drop Gap (Before) with 2px dashed #10B981 -->
-                <div class="smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'before'">
-                    <div class="drop-dashed-slot">
-                        <span class="slot-text">Thả vào đây</span>
-                    </div>
-                </div>
-
                 <div class="timeline-item" [class.cursor-grab]="!isItineraryLocked()"
                     [class.cursor-default]="isItineraryLocked()"
                     [class.dimmed-when-routing]="activeLegDirections && (idx !== activeLegDirections.fromIdx && idx !== activeLegDirections.toIdx)"
                     [class.highlighted-when-routing]="activeLegDirections && (idx === activeLegDirections.fromIdx || idx === activeLegDirections.toIdx)"
                     [class.is-drag-source]="dragSrcIdx === idx"
+                    [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
+                    [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
                     [attr.data-type]="act.type" 
                     [draggable]="!isItineraryLocked()"
                     (dragstart)="onDragStart($event, idx)" 
@@ -551,13 +547,6 @@
                     </div>
                 </div>
 
-                <!-- Smooth Drop Gap (After) with 2px dashed #10B981 -->
-                <div class="smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'after'">
-                    <div class="drop-dashed-slot">
-                        <span class="slot-text">Thả vào đây</span>
-                    </div>
-                </div>
-
                 <!-- Organic Travel Transit note in Timeline (Subtle, desaturated) -->
                 <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
                     (click)="openLegDirections(idx)"
@@ -620,7 +609,8 @@
             </div>
 
             <div class="pipeline-canvas-viewport">
-                <div class="pipeline-track" [style.transform]="'scale(' + pipelineZoomScale + ')'">
+                <div class="pipeline-track" [style.transform]="'scale(' + pipelineZoomScale + ')'"
+                     [class.dragging-active]="isDraggingCard">
                     <!-- Empty State in Pipeline -->
                     <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0" class="pipeline-empty-state">
                         <i class="bi bi-calendar-event"></i>
@@ -628,18 +618,13 @@
                     </div>
 
                     <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
-                        <!-- Horizontal Smooth Drop Gap (Before) -->
-                        <div class="pipeline-smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'before'">
-                            <div class="drop-dashed-slot">
-                                <span class="slot-text">Thả vào đây</span>
-                            </div>
-                        </div>
-
                         <!-- Station Node -->
                         <div class="pipeline-node-card" 
                              [class.has-conflict]="act.hasTimeConflict"
                              [class.active-station]="locatingActivityIdx === idx"
                              [class.is-drag-source]="dragSrcIdx === idx"
+                             [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
+                             [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
                              [draggable]="!isItineraryLocked()"
                              (dragstart)="onDragStart($event, idx)" 
                              (dragover)="onDragOver($event, idx)"
@@ -676,13 +661,6 @@
                                         <i class="bi bi-magic"></i> Căn lại giờ
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Horizontal Smooth Drop Gap (After) -->
-                        <div class="pipeline-smooth-drop-gap" *ngIf="dragTargetIdx === idx && dragDropPosition === 'after'">
-                            <div class="drop-dashed-slot">
-                                <span class="slot-text">Thả vào đây</span>
                             </div>
                         </div>
 

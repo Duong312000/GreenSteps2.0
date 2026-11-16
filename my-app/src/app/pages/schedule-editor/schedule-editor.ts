@@ -4004,6 +4004,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public onDragLeave(event: DragEvent, idx: number) {
+    const currentTarget = event.currentTarget as HTMLElement;
+    const relatedTarget = event.relatedTarget as HTMLElement;
+    if (currentTarget && relatedTarget && currentTarget.contains(relatedTarget)) {
+      return; // Cursor is still inside the item, ignore false child dragleave
+    }
     if (this.dragTargetIdx === idx) {
       this.dragTargetIdx = null;
       this.dragDropPosition = null;
@@ -4015,13 +4020,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     event.preventDefault();
     if (this.isItineraryLocked()) return;
     const srcIdx = this.dragSrcIdx;
+    const position = this.dragDropPosition || 'after';
+
     if (srcIdx !== null && this.activeItinerary) {
       const activeDay = this.activeItinerary.days[this.activeDayIdx];
       if (activeDay && activeDay.activities && activeDay.activities.length > 1) {
-        let insertIdx = targetIdx;
-        if (this.dragDropPosition === 'after') {
-          insertIdx = targetIdx + 1;
-        }
+        let insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
         if (srcIdx < insertIdx) {
           insertIdx--;
         }
