@@ -1,4 +1,6 @@
 const LOCAL_FRONTEND_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+// Keep the deployed frontend available even when the Render environment misses its CORS setting.
+const PRODUCTION_FRONTEND_ORIGINS = ['https://greensteps-livid.vercel.app'];
 const MIN_JWT_SECRET_LENGTH = 30;
 
 function getJwtSecret(env = process.env) {
@@ -9,7 +11,7 @@ function getJwtSecret(env = process.env) {
 }
 
 function parseAllowedOrigins(env = process.env) {
-  const origins = new Set();
+  const origins = new Set(env.NODE_ENV === 'production' ? PRODUCTION_FRONTEND_ORIGINS : []);
   const configured = String(env.CORS_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
   if (env.CLIENT_URL?.trim()) configured.push(env.CLIENT_URL.trim());
   if (env.NODE_ENV !== 'production') LOCAL_FRONTEND_ORIGINS.forEach(origin => origins.add(origin));
