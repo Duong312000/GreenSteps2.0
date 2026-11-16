@@ -254,8 +254,8 @@ export class ApiService {
                   id: 'act_' + s.id,
                   time: '08:00',
                   name: s.name || s.name_service,
-                  cost: s.cost == null ? null : Number(s.cost),
-                  carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : null,
+                  cost: s.cost == null ? 0 : Number(s.cost),
+                  carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : 0,
                   icon: s.type === 'stay' ? 'bi-house-door-fill' : 
                         s.type === 'food' ? 'bi-cup-hot-fill' : 
                         s.type === 'transport' ? 'bi-car-front-fill' : 'bi-tree-fill',
@@ -1725,8 +1725,8 @@ export class ApiService {
               id: 'act_' + s.id,
               time: s.current_data?.startTime || '',
               name: title,
-              cost: s.cost == null ? null : Number(s.cost),
-              carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : null,
+              cost: s.cost == null ? 0 : Number(s.cost),
+              carbon: s.carbonKnown === true && s.carbon != null ? Number(s.carbon) : 0,
               icon: serviceType === 'stay' || serviceType === 'lodging' ? 'bi-house-door-fill' :
                     serviceType === 'food' || serviceType === 'dining' ? 'bi-cup-hot-fill' :
                     serviceType === 'transport' ? 'bi-car-front-fill' : 'bi-tree-fill',

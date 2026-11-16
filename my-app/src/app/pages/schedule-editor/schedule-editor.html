@@ -653,7 +653,11 @@
 
                 <!-- Organic Travel Transit note in Timeline -->
                 <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
-                    [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx">
+                    [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
+                    [class.is-drop-gap]="isDraggingCard && dragTargetIdx === idx + 1 && dragDropPosition === 'before'"
+                    (dragover)="onDragOverTravelGap($event, idx)"
+                    (dragleave)="onDragLeaveTravelGap($event, idx)"
+                    (drop)="onDropTravelGap($event, idx)">
                     <div class="travel-gap-badge" (click)="openLegDirections(idx)" title="Nhấp để đặt trước xe hoặc xem đường đi chặng này">
                         <i class="bi bi-geo-alt"></i>
                         <span class="travel-gap-text">{{ getTravelGapText(idx) }}</span>
@@ -1262,16 +1266,57 @@
                     <!-- Bottom Controls: 2 Rows -->
                     <div class="gm-book-footer">
                         <!-- Row above last row: Phương thức thanh toán | Voucher | Nút nhỏ Chính sách -->
-                        <div class="gm-book-meta-row">
-                            <button type="button" class="gm-meta-item" (click)="cycleLegPaymentMethod()" title="Đổi phương thức thanh toán">
-                                <i class="bi bi-wallet2"></i>
-                                <span>{{ legPaymentMethodLabel }}</span>
-                            </button>
+                        <div class="gm-book-meta-row" (click)="$event.stopPropagation()">
+                            <!-- Payment Method Dropdown -->
+                            <div class="gm-meta-dropdown-wrap">
+                                <button type="button" class="gm-meta-item" (click)="toggleLegPaymentDropdown($event)" title="Chọn phương thức thanh toán">
+                                    <i class="bi" [ngClass]="legPaymentMethods[legPaymentMethodIdx]?.icon || 'bi-wallet2'"></i>
+                                    <span>{{ legPaymentMethodLabel }}</span>
+                                    <i class="bi bi-chevron-down gm-chevron-mini"></i>
+                                </button>
+                                <!-- Popover Menu -->
+                                <div class="gm-meta-popover" *ngIf="isLegPaymentDropdownOpen">
+                                    <div class="gm-popover-header">Phương thức thanh toán</div>
+                                    <div *ngFor="let m of legPaymentMethods; let mIdx = index" 
+                                         class="gm-popover-item" 
+                                         [class.active]="legPaymentMethodIdx === mIdx"
+                                         (click)="selectLegPaymentMethod(mIdx, $event)">
+                                        <i class="bi" [class]="m.icon"></i>
+                                        <div class="gm-popover-text">
+                                            <div class="gm-popover-title">{{ m.name }}</div>
+                                            <div class="gm-popover-desc">{{ m.desc }}</div>
+                                        </div>
+                                        <i class="bi bi-check-lg gm-popover-check" *ngIf="legPaymentMethodIdx === mIdx"></i>
+                                    </div>
+                                </div>
+                            </div>
+
                             <span class="gm-meta-divider">|</span>
-                            <button type="button" class="gm-meta-item" (click)="cycleLegVoucher()" title="Chọn mã giảm giá">
-                                <i class="bi bi-ticket-perforated"></i>
-                                <span>{{ legVoucherLabel }}</span>
-                            </button>
+
+                            <!-- Voucher Dropdown -->
+                            <div class="gm-meta-dropdown-wrap">
+                                <button type="button" class="gm-meta-item" (click)="toggleLegVoucherDropdown($event)" title="Chọn mã giảm giá">
+                                    <i class="bi bi-ticket-perforated"></i>
+                                    <span>{{ legVoucherLabel }}</span>
+                                    <i class="bi bi-chevron-down gm-chevron-mini"></i>
+                                </button>
+                                <!-- Popover Menu -->
+                                <div class="gm-meta-popover" *ngIf="isLegVoucherDropdownOpen">
+                                    <div class="gm-popover-header">Mã giảm giá phương tiện</div>
+                                    <div *ngFor="let v of legVouchers; let vIdx = index" 
+                                         class="gm-popover-item" 
+                                         [class.active]="legVoucherIdx === vIdx"
+                                         (click)="selectLegVoucher(vIdx, $event)">
+                                        <i class="bi bi-tag-fill" [class.text-emerald-600]="v.discount > 0"></i>
+                                        <div class="gm-popover-text">
+                                            <div class="gm-popover-title">{{ v.label }}</div>
+                                            <div class="gm-popover-desc">{{ v.desc }}</div>
+                                        </div>
+                                        <i class="bi bi-check-lg gm-popover-check" *ngIf="legVoucherIdx === vIdx"></i>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="button" class="gm-policy-mini-btn" (click)="showVehiclePolicyView = true" title="Xem chính sách phương tiện">
                                 <i class="bi bi-file-earmark-text"></i>
                                 <span>Chính sách</span>

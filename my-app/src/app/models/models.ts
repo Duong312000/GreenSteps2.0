@@ -53,6 +53,21 @@ export interface ServiceNearbyPlace { name: string; distance?: string; distanceK
 export interface ServiceNearbyGroup { name: string; items: ServiceNearbyPlace[]; }
 export interface ServiceGreenFeature { title: string; description?: string; }
 
+export interface TourPhotoVariant {
+  path: string;
+  width: number;
+}
+
+export interface TourPhotoCredit {
+  path?: string;
+  alt?: string;
+  author?: string;
+  sourceUrl?: string;
+  license?: string;
+  verificationStatus?: string;
+  responsiveVariants?: TourPhotoVariant[];
+}
+
 export interface CatalogMetadata {
   flashSale?: { id: string; name: string; discount_type: 'percent' | 'fixed'; discount_value: number; start_at: string; end_at: string; min_order: number; remaining: number; sale_price: number } | null;
   priceStatus?: 'reference' | 'on_request';
@@ -61,6 +76,8 @@ export interface CatalogMetadata {
   sourceCheckedAt?: string;
   carbonKnown?: boolean;
   capacityKnown?: boolean;
+  coverMediaVerified?: boolean;
+  photoMetadata?: TourPhotoCredit[];
 }
 
 export interface Tour extends CatalogMetadata {
@@ -85,6 +102,14 @@ export interface Tour extends CatalogMetadata {
   ecoFeature?: string;
   badges?: string[];
   tags?: string[];
+  responsibleTravel?: string;
+  practicalNotes?: string;
+  editorialItineraryNotice?: string;
+  styleExplanation?: string;
+  fitnessIsEstimate?: boolean;
+  fitnessExplanation?: string;
+  is_demo?: boolean;
+  isDemo?: boolean;
   data: Activity[][];
   isRecommended?: boolean;
   source?: string;
@@ -107,7 +132,6 @@ export interface Tour extends CatalogMetadata {
   nearbyCheckedAt?: string;
   nearbyOrigin?: string;
   greenFeatures?: ServiceGreenFeature[];
-  isDemo?: boolean;
   contactPhone?: string;
   highlights?: string[];
   included?: string[];
@@ -118,6 +142,8 @@ export interface Tour extends CatalogMetadata {
   fitness_level?: string;
   guarantees?: Array<{ icon?: string; title: string; desc: string }>;
   vouchers?: Array<any>;
+  catalog_status?: string;
+  destination_ids?: string[];
 }
 
 export interface Itinerary {

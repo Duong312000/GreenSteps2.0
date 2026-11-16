@@ -15,6 +15,7 @@ import { HeaderComponent } from './components/header/header';
 import { GreenStepsChatComponent } from './components/greensteps-chat/greensteps-chat.component';
 import { PartnerIconComponent } from './components/partner-layout/partner-icon';
 import { FooterComponent } from './components/footer/footer';
+import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator';
 import { LoginModalComponent } from './components/login-modal/login-modal';
 import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
@@ -75,6 +76,7 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     App,
     HeaderComponent,
     FooterComponent,
+    LoadingIndicatorComponent,
     LoginModalComponent,
     HomeComponent,
     ToursComponent,

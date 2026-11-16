@@ -169,12 +169,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public isLegTimePickerOpen: boolean = false;
   public legPickupTime: string = '09:00';
   public legPaymentMethodIdx: number = 0;
-  public legPaymentMethods: string[] = ['Ví GreenSteps', 'QR Ngân hàng', 'Tiền mặt'];
+  public legPaymentMethods: { id: string; name: string; desc: string; icon: string }[] = [
+    { id: 'wallet', name: 'Ví GreenSteps', desc: 'Thanh toán trực tiếp bằng số dư ví điện tử', icon: 'bi-wallet2' },
+    { id: 'qr', name: 'QR Ngân hàng', desc: 'Quét mã VietQR chuyển khoản tức thì', icon: 'bi-qr-code' },
+    { id: 'cash', name: 'Tiền mặt', desc: 'Thanh toán tiền mặt cho tài xế khi đón', icon: 'bi-cash-coin' }
+  ];
+  public isLegPaymentDropdownOpen: boolean = false;
+  public isLegVoucherDropdownOpen: boolean = false;
   public legVoucherIdx: number = 0;
-  public legVouchers: { label: string; discount: number }[] = [
-    { label: 'Voucher', discount: 0 },
-    { label: 'ECO20K (-20k)', discount: 20000 },
-    { label: 'XANH35K (-35k)', discount: 35000 }
+  public legVouchers: { code: string; label: string; desc: string; discount: number }[] = [
+    { code: '', label: 'Không dùng voucher', desc: 'Giữ nguyên giá cước', discount: 0 },
+    { code: 'ECO20K', label: 'ECO20K (-20.000đ)', desc: 'Giảm 20.000đ cho chuyến đi xanh', discount: 20000 },
+    { code: 'XANH35K', label: 'XANH35K (-35.000đ)', desc: 'Ưu đãi đặt xe điện Xanh SM', discount: 35000 },
+    { code: 'NETZERO50', label: 'NETZERO50 (-50.000đ)', desc: 'Giảm 50.000đ cho chuyến đi > 20km', discount: 50000 }
   ];
   public selectedLegVehicle: any = null;
   public isGpsNavigating: boolean = false;
@@ -1644,21 +1651,46 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private async loadItineraryToEditor(tourId: string) {
-    // Check local draft first for instant offline/working state restoration
-    try {
-      const draftKey = `greensteps_user_draft_${tourId}`;
-      const guestKey = `greensteps_guest_draft_${tourId}`;
-      const rawDraft = localStorage.getItem(draftKey) || localStorage.getItem(guestKey) || localStorage.getItem(`greensteps_draft_${tourId}`);
-      if (rawDraft) {
-        const parsed = JSON.parse(rawDraft);
-        if (parsed && parsed.days && parsed.days.length > 0) {
-          this.isSampleItinerary = tourId.startsWith('SCH');
-          this.openEditorWithItinerary(parsed);
-          return;
+    const cleanId = (tourId || '').replace('iti_', '');
+    if (this.activeItinerary && (this.activeItinerary.id === tourId || this.activeItinerary.id === cleanId || this.activeItinerary.id === `iti_${cleanId}`)) {
+      this.isLoadingEditor = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const idVariants = [tourId, `iti_${cleanId}`, cleanId].filter(Boolean);
+
+    // 1. Check local working draft across variants
+    for (const variant of idVariants) {
+      try {
+        const rawDraft = localStorage.getItem(`greensteps_user_draft_${variant}`) || 
+                         localStorage.getItem(`greensteps_guest_draft_${variant}`) || 
+                         localStorage.getItem(`greensteps_draft_${variant}`);
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft);
+          if (parsed) {
+            if (!parsed.days || !Array.isArray(parsed.days) || parsed.days.length === 0) {
+              parsed.days = [{ dayNum: 1, title: 'Ngày 1', activities: [] }];
+            }
+            this.isSampleItinerary = variant.startsWith('SCH');
+            this.openEditorWithItinerary(parsed);
+            return;
+          }
         }
+      } catch (e) {
+        console.warn('Error reading local working draft:', e);
       }
-    } catch (e) {
-      console.warn('Error reading local working draft:', e);
+    }
+
+    // 2. Check if already loaded in savedItineraries memory list
+    if (this.savedItineraries && this.savedItineraries.length > 0) {
+      const foundInList = this.savedItineraries.find((x: any) => idVariants.includes(x.id));
+      if (foundInList && foundInList.daysData && foundInList.daysData.length > 0) {
+        this.isSampleItinerary = false;
+        const cloned = this.convertApiToEditorItinerary(foundInList);
+        this.openEditorWithItinerary(cloned);
+        return;
+      }
     }
 
     if (tourId === 'new') {
@@ -1681,37 +1713,42 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       return;
     }
 
-    // Try loading custom itinerary from backend
-    try {
-      const custom = await this.apiService.getItinerary(tourId);
-      if (custom) {
-        this.isSampleItinerary = false;
-        const cloned = this.convertApiToEditorItinerary(custom);
-        this.openEditorWithItinerary(cloned);
-        return;
-      }
-    } catch (err) {
-      console.warn('Backend custom itinerary fetch error:', err);
+    // 3. Try loading custom itinerary from backend using all variants
+    for (const variant of idVariants) {
+      try {
+        const custom = await this.apiService.getItinerary(variant);
+        if (custom) {
+          this.isSampleItinerary = false;
+          const cloned = this.convertApiToEditorItinerary(custom);
+          this.openEditorWithItinerary(cloned);
+          return;
+        }
+      } catch (err) {}
     }
 
-    // Load preset tours
-    try {
-      const preset = await this.apiService.getPresetTour(tourId);
-      if (preset) {
-        this.isSampleItinerary = true;
-        const cloned = this.convertApiToEditorItinerary(preset);
-        cloned.title = preset.title;
-        this.openEditorWithItinerary(cloned);
-        return;
-      }
-    } catch (err) {
-      console.warn('Backend preset tour fetch error:', err);
+    // 4. Load preset tours
+    for (const variant of idVariants) {
+      try {
+        const preset = await this.apiService.getPresetTour(variant);
+        if (preset) {
+          this.isSampleItinerary = true;
+          const cloned = this.convertApiToEditorItinerary(preset);
+          cloned.title = preset.title;
+          this.openEditorWithItinerary(cloned);
+          return;
+        }
+      } catch (err) {}
     }
 
-    // Fallback: If not found anywhere, stop loading screen without abrupt redirect
+    // 5. If activeItinerary is already in place, do not show false alert
+    if (this.activeItinerary) {
+      this.isLoadingEditor = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.isLoadingEditor = false;
     this.showAlert('Không tìm thấy dữ liệu lịch trình này. Bạn có thể tạo lịch trình mới hoặc quay về danh sách.', 'info');
-    this.cdr.detectChanges();
     this.cdr.detectChanges();
   }
 
@@ -4900,8 +4937,62 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public get legPaymentMethodLabel(): string {
-    return this.legPaymentMethods[this.legPaymentMethodIdx] || 'Ví GreenSteps';
+    const item = this.legPaymentMethods[this.legPaymentMethodIdx];
+    return item ? (typeof item === 'string' ? item : item.name) : 'Ví GreenSteps';
   }
+
+  public toggleLegPaymentDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.isLegPaymentDropdownOpen = !this.isLegPaymentDropdownOpen;
+    this.isLegVoucherDropdownOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public selectLegPaymentMethod(idx: number, event?: Event) {
+    if (event) event.stopPropagation();
+    this.legPaymentMethodIdx = idx;
+    this.isLegPaymentDropdownOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public toggleLegVoucherDropdown(event?: Event) {
+    if (event) event.stopPropagation();
+    this.isLegVoucherDropdownOpen = !this.isLegVoucherDropdownOpen;
+    this.isLegPaymentDropdownOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public selectLegVoucher(idx: number, event?: Event) {
+    if (event) event.stopPropagation();
+    this.legVoucherIdx = idx;
+    this.isLegVoucherDropdownOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public onDragOverTravelGap(event: DragEvent, fromIdx: number) {
+    event.preventDefault();
+    if (this.isItineraryLocked()) return;
+    if (this.dragSrcIdx !== null) {
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      const newTarget = fromIdx + 1;
+      if (this.dragTargetIdx !== newTarget || this.dragDropPosition !== 'before') {
+        this.dragTargetIdx = newTarget;
+        this.dragDropPosition = 'before';
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public onDragLeaveTravelGap(event: DragEvent, fromIdx: number) {
+    // Keep placeholder open
+  }
+
+  public onDropTravelGap(event: DragEvent, fromIdx: number) {
+    event.preventDefault();
+    if (this.dragSrcIdx === null || this.isItineraryLocked()) return;
+    this.onDrop(event, fromIdx + 1);
+  }
+
 
   public cycleLegPaymentMethod() {
     this.legPaymentMethodIdx = (this.legPaymentMethodIdx + 1) % this.legPaymentMethods.length;

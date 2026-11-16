@@ -180,6 +180,9 @@ export class ToursComponent implements OnInit {
   public retryLoad(): void {
     void this.loadToursFromServer();
   }
+
+  public loadTours(): void {
+    void this.loadToursFromServer();
   }
 
   public filterTours() {
