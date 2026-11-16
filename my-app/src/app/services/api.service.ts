@@ -41,8 +41,8 @@ export class ApiService {
   private adminUserCacheScope = 'anonymous';
 
   private getCachedData(key: string): any | null {
-    // Shared records may be updated from another account or browser session.
-    if (/^(community_posts_|preset_tour|services_|service_detail_|recommended_|destinations_|itinerar|wallet_info_|transactions_)/.test(key)) return null;
+    // Dynamic wallet records should stay fresh
+    if (/^(wallet_info_|transactions_)/.test(key)) return null;
     const cached = this.cache.get(key);
     if (!cached) return null;
     if (Date.now() > cached.expiry) {

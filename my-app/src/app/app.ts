@@ -31,8 +31,6 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
-    // Pre-warm maps & local POI cache in background on session start
-    this.apiService.preloadMapData();
 
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
