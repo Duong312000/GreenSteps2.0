@@ -190,6 +190,19 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // Dual View Mode & Route Pipeline Canvas
   public activeTimelineViewMode: 'timeline' | 'pipeline' = (typeof localStorage !== 'undefined' && localStorage.getItem('greensteps_timeline_view_mode') as any) || 'timeline';
   public pipelineZoomScale: number = 1.0;
+  public mobileSheetState: 'peek' | 'half' | 'full' = 'half';
+
+  public toggleMobileSheet() {
+    if (this.mobileSheetState === 'peek') this.mobileSheetState = 'half';
+    else if (this.mobileSheetState === 'half') this.mobileSheetState = 'full';
+    else this.mobileSheetState = 'half';
+    this.cdr.detectChanges();
+  }
+
+  public setMobileSheetState(state: 'peek' | 'half' | 'full') {
+    this.mobileSheetState = state;
+    this.cdr.detectChanges();
+  }
 
   public formatStationIndex(idx: number): string {
     const n = (idx || 0) + 1;
