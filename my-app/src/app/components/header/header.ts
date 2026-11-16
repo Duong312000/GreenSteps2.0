@@ -1,12 +1,12 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { User } from '../../models/models';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { Subscription, Subject, from, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil } from 'rxjs/operators';
 import { LoginModalComponent } from '../login-modal/login-modal';
 import { LoginModalService } from '../../services/login-modal.service';
 
@@ -18,7 +18,18 @@ declare const L: any; // Leaflet mapped globally via index.html script tag
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
-export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
+export class HeaderComponent implements OnInit, OnDestroy {
+  @ViewChild('navbarSearchPanel') private navbarSearchPanel?: ElementRef<HTMLElement>;
+  private readonly searchTerms$ = new Subject<string>();
+  private readonly destroyed$ = new Subject<void>();
+  private searchRequestSequence = 0;
+  private searchFocusTimer?: number;
+  public isNavbarSearchOpen = false;
+  public navbarSearchQuery = '';
+  public navbarSearchSuggestions: Array<{ id: string; label: string; detail: string; kind: 'tour' | 'service'; route: string; }> = [];
+  public isNavbarSearchLoading = false;
+  public navbarSearchError = false;
+  public activeNavbarSearchIndex = -1;
   public currentUser: User | null = null;
   public currentPath: string = '';
 
@@ -33,8 +44,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     'Phú Yên': [13.088198, 109.314957],
     'Đà Nẵng - Hội An': [16.047079, 108.206230]
   };
-  public smartSearchQuery: string = '';
-  public isSearchDropdownActive: boolean = false;
   public isNotificationDropdownActive: boolean = false;
   public notifications: any[] = [];
 
@@ -44,6 +53,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public toggleNotificationDropdown(event: Event) {
     event.stopPropagation();
+    this.closeNavbarSearch();
     this.isNotificationDropdownActive = !this.isNotificationDropdownActive;
     this.isProfileOpen = false;
     if (this.isNotificationDropdownActive && this.currentUser) {
@@ -169,26 +179,10 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   public isMobileMenuOpen: boolean = false;
   public isLoginModalOpen: boolean = false;
-  public isOverflowOpen: boolean = false;  // controlled by mouseenter/mouseleave
   public isProfileOpen: boolean = false;   // profile dropdown hover
-  public navStartX: number = 0;            // left-x of first nav tab, for overflow panel alignment
 
   // All tabs combined (traveler + provider when applicable)
   public allTabs: any[] = [];
-  // Subset that overflows the nav row — rendered in the dropdown panel
-  public overflowTabs: any[] = [];
-  // Indices of tabs that overflow — used to hide them in the main nav
-  public overflowTabIndices: Set<number> = new Set<number>();
-
-  public get filteredMobileTabs(): any[] {
-    const query = this.normalizeMenuSearch(this.smartSearchQuery);
-    if (!query) return this.allTabs;
-
-    return this.allTabs.filter(tab => {
-      const label = this.normalizeMenuSearch(tab.label || '');
-      return label.includes(query);
-    });
-  }
 
   // AI Planner Modal
   public isCreateModalOpen: boolean = false;
@@ -203,12 +197,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   public currentTheme: 'light' | 'dark' = 'light';
   public isScrolled: boolean = false;
 
-  @ViewChild('headerWrapper') headerWrapperRef!: ElementRef<HTMLElement>;
-  @ViewChild('navContainer') navContainerRef!: ElementRef<HTMLElement>;
-  @ViewChild('searchInput') searchInput!: ElementRef;
-  @ViewChild('filterDropdown') filterDropdown!: ElementRef;
-
-  private resizeObserver!: ResizeObserver;
   private loginModalSubscription?: Subscription;
   private profileCloseTimer?: number;
   private updateScrollState() {
@@ -216,9 +204,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isScrolled === nextIsScrolled) return;
 
     this.isScrolled = nextIsScrolled;
-    if (this.isHomeHeaderCollapsed) {
-      this.isOverflowOpen = false;
-    }
   }
 
   @HostListener('window:scroll')
@@ -226,25 +211,13 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.updateScrollState();
   }
 
-  @HostListener('mouseenter')
-  onMouseEnter() {
-    if (this.overflowTabs.length > 0) {
-      this.isOverflowOpen = true;
+  @HostListener('document:keydown.escape', ['$event'])
+  public onEscapeKey(event?: Event) {
+    if (this.isNavbarSearchOpen) {
+      event?.preventDefault();
+      this.closeNavbarSearch();
+      return;
     }
-  }
-
-  @HostListener('mouseleave')
-  onMouseLeave() {
-    this.isOverflowOpen = false;
-  }
-
-  @HostListener('window:resize')
-  onResize() {
-    this.scheduleOverflowCalc();
-  }
-
-  @HostListener('document:keydown.escape')
-  public onEscapeKey() {
     if (this.isMobileMenuOpen) {
       this.isMobileMenuOpen = false;
       document.body.style.overflow = '';
@@ -270,18 +243,8 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     private loginModalService: LoginModalService
   ) { }
 
-  @HostListener('document:mousedown', ['$event'])
-  public onClickOutside(event: MouseEvent) {
-    if (this.isSearchDropdownActive &&
-      this.searchInput &&
-      this.filterDropdown &&
-      !this.searchInput.nativeElement.contains(event.target) &&
-      !this.filterDropdown.nativeElement.contains(event.target)) {
-      this.isSearchDropdownActive = false;
-    }
-  }
-
   public toggleMobileMenu() {
+    this.closeNavbarSearch();
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
     if (this.isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -293,6 +256,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   public loginModalMode: 'login' | 'register' = 'login';
 
   public openLoginModal(mode: 'login' | 'register' = 'login') {
+    this.closeNavbarSearch();
     this.isMobileMenuOpen = false;
     document.body.style.overflow = '';
     this.loginModalMode = mode;
@@ -315,8 +279,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
       } else {
         this.notifications = [];
       }
-      // Recalculate after DOM updates with new tabs
-      setTimeout(() => this.calculateOverflow(), 50);
     });
 
     this.currentPath = this.router.url;
@@ -325,6 +287,47 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     ).subscribe((event: any) => {
       this.currentPath = event.url;
       this.updateScrollState();
+    });
+
+    this.searchTerms$.pipe(
+      map(term => term.trim()),
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(term => {
+        const sequence = ++this.searchRequestSequence;
+        if (term.length < 2) {
+          this.isNavbarSearchLoading = false;
+          this.navbarSearchError = false;
+          this.navbarSearchSuggestions = [];
+          this.activeNavbarSearchIndex = -1;
+          return of({ sequence, items: [], failed: false });
+        }
+        this.isNavbarSearchLoading = true;
+        this.navbarSearchError = false;
+        return from(Promise.allSettled([
+          this.apiService.getToursPage({ q: term, page: 1, pageSize: 4, sort: 'popular' }),
+          this.apiService.getServicesPage({ q: term, page: 1, pageSize: 4, sort: 'bookings_count' })
+        ])).pipe(map(([toursResult, servicesResult]) => {
+          const tours = toursResult.status === 'fulfilled' ? toursResult.value?.items || [] : [];
+          const services = servicesResult.status === 'fulfilled' ? servicesResult.value?.items || [] : [];
+          const items = [
+            ...tours.map((tour: any) => ({ id: String(tour.id), label: String(tour.title || 'Tour'), detail: String(tour.destination || 'Tour du lịch'), kind: 'tour' as const, route: `/tours/${encodeURIComponent(String(tour.id))}` })),
+            ...services.map((service: any) => {
+              const type = String(service.type || 'service').trim();
+              const isFood = /food|dining|ăn|uống/i.test(type);
+              return { id: String(service.id), label: String(service.name || service.name_service || 'Dịch vụ'), detail: `${isFood ? 'Ẩm thực địa phương' : 'Dịch vụ'} · ${String(service.destination || 'GreenSteps')}`, kind: 'service' as const, route: `/services/${encodeURIComponent(type)}/${encodeURIComponent(String(service.id))}` };
+            })
+          ];
+          return { sequence, items, failed: toursResult.status === 'rejected' || servicesResult.status === 'rejected' };
+        }), catchError(() => of({ sequence, items: [], failed: true })));
+      }),
+      takeUntil(this.destroyed$)
+    ).subscribe(result => {
+      if (result.sequence !== this.searchRequestSequence) return;
+      this.isNavbarSearchLoading = false;
+      this.navbarSearchError = result.failed;
+      this.navbarSearchSuggestions = result.items;
+      this.activeNavbarSearchIndex = -1;
     });
 
     const savedTheme = localStorage.getItem('greensteps_theme') as 'light' | 'dark';
@@ -336,82 +339,97 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  ngAfterViewInit() {
-    // Double rAF ensures DOM layout is complete before measuring
-    this.scheduleOverflowCalc();
-    if (this.navContainerRef) {
-      this.resizeObserver = new ResizeObserver(() => this.scheduleOverflowCalc());
-      this.resizeObserver.observe(this.navContainerRef.nativeElement);
-    }
-  }
-
-  /** Schedule overflow calc on next paint frame */
-  private scheduleOverflowCalc() {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => this.calculateOverflow());
-    });
-  }
-
   ngOnDestroy() {
     document.body.style.overflow = '';
     this.loginModalSubscription?.unsubscribe();
     this.clearProfileCloseTimer();
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
-  }
-
-  /**
-   * Measures which tabs overflow the nav container's visible width.
-   * Uses getBoundingClientRect for accuracy regardless of offsetParent.
-   * Populates both overflowTabs (for the panel) and overflowTabIndices (to hide in main nav).
-   */
-  public calculateOverflow() {
-    if (!this.navContainerRef) return;
-    const navEl = this.navContainerRef.nativeElement;
-    const parentEl = navEl.parentElement || navEl;
-    const parentRect = parentEl.getBoundingClientRect();
-    const tabEls = navEl.querySelectorAll<HTMLElement>('.nav-tab-item');
-
-    const newOverflow: any[] = [];
-    const newIndices = new Set<number>();
-    let firstVisibleLeft: number = 0;
-    let firstVisibleFound = false;
-
-    tabEls.forEach((el, i) => {
-      const elRect = el.getBoundingClientRect();
-      // Tab is overflowing if its right edge exceeds the clipping parent container's right edge
-      if (elRect.right > parentRect.right + 1 && this.allTabs[i]) {
-        newOverflow.push(this.allTabs[i]);
-        newIndices.add(i);
-      } else if (!firstVisibleFound) {
-        firstVisibleLeft = elRect.left;
-        firstVisibleFound = true;
-      }
-    });
-    this.overflowTabs = newOverflow;
-    this.overflowTabIndices = newIndices;
-    // Align overflow panel: use exact left position of first visible tab relative to the wrapper content area
-    if (firstVisibleFound && this.headerWrapperRef) {
-      const wrapperEl = this.headerWrapperRef.nativeElement;
-      const wrapperRect = wrapperEl.getBoundingClientRect();
-      const wrapperStyle = window.getComputedStyle(wrapperEl);
-      const paddingLeft = parseFloat(wrapperStyle.paddingLeft || '0');
-      this.navStartX = firstVisibleLeft - wrapperRect.left - paddingLeft;
-    } else {
-      this.navStartX = 0;
-    }
+    this.destroyed$.next();
+    this.destroyed$.complete();
+    this.searchTerms$.complete();
+    if (this.searchFocusTimer !== undefined) window.clearTimeout(this.searchFocusTimer);
   }
 
   @HostListener('document:click', ['$event'])
   public onDocumentClick(event: MouseEvent) {
+    const target = event.target as Node | null;
+    const searchPanel = this.navbarSearchPanel?.nativeElement;
+    if (this.isNavbarSearchOpen && target && !searchPanel?.contains(target)) {
+      this.closeNavbarSearch();
+    }
     this.isProfileOpen = false;
-    this.isSearchDropdownActive = false;
     this.isNotificationDropdownActive = false;
+  }
+
+  public openNavbarSearch(event: Event): void {
+    event.stopPropagation();
+    this.isNavbarSearchOpen = true;
+    this.isProfileOpen = false;
+    this.isNotificationDropdownActive = false;
+    if (this.searchFocusTimer !== undefined) window.clearTimeout(this.searchFocusTimer);
+    this.searchFocusTimer = window.setTimeout(() => {
+      this.searchFocusTimer = undefined;
+      if (!this.isNavbarSearchOpen) return;
+      const input = document.querySelector<HTMLInputElement>('#navbar-search-panel input[type="search"]');
+      input?.focus();
+    }, 40);
+  }
+
+  public closeNavbarSearch(): void {
+    this.isNavbarSearchOpen = false;
+    this.isNavbarSearchLoading = false;
+    this.activeNavbarSearchIndex = -1;
+    this.searchRequestSequence++;
+  }
+
+  public onNavbarSearchChanged(value: string): void {
+    this.navbarSearchQuery = value;
+    this.searchRequestSequence++;
+    if (value.trim().length < 2) {
+      this.isNavbarSearchLoading = false;
+      this.navbarSearchError = false;
+      this.navbarSearchSuggestions = [];
+    }
+    this.searchTerms$.next(value);
+  }
+
+  public onNavbarSearchKeydown(event: KeyboardEvent): void {
+    const count = this.navbarSearchSuggestions.length;
+    if (event.key === 'ArrowDown' && count) {
+      event.preventDefault();
+      this.activeNavbarSearchIndex = (this.activeNavbarSearchIndex + 1) % count;
+    } else if (event.key === 'ArrowUp' && count) {
+      event.preventDefault();
+      this.activeNavbarSearchIndex = this.activeNavbarSearchIndex <= 0 ? count - 1 : this.activeNavbarSearchIndex - 1;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const active = this.navbarSearchSuggestions[this.activeNavbarSearchIndex];
+      if (active) this.selectNavbarSearchSuggestion(active);
+      else this.submitNavbarSearch();
+    }
+  }
+
+  public selectNavbarSearchSuggestion(suggestion: { route: string }): void {
+    this.closeNavbarSearch();
+    void this.router.navigateByUrl(suggestion.route);
+  }
+
+  public submitNavbarSearch(): void {
+    const term = this.navbarSearchQuery.trim();
+    if (!term) return;
+    const path = this.router.url.split(/[?#]/)[0];
+    const isFood = path === '/local-food' || (path === '/services' && /[?&]type=(food|dining)(?:&|$)/i.test(this.router.url));
+    const isServices = path.startsWith('/services') && !isFood;
+    const destination = isFood ? '/local-food' : isServices ? '/services' : '/tours';
+    const queryParams: Record<string, string> = { search: term };
+    if (isFood) queryParams['q'] = term;
+    if (path === '/services' && isFood) queryParams['type'] = 'food';
+    this.closeNavbarSearch();
+    void this.router.navigate([destination], { queryParams });
   }
 
   public toggleProfileOpen(event: Event) {
     event.stopPropagation();
+    this.closeNavbarSearch();
     this.isProfileOpen = !this.isProfileOpen;
   }
 
@@ -421,26 +439,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     localStorage.setItem('greensteps_theme', this.currentTheme);
   }
 
-  public showSearchDropdown() {
-    this.isSearchDropdownActive = true;
-  }
-
-  public onSearchKeypress(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      this.triggerSearch();
-    }
-  }
-
-  public triggerSearch() {
-    const query = this.smartSearchQuery.trim();
-    this.isSearchDropdownActive = false;
-    if (query) {
-      this.router.navigate(['/tours'], { queryParams: { search: query } });
-    }
-  }
-
   public applySmartFilters() {
-    this.isSearchDropdownActive = false;
     this.router.navigate(['/tours'], {
       queryParams: {
         dest: this.filterDest,
@@ -464,12 +463,6 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public isServicesActive(): boolean {
     return this.router.url.startsWith('/services') || this.router.url.startsWith('/transport');
-  }
-
-  public selectSearchDest(dest: string) {
-    this.smartSearchQuery = dest;
-    this.isSearchDropdownActive = false;
-    this.router.navigate(['/tours'], { queryParams: { dest: dest } });
   }
 
   public openProfileMenu() {
@@ -679,18 +672,8 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
       this.allTabs = [...travelerTabs];
     }
 
-    this.overflowTabs = [];
   }
 
-  private normalizeMenuSearch(value: string): string {
-    return (value || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
 }
 
 export { HeaderComponent as Header };

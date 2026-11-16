@@ -8,7 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { FoodApi, FoodPlace, FOOD_CATEGORIES, FOOD_FEATURES } from './food-api';
 import { AuthService } from '../../services/auth.service';
 
@@ -24,6 +25,8 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   private auth = inject(AuthService);
+  private route = inject(ActivatedRoute);
+  private routeQuerySubscription?: Subscription;
   places: FoodPlace[] = [];
   categories = FOOD_CATEGORIES;
   features = FOOD_FEATURES;
@@ -96,6 +99,13 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
     return this.filtered.slice((this.page - 1) * this.pageSize, this.page * this.pageSize);
   }
   async ngOnInit() {
+    this.routeQuerySubscription = this.route.queryParamMap.subscribe(params => {
+      const search = params.get('q') || params.get('search') || '';
+      if (search !== this.query) {
+        this.query = search;
+        this.page = 1;
+      }
+    });
     try {
       const saved = JSON.parse(localStorage.getItem('greensteps_food_saved') || '[]');
       this.saved = Array.isArray(saved) ? saved.filter((x) => typeof x === 'string') : [];
@@ -107,6 +117,7 @@ export class LocalFoodComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy() {
     this.destroyed = true;
+    this.routeQuerySubscription?.unsubscribe();
     clearInterval(this.timer);
     clearTimeout(this.filterTimer);
   }
