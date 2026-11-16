@@ -3,16 +3,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const workflowPath = path.resolve(__dirname, '../../integrations/n8n/GreenSteps_Agent_V4_DB_Compatible.json');
+const workflowPath = path.resolve(__dirname, '../../integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json');
 const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
 const byName = name => workflow.nodes.find(node => node.name === name);
 
-test('V4 workflow is a separate inactive import without source instance or credential IDs', () => {
+test('V3 workflow is inactive, uses the deployed webhook path, and has valid connections', () => {
   assert.equal(workflow.active, false);
-  assert.equal(workflow.name, 'GreenSteps Agent V4 DB Compatible');
+  assert.equal(workflow.name, 'GreenSteps Web2 Gemini Agent V3 Performance');
+  assert.equal(byName('Webhook Chat').parameters.path, 'greensteps-web2-agent-v3-fast');
   assert.equal(Object.hasOwn(workflow, 'id'), false);
   assert.equal(Object.hasOwn(workflow, 'versionId'), false);
-  assert.equal(workflow.nodes.every(node => !Object.hasOwn(node, 'credentials')), true);
+  assert.equal(workflow.nodes.every(node => !Object.hasOwn(node, 'credentials') && !Object.hasOwn(node, 'webhookId')), true);
   const nodeNames = new Set(workflow.nodes.map(node => node.name));
   for (const [name, connection] of Object.entries(workflow.connections)) {
     assert.ok(nodeNames.has(name), `missing source node ${name}`);
@@ -24,7 +25,7 @@ test('V4 workflow is a separate inactive import without source instance or crede
 
 test('Validate Input preserves backend page metadata and admits only active services', () => {
   const input = {
-    message: 'Tìm quán ăn', sessionId: 'n8n-v4-test-session', history: [],
+    message: 'Tìm quán ăn', sessionId: 'n8n-v3-test-session', history: [],
     context: { catalog: {
       available: true, fetchedAt: '2026-11-10T00:00:00.000Z', page: 1, pageSize: 20, nextPage: 2,
       truncated: true, truncatedTours: false, truncatedServices: true,
@@ -37,7 +38,7 @@ test('Validate Input preserves backend page metadata and admits only active serv
       ]
     } }
   };
-  const validate = new Function('$input', byName('Validate Input1').parameters.jsCode);
+  const validate = new Function('$input', byName('Validate Input').parameters.jsCode);
   const result = validate({ first: () => ({ json: { body: input } }) })[0].json;
   assert.deepEqual(result.catalog.services.map(service => service.id), ['active']);
   assert.equal(result.catalog.page, 1);
@@ -48,9 +49,9 @@ test('Validate Input preserves backend page metadata and admits only active serv
 });
 
 test('Validate Input preserves bounded active itinerary candidates and their completeness status', () => {
-  const validate = new Function('$input', byName('Validate Input1').parameters.jsCode);
+  const validate = new Function('$input', byName('Validate Input').parameters.jsCode);
   const result = validate({ first: () => ({ json: { body: {
-    message: 'Lập lịch trình Đà Lạt', requestIntent: 'itinerary', sessionId: 'n8n-v4-test-session', history: [],
+    message: 'Lập lịch trình Đà Lạt', requestIntent: 'itinerary', sessionId: 'n8n-v3-test-session', history: [],
     context: { catalog: {
       available: true, page: 1, pageSize: 20, nextPage: 2,
       serviceCandidatesComplete: false,
@@ -68,9 +69,9 @@ test('Validate Input preserves bounded active itinerary candidates and their com
 });
 
 test('workflow search tools distinguish a page miss from a complete-catalog miss', () => {
-  const validator = new Function('$input', byName('Validate Input1').parameters.jsCode);
+  const validator = new Function('$input', byName('Validate Input').parameters.jsCode);
   const validated = validator({ first: () => ({ json: { body: {
-    message: 'Tìm cafe Đà Lạt', sessionId: 'n8n-v4-test-session', history: [],
+    message: 'Tìm cafe Đà Lạt', sessionId: 'n8n-v3-test-session', history: [],
     context: { catalog: {
       available: true, fetchedAt: '2026-11-10T00:00:00.000Z', page: 1, pageSize: 20, nextPage: 2,
       truncated: true, truncatedTours: false, truncatedServices: true, tours: [],
@@ -81,7 +82,7 @@ test('workflow search tools distinguish a page miss from a complete-catalog miss
     } }
   } } }) })[0].json;
   const select = name => ({ first: () => ({ json: validated }) });
-  const search = new Function('$', 'query', byName('search_services1').parameters.jsCode);
+  const search = new Function('$', 'query', byName('search_services').parameters.jsCode);
   const result = JSON.parse(search(select, { destination: 'Đà Lạt', type: 'ăn uống', maxBudget: 100000 }));
   assert.equal(result.status, 'partial');
   assert.deepEqual(result.matches.map(service => service.id), ['cafe-1']);
@@ -94,9 +95,9 @@ test('workflow search tools distinguish a page miss from a complete-catalog miss
 });
 
 test('itinerary service tool searches backend candidates including later-page matches', () => {
-  const validate = new Function('$input', byName('Validate Input1').parameters.jsCode);
+  const validate = new Function('$input', byName('Validate Input').parameters.jsCode);
   const validated = validate({ first: () => ({ json: { body: {
-    message: 'Lập lịch trình Đà Lạt', requestIntent: 'itinerary', sessionId: 'n8n-v4-test-session', history: [],
+    message: 'Lập lịch trình Đà Lạt', requestIntent: 'itinerary', sessionId: 'n8n-v3-test-session', history: [],
     context: { catalog: {
       available: true, page: 1, pageSize: 20, nextPage: 2, truncatedServices: true,
       services: [], serviceCandidatesComplete: false,
@@ -106,7 +107,7 @@ test('itinerary service tool searches backend candidates including later-page ma
       ]
     } }
   } } }) })[0].json;
-  const search = new Function('$', 'query', byName('search_services1').parameters.jsCode);
+  const search = new Function('$', 'query', byName('search_services').parameters.jsCode);
   const result = JSON.parse(search(() => ({ first: () => ({ json: validated }) }), {
     destination: 'Đà Lạt', type: 'attraction', maxBudget: 100000
   }));
@@ -117,8 +118,8 @@ test('itinerary service tool searches backend candidates including later-page ma
   assert.equal(result.noMatchStatus, null);
 });
 
-test('V4 itinerary prompt requires structured service IDs and separates unverified suggestions', () => {
-  const agent = byName('AI Agent1');
+test('V3 itinerary prompt requires structured service IDs and separates unverified suggestions', () => {
+  const agent = byName('AI Agent');
   assert.match(agent.parameters.text, /serviceCandidates/);
   assert.match(agent.parameters.options.systemMessage, /exact.*ID|exact string ID/i);
   assert.match(agent.parameters.options.systemMessage, /serviceId/);
@@ -127,9 +128,9 @@ test('V4 itinerary prompt requires structured service IDs and separates unverifi
 });
 
 test('tour tool filters days and budget within the loaded page and reports further pages', () => {
-  const validate = new Function('$input', byName('Validate Input1').parameters.jsCode);
+  const validate = new Function('$input', byName('Validate Input').parameters.jsCode);
   const validated = validate({ first: () => ({ json: { body: {
-    message: 'Tìm tour Huế', sessionId: 'n8n-v4-test-session', history: [],
+    message: 'Tìm tour Huế', sessionId: 'n8n-v3-test-session', history: [],
     context: { catalog: {
       available: true, page: 1, pageSize: 20, nextPage: 2, truncated: true, truncatedTours: true, truncatedServices: false,
       tours: [
@@ -138,7 +139,7 @@ test('tour tool filters days and budget within the loaded page and reports furth
       ], services: []
     } }
   } } }) })[0].json;
-  const search = new Function('$', 'query', byName('search_tours1').parameters.jsCode);
+  const search = new Function('$', 'query', byName('search_tours').parameters.jsCode);
   const result = JSON.parse(search(() => ({ first: () => ({ json: validated }) }), { search: 'Huế', days: 3, maxBudget: 1000000 }));
   assert.equal(result.status, 'partial');
   assert.deepEqual(result.matches.map(tour => tour.id), ['tour-1']);

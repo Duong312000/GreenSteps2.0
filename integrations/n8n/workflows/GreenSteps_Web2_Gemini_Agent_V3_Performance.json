@@ -17,13 +17,6 @@
         -1000,
         -160
       ],
-      "webhookId": "8849a935-fff5-4099-baa1-2f76e3b45216",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "900oJWwrUOmQIxWq",
-          "name": "Header Auth account"
-        }
-      },
       "retryOnFail": false
     },
     {
@@ -110,12 +103,6 @@
         -400,
         60
       ],
-      "credentials": {
-        "googlePalmApi": {
-          "id": "OOTVm8FLkPpKCsOH",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      },
       "retryOnFail": false
     },
     {
@@ -489,6 +476,5 @@
     "executionTimeout": 30
   },
   "nodeGroups": [],
-  "tags": [],
-  "versionId": "5939853d-92b5-435f-af7b-5f8fc019fd16"
+  "tags": []
 }
