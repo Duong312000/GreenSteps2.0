@@ -51,7 +51,7 @@ chủ động bấm. Việc backend ngắt kết nối không bảo đảm dừn
 
 ## Workflow n8n và Publish
 
-Workflow V3 được lưu trong repo tại `integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json` để import vào n8n. Backend `main` đang dùng path `greensteps-web2-agent-v3-fast`. File export không chứa secret; các credential cần được chọn lại trong n8n.
+Workflow V3 được lưu trong repo tại `integrations/n8n/workflows/GreenSteps_Web2_Gemini_Agent_V3_Performance.json` để import vào n8n. Bản export hiện nhận service candidates trong itinerary và yêu cầu trả service ID khớp catalog để backend xác minh dữ liệu. Backend `main` đang dùng path `greensteps-web2-agent-v3-fast`. File export không chứa secret; các credential cần được chọn lại trong n8n.
 
 V3 đặt maxIterations=3, bản mới tăng output lên 4096 token để hạn chế câu bị cụt,
 prompt ngắn hơn và đưa sẵn tối đa
