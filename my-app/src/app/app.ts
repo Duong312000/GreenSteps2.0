@@ -1,7 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { Component, isDevMode, OnInit } from '@angular/core';
+import { ActivatedRoute, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
 
 @Component({
@@ -23,8 +21,15 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(event => {
-      this.updateAdminShell(event.urlAfterRedirects);
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart && isDevMode()) {
+        console.debug('[ROUTER]', {
+          from: this.router.url.split(/[?#]/, 1)[0],
+          to: event.url.split(/[?#]/, 1)[0],
+          trigger: event.navigationTrigger
+        });
+      }
+      if (event instanceof NavigationEnd) this.updateAdminShell(event.urlAfterRedirects);
     });
     this.route.queryParamMap.subscribe(params => {
       const token = params.get('token');

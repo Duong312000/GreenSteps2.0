@@ -20,8 +20,7 @@ async function checkMaintenance(url: string) {
     const status = await firstValueFrom(http.get<MaintenanceStatus>(`${getApiUrl()}/maintenance-status`));
     return status.maintenanceMode ? router.createUrlTree(['/maintenance']) : true;
   } catch {
-    // If the status endpoint is unreachable, the HTTP interceptor displays
-    // the 500 page for failed API calls; otherwise keep navigation available.
+    // A temporary status API failure must not block navigation to the page.
     return true;
   }
 }

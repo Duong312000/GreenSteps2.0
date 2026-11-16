@@ -1,10 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, isDevMode, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
-import { Tour, Itinerary } from '../../models/models';
-
-declare const L: any;
+import { Tour, Itinerary, TourPhotoCredit } from '../../models/models';
 
 @Component({
   selector: 'app-tours',
@@ -18,6 +16,7 @@ export class ToursComponent implements OnInit {
   public paginatedTours: Tour[] = [];
   public recommendedTours: Tour[] = [];
   public isPageLoading: boolean = true;
+  public loadError = false;
   public isMobileFilterOpen: boolean = false;
 
   // Filter bindings
@@ -35,6 +34,14 @@ export class ToursComponent implements OnInit {
   // Pagination
   public currentPage: number = 1;
   public pageSize: number = 6;
+  public totalTours = 0;
+  private suppressFilterReload = false;
+  private loadSequence = 0;
+
+  public photoSrcSet(photo?: TourPhotoCredit): string | null {
+    const variants = photo?.responsiveVariants || [];
+    return variants.length ? variants.map(variant => `${variant.path} ${variant.width}w`).join(', ') : null;
+  }
 
   // Categories list matching Shop.co
   public categories = [
@@ -45,13 +52,7 @@ export class ToursComponent implements OnInit {
     { id: 'attraction', name: 'Trải Nghiệm Sinh Thái (Attraction)', path: '/services', type: 'attraction' },
   ];
 
-  public destinations = [
-    'Tất cả',
-    'Đà Lạt',
-    'Phú Yên',
-    'Hội An',
-    'Đà Nẵng'
-  ];
+  public destinations = ['Tất cả'];
 
   public tourTypes = [
     { id: 'all', label: 'Tất cả loại tour' },
@@ -80,16 +81,8 @@ export class ToursComponent implements OnInit {
 
   // Modal control
   public isCreateModalOpen: boolean = false;
-  public modalDest: string = 'Đà Lạt';
+  public modalDest = '';
   public modalDays: number = 3;
-  private modalMap: any = null;
-  private modalMarkers: { [key: string]: any } = {};
-  private destCoords: { [key: string]: [number, number] } = {
-    'Đà Lạt': [11.940419, 108.458313],
-    'Phú Yên': [13.088198, 109.314957],
-    'Hội An': [15.880058, 108.338047],
-    'Đà Nẵng': [16.047079, 108.206230]
-  };
 
   constructor(
     private apiService: ApiService,
@@ -100,32 +93,17 @@ export class ToursComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    try {
-      const allTours = await this.apiService.getPresetTours();
-      this.toursData = allTours || [];
-    } catch (e) {
-      console.warn('Unable to load tours:', e);
-      this.toursData = [];
-    }
-
-    // Enrich missing fields
-    this.toursData.forEach(t => {
-      if (!t.oldCost) {
-        t.oldCost = Math.round(t.cost * 1.2 / 10000) * 10000;
-      }
-      if (!t.discountPercent) {
-        t.discountPercent = Math.round(((t.oldCost - t.cost) / t.oldCost) * 100);
-      }
+    void this.loadDestinationFilters().catch(error => {
+      if (isDevMode()) console.warn('[API ERROR] Destination filters unavailable on Tours', error);
     });
-
-    this.filteredTours = [...this.toursData];
-    this.isPageLoading = false;
-    this.cdr.detectChanges();
-
-    // Query params filtering
     this.route.queryParams.subscribe(params => {
-      if (params['search']) this.searchQuery = params['search'];
-      if (params['dest']) this.filterDest = params['dest'];
+      this.searchQuery = params['search'] || '';
+      this.filterDest = params['dest'] || 'all';
+      this.currentPage = Number(params['page']) || 1;
+      this.filterType = params['type'] || 'all';
+      this.filterPrice = params['price'] || 'all';
+      this.selectedEcoBadge = params['badge'] || 'all';
+      this.sortOrder = params['sort'] || 'popular';
       if (params['style']) {
         const style = params['style'];
         if (style === 'eco') this.filterType = 'Trải nghiệm';
@@ -136,7 +114,8 @@ export class ToursComponent implements OnInit {
         this.openCreateItineraryModal();
       }
 
-      this.filterTours();
+      if (this.suppressFilterReload) this.suppressFilterReload = false;
+      else void this.loadToursFromServer();
     });
 
     // Check user recommendations
@@ -155,7 +134,70 @@ export class ToursComponent implements OnInit {
     }
   }
 
+  private async loadDestinationFilters(): Promise<void> {
+    const response = await this.apiService.getNationalDestinations({ page: 1, pageSize: 100 });
+    const items = Array.isArray(response?.items) ? response.items : [];
+    this.destinations = ['Tất cả', ...items.map((item: any) => String(item.name || '').trim()).filter(Boolean)];
+    if (!this.modalDest && items.length) this.modalDest = items[0].name;
+  }
+
+  private async loadToursFromServer(): Promise<void> {
+    const sequence = ++this.loadSequence;
+    this.isPageLoading = true;
+    this.loadError = false;
+    try {
+      const query: Record<string, string | number | undefined> = {
+        q: this.searchQuery.trim() || undefined,
+        dest: this.filterDest !== 'all' ? this.filterDest : undefined,
+        style: this.selectedEcoBadge !== 'all' ? this.selectedEcoBadge : (this.filterType !== 'all' ? this.filterType : undefined),
+        sort: this.sortOrder === 'cost_asc' ? 'price_asc' : this.sortOrder === 'cost_desc' ? 'price_desc' : this.sortOrder === 'rating' ? 'rating' : this.sortOrder === 'carbon' ? 'name' : 'popular',
+        page: this.currentPage, pageSize: this.pageSize
+      };
+      if (this.filterPrice === 'under1.5M') query['maxPrice'] = 1500000;
+      else if (this.filterPrice === '1.5M-2.5M') { query['minPrice'] = 1500000; query['maxPrice'] = 2500000; }
+      else if (this.filterPrice === '2.5M-3.5M') { query['minPrice'] = 2500000; query['maxPrice'] = 3500000; }
+      else if (this.filterPrice === 'above3.5M') query['minPrice'] = 3500000;
+      const response = await this.apiService.getToursPage(query);
+      if (sequence !== this.loadSequence) return;
+      this.toursData = response?.items || [];
+      this.filteredTours = this.toursData;
+      this.paginatedTours = this.toursData;
+      this.totalTours = response?.total || 0;
+      this.currentPage = response?.page || this.currentPage;
+    } catch {
+      if (sequence !== this.loadSequence) return;
+      this.toursData = this.filteredTours = this.paginatedTours = [];
+      this.totalTours = 0;
+      this.loadError = true;
+    } finally {
+      if (sequence === this.loadSequence) {
+        this.isPageLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public retryLoad(): void {
+    void this.loadToursFromServer();
+  }
+
   public filterTours() {
+    this.currentPage = 1;
+    this.suppressFilterReload = true;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: {
+      search: this.searchQuery.trim() || null,
+      dest: this.filterDest === 'all' ? null : this.filterDest,
+      type: this.filterType === 'all' ? null : this.filterType,
+      price: this.filterPrice === 'all' ? null : this.filterPrice,
+      badge: this.selectedEcoBadge === 'all' ? null : this.selectedEcoBadge,
+      sort: this.sortOrder === 'popular' ? null : this.sortOrder,
+      page: 1
+    }, queryParamsHandling: 'merge' }).then(() => {
+      this.suppressFilterReload = false;
+      void this.loadToursFromServer();
+    });
+    return;
+
     const query = this.searchQuery.toLowerCase().trim();
 
     let list = this.toursData.filter(tour => {
@@ -243,7 +285,7 @@ export class ToursComponent implements OnInit {
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredTours.length / this.pageSize));
+    return Math.max(1, Math.ceil(this.totalTours / this.pageSize));
   }
 
   get pagesArray(): number[] {
@@ -253,7 +295,11 @@ export class ToursComponent implements OnInit {
   public setPage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.updatePagination();
+    this.suppressFilterReload = true;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { page }, queryParamsHandling: 'merge' }).then(() => {
+      this.suppressFilterReload = false;
+      void this.loadToursFromServer();
+    });
     window.scrollTo({ top: 120, behavior: 'smooth' });
   }
 
@@ -305,114 +351,19 @@ export class ToursComponent implements OnInit {
   // Itinerary creation modal logic
   public openCreateItineraryModal() {
     this.isCreateModalOpen = true;
-    setTimeout(() => {
-      this.initModalMap('toursModalMap');
-    }, 150);
   }
 
   public closeCreateItineraryModal() {
     this.isCreateModalOpen = false;
-    if (this.modalMap) {
-      try {
-        this.modalMap.remove();
-      } catch (e) {}
-      this.modalMap = null;
-      this.modalMarkers = {};
-    }
-  }
-
-  private initModalMap(containerId: string) {
-    const mapEl = document.getElementById(containerId);
-    if (!mapEl || typeof L === 'undefined') return;
-
-    if (this.modalMap) {
-      try {
-        this.modalMap.remove();
-      } catch (e) {}
-      this.modalMap = null;
-      this.modalMarkers = {};
-    }
-
-    this.modalMap = L.map(containerId, {
-      zoomControl: true,
-      attributionControl: false
-    }).setView([14.2, 108.8], 6);
-
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(this.modalMap);
-
-    Object.keys(this.destCoords).forEach(dest => {
-      const coords = this.destCoords[dest];
-      const isSelected = this.modalDest === dest;
-
-      const markerIcon = L.divIcon({
-        className: 'custom-modal-marker',
-        html: `<div class="modal-pin ${isSelected ? 'active-pin' : ''}" style="
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background-color: ${isSelected ? '#1b5e20' : '#9CA3AF'};
-          border: 3px solid #FFFFFF;
-          box-shadow: 0 0 10px rgba(0,0,0,0.3);
-          transition: all 0.3s;
-          transform: scale(${isSelected ? 1.4 : 1});
-        "></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-
-      const marker = L.marker(coords, { icon: markerIcon }).addTo(this.modalMap);
-      marker.bindTooltip(dest, { permanent: true, direction: 'right', offset: [10, 0] });
-      marker.on('click', () => {
-        this.selectDestinationFromMap(dest);
-      });
-      this.modalMarkers[dest] = marker;
-    });
-  }
-
-  public selectDestinationFromMap(dest: string) {
-    this.modalDest = dest;
-    this.updateModalMarkers();
-    if (this.modalMap && this.destCoords[dest]) {
-      this.modalMap.panTo(this.destCoords[dest]);
-    }
-  }
-
-  private updateModalMarkers() {
-    Object.keys(this.modalMarkers).forEach(dest => {
-      const marker = this.modalMarkers[dest];
-      if (!marker || typeof L === 'undefined') return;
-      const isSelected = this.modalDest === dest;
-      const icon = L.divIcon({
-        className: 'custom-modal-marker',
-        html: `<div class="modal-pin ${isSelected ? 'active-pin' : ''}" style="
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background-color: ${isSelected ? '#1b5e20' : '#9CA3AF'};
-          border: 3px solid #FFFFFF;
-          box-shadow: 0 0 10px rgba(0,0,0,0.3);
-          transition: all 0.3s;
-          transform: scale(${isSelected ? 1.4 : 1});
-        "></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-      marker.setIcon(icon);
-    });
   }
 
   public onModalDestChange() {
-    this.updateModalMarkers();
-    if (this.modalMap && this.destCoords[this.modalDest]) {
-      this.modalMap.panTo(this.destCoords[this.modalDest]);
-    }
+    // Map previews stay disabled until the destination coordinates and Maps use are verified.
   }
 
   public async submitNewItinerary(event: Event) {
     event.preventDefault();
+    if (!this.modalDest) return;
     this.isCreateModalOpen = false;
 
     const user = this.authService.getCurrentUser();
@@ -437,11 +388,10 @@ export class ToursComponent implements OnInit {
   public buildSearchSuggestions(): string[] {
     const all = new Set<string>();
     this.toursData.forEach(tour => {
-      ((tour as any).data || []).forEach((day: any[]) => {
-        (day || []).forEach((act: any) => {
-          if (act.name && act.name !== '[Địa điểm tự do]') all.add(act.name);
-        });
-      });
+      [tour.title, tour.destination, ...(tour.highlights || [])]
+        .map(value => String(value || '').trim())
+        .filter(Boolean)
+        .forEach(value => all.add(value));
     });
     return Array.from(all).sort();
   }

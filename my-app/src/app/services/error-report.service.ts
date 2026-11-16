@@ -12,7 +12,7 @@ export class ErrorReportService {
   private latest?: ErrorReport;
   private redirecting = false;
 
-  public capture(error: unknown): ErrorReport {
+  public capture(error: unknown, category: 'api' | 'application' = 'application'): ErrorReport {
     const occurredAt = new Date();
     const details = this.formatDetails(error);
     this.latest = {
@@ -21,7 +21,14 @@ export class ErrorReportService {
       details,
     };
 
-    if (isDevMode()) console.error('[GreenSteps] Unhandled application error', error);
+    if (isDevMode()) {
+      const log = category === 'api' ? console.warn : console.error;
+      log(`[GreenSteps] ${category === 'api' ? 'API error' : 'Unhandled application error'}`, {
+        reportId: this.latest.id,
+        details,
+        error: category === 'api' ? undefined : error
+      });
+    }
     // TODO: gửi report tới Sentry hoặc logging service khi dự án cấu hình dịch vụ theo dõi lỗi.
     return this.latest;
   }

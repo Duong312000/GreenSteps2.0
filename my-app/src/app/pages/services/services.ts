@@ -1,5 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, isDevMode, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Service } from '../../models/models';
@@ -10,13 +11,15 @@ import { Service } from '../../models/models';
   templateUrl: './services.html',
   styleUrls: ['./services.css']
 })
-export class ServicesComponent implements OnInit {
+export class ServicesComponent implements OnInit, OnDestroy {
+  private authScopeSubscription?: Subscription;
   public serviceType: string = 'stay';
   public servicesData: Service[] = [];
   public filteredServices: Service[] = [];
   public paginatedServices: Service[] = [];
   public recommendedServices: any[] = [];
   public isPageLoading: boolean = true;
+  public loadError = false;
   public isMobileFilterOpen: boolean = false;
 
   // Filter bindings
@@ -31,6 +34,9 @@ export class ServicesComponent implements OnInit {
   // Pagination
   public currentPage: number = 1;
   public pageSize: number = 6;
+  public totalServices = 0;
+  private requestTimer?: ReturnType<typeof setTimeout>;
+  private loadSequence = 0;
 
   // Static options matching Shop.co filter system
   public categories = [
@@ -41,16 +47,7 @@ export class ServicesComponent implements OnInit {
     { id: 'attraction', name: 'Trải Nghiệm Sinh Thái (Attraction)', path: '/services', type: 'attraction' },
   ];
 
-  public destinations = [
-    'Tất cả',
-    'Đà Lạt',
-    'Phú Yên',
-    'Hội An',
-    'Đà Nẵng',
-    'Ninh Bình',
-    'Sa Pa',
-    'Hà Giang'
-  ];
+  public destinations = ['Tất cả'];
 
   public priceRanges = [
     { id: 'all', label: 'Tất cả mức giá' },
@@ -85,133 +82,149 @@ export class ServicesComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    this.route.queryParams.subscribe(async params => {
-      this.isPageLoading = true;
+    void this.loadDestinationFilters().catch(error => {
+      if (isDevMode()) console.warn('[API ERROR] Destination filters unavailable on Services', error);
+    });
+    let previousUserId: string | null = null;
+    let hasUserScope = false;
+    this.authScopeSubscription = this.authService.currentUser$.subscribe(user => {
+      const nextUserId = user?.id || user?._id || '';
+      if (hasUserScope && previousUserId !== nextUserId) {
+        this.recommendedServices = [];
+        this.servicesData.forEach(service => service.isRecommended = false);
+      }
+      previousUserId = nextUserId;
+      hasUserScope = true;
+    });
+    this.route.queryParams.subscribe(params => {
       this.serviceType = params['type'] || 'stay';
       if (this.serviceType === 'food' || this.serviceType === 'dining') { this.serviceType = 'food'; this.isPageLoading = false; this.cdr.detectChanges(); return; }
-      if(this.serviceType === 'transport') { this.router.navigate(['/transport']); return; }
-      
-      try {
-        const allServices = await this.apiService.getServices();
-        this.servicesData = allServices || [];
-      } catch (e) {
-        console.warn('Unable to load services:', e);
-        this.servicesData = [];
-      }
-
-      // Check recommendation
-      const user = this.authService.getCurrentUser();
-      if (user) {
-        try {
-          const userId = user.id || user._id || '';
-          this.recommendedServices = await this.apiService.getRecommendedServices(userId) || [];
-          const recIds = new Set(this.recommendedServices.map(r => r.id));
-          this.servicesData.forEach(s => {
-            s.isRecommended = recIds.has(s.id);
-          });
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      // Enrich data with oldCost and discountPercent if missing
-      this.servicesData.forEach(s => {
-        if (s.priceStatus) return;
-        if (!s.oldCost) {
-          s.oldCost = Math.round(s.cost * 1.2 / 10000) * 10000;
-        }
-        if (!s.discountPercent) {
-          s.discountPercent = Math.round(((s.oldCost - s.cost) / s.oldCost) * 100);
-        }
-      });
-
-      this.filterServices();
-      this.isPageLoading = false;
-      this.cdr.detectChanges();
+      if (this.serviceType === 'transport') { this.router.navigate(['/transport']); return; }
+      this.searchQuery = params['search'] || '';
+      this.filterDest = params['dest'] || 'all';
+      this.filterPrice = params['price'] || 'all';
+      this.filterRating = params['rating'] || 'all';
+      this.sortOrder = params['sort'] || 'popular';
+      this.onlyPartner = params['partnerOnly'] === 'true';
+      this.currentPage = Math.max(1, Number(params['page']) || 1);
+      void this.loadServicesFromServer();
     });
   }
 
-  public filterServices() {
-    const query = this.searchQuery.toLowerCase().trim();
-    
-    let list = this.servicesData.filter(s => {
-      // 1. Type match
-      const isStay = this.serviceType === 'stay' && (s.type === 'stay' || s.type === 'lodging');
-      const isFood = this.serviceType === 'food' && (s.type === 'food' || s.type === 'dining');
-      const isTransport = this.serviceType === 'transport' && s.type === 'transport';
-      const isExplore = this.serviceType === 'attraction' && (s.type === 'attraction' || s.type === 'explore');
-      
-      // 0. Only Partner filter
-      if (this.onlyPartner) {
-        const isPartner = s.is_partner !== false && s.source !== 'google_maps';
-        if (!isPartner) return false;
+  ngOnDestroy(): void { this.authScopeSubscription?.unsubscribe(); }
+
+  private async loadDestinationFilters(): Promise<void> {
+    const response = await this.apiService.getNationalDestinations({ page: 1, pageSize: 100 });
+    const items = Array.isArray(response?.items) ? response.items : [];
+    this.destinations = ['Tất cả', ...items.map((item: any) => String(item.name || '').trim()).filter(Boolean)];
+  }
+
+  private async loadServicesFromServer(): Promise<void> {
+    const sequence = ++this.loadSequence;
+    this.isPageLoading = true;
+    this.loadError = false;
+    const query: Record<string, string | number | undefined> = {
+      type: this.serviceType,
+      q: this.searchQuery.trim() || undefined,
+      dest: this.filterDest !== 'all' ? this.filterDest : undefined,
+      page: this.currentPage, pageSize: this.pageSize,
+      sort: this.sortOrder === 'cost_asc' || this.sortOrder === 'cost_desc' ? 'cost'
+        : this.sortOrder === 'rating' ? 'rating' : this.sortOrder === 'popular' ? 'bookings_count' : 'name_service',
+      order: this.sortOrder === 'cost_desc' || this.sortOrder === 'popular' ? 'desc' : 'asc',
+      partnerOnly: this.onlyPartner ? 'true' : undefined
+    };
+    if (this.filterPrice === 'under200k') query['maxPrice'] = 200000;
+    else if (this.filterPrice === '200k-500k') { query['minPrice'] = 200000; query['maxPrice'] = 500000; }
+    else if (this.filterPrice === '500k-1M') { query['minPrice'] = 500000; query['maxPrice'] = 1000000; }
+    else if (this.filterPrice === 'above1M') query['minPrice'] = 1000000;
+    if (this.filterRating !== 'all') query['minRating'] = Number(this.filterRating);
+    try {
+      const response = await this.apiService.getServicesPage(query);
+      if (sequence !== this.loadSequence) return;
+      this.servicesData = response?.items || [];
+      this.filteredServices = this.paginatedServices = this.servicesData;
+      this.totalServices = Number(response?.total) || 0;
+      this.currentPage = Number(response?.page) || this.currentPage;
+      this.isPageLoading = false;
+      this.cdr.detectChanges();
+      const user = this.authService.getCurrentUser();
+      if (user) {
+        const userId = user.id || user._id || '';
+        const recommendations = await this.apiService.getRecommendedServices(userId).catch(() => []);
+        const currentUserId = (() => { const current = this.authService.getCurrentUser(); return current?.id || current?._id || ''; })();
+        if (sequence !== this.loadSequence || currentUserId !== userId) return;
+        this.recommendedServices = recommendations;
+        const ids = new Set(recommendations.map(item => item.id));
+        this.servicesData.forEach(service => service.isRecommended = ids.has(service.id));
+      } else {
+        this.recommendedServices = [];
       }
-
-      if (!isStay && !isFood && !isTransport && !isExplore) {
-        return false;
+    } catch {
+      if (sequence !== this.loadSequence) return;
+      this.servicesData = this.filteredServices = this.paginatedServices = [];
+      this.totalServices = 0;
+      this.loadError = true;
+    } finally {
+      if (sequence === this.loadSequence) {
+        this.isPageLoading = false;
+        this.cdr.detectChanges();
       }
-
-      // 2. Destination match
-      if (this.filterDest !== 'all') {
-        const dNorm = this.filterDest.toLowerCase();
-        const sNorm = (s.destination || '').toLowerCase();
-        if (!sNorm.includes(dNorm) && !dNorm.includes(sNorm)) {
-          return false;
-        }
-      }
-
-      // 3. Search query
-      if (query) {
-        const nameMatch = (s.name || '').toLowerCase().includes(query);
-        const destMatch = (s.destination || '').toLowerCase().includes(query);
-        const descMatch = (s.description || '').toLowerCase().includes(query);
-        if (!nameMatch && !destMatch && !descMatch) return false;
-      }
-
-      // 4. Price range
-      if (this.filterPrice !== 'all' && s.priceStatus === 'on_request') return false;
-      if (this.filterPrice === 'under200k' && s.cost >= 200000) return false;
-      if (this.filterPrice === '200k-500k' && (s.cost < 200000 || s.cost > 500000)) return false;
-      if (this.filterPrice === '500k-1M' && (s.cost < 500000 || s.cost > 1000000)) return false;
-      if (this.filterPrice === 'above1M' && s.cost <= 1000000) return false;
-
-      // 5. Rating filter
-      const rating = s.rating;
-      if (this.filterRating !== 'all') {
-        if (rating == null) return false;
-        if (this.filterRating === '5.0' && rating < 5.0) return false;
-        if (this.filterRating === '4.8' && rating < 4.8) return false;
-        if (this.filterRating === '4.5' && rating < 4.5) return false;
-      }
-
-      // 6. Eco badge pill filter
-      if (this.selectedEcoBadge !== 'all') {
-        const badgeStr = ((s.badges || []).join(' ') + ' ' + (s.ecoFeature || '')).toLowerCase();
-        if (!badgeStr.includes(this.selectedEcoBadge.toLowerCase())) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // Sort order (matching Shop.co sorting)
-    if (this.sortOrder === 'cost_asc') {
-      list.sort((a, b) => a.cost - b.cost);
-    } else if (this.sortOrder === 'cost_desc') {
-      list.sort((a, b) => b.cost - a.cost);
-    } else if (this.sortOrder === 'rating') {
-      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else if (this.sortOrder === 'carbon') {
-      list.sort((a, b) => (b.carbon || 0) - (a.carbon || 0));
-    } else {
-      // Most popular / bookings count
-      list.sort((a, b) => (b.bookings_count || 0) - (a.bookings_count || 0));
     }
+  }
 
-    this.filteredServices = list;
+  public retryLoad(): void {
+    void this.loadServicesFromServer();
+  }
+
+  public serviceCardImage(service: Service): string {
+    const imageUrl = String(service.image_url || '').trim();
+    if (imageUrl && !imageUrl.startsWith('data:')) return imageUrl.replace(/^\//, '');
+
+    // Bundled service artwork is available locally and is safe to use as an
+    // illustration even when it is not a verified photo of the listed venue.
+    if (/^image\/services\/[a-z0-9_-]+\.png$/i.test(imageUrl)) return imageUrl;
+
+    const type = String(service.type || '').toLowerCase();
+    const destination = String(service.destination || '').toLowerCase();
+    if (type === 'stay' || type === 'lodging') {
+      if (destination.includes('hội an') || destination.includes('hoi an')) return 'image/services/stay_hoi_an_eco.png';
+      if (destination.includes('phú yên') || destination.includes('phu yen')) return 'image/services/stay_hon_yen.png';
+      if (destination.includes('đà lạt') || destination.includes('da lat')) return 'image/services/stay_homestay_dalat.png';
+      return 'image/services/stay_green_boutique.png';
+    }
+    if (type === 'food' || type === 'dining') return 'image/services/food_organic_vietnamese.png';
+    if (type === 'attraction' || type === 'tour') return 'image/services/attraction_kayaking.png';
+    return 'image/service-photo-pending.svg';
+  }
+
+  public serviceCardImageAlt(service: Service): string {
+    const cover = service.photoMetadata?.find(photo => String(photo.path || '').replace(/^\//, '') === this.serviceCardImage(service));
+    if (cover?.alt) return cover.alt;
+    return service.name || 'Dịch vụ GreenSteps';
+  }
+
+  public serviceCardImageSrcSet(service: Service): string | null {
+    const cover = service.photoMetadata?.find(photo => String(photo.path || '').replace(/^\//, '') === this.serviceCardImage(service));
+    const variants = cover?.responsiveVariants || [];
+    return variants.length ? variants.map(variant => `${variant.path} ${variant.width}w`).join(', ') : null;
+  }
+
+  public filterServices() {
     this.currentPage = 1;
-    this.updatePagination();
+    if (this.requestTimer) clearTimeout(this.requestTimer);
+    this.requestTimer = setTimeout(() => {
+      const queryParams: Record<string, string | number | null> = {
+        type: this.serviceType,
+        search: this.searchQuery.trim() || null,
+        dest: this.filterDest !== 'all' ? this.filterDest : null,
+        price: this.filterPrice !== 'all' ? this.filterPrice : null,
+        rating: this.filterRating !== 'all' ? this.filterRating : null,
+        partnerOnly: this.onlyPartner ? 'true' : null,
+        sort: this.sortOrder !== 'popular' ? this.sortOrder : null,
+        page: null
+      };
+      void this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
+    }, 250);
   }
 
   
@@ -225,13 +238,12 @@ export class ServicesComponent implements OnInit {
   }
 
   public updatePagination() {
-    const start = (this.currentPage - 1) * this.pageSize;
-    this.paginatedServices = this.filteredServices.slice(start, start + this.pageSize);
+    this.paginatedServices = this.servicesData;
     this.cdr.detectChanges();
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredServices.length / this.pageSize));
+    return Math.max(1, Math.ceil(this.totalServices / this.pageSize));
   }
 
   get pagesArray(): number[] {
@@ -241,7 +253,7 @@ export class ServicesComponent implements OnInit {
   public setPage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.updatePagination();
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { page }, queryParamsHandling: 'merge', replaceUrl: true });
     window.scrollTo({ top: 120, behavior: 'smooth' });
   }
 
