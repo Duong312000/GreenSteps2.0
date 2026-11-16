@@ -716,3 +716,11 @@
     display: none;
   }
 }
+
+:host-context(.profile-route-shell) {
+  background: var(--profile-page-background);
+}
+:host-context(.profile-route-shell) .about-page {
+  padding-top: 0;
+  background: var(--profile-page-background);
+}

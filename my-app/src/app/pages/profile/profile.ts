@@ -9,21 +9,7 @@ import { User, WalletTransaction } from '../../models/models';
 import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
 import { DestinationWeather, WeatherService } from '../../services/weather.service';
 
-type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map';
-
-type ProfileSidebarItem = {
-  icon: string;
-  label: string;
-  section?: ProfileSection;
-  route?: string;
-  action?: 'planner' | 'logout' | 'upcomingTrip';
-  badge?: string;
-};
-
-type ProfileSidebarGroup = {
-  heading: string;
-  items: ProfileSidebarItem[];
-};
+type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map' | 'chatbot';
 
 type TravelPreference = {
   label: string;
@@ -82,7 +68,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     finally { this.sharedRefreshInFlight = false; }
   }
   public activeSection: ProfileSection = 'overview';
-  public isMobileNavOpen = false;
   public dashboardSearchQuery = '';
   public selectedSubSection: string = '';
   public currentUser: User | null = null;
@@ -205,42 +190,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
       hint: 'Nhập yêu cầu riêng như ăn chay, tránh say xe, cần phòng riêng, thích quán cà phê đẹp...',
       type: 'text',
       placeholder: 'Ví dụ: ưu tiên homestay yên tĩnh, có xe đưa đón, không lịch trình quá dày...'
-    }
-  ];
-
-  public readonly sidebarGroups: ProfileSidebarGroup[] = [
-    {
-      heading: 'TỔNG QUAN',
-      items: [{ icon: 'bi-house-door', label: 'Tổng quan', section: 'overview' }]
-    },
-    {
-      heading: 'CHUYẾN ĐI CỦA TÔI',
-      items: [
-        { icon: 'bi-calendar2-week', label: 'Lịch trình của tôi', route: '/schedule' },
-        { icon: 'bi-ticket-perforated', label: 'Tour đã đặt', action: 'upcomingTrip' },
-        { icon: 'bi-credit-card', label: 'Vé & thanh toán', section: 'tickets' },
-        { icon: 'bi-heart', label: 'Địa điểm yêu thích', section: 'favorites' }
-      ]
-    },
-    {
-      heading: 'CÔNG CỤ HỮU ÍCH',
-      items: [
-        { icon: 'bi-stars', label: 'Thiết kế lịch trình AI', action: 'planner' },
-        { icon: 'bi-geo-alt', label: 'Bản đồ tương tác', section: 'map' },
-        { icon: 'bi-chat-dots', label: 'Chatbot hỗ trợ', badge: 'AI' }
-      ]
-    },
-    {
-      heading: 'TÀI KHOẢN',
-      items: [
-        { icon: 'bi-person', label: 'Thông tin cá nhân', section: 'personal' },
-        { icon: 'bi-shield-lock', label: 'Bảo mật tài khoản', section: 'security' },
-        { icon: 'bi-bell', label: 'Thông báo', section: 'notifications', badge: '3' },
-        { icon: 'bi-wallet2', label: 'Ví GreenSteps', section: 'wallet' },
-        { icon: 'bi-ticket-perforated', label: 'Mã giảm giá của tôi', section: 'promotions' },
-        { icon: 'bi-gear', label: 'Cài đặt', section: 'settings' },
-        { icon: 'bi-box-arrow-right', label: 'Đăng xuất', action: 'logout' }
-      ]
     }
   ];
 
@@ -381,7 +330,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe(params => {
       if (params['section']) {
         const sec = params['section'] as ProfileSection;
-        if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'promotions', 'settings', 'map'].includes(sec)) {
+        if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'promotions', 'settings', 'map', 'chatbot'].includes(sec)) {
           this.activeSection = sec;
         }
       }
@@ -712,7 +661,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public openTripDetails(trip: any) {
     if (!trip) return;
     if (trip.type === 'booking') {
-      this.activeSection = 'tickets';
+      this.setActiveSection('tickets');
       this.cdr.detectChanges();
     } else if (trip.link) {
       this.router.navigateByUrl(trip.link);
@@ -744,40 +693,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (event.target instanceof HTMLImageElement) this.tripImageFailed = true;
   }
 
-  public handleSidebarItem(item: ProfileSidebarItem) {
-    if (item.action === 'upcomingTrip') {
-      this.scrollToUpcomingTrip();
-      return;
-    }
-    this.selectedSubSection = '';
-    if (item.section) {
-      this.activeSection = item.section;
-      return;
-    }
-    if (item.route) {
-      this.router.navigate([item.route]);
-      return;
-    }
-    if (item.action === 'planner') this.router.navigate(['/schedule']);
-    if (item.action === 'logout') this.handleLogout();
-  }
-
-  public isSidebarItemActive(item: ProfileSidebarItem): boolean {
-    if (item.action === 'upcomingTrip') {
-      return this.activeSection === 'overview' && this.selectedSubSection === 'upcomingTrip';
-    }
-    if (item.section === 'overview') {
-      return this.activeSection === 'overview' && this.selectedSubSection !== 'upcomingTrip';
-    }
-    return item.section === this.activeSection;
-  }
-
   public scrollToUpcomingTrip(event?: Event) {
     if (event) {
       event.preventDefault();
     }
-    this.activeSection = 'overview';
     this.selectedSubSection = 'upcomingTrip';
+    void this.router.navigate(['/profile'], { queryParams: { section: 'overview', sub: 'upcomingTrip' } });
     setTimeout(() => {
       const el = document.getElementById('upcoming-trip-card');
       if (el) {
@@ -789,11 +710,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   public showPersonalInfo() {
-    this.activeSection = 'personal';
+    this.setActiveSection('personal');
   }
 
   public showSecurityInfo() {
-    this.activeSection = 'security';
+    this.setActiveSection('security');
+  }
+
+  public setActiveSection(section: ProfileSection) {
+    this.activeSection = section;
+    void this.router.navigate(['/profile'], { queryParams: { section } });
   }
 
   public get currentTravelPreferenceStep(): TravelPreferenceQuestion {

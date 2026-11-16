@@ -1,0 +1,21 @@
+.profile-route-shell {
+  --profile-page-background: linear-gradient(112deg, #d7edbd 0%, #f6faee 34%, #f6faee 70%, #d7edbd 100%);
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 100vh;
+  padding-top: 88px;
+  box-sizing: border-box;
+  background: var(--profile-page-background);
+}
+
+.profile-route-shell__content {
+  min-width: 0;
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .profile-route-shell {
+    display: block;
+  }
+}

@@ -1,5 +1,11 @@
 <app-header *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute"></app-header>
-<router-outlet></router-outlet>
+<div class="profile-route-shell" *ngIf="isProfileMenuRoute">
+  <app-profile-navigation></app-profile-navigation>
+  <div class="profile-route-shell__content">
+    <router-outlet></router-outlet>
+  </div>
+</div>
+<router-outlet *ngIf="!isProfileMenuRoute"></router-outlet>
 <app-footer *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute && !isPlannerRoute"></app-footer>
 <app-greensteps-chat *ngIf="!isAdminRoute && !isProfileRoute && !isScheduleRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute && !isPlannerRoute"></app-greensteps-chat>
 <app-onboarding-tour *ngIf="!isAdminRoute && !isProfileRoute && !isStandaloneMaintenanceRoute"></app-onboarding-tour>

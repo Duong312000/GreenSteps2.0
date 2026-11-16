@@ -1,30 +1,4 @@
 <main class="profile-dashboard" [class.profile-dashboard--overview]="activeSection === 'overview'" *ngIf="currentUser">
-    <button type="button" class="profile-mobile-nav-toggle" [attr.aria-expanded]="isMobileNavOpen"
-        aria-controls="profile-sidebar-navigation" (click)="isMobileNavOpen = !isMobileNavOpen">
-        <i class="bi" [ngClass]="isMobileNavOpen ? 'bi-x-lg' : 'bi-list'"></i>
-        {{ isMobileNavOpen ? 'Đóng menu' : 'Danh mục' }}
-    </button>
-    <aside class="profile-dashboard__sidebar" [class.mobile-open]="isMobileNavOpen">
-        <nav id="profile-sidebar-navigation" class="profile-sidebar-nav" aria-label="Profile navigation">
-            <section class="profile-nav-group" *ngFor="let group of sidebarGroups">
-                <h2>{{ group.heading }}</h2>
-                <button type="button" *ngFor="let item of group.items" class="profile-nav-item"
-                    [class.active]="isSidebarItemActive(item)" (click)="handleSidebarItem(item); isMobileNavOpen = false">
-                    <i class="bi" [ngClass]="item.icon"></i>
-                    <span>{{ item.label }}</span>
-                    <small *ngIf="item.badge">{{ item.badge }}</small>
-                </button>
-            </section>
-        </nav>
-
-        <article class="profile-green-card">
-            <div class="profile-green-card__art"><i class="bi bi-tree"></i></div>
-            <h3>Du lịch xanh<br>Hành trình xanh</h3>
-            <p>Cùng GreenSteps bảo vệ thiên nhiên trong từng chuyến đi.</p>
-            <button type="button" routerLink="/home">Tìm hiểu thêm <i class="bi bi-arrow-right"></i></button>
-        </article>
-    </aside>
-
     <section class="profile-dashboard__content overview-dashboard" *ngIf="activeSection === 'overview'">
         <div class="overview-page">
             <div class="overview-layout profile-overview-grid">
@@ -89,7 +63,7 @@
                     <article id="upcoming-trip-card" class="profile-card dashboard-card profile-upcoming-card upcoming-trip-card">
                         <header class="profile-card-header">
                             <h2>Lịch trình sắp tới</h2>
-                            <a href="#" (click)="activeSection = 'tickets'; $event.preventDefault()">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                            <a href="#" (click)="setActiveSection('tickets'); $event.preventDefault()">Xem tất cả <i class="bi bi-arrow-right"></i></a>
                         </header>
 
                         <!-- Đã có lịch trình hoặc đơn đặt trong database -->
@@ -272,7 +246,7 @@
                     <article class="profile-card dashboard-card overview-activity-card recent-activity-card">
                         <header class="profile-card-header">
                             <h2>Hoạt động gần đây</h2>
-                            <a href="#" (click)="$event.preventDefault(); activeSection = 'notifications'">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                            <a href="#" (click)="$event.preventDefault(); setActiveSection('notifications')">Xem tất cả <i class="bi bi-arrow-right"></i></a>
                         </header>
                         <div class="overview-activity-list recent-list" *ngIf="notificationsList.length > 0">
                             <div class="recent-item" *ngFor="let notif of notificationsList.slice(0, 3)">
@@ -313,7 +287,7 @@
                             <button type="button" class="wallet-button" *ngIf="!walletRegistered"
                                 (click)="handleWalletActivation()">Kích hoạt ví GreenSteps</button>
                             <button type="button" class="wallet-button active-wallet-btn" *ngIf="walletRegistered"
-                                (click)="activeSection = 'wallet'"
+                                (click)="setActiveSection('wallet')"
                                 style="background-color: var(--primary-green); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.2);">
                                 <i class="bi bi-wallet2"></i> Truy cập ví
                             </button>
@@ -1041,6 +1015,10 @@
                 <i class="bi bi-map"></i> Mở bản đồ lịch trình
             </a>
         </article>
+    </section>
+
+    <section class="profile-dashboard__content" *ngIf="activeSection === 'chatbot'">
+        <app-greensteps-chat [pageMode]="true"></app-greensteps-chat>
     </section>
 
     <section class="profile-dashboard__content" *ngIf="false && activeSection === 'personal'">

@@ -5114,6 +5114,15 @@
 .profile-dashboard--overview .profile-green-card{
   display:none!important;
 }
+.profile-dashboard{
+  display:block!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  min-height:calc(100vh - var(--header));
+  padding-top:0!important;
+}
+.profile-dashboard .profile-dashboard__content{
+  grid-column:1!important;
+}
 .profile-dashboard--overview .profile-dashboard__content{
   grid-column:2!important;
   min-height:100vh;
@@ -5957,5 +5966,30 @@
     grid-row:1/3;
     font-size:20px;
   }
+}
+
+:host{
+  display:block;
+  width:100%;
+  min-width:0;
+}
+.profile-dashboard,
+.profile-dashboard.profile-dashboard--overview{
+  --header:0px;
+  --side:0px;
+  display:block!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;
+  padding-top:0!important;
+}
+.profile-dashboard .profile-dashboard__content{
+  grid-column:1!important;
+  width:100%!important;
+}
+.profile-dashboard,
+.profile-dashboard .profile-dashboard__content,
+.overview-dashboard,
+.overview-dashboard .overview-page{
+  background:transparent!important;
 }
 
