@@ -265,13 +265,13 @@ exports.getPresetTourById = async (req, res, next) => {
     });
     if (!s || !s.Schedule) {
       const editorial = await Schedule.findByPk(id, { include: [{ model: ScheduleActivity }] });
-      if (editorial && ['demo', 'editorial'].includes(editorial.catalog_status)) {
+      if (editorial && (['demo', 'editorial', 'legacy'].includes(editorial.catalog_status) || id.startsWith('tour_nat_') || id.startsWith('demo-vn-tour-'))) {
         return res.json({
           ...formatTourResponse({ id: editorial.id }, editorial, [], editorial.ScheduleActivities || []),
           catalog_status: editorial.catalog_status,
-          is_demo: true,
-          bookingEnabled: false,
-          priceStatus: 'on_request'
+          is_demo: editorial.catalog_status === 'demo',
+          bookingEnabled: editorial.booking_enabled !== false,
+          priceStatus: editorial.price_status || (editorial.price ? 'fixed' : 'on_request')
         });
       }
       return res.status(404).json({ success: false, message: 'Không tìm thấy tour du lịch này!' });
