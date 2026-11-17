@@ -2419,6 +2419,23 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.onCustomPlaceTyping();
   }
 
+  public formatPriceOrFree(item: any): string {
+    if (item && item.cost !== undefined && item.cost !== null && Number(item.cost) > 0) {
+      return new Intl.NumberFormat('vi-VN').format(Number(item.cost)) + '₫';
+    }
+    const text = `${item?.name || item?.title || ''} ${item?.category || ''} ${item?.type || ''}`.toLowerCase();
+    const isCommercial = text.includes('hotel') || text.includes('khách sạn') || text.includes('homestay') ||
+                         text.includes('resort') || text.includes('villa') || text.includes('nhà nghỉ') ||
+                         text.includes('quán ăn') || text.includes('nhà hàng') || text.includes('cafe') ||
+                         text.includes('cà phê') || text.includes('quán nhậu') || text.includes('ẩm thực') ||
+                         text.includes('nước') || text.includes('công viên nước') || text.includes('khu du lịch') ||
+                         text.includes('vui chơi') || text.includes('vé');
+    if (item?.cost === 0 || !isCommercial) {
+      return '0₫ (Miễn phí)';
+    }
+    return 'Chưa có thông tin về giá';
+  }
+
   public onCustomPlaceTyping() {
     const val = (this.customPlaceTitle || '').trim();
     if (!val || !this.activeItinerary) {

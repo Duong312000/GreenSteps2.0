@@ -119,7 +119,11 @@
             </div>
 
             <ng-template #publicListingPrice>
-                <div class="public-listing-price"><span>{{ activeTour.priceStatus === 'reference' ? 'Giá công khai · tham khảo' : 'Giá theo ngày và nhu cầu' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'; else priceOnRequest">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><ng-template #priceOnRequest><strong>Chưa có giá</strong></ng-template><p>Dịch vụ chưa mở đặt chỗ trên GreenSteps. Vui lòng chọn dịch vụ khác hoặc thử lại sau.</p></div>
+                <div class="public-listing-price">
+                    <span>{{ activeTour.cost && activeTour.cost > 0 ? 'Giá tham khảo từ cơ sở' : 'Thông tin giá' }}</span>
+                    <strong>{{ priceDisplayLabel }}</strong>
+                    <p>{{ isCommercialCategory() ? 'Dịch vụ chưa mở cổng đặt chỗ trực tuyến qua GreenSteps. Quý khách vui lòng liên hệ cơ sở để biết biểu phí chính xác theo thời điểm.' : 'Điểm tham quan / tiện ích công cộng phục vụ tự do, không thu phí vào cửa.' }}</p>
+                </div>
             </ng-template>
             <form *ngIf="bookingAvailable" class="booking-form" (submit)="submitBooking($event)">
                 <label class="form-field" for="bookingDate">
@@ -910,7 +914,15 @@
         </div>
         <button type="button" (click)="submitBooking($event)">{{ detailBookingLabel }}</button>
     </div>
-    <ng-template #publicMobileBar><div class="mobile-booking-bar"><div><span>{{ activeTour.priceStatus === 'reference' ? 'Giá tham khảo' : 'Xác nhận trực tiếp với cơ sở' }}</span><strong *ngIf="activeTour.priceStatus === 'reference'">{{ activeTour.cost | number:'1.0-0':'vi-VN' }}đ</strong><strong *ngIf="activeTour.priceStatus !== 'reference'">Liên hệ báo giá</strong></div><a class="official-contact-button" *ngIf="activeTour.sourceUrls?.length" [href]="activeTour.sourceUrls![0]" target="_blank" rel="noopener noreferrer">Liên hệ</a></div></ng-template>
+    <ng-template #publicMobileBar>
+        <div class="mobile-booking-bar">
+            <div>
+                <span>{{ activeTour.cost && activeTour.cost > 0 ? 'Giá tham khảo' : 'Thông tin giá' }}</span>
+                <strong>{{ priceDisplayLabel }}</strong>
+            </div>
+            <a class="official-contact-button" *ngIf="activeTour.sourceUrls?.length" [href]="activeTour.sourceUrls![0]" target="_blank" rel="noopener noreferrer">Liên hệ</a>
+        </div>
+    </ng-template>
     <div class="tour-photo-modal" *ngIf="isPhotoGalleryOpen" (click)="closePhotoGallery()">
         <div class="tour-photo-modal-card" (click)="$event.stopPropagation()">
             <div class="tour-photo-modal-header">

@@ -612,7 +612,7 @@
                                         <!-- Clickable Price or Inline Price Input -->
                                         <ng-container *ngIf="editingPriceActId !== act.id">
                                             <span class="act-meta-cost" (click)="startEditActivityPrice(act)" title="Nhấp để chỉnh sửa chi phí địa điểm này" style="cursor: pointer;">
-                                                {{ act.cost === 0 ? 'Miễn phí' : (act.cost | number:'1.0-0':'vi-VN') + '₫' }}
+                                                {{ formatPriceOrFree(act) }}
                                                 <i class="bi bi-pencil" style="font-size: 10px; opacity: 0.6; margin-left: 2px;"></i>
                                             </span>
                                             <span class="act-unknown-price-badge" *ngIf="act.priceUnknown" (click)="startEditActivityPrice(act)">
@@ -777,8 +777,7 @@
                         <h4 class="sugg-modern-name" [title]="rec.name">{{ rec.name }}</h4>
 
                         <div class="sugg-modern-bottom-row">
-                            <span class="sugg-modern-price">{{ rec.cost === 0 ? 'Miễn phí' : (rec.cost |
-                                number:'1.0-0':'vi-VN') + '₫' }}</span>
+                            <span class="sugg-modern-price">{{ formatPriceOrFree(rec) }}</span>
                             <button type="button" class="sugg-modern-add-btn"
                                 (click)="$event.stopPropagation(); addPoolItemToActiveDay(rec.name, rec.type, rec.cost, rec.carbon, rec.lat, rec.lng)"
                                 title="Thêm vào ngày {{ activeDayIdx + 1 }}">

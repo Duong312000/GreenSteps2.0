@@ -658,6 +658,27 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
 
+  public isCommercialCategory(item: any = this.activeTour): boolean {
+    const text = `${item?.name || item?.title || ''} ${item?.category || ''} ${item?.type || ''}`.toLowerCase();
+    return text.includes('hotel') || text.includes('khách sạn') || text.includes('homestay') ||
+           text.includes('resort') || text.includes('villa') || text.includes('nhà nghỉ') ||
+           text.includes('quán ăn') || text.includes('nhà hàng') || text.includes('cafe') ||
+           text.includes('cà phê') || text.includes('quán nhậu') || text.includes('ẩm thực') ||
+           text.includes('nước') || text.includes('công viên nước') || text.includes('khu du lịch') ||
+           text.includes('vui chơi') || text.includes('vé');
+  }
+
+  public get priceDisplayLabel(): string {
+    if (!this.activeTour) return 'Chưa có thông tin về giá';
+    if (this.activeTour.cost !== undefined && this.activeTour.cost !== null && Number(this.activeTour.cost) > 0) {
+      return new Intl.NumberFormat('vi-VN').format(Number(this.activeTour.cost)) + 'đ';
+    }
+    if (this.activeTour.cost === 0 || !this.isCommercialCategory(this.activeTour)) {
+      return '0đ (Miễn phí)';
+    }
+    return 'Chưa có thông tin về giá';
+  }
+
   public get totalPrice(): number {
     if (!this.activeTour) return 0;
     if (this.isLodging) return this.selectedRoom

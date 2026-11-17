@@ -143,12 +143,20 @@ async function crawlAndPersistServices({ destination, serviceType = 'stay', maxR
 
     const type = inferServiceType(place.types, serviceType);
 
-    // Realistic pricing
-    let cost = 550000;
-    if (type === 'dining') cost = 120000;
-    else if (type === 'experience') cost = 90000;
-    if (place.priceLevel === 'PRICE_LEVEL_EXPENSIVE') cost *= 2;
-    if (place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE') cost = Math.round(cost * 0.7);
+    // Realistic pricing logic:
+    // - Public points of interest (parks, beaches, public landmarks, hospitals): cost = 0 (free)
+    // - Commercial establishments (hotels, homestays, restaurants, cafes, waterparks) without confirmed price: cost = null
+    const nameLower = (place.displayName?.text || '').toLowerCase();
+    const isPublic = nameLower.includes('bãi') || nameLower.includes('biển') || nameLower.includes('công viên') ||
+                     nameLower.includes('bệnh viện') || nameLower.includes('cầu ') || nameLower.includes('tượng đài') ||
+                     nameLower.includes('chợ') || nameLower.includes('đèo') || nameLower.includes('bán đảo');
+
+    let cost = null;
+    let priceStatus = 'unknown';
+    if (isPublic) {
+      cost = 0;
+      priceStatus = 'free';
+    }
 
     // Realistic CO2 rating (kg CO2 per guest)
     const carbon = Number((2.4 + (Math.random() * 2.2)).toFixed(1));
@@ -158,6 +166,7 @@ async function crawlAndPersistServices({ destination, serviceType = 'stay', maxR
       name_service: place.displayName?.text || 'Dịch vụ sinh thái ' + destination,
       type,
       cost,
+      priceStatus,
       destination,
       carbon,
       image_url: coverPhotoUrl,
