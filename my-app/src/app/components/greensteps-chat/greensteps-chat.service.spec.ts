@@ -20,7 +20,12 @@ function tourReply(sessionId: string): GreenStepsChatResponse {
 
 async function expectChatRequest(http: HttpTestingController) {
   await Promise.resolve();
-  return http.expectOne(candidate => candidate.url.endsWith('/api/support/chat'));
+  const access = http.expectOne(candidate => candidate.url.endsWith('/api/support/chat-access'));
+  expect(access.request.method).toBe('POST');
+  access.flush({ success: true, webhookUrl: 'https://n8n.example.test/webhook/greensteps', token: 'short-lived-test-token', expiresIn: 120 });
+  await Promise.resolve();
+  await Promise.resolve();
+  return http.expectOne('https://n8n.example.test/webhook/greensteps');
 }
 
 describe('GreenStepsChatService transcript operations', () => {
@@ -34,6 +39,27 @@ describe('GreenStepsChatService transcript operations', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('sends a three-day Đà Lạt tour search directly to n8n with the short-lived Bearer token', async () => {
+    const pending = chat.sendMessage('Tìm tour 3 ngày 2 đêm Đà Lạt');
+    await Promise.resolve();
+    const access = http.expectOne(candidate => candidate.url.endsWith('/api/support/chat-access'));
+    expect(access.request.body).toEqual({});
+    access.flush({ success: true, webhookUrl: 'https://n8n.example.test/webhook/greensteps', token: 'short-lived-test-token', expiresIn: 120 });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const request = http.expectOne('https://n8n.example.test/webhook/greensteps');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer short-lived-test-token');
+    expect(request.request.body.message).toBe('Tìm tour 3 ngày 2 đêm Đà Lạt');
+    expect(request.request.body.requestIntent).toBe('tour_search');
+    expect(request.request.body.catalogDestination).toBe('Đà Lạt');
+    request.flush([tourReply(request.request.body.sessionId)]);
+    await pending;
+
+    expect(chat.latestResult()?.tours[0].id).toBe('tour-live-1');
+  });
 
   it('stores the structured recommendation on the assistant turn', async () => {
     expect(typeof chat.sendMessage).toBe('function');
@@ -101,6 +127,19 @@ describe('GreenStepsChatService transcript operations', () => {
     expect(chat.transcript()[0].content).toBe('Tìm tour Đà Lạt');
   });
 
+  it('does not post to n8n when the user cancels while the access token is being issued', async () => {
+    const pending = chat.sendMessage('Tìm tour Đà Lạt');
+    await Promise.resolve();
+    const access = http.expectOne(candidate => candidate.url.endsWith('/api/support/chat-access'));
+
+    chat.cancelMessage();
+    await pending;
+
+    expect(access.cancelled).toBe(true);
+    http.expectNone('https://n8n.example.test/webhook/greensteps');
+    expect(chat.transcript().map(message => message.role)).toEqual(['user']);
+  });
+
   it('retains the last tour context after a text-only assistant turn', async () => {
     const first = chat.sendMessage('Tìm tour Đà Lạt');
     const firstRequest = await expectChatRequest(http);
@@ -149,7 +188,7 @@ describe('GreenStepsChatService transcript operations', () => {
     const pending = chat.sendMessage('TÃ¬m tour ÄÃ  Láº¡t');
     const request = await expectChatRequest(http);
     await chat.sendMessage('TÃ¬m tour ÄÃ  Náºµng');
-    http.expectNone(candidate => candidate.url.endsWith('/api/support/chat') && candidate.body.message === 'TÃ¬m tour ÄÃ  Náºµng');
+    http.expectNone(candidate => candidate.url === 'https://n8n.example.test/webhook/greensteps' && candidate.body.message === 'TÃ¬m tour ÄÃ  Náºµng');
     expect(chat.transcript().map(message => message.content)).toEqual(['TÃ¬m tour ÄÃ  Láº¡t']);
 
     request.flush(tourReply(request.request.body.sessionId));

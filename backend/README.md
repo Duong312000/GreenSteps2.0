@@ -118,3 +118,13 @@ Các model/route Mongoose trong `server_mongodb/models` và
 `server_mongodb/routes` là bản demo cũ, không được entrypoint mới nạp.
 `server_mongodb/scripts/import_public_catalog_seed.js` chỉ phục vụ demo
 ObjectId cũ, không dùng để nạp vào namespace `app_*`.
+
+## Direct frontend-to-n8n chat
+
+The GreenSteps chat widget can POST directly to the active n8n production webhook. Configure these backend environment variables on the API service:
+
+- `N8N_CHAT_WEBHOOK_URL`: the active production webhook URL.
+- `N8N_CHAT_JWT_SECRET`: a random secret of at least 32 characters; configure the same value in the n8n Webhook JWT credential using HS256.
+- `N8N_CATALOG_API_KEY`: a separate random server-to-server key; configure it as a Header Auth credential on n8n's catalog HTTP Request node.
+
+The browser requests a two-minute chat token from `POST /api/support/chat-access`, then sends the chat request directly to n8n with `Authorization: Bearer <token>`. It never receives either long-lived secret. The workflow fetches the bounded catalog from `POST /api/support/catalog` using the catalog key. Set the webhook's Allowed Origins to the deployed frontend origin. Import the credential-free workflow artifact and attach the JWT and Header Auth credentials in n8n before publishing it.

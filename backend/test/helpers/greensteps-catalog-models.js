@@ -17,6 +17,15 @@ function createCatalogModels({ tours = [], services = [], activities = [] } = {}
   return {
     Schedule: { collection: { collectionName: 'test_schedules' } },
     ScheduleSample: {
+      async findAll() {
+        return samples.map(sample => ({
+          ...sample,
+          Schedule: {
+            ...scheduleById.get(sample.id),
+            ScheduleActivities: activities.filter(activity => activity.schedule_id === sample.id)
+          }
+        }));
+      },
       collection: {
         collectionName: 'test_schedulesamples',
         aggregate(pipeline) {

@@ -29,6 +29,11 @@ function explicitChatMessageIntent(message: string): 'itinerary' | 'tour_search'
     : '';
 }
 
+function catalogDestinationForMessage(message: string): string {
+  const afterDuration = message.match(/\d{1,2}\s*(?:ngày|ngay|day)\s+\d{1,2}\s*(?:đêm|dem|night)\s+(?:(?:ở|tại|đến|o|tai|den)\s+)?([\p{L}][\p{L}\s.'-]{1,58}?)(?=[,;.!?]|$)/iu)?.[1]?.trim();
+  return afterDuration || '';
+}
+
 function requestedItineraryDestination(message: string): string {
   const normalized = normalizeChatIntent(message);
   const match = normalized.match(/(?:lich trinh|ke hoach|hanh trinh)\s+(?:di\s+)?([\p{L}][\p{L}\s'-]{1,50}?)(?=\s+\d{1,2}\s*(?:ngay|dem)|[,;.!?]|$)/u);
@@ -81,7 +86,7 @@ function parseTextItinerary(reply: string, request: string): ChatItineraryDraft 
 @Injectable({ providedIn: 'root' })
 export class GreenStepsChatService {
   private readonly http = inject(HttpClient);
-  private readonly endpoint = `${getApiUrl()}/support/chat`;
+  private readonly accessEndpoint = `${getApiUrl()}/support/chat-access`;
   // Memory only: opening/closing and routing never erase messages; reload starts
   // fresh. These interfaces can later be backed by authenticated MongoDB storage.
   private readonly conversations = new Map<string, Conversation>();
@@ -257,11 +262,22 @@ export class GreenStepsChatService {
     const saved = this.conversations.get(this.activeId)?.messages ?? [];
     const history = saved.filter(item => this.visibleMessage(item));
     if (history.at(-1)?.role === 'user' && history.at(-1)?.content === message) history.pop();
-    const body: GreenStepsChatRequest = {
+    const requestPreviousAssistantText = [...history].reverse().find(item => item.role === 'assistant')?.content || '';
+    const requestPreviousIntent = [...history].reverse()
+      .filter(item => item.role === 'user')
+      .map(item => explicitChatMessageIntent(item.content))
+      .find(intent => intent !== '') || '';
+    const requestAnswersDuration = /\b\d{1,2}\s*(?:ngay|day|dem|night)\b/.test(normalizeChatIntent(message));
+    const requestAnswersItineraryClarification = /ban muon lap lich trinh o dau|ban muon den diem den nao|chon mot diem den|chon thoi luong|ban muon di .{1,50} trong bao lau|ban muon lap lich trinh trong bao lau/.test(normalizeChatIntent(requestPreviousAssistantText));
+    const explicitIntent = explicitChatMessageIntent(message);
+    const requestIntent = explicitIntent || (requestPreviousIntent === 'itinerary' && (requestAnswersDuration || requestAnswersItineraryClarification) ? 'itinerary' : undefined);
+    const body: GreenStepsChatRequest & { requestIntent?: 'itinerary' | 'tour_search'; catalogDestination: string } = {
       message, sessionId: this.activeId,
       history: history.slice(-6).map(item => ({ role: item.role as 'user' | 'assistant', content: item.content.slice(0, 1000) })),
       plannerState: this.currentItinerary(),
-      currentTours: this.currentToursContext().slice(0, 9)
+      currentTours: this.currentToursContext().slice(0, 9),
+      catalogDestination: catalogDestinationForMessage(message),
+      ...(requestIntent ? { requestIntent } : {})
     };
     while (JSON.stringify(body.history).length > 60000) body.history.shift();
     if (manageSendingState) this.isSending.set(true);
@@ -270,10 +286,21 @@ export class GreenStepsChatService {
     const started = performance.now();
     let status = 0;
     try {
-      const pending = this.http.post<GreenStepsChatResponse>(this.endpoint, body, { observe: 'response' }).pipe(timeout(50000));
-      const result = await firstValueFrom(abort ? pending.pipe(takeUntil(fromEvent(abort, 'abort'))) : pending);
+      const accessPending = this.http.post<{ success: boolean; webhookUrl: string; token: string; expiresIn: number }>(this.accessEndpoint, {}, { observe: 'response' }).pipe(timeout(10000));
+      const accessResult = await firstValueFrom(abort ? accessPending.pipe(takeUntil(fromEvent(abort, 'abort'))) : accessPending);
+      status = accessResult.status;
+      const access = accessResult.body;
+      if (!access?.success || typeof access.webhookUrl !== 'string' || typeof access.token !== 'string') {
+        throw new Error('Không lấy được quyền kết nối chatbot. Vui lòng thử lại.');
+      }
+      const chatPending = this.http.post<GreenStepsChatResponse | GreenStepsChatResponse[]>(access.webhookUrl, body, {
+        observe: 'response',
+        headers: { Authorization: `Bearer ${access.token}` }
+      }).pipe(timeout(50000));
+      const result = await firstValueFrom(abort ? chatPending.pipe(takeUntil(fromEvent(abort, 'abort'))) : chatPending);
       status = result.status;
-      const response = result.body;
+      const responseBody = Array.isArray(result.body) && result.body.length === 1 ? result.body[0] : result.body;
+      const response = responseBody as GreenStepsChatResponse | null;
       if (!response) throw new Error('Trợ lý chưa gửi được câu trả lời.');
       if (!response.success || typeof response.reply !== 'string' || !response.reply.trim()) throw new Error('Trợ lý chưa gửi được câu trả lời. Vui lòng thử lại.');
       const tours = Array.isArray(response.tours) ? response.tours : [];
@@ -342,7 +369,7 @@ export class GreenStepsChatService {
       this.connectionError.set(text);
       throw new Error(text);
     } finally {
-      console.info('[GreenSteps chat performance]', { frontendExpressMs: Math.round(performance.now() - started), status });
+      console.info('[GreenSteps chat performance]', { frontendChatMs: Math.round(performance.now() - started), status });
       if (manageSendingState) this.isSending.set(false);
     }
   }

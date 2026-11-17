@@ -3,11 +3,71 @@ const { randomUUID } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
 const { softAuth } = require('../middlewares/auth.middleware');
 const { validateChatInput, createChatAdapter } = require('../services/greensteps-chat.service');
+const { createChatAccess, catalogKeyMatches } = require('../services/n8n-chat-access.service');
+const { loadAgentCatalog, queryFromRequest } = require('../services/greensteps-agent-catalog.service');
+
+function rateLimit(requests, req, now = Date.now()) {
+  const key = req.user?.id || req.ip || 'unknown';
+  for (const [id, entry] of requests) if (entry.expires < now) requests.delete(id);
+  const entry = requests.get(key) || { expires: now + 60000, count: 0 };
+  entry.count++;
+  requests.set(key, entry);
+  return entry.count <= 20;
+}
 
 function createSupportRouter(options = {}) {
   const router = express.Router();
   const send = createChatAdapter(options);
+  const env = options.env || process.env;
+  const catalogLoader = options.catalogLoader || loadAgentCatalog;
   const requests = new Map();
+
+  router.post('/chat-access', softAuth, (req, res) => {
+    if (!rateLimit(requests, req)) {
+      res.set('Retry-After', '60');
+      return res.status(429).json({ success: false, code: 'CHAT_RATE_LIMITED', message: 'Too many chat requests. Try again in a minute.' });
+    }
+    try {
+      return res.json(createChatAccess({ env, userId: req.user?.id }));
+    } catch (error) {
+      return res.status(error.statusCode || 503).json({
+        success: false,
+        code: error.code || 'CHAT_NOT_CONFIGURED',
+        message: error.message || 'AI chat is not configured.'
+      });
+    }
+  });
+
+  router.post('/catalog', async (req, res) => {
+    const expectedKey = env.N8N_CATALOG_API_KEY;
+    if (!catalogKeyMatches(req.get('X-GreenSteps-Catalog-Key'), expectedKey)) {
+      return res.status(401).json({ success: false, code: 'CATALOG_UNAUTHORIZED' });
+    }
+    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+    if (!message || message.length > 4000) {
+      return res.status(400).json({ success: false, code: 'CATALOG_INPUT_INVALID' });
+    }
+    const requestIntent = ['itinerary', 'tour_search'].includes(req.body?.requestIntent)
+      ? req.body.requestIntent
+      : 'general';
+    const catalogPage = Number.isInteger(req.body?.catalogPage) && req.body.catalogPage > 0
+      ? Math.min(req.body.catalogPage, 10000)
+      : 1;
+    try {
+      const catalog = await catalogLoader({
+        query: queryFromRequest({ message, destination: req.body?.destination, catalogPage }),
+        includeServiceCandidates: requestIntent === 'itinerary',
+        includeServices: requestIntent !== 'tour_search'
+      });
+      if (!catalog.available) {
+        return res.status(503).json({ success: false, code: 'CHAT_CATALOG_UNAVAILABLE' });
+      }
+      return res.json({ success: true, catalog });
+    } catch {
+      return res.status(503).json({ success: false, code: 'CHAT_CATALOG_UNAVAILABLE' });
+    }
+  });
+
   router.post('/chat', softAuth, async (req, res) => {
     const start = performance.now();
     const requestId = randomUUID();
