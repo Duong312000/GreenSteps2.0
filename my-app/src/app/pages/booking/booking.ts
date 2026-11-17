@@ -1441,7 +1441,9 @@ export class BookingComponent implements OnInit, OnDestroy {
   public get depositAmount() {
     if (this.isTransportBooking) return this.basePrice;
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
-      return Number(this.itineraryPricingSnapshot.deposit) || Math.round(this.totalAmount * 0.3);
+      if (this.itineraryPricingSnapshot.deposit !== undefined && this.itineraryPricingSnapshot.deposit !== null) {
+        return Number(this.itineraryPricingSnapshot.deposit);
+      }
     }
     if (this.usesServiceQuote) return Math.ceil(this.totalAmount * Number(this.lodgingPricing?.depositPercent || 30) / 100);
     return Math.round(this.totalAmount * 0.3);

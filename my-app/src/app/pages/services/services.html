@@ -205,10 +205,10 @@
               <div class="card-dest-row">
                 <span class="card-dest-tag">{{ s.destination }}</span>
                 <span *ngIf="s.is_partner === true" class="partner-verified-tag">
-                  Đối tác GreenSteps
+                  <i class="bi bi-patch-check-fill"></i> Đối tác GreenSteps
                 </span>
-                <span *ngIf="s.source === 'google_maps'" class="google-public-tag">
-                  Điểm tham quan
+                <span *ngIf="s.is_partner === false || s.source === 'google_maps'" class="google-public-tag">
+                  <i class="bi bi-geo-alt-fill"></i> Địa danh Google Maps
                 </span>
                 <span *ngIf="s.isRecommended" class="recommended-badge">
                   <i class="bi bi-sparkles"></i> Gợi ý
@@ -227,6 +227,7 @@
                        class="bi" 
                        [class.bi-star-fill]="star <= (s.rating || 0)"
                        [class.bi-star-half]="star - 0.5 === (s.rating || 0)"
+                       [class.bi-star-left-half]="star - 0.5 === (s.rating || 0)"
                        [class.bi-star]="star > (s.rating || 0)">
                     </i>
                   </div>
@@ -246,8 +247,18 @@
 
               <!-- Price Row (Shop.co signature layout) -->
               <div class="card-price-row">
-                <span class="current-price" *ngIf="s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ</span>
-                <span class="current-price text-slate-500" *ngIf="s.cost === undefined || s.cost === null">Liên hệ đặt chỗ</span>
+                <!-- Có giá cụ thể > 0 -->
+                <span class="current-price" *ngIf="s.cost !== undefined && s.cost !== null && s.cost > 0">
+                  {{ s.cost | number:'1.0-0' }}đ
+                </span>
+                <!-- Cơ sở thương mại (lưu trú, nhà hàng, quán cafe, quán nhậu, khu vui chơi có vé) mà không có giá -->
+                <span class="current-price text-slate-500 text-xs font-semibold" *ngIf="(!s.cost || s.cost === 0) && isCommercialCategory(s)">
+                  Chưa có thông tin về giá
+                </span>
+                <!-- Địa điểm công cộng (công viên, bãi biển, bãi tắm, danh thắng tự nhiên, bệnh viện, chợ...) -->
+                <span class="current-price text-emerald-700 text-sm font-bold" *ngIf="(!s.cost || s.cost === 0) && !isCommercialCategory(s)">
+                  0đ
+                </span>
                 <span *ngIf="s.oldCost && s.cost != null && s.oldCost > s.cost" class="old-price">
                   {{ s.oldCost | number:'1.0-0' }}đ
                 </span>

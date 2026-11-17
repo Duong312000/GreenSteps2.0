@@ -154,7 +154,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // Checkout modal properties
   public isCheckoutModalOpen: boolean = false;
   public isItineraryPay: boolean = false;
-  public checkoutItems: { title: string; cost: number }[] = [];
+  public checkoutItems: { title: string; cost: number; isPartner?: boolean; depositRequired?: boolean }[] = [];
   public checkoutTotal: number = 0;
 
   // New Checkout details bindings
@@ -5049,19 +5049,36 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (this.activeItinerary && this.activeItinerary.days) {
       this.activeItinerary.days.forEach((day: any) => {
         (day.activities || []).forEach((act: any) => {
-          if (act.cost > 0) {
-            this.checkoutItems.push({ title: `${day.title}: ${act.title}`, cost: act.cost });
-          }
+          const isPartner = act.is_partner === true || act.isPartner === true || act.source === 'partner' || (act.provider && act.provider !== 'Google Maps');
+          const isShared = act.is_shared === true || act.isShared === true || act.type === 'lodging';
+          const actCost = Number(act.cost) || 0;
+          const totalActCost = isShared ? actCost : (actCost * this.guestCount);
+          this.checkoutItems.push({
+            title: `${day.title || 'Ngày'}: ${act.title || act.name}`,
+            cost: totalActCost,
+            isPartner: Boolean(isPartner),
+            depositRequired: Boolean(isPartner && totalActCost > 0)
+          } as any);
         });
         if (day.legTransports) {
           Object.values(day.legTransports).forEach((lt: any) => {
             if (lt && lt.price) {
-              this.checkoutItems.push({ title: `${day.title}: Xe chặng (${lt.provider} - ${lt.vehicleName})`, cost: lt.price });
+              this.checkoutItems.push({
+                title: `${day.title}: Xe chặng (${lt.provider} - ${lt.vehicleName})`,
+                cost: Number(lt.price) || 0,
+                isPartner: true,
+                depositRequired: true
+              } as any);
             }
           });
         }
         if (day.vehicleRental && day.vehicleRental.price) {
-          this.checkoutItems.push({ title: `${day.title}: Thuê xe (${day.vehicleRental.provider} - ${day.vehicleRental.vehicleName})`, cost: day.vehicleRental.price });
+          this.checkoutItems.push({
+            title: `${day.title}: Thuê xe (${day.vehicleRental.provider} - ${day.vehicleRental.vehicleName})`,
+            cost: Number(day.vehicleRental.price) || 0,
+            isPartner: true,
+            depositRequired: true
+          } as any);
         }
       });
     }
@@ -5069,10 +5086,15 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (this.activeItinerary && this.activeItinerary.departureTransport && this.activeItinerary.departureTransport.price) {
       const dt = this.activeItinerary.departureTransport;
       const count = this.guestCount || 1;
-      this.checkoutItems.push({ title: `Vé xuất phát: ${dt.provider} (${dt.name}) x ${count} vé`, cost: dt.price * count });
+      this.checkoutItems.push({
+        title: `Vé xuất phát: ${dt.provider} (${dt.name}) x ${count} vé`,
+        cost: (Number(dt.price) || 0) * count,
+        isPartner: true,
+        depositRequired: true
+      } as any);
     }
 
-    this.checkoutTotal = this.itineraryTotalCost || this.totalCost;
+    this.checkoutTotal = this.itineraryDepositAmount > 0 ? this.itineraryDepositAmount : this.itineraryFinalTotal;
     if (!this.currentUser) {
       this.checkoutPaymentMethod = 'qr';
     } else {
@@ -5208,8 +5230,44 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return this.itinerarySubtotalCost - this.itineraryDiscountAmount + this.itineraryVatAmount;
   }
 
+  public get itineraryPartnerCost(): number {
+    let cost = 0;
+    if (this.activeItinerary && this.activeItinerary.days) {
+      this.activeItinerary.days.forEach((day: any) => {
+        if (day && day.activities) {
+          day.activities.forEach((act: any) => {
+            const isPartner = act.is_partner === true || act.isPartner === true || act.source === 'partner' || (act.provider && act.provider !== 'Google Maps');
+            if (isPartner && Number(act.cost) > 0) {
+              const isShared = act.is_shared === true || act.isShared === true || act.type === 'lodging';
+              if (isShared) {
+                cost += Number(act.cost);
+              } else {
+                cost += Number(act.cost) * this.guestCount;
+              }
+            }
+          });
+        }
+        if (day.legTransports) {
+          Object.values(day.legTransports).forEach((lt: any) => {
+            if (lt && lt.price) cost += Number(lt.price) || 0;
+          });
+        }
+        if (day.vehicleRental && day.vehicleRental.price) {
+          cost += Number(day.vehicleRental.price) || 0;
+        }
+      });
+    }
+    if (this.activeItinerary?.departureTransport?.price) {
+      cost += Number(this.activeItinerary.departureTransport.price) * this.guestCount;
+    }
+    return cost;
+  }
+
   public get itineraryDepositAmount(): number {
-    return Math.round(this.itineraryFinalTotal * 0.3);
+    // Chỉ thu cọc 30% đối với các dịch vụ của ĐỐI TÁC GREENSTEPS
+    const partnerCost = this.itineraryPartnerCost;
+    if (partnerCost <= 0) return 0;
+    return Math.round(partnerCost * 0.3);
   }
 
   public get itineraryRemainingAmount(): number {

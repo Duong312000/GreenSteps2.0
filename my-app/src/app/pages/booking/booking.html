@@ -709,11 +709,11 @@
 
           <!-- Payment Milestones (Clean Typographic Flow, No Nested Box) -->
           <div class="ticket-milestone-flow">
-            <div class="milestone-row is-deposit">
+            <div class="milestone-row is-deposit" *ngIf="depositAmount > 0">
               <div class="milestone-dot"></div>
               <div class="milestone-desc">
                 <div class="milestone-top">
-                  <span>Đặt cọc đợt 1 (30%)</span>
+                  <span>Đặt cọc đợt 1 (30% dịch vụ Đối tác)</span>
                   <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
                 </div>
                 <small>Giữ chỗ ngay · Hoàn 100% nếu hủy trước {{ cancellationDate }}</small>
@@ -723,10 +723,10 @@
               <div class="milestone-dot"></div>
               <div class="milestone-desc">
                 <div class="milestone-top">
-                  <span>Thanh toán đợt 2 (70%)</span>
+                  <span>{{ depositAmount > 0 ? 'Thanh toán đợt 2 (Còn lại)' : 'Thanh toán khi trải nghiệm (100%)' }}</span>
                   <b>{{ remainingAmount | number:'1.0-0':'vi-VN' }}đ</b>
                 </div>
-                <small>Thanh toán vào {{ bookingContext.checkIn | date:'dd/MM/yyyy' }} khi khởi hành</small>
+                <small>{{ depositAmount > 0 ? ('Thanh toán vào ' + (bookingContext.checkIn | date:'dd/MM/yyyy') + ' khi khởi hành') : 'Các điểm tham quan tự túc / miễn phí không yêu cầu đặt cọc trước' }}</small>
               </div>
             </div>
           </div>

@@ -201,11 +201,11 @@
                     <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-row" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
-                    <span class="cost-label">Đặt cọc giữ chỗ (30%):</span>
+                    <span class="cost-label">Đặt cọc giữ chỗ (30% Đối tác):</span>
                     <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-row" style="font-size: 11px; color: #64748b;">
-                    <span class="cost-label">Còn lại khi khởi hành (70%):</span>
+                    <span class="cost-label">Còn lại khi khởi hành:</span>
                     <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
             </div>
@@ -2039,24 +2039,55 @@
 
                 <!-- 2. Billing details -->
                 <div class="billing-container text-left">
-                    <h4 class="text-xs font-bold text-[#184A37] mb-2">Hóa đơn chi tiết lịch trình</h4>
-                    <div
-                        class="checkout-items-list max-h-32 overflow-y-auto space-y-1.5 border-b border-gray-100 pb-2 mb-2">
+                    <h4 class="text-xs font-bold text-[#184A37] mb-2">Chi tiết từng dịch vụ trong lịch trình</h4>
+                    <div class="checkout-items-list max-h-40 overflow-y-auto space-y-1.5 border-b border-gray-100 pb-2 mb-2">
                         <div class="billing-item-row flex justify-between text-xs" *ngIf="checkoutItems.length === 0">
-                            <span class="text-gray-400">Lịch trình hiện tại hoàn toàn miễn phí hoặc chưa có dịch vụ tính
-                                phí.</span>
+                            <span class="text-gray-400">Lịch trình hiện tại hoàn toàn miễn phí hoặc chưa có dịch vụ.</span>
                         </div>
-                        <div class="billing-item-row flex justify-between text-xs text-gray-700"
+                        <div class="billing-item-row flex justify-between items-center text-xs text-gray-700 py-1 border-b border-gray-50"
                             *ngFor="let item of checkoutItems">
-                            <span>{{ item.title }}</span>
-                            <span class="font-semibold">{{ item.cost | number:'1.0-0':'vi-VN' }}đ</span>
+                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                                <span class="truncate font-medium">{{ item.title }}</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap"
+                                      [ngClass]="item.isPartner ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'">
+                                    {{ item.isPartner ? 'Đối tác · Có cọc' : 'Tự túc · Không cọc' }}
+                                </span>
+                            </div>
+                            <span class="font-semibold text-slate-800 whitespace-nowrap">{{ item.cost === 0 ? '0đ (Miễn phí)' : ((item.cost | number:'1.0-0':'vi-VN') + 'đ') }}</span>
                         </div>
                     </div>
 
-                    <div class="billing-total-row flex justify-between items-center text-sm pt-1">
-                        <span class="font-medium text-gray-600">Tổng tiền thanh toán gộp:</span>
-                        <strong class="text-base text-emerald-600 font-extrabold">{{ checkoutTotal |
-                            number:'1.0-0':'vi-VN' }}đ</strong>
+                    <!-- Breakdown summary -->
+                    <div class="space-y-1 text-xs text-gray-600 pt-1 pb-2 border-b border-gray-100">
+                        <div class="flex justify-between">
+                            <span>Tạm tính các dịch vụ:</span>
+                            <span class="font-semibold">{{ itinerarySubtotalCost | number:'1.0-0':'vi-VN' }}đ</span>
+                        </div>
+                        <div class="flex justify-between text-emerald-600" *ngIf="itineraryDiscountAmount > 0">
+                            <span>Ưu đãi sinh thái (Voucher):</span>
+                            <span class="font-semibold">-{{ itineraryDiscountAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                        </div>
+                        <div class="flex justify-between" *ngIf="itineraryVatAmount > 0">
+                            <span>Thuế VAT (8%):</span>
+                            <span class="font-semibold">+{{ itineraryVatAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-slate-800 pt-1 border-t border-gray-100">
+                            <span>Tổng chi phí chuyến đi:</span>
+                            <span>{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Deposit row (Only for partner services) -->
+                    <div class="billing-total-row flex justify-between items-center text-sm pt-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 mt-2">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-emerald-950 text-xs">Tiền đặt cọc giữ chỗ ngay (30% Đối tác):</span>
+                            <small class="text-[10px] text-emerald-700">Chỉ thu cọc dịch vụ đối tác GreenSteps</small>
+                        </div>
+                        <strong class="text-base text-emerald-700 font-extrabold">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] text-gray-500 px-1 pt-1">
+                        <span>Còn lại thanh toán khi khởi hành:</span>
+                        <span class="font-bold text-gray-700">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                     </div>
                 </div>
 

@@ -13013,28 +13013,26 @@ app-tour-detail .show-all-tile span {
 
 @media (max-width: 767px) {
   .gs-footer {
-    background:
-      radial-gradient(circle at 18% 0%, rgba(16, 185, 129, 0.24), transparent 32%),
-      linear-gradient(180deg, #05361f 0%, #063f27 48%, #021f14 100%) !important;
+    background: #073D2B !important;
   }
 
   .gs-footer-inner {
-    padding: 34px 16px 22px !important;
+    padding: 32px 20px 24px !important;
   }
 
   .gs-footer-grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    gap: 14px !important;
+    gap: 24px !important;
   }
 
   .gs-footer-brand,
   .gs-footer-newsletter {
-    padding: 18px !important;
-    border-radius: 22px !important;
-    background: rgba(255, 255, 255, 0.075) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .gs-footer-logo {
@@ -13042,106 +13040,116 @@ app-tour-detail .show-all-tile span {
   }
 
   .gs-footer-logo img {
-    width: 42px !important;
-    height: 42px !important;
+    width: 32px !important;
+    height: 32px !important;
   }
 
   .gs-footer-logo span {
-    font-size: 18px !important;
-    letter-spacing: 0.04em !important;
+    font-size: 16px !important;
+    letter-spacing: 0.02em !important;
   }
 
   .gs-footer-brand p,
   .gs-footer-newsletter p {
     max-width: none !important;
-    font-size: 14px !important;
+    font-size: 12px !important;
     line-height: 1.6 !important;
-    color: rgba(255, 255, 255, 0.76) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
   }
 
   .gs-footer-socials {
-    margin-top: 16px !important;
+    margin-top: 14px !important;
     gap: 10px !important;
   }
 
+  .gs-footer-socials a,
   .gs-footer-socials span {
-    width: 42px !important;
-    height: 42px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 999px !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-    font-size: 16px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    font-size: 14px !important;
   }
 
   .gs-footer-col {
-    padding: 14px 16px !important;
-    border-radius: 18px !important;
-    background: rgba(255, 255, 255, 0.045) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .gs-footer-col h3,
   .gs-footer-newsletter h3 {
-    margin: 0 0 12px !important;
+    margin: 0 0 10px !important;
     padding: 0 !important;
     border: 0 !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    color: rgba(236, 253, 245, 0.96) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
   }
 
+  .gs-footer-col > ul,
   .gs-footer-col > div {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
   }
 
   .gs-footer-col a {
-    min-height: 36px !important;
-    display: flex !important;
-    align-items: center !important;
-    border-radius: 12px !important;
-    padding: 0 10px !important;
-    background: rgba(255, 255, 255, 0.045) !important;
-    color: rgba(255, 255, 255, 0.76) !important;
-    font-size: 13px !important;
-    line-height: 1.25 !important;
+    min-height: auto !important;
+    display: inline-block !important;
+    align-items: initial !important;
+    border-radius: 0 !important;
+    padding: 2px 0 !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .gs-footer-col a:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: transparent !important;
     color: #fff !important;
   }
 
   .gs-footer-form {
-    min-height: 50px !important;
-    margin-top: 14px !important;
-    border-radius: 16px !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    padding: 4px !important;
+    min-height: 42px !important;
+    margin-top: 12px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    padding: 2px !important;
   }
 
   .gs-footer-form input {
-    min-height: 42px !important;
-    padding-inline: 12px !important;
-    font-size: 14px !important;
+    min-height: 38px !important;
+    padding-inline: 10px !important;
+    font-size: 12px !important;
+    background: transparent !important;
+    border: none !important;
   }
 
   .gs-footer-form button {
-    width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    border-radius: 13px !important;
-    background: #10a36f !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 6px !important;
+    background: #059669 !important;
   }
 
   .gs-footer-bottom {
-    margin-top: 18px !important;
+    margin-top: 24px !important;
     padding-top: 16px !important;
-    text-align: center !important;
-    font-size: 12px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    text-align: left !important;
+    font-size: 11px !important;
     line-height: 1.5 !important;
-    color: rgba(255, 255, 255, 0.58) !important;
+    color: rgba(255, 255, 255, 0.55) !important;
   }
 }
 

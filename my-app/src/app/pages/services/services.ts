@@ -367,6 +367,16 @@ export class ServicesComponent implements OnInit, OnDestroy {
   public toggleMobileFilter() {
     this.isMobileFilterOpen = !this.isMobileFilterOpen;
   }
+
+  public isCommercialCategory(s: any): boolean {
+    const text = `${s?.name || ''} ${s?.category || ''} ${s?.type || ''}`.toLowerCase();
+    return text.includes('hotel') || text.includes('khách sạn') || text.includes('homestay') ||
+           text.includes('resort') || text.includes('villa') || text.includes('nhà nghỉ') ||
+           text.includes('quán ăn') || text.includes('nhà hàng') || text.includes('cafe') ||
+           text.includes('cà phê') || text.includes('quán nhậu') || text.includes('ẩm thực') ||
+           text.includes('nước') || text.includes('công viên nước') || text.includes('khu du lịch') ||
+           text.includes('vui chơi') || text.includes('vé');
+  }
 }
 
 export { ServicesComponent as Services }; 
