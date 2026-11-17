@@ -216,6 +216,12 @@ router.get('/cache/stats', async (req, res) => {
 
   const placeResponse = (place) => {
     const openNow = place.currentOpeningHours?.openNow;
+    const rawPhotos = Array.isArray(place.photos) ? place.photos : [];
+    const photoUrls = rawPhotos.map(p => {
+      const name = p.name || '';
+      return name ? `/api/maps/places/photo?name=${encodeURIComponent(name)}` : '';
+    }).filter(Boolean);
+
     return {
       id: place.id,
       title: place.displayName?.text || '',
@@ -224,8 +230,8 @@ router.get('/cache/stats', async (req, res) => {
       reviewsCount: place.userRatingCount ?? 0,
       lat: place.location?.latitude ?? null,
       lng: place.location?.longitude ?? null,
-      photos: [],
-      img: '',
+      photos: photoUrls,
+      img: photoUrls[0] || '',
       hours: openNow === undefined ? null : (openNow ? 'Đang mở cửa' : 'Đã đóng cửa'),
       weekdayText: place.currentOpeningHours?.weekdayDescriptions || [],
       phone: place.nationalPhoneNumber || '',
@@ -258,7 +264,7 @@ router.get('/cache/stats', async (req, res) => {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': configuredKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.currentOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.currentOpeningHours,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri,places.photos'
         },
         body: JSON.stringify({ textQuery: query, languageCode: 'vi' })
       });
@@ -267,6 +273,19 @@ router.get('/cache/stats', async (req, res) => {
     } catch {
       return res.status(502).json({ success: false, message: 'Google Places search is temporarily unavailable.' });
     }
+  });
+
+  router.get('/places/photo', async (req, res) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+    const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
+    if (!name || !name.startsWith('places/')) {
+      return res.status(400).json({ success: false, message: 'name query parameter is required.' });
+    }
+    if (!configuredKey) {
+      return res.redirect(302, '/image/Viet Nam.png');
+    }
+    const targetUrl = `https://places.googleapis.com/v1/${name}/media?maxHeightPx=800&maxWidthPx=1200&key=${configuredKey}`;
+    return res.redirect(302, targetUrl);
   });
 
   router.get('/places/details/:placeId', async (req, res) => {
@@ -282,7 +301,7 @@ router.get('/cache/stats', async (req, res) => {
         method: 'GET',
         headers: {
           'X-Goog-Api-Key': configuredKey,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,location,currentOpeningHours,websiteUri,nationalPhoneNumber,types,googleMapsUri'
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,location,currentOpeningHours,websiteUri,nationalPhoneNumber,types,googleMapsUri,photos'
         }
       });
       if (!place || place.error) {

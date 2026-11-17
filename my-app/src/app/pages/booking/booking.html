@@ -406,14 +406,15 @@
         <small *ngFor="let label of selectedAddOnLabels">{{ label }}</small>
       </div>
       <div class="price-lines">
+        <p><span>Tạm tính</span><b>{{ basePrice | number:'1.0-0':'vi-VN' }}đ</b></p>
+        <p *ngIf="discountAmount > 0"><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi voucher' }}</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+        <p *ngIf="vatAmount > 0"><span>Thuế VAT (8%)</span><b>+{{ vatAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
         <p><span>Tổng chi phí</span><b>{{ totalAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
-        <p><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi GreenSteps' }}</span><b>-{{ discountAmount |
-            number:'1.0-0':'vi-VN' }}đ</b></p>
         <div class="choice-total">
-          <span>{{ isTransportBooking ? 'Tổng tiền thanh toán' : 'Đặt cọc cần thanh toán' }}</span>
+          <span>{{ isTransportBooking ? 'Tổng tiền thanh toán' : 'Đặt cọc đợt 1 (30%)' }}</span>
           <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
         </div>
-        <p><span>Còn lại thanh toán sau</span><b>{{ remainingAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+        <p><span>Thanh toán đợt 2 khi khởi hành</span><b>{{ remainingAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
       </div>
       <div class="cancel-mini">
         <span *ngIf="!isTransportBooking">{{ selectedLodgingRoom ? (selectedLodgingRoom.policies?.[0] || 'Chính sách
@@ -681,12 +682,16 @@
         <div class="ticket-finance-section">
           <div class="ticket-price-table">
             <div class="price-row">
-              <span>Đơn giá ({{ bookingContext.guestCount }} khách)</span>
+              <span>Tạm tính ({{ bookingContext.guestCount }} khách)</span>
               <span>{{ basePrice | number:'1.0-0':'vi-VN' }}đ</span>
             </div>
             <div class="price-row is-savings" *ngIf="discountAmount > 0">
-              <span>{{ activeTour?.flashSale ? 'Ưu đãi Flash Sale' : 'Ưu đãi thành viên' }}</span>
+              <span>{{ activeTour?.flashSale ? 'Ưu đãi Flash Sale' : 'Mã giảm giá voucher' }}</span>
               <span>−{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</span>
+            </div>
+            <div class="price-row" *ngIf="vatAmount > 0">
+              <span>Thuế GTGT (VAT 8%)</span>
+              <span>+{{ vatAmount | number:'1.0-0':'vi-VN' }}đ</span>
             </div>
             <div class="price-row" *ngIf="serviceFee > 0">
               <span>Phí điều phối & dịch vụ</span>

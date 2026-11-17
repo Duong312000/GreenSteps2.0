@@ -2190,7 +2190,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public async loadDynamicRecommendations() {
     if (!this.activeItinerary) return;
-    const destLabel = this.activeItinerary.destLabel || this.mapSlugToDestLabel(this.activeItinerary.dest);
+    const destLabel = this.activeItinerary.destLabel || this.activeItinerary.destination || this.mapSlugToDestLabel(this.activeItinerary.dest) || 'Đà Lạt';
     try {
       // Query only services matching the destination from the database
       const services = await this.apiService.getServicesByDestination(destLabel);
@@ -4811,11 +4811,35 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const cost = resolvedPrice.cost;
     const priceUnknown = resolvedPrice.priceUnknown;
 
+    const currentDest = this.activeItinerary?.destLabel || this.activeItinerary?.destination || this.mapSlugToDestLabel(this.activeItinerary?.dest) || 'Đà Lạt';
+
+    // Smart type detection from Google types & keywords
+    const lowerTitle = (details.title || '').toLowerCase();
+    const rawTypes = Array.isArray(details.types) ? details.types.map((t: string) => t.toLowerCase()) : [];
+    let inferredType = greenMatch?.type || details.type;
+
+    if (rawTypes.some((t: string) => ['restaurant', 'food', 'cafe', 'bar', 'meal_takeaway', 'bakery', 'supermarket', 'grocery_or_supermarket', 'grocery_store', 'store'].includes(t)) ||
+        /quán|nhà hàng|cà phê|cafe|bún|phở|lẩu|cơm|bánh|ẩm thực|ăn uống|mini go|siêu thị|chợ/.test(lowerTitle)) {
+      inferredType = 'dining';
+    } else if (rawTypes.some((t: string) => ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'guest_house'].includes(t)) ||
+               /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng/.test(lowerTitle)) {
+      inferredType = 'lodging';
+    } else if (rawTypes.some((t: string) => ['transit_station', 'bus_station', 'airport', 'taxi_stand'].includes(t)) ||
+               /xe|bến xe|sân bay|ga tàu|di chuyển/.test(lowerTitle)) {
+      inferredType = 'transport';
+    } else if (!inferredType || inferredType === 'explore') {
+      inferredType = 'attraction';
+    }
+
+    const type = inferredType;
     const carbon = greenMatch?.carbon !== undefined ? greenMatch.carbon : (details.carbon !== undefined ? details.carbon : 0.8);
-    const type = greenMatch?.type || details.type || 'explore';
     const isPartner = !!greenMatch || !!details.isPartner;
     const time = this.getNextSuggestedTime(dayIdx, type, details.lat, details.lng);
-    const img = details.img || (details.photos && details.photos[0]) || this.getPlacePlaceholderImage(details.title);
+    const img = (details.photos && details.photos.length > 0 && details.photos[0])
+      ? details.photos[0]
+      : (details.img && !details.img.includes('hoi-an-pho-co-den-long-02.jpg'))
+        ? details.img
+        : this.getPlacePlaceholderImage(details.title, type, currentDest);
     const address = details.address || this.getPlaceAddress(details.title);
 
     const newAct: any = {
@@ -5042,6 +5066,23 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     checkOutDate.setDate(checkOutDate.getDate() + Math.max(daysLength - 1, 1));
     const checkOut = this.activeItinerary.end_date || this.activeItinerary.endDate || checkOutDate.toISOString().split('T')[0];
 
+    const subtotal = this.itineraryTotalCost || this.totalCost || 0;
+    const discount = subtotal >= 1000000 ? 50000 : 0;
+    const vat = Math.round(Math.max(0, subtotal - discount) * 0.08);
+    const total = subtotal - discount + vat;
+    const deposit = Math.round(total * 0.3);
+    const remaining = total - deposit;
+
+    const pricingSnapshot = {
+      subtotal,
+      discount,
+      vat,
+      total,
+      deposit,
+      remaining,
+      guestCount: this.guestCount || 1
+    };
+
     const bookingContext = {
       hotelId: `hotel_${this.activeItinerary.destLabel || this.activeItinerary.destination || 'greensteps'}`.toLowerCase().replace(/\s+/g, '_'),
       roomId: 'premium_double_window',
@@ -5050,10 +5091,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       checkIn,
       checkOut,
       guestCount: this.guestCount || 1,
-      roomCount: 1
+      roomCount: 1,
+      pricingSnapshot: JSON.stringify(pricingSnapshot)
     };
 
     try {
+      localStorage.setItem('greensteps_itinerary_pricing_snapshot', JSON.stringify(pricingSnapshot));
       localStorage.setItem('greensteps_booking_context', JSON.stringify(bookingContext));
       localStorage.setItem('greensteps_active_itinerary_checkout', JSON.stringify(this.activeItinerary));
       localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
@@ -5639,56 +5682,154 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private loadAvailableDepartureTransports() {
-    this.availableTransportOptions = [
-      {
-        provider: 'Vietnam Airlines',
-        name: 'Chuyến bay Eco-Flex',
-        code: 'VN-128',
-        type: 'flight',
-        category: 'flight',
-        departureTime: '06:30',
-        arrivalTime: '07:50',
-        price: 1250000,
-        carbonSaved: 14.5,
-        baggage: 'Bao gồm 23kg hành lý ký gửi + 12kg xách tay, suất ăn nhẹ trên máy bay.'
-      },
-      {
-        provider: 'Vietjet Air',
-        name: 'Chuyến bay Eco Saver',
-        code: 'VJ-624',
-        type: 'flight',
-        category: 'flight',
-        departureTime: '08:15',
-        arrivalTime: '09:35',
-        price: 890000,
-        carbonSaved: 11.8,
-        baggage: 'Bao gồm 7kg hành lý xách tay tiêu chuẩn, thủ tục trực tuyến nhanh gọn.'
-      },
-      {
-        provider: 'Phương Trang Eco',
-        name: 'Limousine Giường Nằm VIP',
-        code: 'FUTA-ECO-08',
-        type: 'coach',
-        category: 'coach',
-        departureTime: '20:30 (Đêm trước)',
-        arrivalTime: '06:00 (Sáng Ngày 1)',
-        price: 450000,
-        carbonSaved: 18.2,
-        baggage: 'Giường nằm massage cao cấp, nước uống, wifi, cổng sạc điện thoại.'
-      },
-      {
-        provider: 'Mộc Lộ Travel',
-        name: 'Xe Limousine Dcar 9 chỗ',
-        code: 'ML-TRANS-92',
-        type: 'coach',
-        category: 'coach',
-        departureTime: '05:30',
-        arrivalTime: '11:45',
-        price: 380000,
-        carbonSaved: 16.5,
-        baggage: 'Đón tận nơi tại văn phòng trung tâm, tối đa 20kg hành lý mỗi khách.'
-      }
-    ];
+    const dest = (this.activeItinerary?.destLabel || this.activeItinerary?.destination || this.mapSlugToDestLabel(this.activeItinerary?.dest) || 'Đà Lạt').toLowerCase();
+
+    if (dest.includes('đà nẵng') || dest.includes('hội an') || dest.includes('quảng nam')) {
+      this.availableTransportOptions = [
+        {
+          provider: 'Vietnam Airlines',
+          name: 'Chuyến bay đến Đà Nẵng (DAD)',
+          code: 'VN-128 (SGN/HAN ⇄ DAD)',
+          type: 'flight',
+          category: 'flight',
+          departureTime: '06:30',
+          arrivalTime: '07:50',
+          price: 1350000,
+          carbonSaved: 14.5,
+          baggage: 'Bao gồm 23kg ký gửi + 12kg xách tay, trung chuyển xe điện Hội An.'
+        },
+        {
+          provider: 'Đường sắt Việt Nam',
+          name: 'Tàu Di sản Miền Trung (Heritage Train)',
+          code: 'SE-ECO-03',
+          type: 'train',
+          category: 'coach',
+          departureTime: '19:00 (Đêm trước)',
+          arrivalTime: '06:30 (Ga Đà Nẵng)',
+          price: 680000,
+          carbonSaved: 22.0,
+          baggage: 'Toa giường nằm máy lạnh, ngắm đèo Hải Vân hùng vĩ.'
+        },
+        {
+          provider: 'Phương Trang FUTA',
+          name: 'Limousine Tuyến Đà Nẵng - Hội An',
+          code: 'FUTA-DNH-09',
+          type: 'coach',
+          category: 'coach',
+          departureTime: '07:00',
+          arrivalTime: '08:00',
+          price: 180000,
+          carbonSaved: 15.0,
+          baggage: 'Ghế ngồi massage, đón trả tận nơi trung tâm phố cổ.'
+        }
+      ];
+    } else if (dest.includes('phú yên') || dest.includes('tuy hòa')) {
+      this.availableTransportOptions = [
+        {
+          provider: 'Vietnam Airlines',
+          name: 'Chuyến bay đến Sân bay Tuy Hòa (TTH)',
+          code: 'VN-1650 (SGN/HAN ⇄ TTH)',
+          type: 'flight',
+          category: 'flight',
+          departureTime: '07:15',
+          arrivalTime: '08:25',
+          price: 1290000,
+          carbonSaved: 13.5,
+          baggage: 'Bao gồm 23kg hành lý ký gửi, hỗ trợ xe đưa đón Ghềnh Đá Đĩa.'
+        },
+        {
+          provider: 'Đường sắt Việt Nam',
+          name: 'Tàu Thống Nhất SE3 đến Ga Tuy Hòa',
+          code: 'SE3-PY',
+          type: 'train',
+          category: 'coach',
+          departureTime: '21:00 (Đêm trước)',
+          arrivalTime: '06:15 (Ga Tuy Hòa)',
+          price: 590000,
+          carbonSaved: 24.5,
+          baggage: 'Giường nằm khoang 4 êm ái, xe đưa đón tận khách sạn.'
+        },
+        {
+          provider: 'Thuận Thảo Eco',
+          name: 'Limousine Cao Cấp Sài Gòn ⇄ Tuy Hòa',
+          code: 'TT-ECO-VIP',
+          type: 'coach',
+          category: 'coach',
+          departureTime: '19:30 (Đêm trước)',
+          arrivalTime: '05:30 (Sáng hôm sau)',
+          price: 360000,
+          carbonSaved: 17.5,
+          baggage: 'Phòng nằm đơn VIP, cổng sạc Type-C, nước suối và khăn lạnh.'
+        }
+      ];
+    } else if (dest.includes('sa pa') || dest.includes('lào cai')) {
+      this.availableTransportOptions = [
+        {
+          provider: 'Đường sắt Việt Nam',
+          name: 'Tàu Du Lịch Hà Nội ⇄ Lào Cai',
+          code: 'SP3-SAPA',
+          type: 'train',
+          category: 'coach',
+          departureTime: '21:30 (Ga Hà Nội)',
+          arrivalTime: '05:45 (Ga Lào Cai)',
+          price: 550000,
+          carbonSaved: 26.0,
+          baggage: 'Giường nằm khoang 4 tiêu chuẩn du lịch, kèm xe bus lên Sa Pa.'
+        },
+        {
+          provider: 'Eco Sapa Limousine',
+          name: 'Limousine Dcar 9 Chỗ Cao Tốc Nội Bài - Sa Pa',
+          code: 'ES-DCAR-01',
+          type: 'coach',
+          category: 'coach',
+          departureTime: '06:30',
+          arrivalTime: '11:45',
+          price: 420000,
+          carbonSaved: 16.0,
+          baggage: 'Đón tận nơi tại Hà Nội/Sân bay Nội Bài, ghế massage.'
+        }
+      ];
+    } else {
+      // Đà Lạt / Lâm Đồng default
+      this.availableTransportOptions = [
+        {
+          provider: 'Vietnam Airlines',
+          name: 'Chuyến bay đến Sân bay Liên Khương (DLI)',
+          code: 'VN-1380 (SGN/HAN ⇄ DLI)',
+          type: 'flight',
+          category: 'flight',
+          departureTime: '06:30',
+          arrivalTime: '07:45',
+          price: 1250000,
+          carbonSaved: 14.5,
+          baggage: 'Bao gồm 23kg hành lý ký gửi + 12kg xách tay, trung chuyển xe bus sân bay.'
+        },
+        {
+          provider: 'Phương Trang Eco',
+          name: 'Limousine Giường Nằm FUTA Sài Gòn ⇄ Đà Lạt',
+          code: 'FUTA-DL-08',
+          type: 'coach',
+          category: 'coach',
+          departureTime: '22:30 (Đêm trước)',
+          arrivalTime: '05:30 (Sáng Ngày 1)',
+          price: 320000,
+          carbonSaved: 18.2,
+          baggage: 'Giường nằm massage cao cấp, nước uống, wifi, cổng sạc điện thoại.'
+        },
+        {
+          provider: 'Mộc Lộ Travel',
+          name: 'Xe Limousine Dcar 9 chỗ Đà Lạt',
+          code: 'ML-DL-92',
+          type: 'coach',
+          category: 'coach',
+          departureTime: '05:30',
+          arrivalTime: '11:45',
+          price: 380000,
+          carbonSaved: 16.5,
+          baggage: 'Đón tận nơi tại trung tâm, ngắm cảnh đèo Bảo Lộc thơ mộng.'
+        }
+      ];
+    }
   }
 
   private loadAvailableRentalTransports() {
@@ -7221,34 +7362,131 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     return "Địa danh du lịch nổi tiếng với cảnh quan thiên nhiên trong lành, cam kết giảm thiểu khí thải carbon, bảo tồn văn hóa và môi trường địa phương.";
   }
 
-  public getPlacePlaceholderImage(name: string): string {
-    if (!name) return "image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg";
-    const lower = name.toLowerCase();
+  public getPlacePlaceholderImage(name: string, type?: string, dest?: string): string {
+    const n = (name || '').trim();
+    if (!n) return "image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg";
+    const lower = n.toLowerCase();
+    const targetDest = (dest || this.activeItinerary?.destLabel || this.activeItinerary?.destination || this.mapSlugToDestLabel(this.activeItinerary?.dest) || '').toLowerCase();
 
-    // Hội An / Đà Nẵng
-    if (lower.includes('trà quế') || lower.includes('rau') || lower.includes('nông trại')) return 'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg';
-    if (lower.includes('bảy mẫu') || lower.includes('thuyền thúng') || lower.includes('rừng dừa')) return 'image/greensteps/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg';
-    if (lower.includes('phố cổ') || lower.includes('hội an') || lower.includes('đèn lồng')) return 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg';
-    if (lower.includes('chùa cầu')) return 'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg';
-    if (lower.includes('cà phê') || lower.includes('cafe')) return 'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg';
+    // 1. Specific Landmark overrides
     if (lower.includes('bà nà') || lower.includes('cầu vàng')) return 'image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg';
     if (lower.includes('cầu rồng')) return 'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg';
-    if (lower.includes('mỹ khê') || lower.includes('biển')) return 'image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg';
-    if (lower.includes('sơn trà')) return 'image/greensteps/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg';
+    if (lower.includes('chùa cầu')) return 'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg';
+    if (lower.includes('trà quế') || lower.includes('làng rau')) return 'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg';
+    if (lower.includes('bảy mẫu') || lower.includes('rừng dừa')) return 'image/greensteps/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg';
+    if (lower.includes('sơn trà') || lower.includes('linh ứng')) return 'image/greensteps/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg';
+    if (lower.includes('mỹ khê') || lower.includes('an bàng')) return 'image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg';
 
-    // Đà Lạt
-    if (lower.includes('xuân hương') || lower.includes('hồ xuân hương')) return 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
-    if (lower.includes('lâm viên') || lower.includes('quảng trường')) return 'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg';
+    if (lower.includes('xuân hương')) return 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
     if (lower.includes('tuyền lâm')) return 'image/greensteps/da-lat/da-lat-ho-tuyen-lam-01.jpg';
-    if (lower.includes('linh phước') || lower.includes('chùa')) return 'image/greensteps/da-lat/da-lat-chua-linh-phuoc-01.jpg';
-    if (lower.includes('rừng thông') || lower.includes('săn mây')) return 'image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg';
-    if (lower.includes('thác') || lower.includes('datanla')) return 'image/greensteps/da-lat/da-lat-thac-nuoc-01.jpg';
-    if (lower.includes('nghỉ dưỡng') || lower.includes('homestay') || lower.includes('khách sạn') || lower.includes('resort')) return 'image/greensteps/da-lat/da-lat-nghi-duong-ven-ho-01.jpg';
+    if (lower.includes('lâm viên')) return 'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg';
+    if (lower.includes('datanla') || lower.includes('prenn')) return 'image/greensteps/da-lat/da-lat-thac-nuoc-01.jpg';
+    if (lower.includes('linh phước') || lower.includes('ve chai')) return 'image/greensteps/da-lat/da-lat-chua-linh-phuoc-01.jpg';
     if (lower.includes('vườn hoa')) return 'image/greensteps/da-lat/da-lat-vuon-hoa-01.jpg';
 
-    // Phú Yên
-    if (lower.includes('phú yên') || lower.includes('gành đá đĩa')) return 'image/15a0c52a7c13e6fb493d5ce4cb1b644b.jpg';
-    return 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-02.jpg';
+    if (lower.includes('gành đá đĩa') || lower.includes('ghềnh đá đĩa')) return 'image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg';
+    if (lower.includes('bãi xép') || lower.includes('hoa vàng')) return 'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg';
+    if (lower.includes('tháp nhạn')) return 'image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg';
+    if (lower.includes('vũng rô')) return 'image/greensteps/phu-yen/phu-yen-vung-ro-01.jpg';
+
+    // 2. Hash-based deterministic index to ensure diversity within category
+    const hash = n.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) & 0x7fffffff, 0);
+
+    // 3. Category Pools
+    const isFood = type === 'dining' || /quán|ăn|ẩm thực|cà phê|cafe|bún|phở|lẩu|cơm|bánh|mini go|siêu thị|chợ/.test(lower);
+    const isStay = type === 'lodging' || /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng/.test(lower);
+
+    // Đà Lạt pool
+    if (targetDest.includes('đà lạt') || targetDest.includes('da lat') || targetDest.includes('lâm đồng')) {
+      if (isFood) {
+        const dalatFood = [
+          'image/greensteps/da-lat/da-lat-vuon-hoa-01.jpg',
+          'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg',
+          'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg'
+        ];
+        return dalatFood[hash % dalatFood.length];
+      }
+      if (isStay) {
+        const dalatStay = [
+          'image/greensteps/da-lat/da-lat-nghi-duong-ven-ho-01.jpg',
+          'image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg',
+          'image/greensteps/da-lat/da-lat-ho-tuyen-lam-01.jpg'
+        ];
+        return dalatStay[hash % dalatStay.length];
+      }
+      const dalatAttractions = [
+        'image/greensteps/da-lat/da-lat-thac-nuoc-01.jpg',
+        'image/greensteps/da-lat/da-lat-chua-linh-phuoc-01.jpg',
+        'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg',
+        'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg',
+        'image/greensteps/da-lat/da-lat-rung-thong-san-may-01.jpg'
+      ];
+      return dalatAttractions[hash % dalatAttractions.length];
+    }
+
+    // Phú Yên pool
+    if (targetDest.includes('phú yên') || targetDest.includes('phu yen') || targetDest.includes('tuy hòa')) {
+      if (isStay) {
+        return 'image/greensteps/phu-yen/phu-yen-m-cliff-resort-01.jpg';
+      }
+      const phuyenPool = [
+        'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-vung-ro-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-hon-yen-01.jpg'
+      ];
+      return phuyenPool[hash % phuyenPool.length];
+    }
+
+    // Đà Nẵng / Hội An pool
+    if (targetDest.includes('đà nẵng') || targetDest.includes('hội an') || targetDest.includes('quảng nam')) {
+      if (isFood) {
+        const hoianFood = [
+          'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg',
+          'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg',
+          'image/greensteps/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg'
+        ];
+        return hoianFood[hash % hoianFood.length];
+      }
+      if (isStay) {
+        const hoianStay = [
+          'image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg',
+          'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-01.jpg',
+          'image/greensteps/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg'
+        ];
+        return hoianStay[hash % hoianStay.length];
+      }
+      const hoianAttractions = [
+        'image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg',
+        'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg',
+        'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg',
+        'image/greensteps/da-nang-hoi-an/da-nang-son-tra-rung-xanh-01.jpg',
+        'image/greensteps/da-nang-hoi-an/da-nang-bien-my-khe-01.jpg'
+      ];
+      return hoianAttractions[hash % hoianAttractions.length];
+    }
+
+    // Sa Pa pool
+    if (targetDest.includes('sa pa') || targetDest.includes('lào cai')) {
+      const sapaPool = [
+        'image/greensteps/sa-pa/sa-pa-ruong-bac-thang-01.jpg',
+        'image/greensteps/sa-pa/sa-pa-fansipan-01.jpg',
+        'image/greensteps/sa-pa/sa-pa-nui-ham-rong-01.jpg',
+        'image/greensteps/sa-pa/sa-pa-ban-cat-cat-01.jpg'
+      ];
+      return sapaPool[hash % sapaPool.length];
+    }
+
+    // General fallback
+    const generalPool = [
+      'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg',
+      'image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg',
+      'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg',
+      'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg',
+      'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg'
+    ];
+    return generalPool[hash % generalPool.length];
   }
 
 
@@ -7258,6 +7496,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!item) return;
 
     const title = item.title || item.name || '';
+    const currentDest = this.activeItinerary?.destLabel || this.activeItinerary?.destination || this.mapSlugToDestLabel(this.activeItinerary?.dest) || 'Đà Lạt';
     const coords = (typeof item.lat === 'number' && typeof item.lng === 'number')
       ? { lat: item.lat, lng: item.lng }
       : this.lookupActivityCoordinates(title);
@@ -7279,7 +7518,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       cost: resolvedPrice.cost,
       priceUnknown: resolvedPrice.priceUnknown,
       carbon: item.carbon || 0.8,
-      img: item.img || this.getPlacePlaceholderImage(title),
+      img: item.img || (item.photos && item.photos[0]) || this.getPlacePlaceholderImage(title, item.type, currentDest),
       photos: item.photos || [],
       lat: coords?.lat,
       lng: coords?.lng,
@@ -7306,10 +7545,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.selectedPlaceDetails = null;
     this.cdr.detectChanges();
 
-    // FETCH 100% REAL GOOGLE DATA VIA PLACES API (NEW)
+    // FETCH 100% REAL GOOGLE DATA VIA PLACES API
     try {
-      const dest = this.activeItinerary?.destLabel || this.activeItinerary?.dest || 'Hội An';
-      const q = `${title} ${dest}`;
+      const q = title.length > 8 ? title : `${title} ${currentDest}`;
       const realPlaces = await this.apiService.searchGooglePlaces(q);
       if (realPlaces && realPlaces.length > 0) {
         const rp = realPlaces[0];
@@ -7328,6 +7566,15 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             if (rp.photos && rp.photos.length > 0) {
               this.activeGooglePlacePanel.photos = rp.photos;
               this.activeGooglePlacePanel.img = rp.photos[0];
+            }
+            if (rp.types && Array.isArray(rp.types)) {
+              if (rp.types.some((t: string) => ['restaurant', 'food', 'cafe', 'supermarket', 'store', 'grocery_store'].includes(t))) {
+                this.activeGooglePlacePanel.category = 'Quán ăn / Ẩm thực địa phương';
+                this.activeGooglePlacePanel.type = 'dining';
+              } else if (rp.types.some((t: string) => ['lodging', 'hotel', 'motel', 'resort'].includes(t))) {
+                this.activeGooglePlacePanel.category = 'Cơ sở lưu trú sinh thái';
+                this.activeGooglePlacePanel.type = 'lodging';
+              }
             }
             if (rp.lat && rp.lng) {
               this.activeGooglePlacePanel.lat = rp.lat;

@@ -119,6 +119,8 @@ export class BookingComponent implements OnInit, OnDestroy {
   private pollingInterval: any = null;
   private countdownInterval: any = null;
 
+  public itineraryPricingSnapshot: any = null;
+
   public bookingContext: BookingContext = {
     hotelId: 'hotel_dahlia_dalat',
     roomId: 'premium_double_window',
@@ -338,6 +340,14 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   private async loadActiveTour() {
+    const rawSnapshot = this.route.snapshot.queryParamMap.get('pricingSnapshot')
+      || localStorage.getItem('greensteps_itinerary_pricing_snapshot');
+    if (rawSnapshot) {
+      try {
+        this.itineraryPricingSnapshot = JSON.parse(rawSnapshot);
+      } catch {}
+    }
+
     const query = this.route.snapshot.queryParamMap;
     const isItinerary = query.get('bookingType') === 'itinerary' ||
       (this.bookingContext.tourId && (this.bookingContext.tourId.startsWith('iti_') || this.bookingContext.tourId.startsWith('SCH')));
@@ -1384,14 +1394,22 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (this.selectedLodgingRoom) {
       return Number(this.selectedLodgingRoom.price_per_night || 0) * this.bookingContext.roomCount * this.nights;
     }
-    if (this.isItineraryBooking() && this.activeTour?.data) {
-      return (this.itineraryPerPersonCost * Math.max(this.bookingContext.guestCount, 1)) + this.itineraryFlatCost;
+    if (this.isItineraryBooking()) {
+      if (this.itineraryPricingSnapshot && Number(this.itineraryPricingSnapshot.subtotal) > 0) {
+        return Number(this.itineraryPricingSnapshot.subtotal);
+      }
+      if (this.activeTour?.data) {
+        return (this.itineraryPerPersonCost * Math.max(this.bookingContext.guestCount, 1)) + this.itineraryFlatCost;
+      }
     }
     return Math.max(this.activeTour?.cost || 1890000, 0) * Math.max(this.bookingContext.guestCount, 1);
   }
 
   public get discountAmount() {
     if (this.isTransportBooking) return 0;
+    if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
+      return Number(this.itineraryPricingSnapshot.discount) || 0;
+    }
     if (this.activeTour?.flashSale) {
       const room = this.selectedLodgingRoom;
       const units = room ? this.bookingContext.roomCount * this.nights : Math.max(this.bookingContext.guestCount, 1);
@@ -1399,23 +1417,32 @@ export class BookingComponent implements OnInit, OnDestroy {
       return this.basePrice - flashSaleTotal(room ? Number(room.price_per_night || 0) : this.activeTour.cost, units, this.activeTour.flashSale, stockUnits);
     }
     if (this.selectedLodgingRoom) return Math.floor(this.basePrice * Number(this.lodgingPricing?.discountPercent || 0) / 100);
-    if (this.isItineraryBooking()) return 0;
-    return Math.round(this.basePrice * 0.08);
+    if (this.voucherCode || this.basePrice >= 1000000) return 50000;
+    return 0;
+  }
+
+  public get vatAmount(): number {
+    if (this.isTransportBooking) return 0;
+    if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
+      return Number(this.itineraryPricingSnapshot.vat) || 0;
+    }
+    const taxableBase = Math.max(0, this.basePrice - this.discountAmount);
+    return Math.round(taxableBase * 0.08);
   }
 
   public get serviceFee() {
-    if (this.isTransportBooking) return 0;
-    if (this.selectedLodgingRoom) return Number(this.lodgingPricing?.serviceFee || 0);
-    if (this.isItineraryBooking()) return 0;
-    return 120000;
+    return 0;
   }
 
   public get totalAmount() {
-    return this.basePrice - this.discountAmount + this.serviceFee + this.addOnsTotal;
+    return this.basePrice - this.discountAmount + this.vatAmount + this.serviceFee + this.addOnsTotal;
   }
 
   public get depositAmount() {
     if (this.isTransportBooking) return this.basePrice;
+    if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
+      return Number(this.itineraryPricingSnapshot.deposit) || Math.round(this.totalAmount * 0.3);
+    }
     if (this.usesServiceQuote) return Math.ceil(this.totalAmount * Number(this.lodgingPricing?.depositPercent || 30) / 100);
     return Math.round(this.totalAmount * 0.3);
   }
