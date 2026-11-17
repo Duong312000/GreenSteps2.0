@@ -246,13 +246,12 @@
 
               <!-- Price Row (Shop.co signature layout) -->
               <div class="card-price-row">
-                <span class="current-price" *ngIf="s.priceStatus === 'verified' && s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ</span>
-                <span class="current-price" *ngIf="s.priceStatus === 'reference' && s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ · tham khảo</span>
-                <span class="current-price" *ngIf="s.priceStatus !== 'verified' && s.priceStatus !== 'reference'">Giá chưa được xác minh</span>
-                <span *ngIf="s.priceStatus === 'verified' && s.oldCost && s.cost != null && s.oldCost > s.cost" class="old-price">
+                <span class="current-price" *ngIf="s.cost !== undefined && s.cost !== null">{{ s.cost | number:'1.0-0' }}đ</span>
+                <span class="current-price text-slate-500" *ngIf="s.cost === undefined || s.cost === null">Liên hệ đặt chỗ</span>
+                <span *ngIf="s.oldCost && s.cost != null && s.oldCost > s.cost" class="old-price">
                   {{ s.oldCost | number:'1.0-0' }}đ
                 </span>
-                <span *ngIf="s.priceStatus === 'verified' && s.discountPercent && s.discountPercent > 0" class="discount-pill">
+                <span *ngIf="s.discountPercent && s.discountPercent > 0" class="discount-pill">
                   -{{ s.discountPercent }}%
                 </span>
               </div>

@@ -2261,6 +2261,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         if (cat === 'dining' && rec.type !== 'dining' && rec.type !== 'food') return false;
         if (cat === 'cafe' && rec.type !== 'cafe' && !(rec.name || '').toLowerCase().includes('cafe') && !(rec.name || '').toLowerCase().includes('cà phê')) return false;
         if (cat === 'lodging' && rec.type !== 'lodging' && rec.type !== 'stay') return false;
+        if (cat === 'transport' && rec.type !== 'transport' && !(rec.name || '').toLowerCase().includes('xe')) return false;
       }
       return true; // keep
     });
@@ -2268,11 +2269,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   private getServiceFallbackImage(type: string): string {
     if (type === 'stay' || type === 'lodging') {
-      return 'image/1dc8619487310884c9d631d689ece1e7.jpg';
-    } else if (type === 'food' || type === 'dining') {
-      return 'image/2eee566424c1f35fbeacf85496b4b6e7.jpg';
+      return 'image/greensteps/da-lat/da-lat-nghi-duong-ven-ho-01.jpg';
+    } else if (type === 'food' || type === 'dining' || type === 'cafe') {
+      return 'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg';
+    } else if (type === 'transport') {
+      return 'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg';
     }
-    return 'image/Viet Nam.png';
+    return 'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg';
   }
 
   public switchActiveDay(dayIdx: number) {
@@ -2335,11 +2338,39 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     await this.saveItineraryToDb();
   }
 
-  public getActivityTypeLabel(type: string): string {
-    if (type === "lodging") return "Lưu trú";
-    if (type === "dining") return "Ăn uống";
-    if (type === "transport") return "Di chuyển";
+  public getActivityTypeLabel(type: string, title?: string): string {
+    const t = (type || '').toLowerCase();
+    const name = (title || '').toLowerCase();
+    if (t === "lodging" || t === "stay" || /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng|chỗ ở/.test(name)) return "Lưu trú";
+    if (t === "dining" || t === "food" || /quán|nhà hàng|cà phê|cafe|bún|phở|lẩu|cơm|bánh|ẩm thực|ăn uống|món ngon/.test(name)) return "Ẩm thực";
+    if (t === "shopping" || /mini go|siêu thị|chợ|tạp hóa|cửa hàng|mua sắm/.test(name)) return "Mua sắm / Siêu thị";
+    if (t === "medical" || /bệnh viện|phòng khám|trạm y tế|tiệm thuốc|nha khoa/.test(name)) return "Y tế / Tiện ích";
+    if (t === "transport" || /xe điện|xe ghép|bến xe|sân bay|ga tàu|di chuyển|thuê xe/.test(name)) return "Di chuyển";
     return "Tham quan";
+  }
+
+  public handleActivityImgError(event: any, act: any) {
+    if (event?.target) {
+      event.target.src = this.getPlacePlaceholderImage(act?.title || act?.name || '', act?.type, this.activeItinerary?.destLabel || this.activeItinerary?.destination);
+    }
+  }
+
+  public handleRecImgError(event: any, rec: any) {
+    if (event?.target) {
+      event.target.src = this.getPlacePlaceholderImage(rec?.name || '', rec?.type, this.activeItinerary?.destLabel || this.activeItinerary?.destination);
+    }
+  }
+
+  public handleFavImgError(event: any, fav: any) {
+    if (event?.target) {
+      event.target.src = this.getPlacePlaceholderImage(fav?.name || '', fav?.type, this.activeItinerary?.destLabel || this.activeItinerary?.destination);
+    }
+  }
+
+  public handlePanelImgError(event: any, panel: any) {
+    if (event?.target) {
+      event.target.src = this.getPlacePlaceholderImage(panel?.title || panel?.name || '', panel?.type, this.activeItinerary?.destLabel || this.activeItinerary?.destination);
+    }
   }
 
   public async deleteActivity(idx: number) {
@@ -5066,12 +5097,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     checkOutDate.setDate(checkOutDate.getDate() + Math.max(daysLength - 1, 1));
     const checkOut = this.activeItinerary.end_date || this.activeItinerary.endDate || checkOutDate.toISOString().split('T')[0];
 
-    const subtotal = this.itineraryTotalCost || this.totalCost || 0;
-    const discount = subtotal >= 1000000 ? 50000 : 0;
-    const vat = Math.round(Math.max(0, subtotal - discount) * 0.08);
-    const total = subtotal - discount + vat;
-    const deposit = Math.round(total * 0.3);
-    const remaining = total - deposit;
+    const subtotal = this.itinerarySubtotalCost;
+    const discount = this.itineraryDiscountAmount;
+    const vat = this.itineraryVatAmount;
+    const total = this.itineraryFinalTotal;
+    const deposit = this.itineraryDepositAmount;
+    const remaining = this.itineraryRemainingAmount;
 
     const pricingSnapshot = {
       subtotal,
@@ -5157,6 +5188,32 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public get itineraryTotalCost(): number {
     return (this.itineraryPerPersonCost * this.guestCount) + this.itineraryFlatCost;
+  }
+
+  public get itinerarySubtotalCost(): number {
+    return this.itineraryTotalCost || this.totalCost || 0;
+  }
+
+  public get itineraryDiscountAmount(): number {
+    const subtotal = this.itinerarySubtotalCost;
+    return subtotal >= 1000000 ? 50000 : 0;
+  }
+
+  public get itineraryVatAmount(): number {
+    const taxable = Math.max(0, this.itinerarySubtotalCost - this.itineraryDiscountAmount);
+    return Math.round(taxable * 0.08);
+  }
+
+  public get itineraryFinalTotal(): number {
+    return this.itinerarySubtotalCost - this.itineraryDiscountAmount + this.itineraryVatAmount;
+  }
+
+  public get itineraryDepositAmount(): number {
+    return Math.round(this.itineraryFinalTotal * 0.3);
+  }
+
+  public get itineraryRemainingAmount(): number {
+    return this.itineraryFinalTotal - this.itineraryDepositAmount;
   }
 
   public toggleActivityShared(act: any) {
@@ -7393,8 +7450,21 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const hash = n.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) & 0x7fffffff, 0);
 
     // 3. Category Pools
-    const isFood = type === 'dining' || /quán|ăn|ẩm thực|cà phê|cafe|bún|phở|lẩu|cơm|bánh|mini go|siêu thị|chợ/.test(lower);
+    const isFood = type === 'dining' || /quán|ăn|ẩm thực|cà phê|cafe|bún|phở|lẩu|cơm|bánh/.test(lower);
+    const isShopping = type === 'shopping' || /mini go|siêu thị|chợ|tạp hóa|cửa hàng|mua sắm/.test(lower);
+    const isMedical = type === 'medical' || /bệnh viện|phòng khám|trạm y tế|tiệm thuốc|nha khoa/.test(lower);
     const isStay = type === 'lodging' || /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng/.test(lower);
+    const isTransport = type === 'transport' || /xe điện|xe ghép|bến xe|sân bay|ga tàu|di chuyển|thuê xe/.test(lower);
+
+    if (isMedical) {
+      return 'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg';
+    }
+    if (isTransport) {
+      return 'image/greensteps/da-nang-hoi-an/da-nang-cau-rong-hoang-hon-01.jpg';
+    }
+    if (isShopping) {
+      return 'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg';
+    }
 
     // Đà Lạt pool
     if (targetDest.includes('đà lạt') || targetDest.includes('da lat') || targetDest.includes('lâm đồng')) {
@@ -7444,8 +7514,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       if (isFood) {
         const hoianFood = [
           'image/greensteps/da-nang-hoi-an/hoi-an-ca-phe-dia-phuong-01.jpg',
-          'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg',
-          'image/greensteps/da-nang-hoi-an/hoi-an-song-hoai-hoa-dang-01.jpg'
+          'image/greensteps/da-nang-hoi-an/hoi-an-lang-rau-tra-que-01.jpg'
         ];
         return hoianFood[hash % hoianFood.length];
       }

@@ -217,9 +217,10 @@ router.get('/cache/stats', async (req, res) => {
   const placeResponse = (place) => {
     const openNow = place.currentOpeningHours?.openNow;
     const rawPhotos = Array.isArray(place.photos) ? place.photos : [];
+    const backendBase = process.env.BACKEND_PUBLIC_URL || 'https://greensteps-backend.vercel.app';
     const photoUrls = rawPhotos.map(p => {
       const name = p.name || '';
-      return name ? `/api/maps/places/photo?name=${encodeURIComponent(name)}` : '';
+      return name ? `${backendBase}/api/maps/places/photo?name=${encodeURIComponent(name)}` : '';
     }).filter(Boolean);
 
     return {
@@ -276,13 +277,14 @@ router.get('/cache/stats', async (req, res) => {
   });
 
   router.get('/places/photo', async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
     res.set('Cache-Control', 'public, max-age=86400');
     const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
     if (!name || !name.startsWith('places/')) {
       return res.status(400).json({ success: false, message: 'name query parameter is required.' });
     }
     if (!configuredKey) {
-      return res.redirect(302, '/image/Viet Nam.png');
+      return res.redirect(302, 'https://greensteps-livid.vercel.app/image/Viet%20Nam.png');
     }
     const targetUrl = `https://places.googleapis.com/v1/${name}/media?maxHeightPx=800&maxWidthPx=1200&key=${configuredKey}`;
     return res.redirect(302, targetUrl);

@@ -185,16 +185,28 @@
         <div class="sidebar-metrics-modern">
             <div class="sidebar-cost-card">
                 <div class="cost-row">
-                    <span class="cost-label">Vé & Ăn uống (1 người):</span>
-                    <span class="cost-val">{{ itineraryPerPersonCost | number:'1.0-0':'vi-VN' }}đ</span>
+                    <span class="cost-label">Tạm tính ({{ guestCount }} khách):</span>
+                    <span class="cost-val">{{ itinerarySubtotalCost | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" *ngIf="itineraryFlatCost > 0">
-                    <span class="cost-label">Phòng / Homestay:</span>
-                    <span class="cost-val">{{ itineraryFlatCost | number:'1.0-0':'vi-VN' }}đ</span>
+                <div class="cost-row" *ngIf="itineraryDiscountAmount > 0" style="color: #059669;">
+                    <span class="cost-label">Ưu đãi sinh thái:</span>
+                    <span class="cost-val">-{{ itineraryDiscountAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                </div>
+                <div class="cost-row" *ngIf="itineraryVatAmount > 0" style="color: #64748b;">
+                    <span class="cost-label">Thuế VAT (8%):</span>
+                    <span class="cost-val">+{{ itineraryVatAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-total-row">
-                    <span class="cost-total-label">Tổng chi phí ({{ guestCount }} người):</span>
-                    <span class="cost-total-val">{{ itineraryTotalCost | number:'1.0-0':'vi-VN' }}đ</span>
+                    <span class="cost-total-label">Tổng chi phí chuyến đi:</span>
+                    <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
+                </div>
+                <div class="cost-row" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
+                    <span class="cost-label">Đặt cọc giữ chỗ (30%):</span>
+                    <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                </div>
+                <div class="cost-row" style="font-size: 11px; color: #64748b;">
+                    <span class="cost-label">Còn lại khi khởi hành (70%):</span>
+                    <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
             </div>
 
@@ -217,7 +229,7 @@
             </div>
             <button *ngIf="!isItineraryLocked()" class="btn-checkout-pay-modern" (click)="triggerCheckout()">
                 <i class="bi bi-shield-check"></i>
-                <span>Đặt cọc chuyến đi</span>
+                <span>Đặt cọc giữ chỗ ({{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ)</span>
             </button>
             <div *ngIf="currentUser" class="wallet-badge-pill" (click)="handleWalletBadgeClick($event)">
                 <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Chưa kích hoạt' }}
@@ -524,9 +536,9 @@
                         <div class="act-min-body">
                             <!-- Left: Thumbnail Image with Category Badge -->
                             <div class="act-min-media">
-                                <img [src]="getPlacePlaceholderImage(act.title)" [alt]="act.title" class="act-min-img"
-                                    (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
-                                <span class="act-min-type-tag">{{ getActivityTypeLabel(act.type) }}</span>
+                                <img [src]="act.img || getPlacePlaceholderImage(act.title, act.type, activeItinerary?.destLabel || activeItinerary?.destination)" [alt]="act.title" class="act-min-img"
+                                    (error)="handleActivityImgError($event, act)">
+                                <span class="act-min-type-tag">{{ getActivityTypeLabel(act.type, act.title) }}</span>
                             </div>
 
                             <!-- Right: Content & Synced Features -->
@@ -536,11 +548,11 @@
                                     <div class="act-min-title-wrap">
                                         <h4 class="act-min-title">{{ act.title }}</h4>
                                         <div class="act-min-rating-sub">
-                                            <span class="act-star-score"><i class="bi bi-star-fill"></i> 4.8</span>
-                                            <span class="act-reviews-count">(1.2k)</span>
+                                            <span class="act-star-score"><i class="bi bi-star-fill"></i> {{ act.rating || 4.8 }}</span>
+                                            <span class="act-reviews-count">({{ (act.reviews || act.reviews_count || (act.title?.length * 37 % 450 + 95)) | number }})</span>
                                             <span class="act-divider">·</span>
                                             <span class="act-address-text"><i class="bi bi-geo-alt-fill"></i> {{
-                                                getPlaceAddress(act.title) }}</span>
+                                                act.address || getPlaceAddress(act.title) }}</span>
                                         </div>
                                     </div>
 
@@ -729,6 +741,10 @@
                     (click)="setCategoryFilter('lodging')">
                     <i class="bi bi-house-door"></i> Homestay / Nghỉ dưỡng
                 </button>
+                <button type="button" class="gm-cat-pill" [class.active]="activeCategoryFilter === 'transport'"
+                    (click)="setCategoryFilter('transport')">
+                    <i class="bi bi-scooter"></i> Di chuyển sinh thái
+                </button>
             </div>
 
             <!-- Sleek Explore Grid -->
@@ -737,7 +753,7 @@
                     (click)="selectRecommendationForDetails(rec)" title="Bấm để xem chi tiết địa danh trên bản đồ">
                     <div class="sugg-modern-media">
                         <img class="sugg-modern-img" [src]="rec.img" [alt]="rec.name"
-                            (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                            (error)="handleRecImgError($event, rec)">
                         <!-- Clean minimal category badge -->
                         <span class="sugg-modern-cat-tag">{{ rec.category }}</span>
                         <!-- Heart Toggle Button -->
@@ -806,7 +822,7 @@
                 <div class="favorite-place-card" *ngFor="let fav of favoritePlaces; let fIdx = index">
                     <div class="fav-card-thumb">
                         <img [src]="fav.img" [alt]="fav.name"
-                            (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                            (error)="handleFavImgError($event, fav)">
                         <span class="fav-card-cat">{{ fav.category }}</span>
                     </div>
                     <div class="fav-card-body">
@@ -864,7 +880,7 @@
                 <div class="gm-panel-hero">
                     <img [src]="activeGooglePlacePanel.img" [alt]="activeGooglePlacePanel.title"
                         class="gm-panel-hero-img"
-                        (error)="$any($event.target).src = 'image/greensteps/da-nang-hoi-an/hoi-an-pho-co-den-long-01.jpg'">
+                        (error)="handlePanelImgError($event, activeGooglePlacePanel)">
                     <span class="gm-panel-badge" *ngIf="!activeGooglePlacePanel.isPartner">{{
                         activeGooglePlacePanel.category }}</span>
                     <span class="gm-panel-badge" *ngIf="activeGooglePlacePanel.isPartner"

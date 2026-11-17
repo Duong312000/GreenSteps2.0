@@ -313,16 +313,31 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     ];
   }
 
-  public get tourGuarantees(): Array<{ icon?: string; title: string; desc: string }> {
-    return (this.activeTour?.guarantees && Array.isArray(this.activeTour.guarantees) && this.activeTour.guarantees.length > 0)
+  public get tourGuarantees(): any[] {
+    const raw = (this.activeTour?.guarantees && Array.isArray(this.activeTour.guarantees) && this.activeTour.guarantees.length > 0)
       ? this.activeTour.guarantees
-      : [];
+      : ['Giữ chỗ 7 ngày', 'Đổi ngày miễn phí', 'Hoàn tiền 100% nếu hủy trước 48h', 'Cam kết giảm phát thải'];
+    return raw.map((g: any) => {
+      if (typeof g === 'string') {
+        return { title: g, desc: 'Chính sách bảo vệ quyền lợi du khách của GreenSteps', icon: 'bi-shield-check' };
+      }
+      return g;
+    });
   }
 
   public get tourVouchers(): any[] {
-    return (this.activeTour?.vouchers && Array.isArray(this.activeTour.vouchers) && this.activeTour.vouchers.length > 0)
+    const raw = (this.activeTour?.vouchers && Array.isArray(this.activeTour.vouchers) && this.activeTour.vouchers.length > 0)
       ? this.activeTour.vouchers
-      : [];
+      : [
+          { code: 'NETZERO50', discount: 50000, title: 'Giảm 50k', description: 'Giảm 50k cho tour sinh thái' },
+          { code: 'GREEN100', discount: 100000, title: 'Giảm 100k', description: 'Giảm 100k cho đơn từ 2 triệu' },
+          { code: 'ECOSUMMER', discount: 150000, title: 'Giảm 150k', description: 'Ưu đãi hè xanh giảm 150.000đ' }
+        ];
+    return raw.map((v: any) => ({
+      ...v,
+      title: v.title || (v.discount ? `Giảm ${Math.round(v.discount / 1000)}k` : 'Ưu đãi xanh'),
+      description: v.description || v.title || 'Mã giảm giá trực tiếp'
+    }));
   }
 
   public activeAssuranceOpen: boolean = false;
@@ -332,9 +347,13 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
   public get tourPolicies(): Array<{ step?: string; title: string; desc: string }> {
     if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
-      return this.activeTour.policy;
+      return this.activeTour.policy.map((p: any, idx: number) => {
+        if (typeof p === 'string') {
+          return { step: '0' + (idx + 1), title: `Chính sách ${idx + 1}`, desc: p };
+        }
+        return p;
+      });
     }
-    if (this.activeTour?.is_demo) return [];
     return [
       {
         step: '01',
@@ -348,8 +367,8 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       },
       {
         step: '03',
-        title: 'Chính sách hoàn cọc',
-        desc: 'Hoàn 90% nếu thông báo hủy trước 7 ngày. Mọi chi phí được minh bạch tuyệt đối.'
+        title: 'Hoàn hủy minh bạch',
+        desc: 'Hoàn 100% tiền đặt cọc nếu hủy trước 48 giờ. Đội ngũ GreenSteps đồng hành hỗ trợ 24/7.'
       }
     ];
   }
