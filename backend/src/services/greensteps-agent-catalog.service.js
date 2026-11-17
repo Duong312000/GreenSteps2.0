@@ -9,6 +9,26 @@ const MAX_SERVICE_CANDIDATES = SERVICE_CANDIDATE_PAGE_SIZE * SERVICE_CANDIDATE_M
 const MAX_DESTINATION_LENGTH = 80;
 const SERVICE_TYPES = new Set(['stay', 'food', 'transport', 'attraction', 'tour']);
 
+const KNOWN_DESTINATION_RULES = [
+  { dest: 'TP. Hồ Chí Minh', keywords: ['tp. ho chi minh', 'tp ho chi minh', 'tp.hcm', 'tphcm', 'tp hcm', 'ho chi minh', 'sai gon', 'saigon', 'can gio'] },
+  { dest: 'Hà Nội', keywords: ['ha noi', 'hanoi', 'thu do', 'hoan kiem', 'tay ho', 'pho co ha noi'] },
+  { dest: 'Hạ Long', keywords: ['ha long', 'halong', 'quang ninh', 'vinh ha long', 'bai chay', 'tuan chau', 'lan ha', 'cat ba'] },
+  { dest: 'Sa Pa', keywords: ['sa pa', 'sapa', 'lao cai', 'fansipan'] },
+  { dest: 'Ninh Bình', keywords: ['ninh binh', 'ninhbinh', 'trang an', 'tam coc', 'hang mua', 'hoa lu', 'bai dinh'] },
+  { dest: 'Hà Giang', keywords: ['ha giang', 'hagiang', 'dong van', 'meo vac', 'ma pi leng', 'tu san', 'lung cu'] },
+  { dest: 'Huế', keywords: ['hue', 'thua thien hue', 'song huong', 'thuy bieu', 'dai noi'] },
+  { dest: 'Đà Nẵng – Hội An', keywords: ['da nang', 'danang', 'hoi an', 'hoian', 'quang nam', 'ba na', 'son tra', 'ngu hanh son'] },
+  { dest: 'Đà Lạt', keywords: ['da lat', 'dalat', 'lam dong', 'cau dat', 'langbiang', 'tuyen lam'] },
+  { dest: 'Phú Yên', keywords: ['phu yen', 'phuyen', 'tuy hoa', 'ganh da dia', 'dam o loan', 'mui dien', 'bai xep'] },
+  { dest: 'Cần Thơ', keywords: ['can tho', 'cantho', 'cai rang', 'ninh kieu', 'song nuoc'] },
+  { dest: 'Phú Quốc', keywords: ['phu quoc', 'phuquoc', 'kien giang', 'dao ngoc', 'an thoi', 'duong dong'] },
+  // Regional queries
+  { dest: 'Miền Bắc', isRegion: true, targets: ['Hà Nội', 'Hạ Long', 'Sa Pa', 'Ninh Bình', 'Hà Giang'], keywords: ['mien bac', 'bac bo', 'tay bac', 'dong bac'] },
+  { dest: 'Miền Trung', isRegion: true, targets: ['Đà Nẵng – Hội An', 'Huế', 'Phú Yên'], keywords: ['mien trung', 'trung bo', 'duyen hai mien trung'] },
+  { dest: 'Tây Nguyên', isRegion: true, targets: ['Đà Lạt'], keywords: ['tay nguyen', 'cao nguyen'] },
+  { dest: 'Miền Nam', isRegion: true, targets: ['TP. Hồ Chí Minh', 'Cần Thơ', 'Phú Quốc'], keywords: ['mien nam', 'nam bo', 'mien tay', 'dong bang song cuu long'] }
+];
+
 const short = (value, max = 150) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const safeNumber = value => {
   if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
@@ -17,6 +37,33 @@ const safeNumber = value => {
 };
 const normalizeText = value => String(value || '').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, c => c === 'đ' ? 'd' : 'D').toLowerCase();
+
+function detectKnownDestination(text) {
+  if (!text) return '';
+  const n = normalizeText(text);
+  for (const rule of KNOWN_DESTINATION_RULES) {
+    if (rule.keywords.some(k => n.includes(k))) return rule.dest;
+  }
+  return '';
+}
+
+function destinationMatches(tourDest, targetDest) {
+  if (!targetDest) return true;
+  const nTour = normalizeText(tourDest);
+  const nTarget = normalizeText(targetDest);
+  if (nTour.includes(nTarget) || nTarget.includes(nTour)) return true;
+
+  const regionRule = KNOWN_DESTINATION_RULES.find(r => r.isRegion && (r.dest === targetDest || normalizeText(r.dest) === nTarget));
+  if (regionRule && regionRule.targets) {
+    return regionRule.targets.some(t => destinationMatches(tourDest, t));
+  }
+
+  const destRule = KNOWN_DESTINATION_RULES.find(r => r.dest === targetDest || normalizeText(r.dest) === nTarget);
+  if (destRule && destRule.keywords) {
+    return destRule.keywords.some(k => nTour.includes(k));
+  }
+  return false;
+}
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const destinationRegex = value => {
   const groups = {
@@ -115,25 +162,23 @@ function requestedItineraryDestination(message) {
 function queryFromRequest(input = {}) {
   const message = String(input.message || '');
   const normalized = normalizeText(message);
-  const duration = normalized.match(/\b(\d{1,2})\s*ngay\b/);
+  const duration = normalized.match(/\b(\d{1,2})\s*(?:ngay|day|n|d)\b/);
   const correction = message.match(/(?:kh\u00f4ng|khong)\s*,\s*([\p{L}][\p{L}\s.'-]{1,58}?)(?:\s+(?:c\u01a1|co))?\s*$/iu)?.[1]?.trim();
   const positiveMessage = message.replace(/(?:,\s*|\s+)kh(?:\u00f4ng|ong)\s+(?:\u0111i|di|gh[e\u00e9]|\u0111[e\u00e9]n|den|tham quan)\s+.+$/iu, '')
     .replace(/(?:,\s*|\s+)khong\s+(?:di|ghe|den|tham quan)\s+.+$/iu, '');
   const leadingDestination = positiveMessage.match(/^\s*(?:(?:tui|tôi|toi|mình|minh)\s+)?(?:\u0111i|di)\s+([\p{L}][\p{L}\s.'-]{1,58}?)(?=\s+\d{1,2}\s*(?:ngày|ngay)|\s+(?:budget|ngân sách|ngan sach)|[,;!?]|$)/iu)?.[1]?.trim();
   const explicitDestination = typeof input.destination === 'string' ? input.destination : '';
-  let parsedDestination = explicitDestination || requestedRevisedDestination(message) || correction || requestedItineraryDestination(positiveMessage) || parseDestination(positiveMessage) || leadingDestination;
-  if (typeof parsedDestination === 'string') {
+  const knownDest = detectKnownDestination(explicitDestination) || detectKnownDestination(message);
+  let parsedDestination = explicitDestination || knownDest || requestedRevisedDestination(message) || correction || requestedItineraryDestination(positiveMessage) || parseDestination(positiveMessage) || leadingDestination;
+  if (typeof parsedDestination === 'string' && !knownDest) {
     let words = parsedDestination.trim().split(/\s+/);
     const durationIndex = words.findIndex((word, index) => /^\d{1,2}$/.test(word) && /^(?:ngày|ngay|đêm|dem)$/i.test(words[index + 1] || ''));
     if (durationIndex >= 0) words = words.slice(0, durationIndex);
     while (words.length && /^(?:nào|nao|không|khong|cơ|co)$/i.test(words.at(-1))) words.pop();
     parsedDestination = words.join(' ');
   }
-  // Destination extraction from catalog questions can include the final
-  // Vietnamese negative particle (for example, "Có tour Đà Nẵng không?").
-  // Strip only a terminal question particle; preserve the canonical place text.
   const destinationWords = String(parsedDestination || '').trim().split(/\s+/);
-  if (destinationWords.length > 1 && /^(?:khong|ko|khum)$/.test(normalizeText(destinationWords.at(-1)))) {
+  if (!knownDest && destinationWords.length > 1 && /^(?:khong|ko|khum)$/.test(normalizeText(destinationWords.at(-1)))) {
     parsedDestination = destinationWords.slice(0, -1).join(' ');
   }
   const destination = /^(?:roi|toi|minh|va|cac|giup|nha|nhe)\b/i.test(normalizeText(parsedDestination)) ? '' : parsedDestination;
@@ -159,58 +204,91 @@ function pageInfo(rows, pageSize) {
 async function searchTours(models, query, signal) {
   signal?.throwIfAborted();
   const { Schedule, ScheduleSample } = models;
-  if (!Schedule || !ScheduleSample?.findAll) throw new Error('Tour catalog unavailable');
+  if (!Schedule) throw new Error('Tour catalog unavailable');
 
-  // High performance batch query: 2 batch calls instead of 41 sequential nested queries
-  const samples = await ScheduleSample.findAll({
-    where: {},
+  // Load sample prices if ScheduleSample exists
+  const samples = ScheduleSample?.findAll
+    ? await ScheduleSample.findAll({
+        readPreference: 'primaryPreferred',
+        attributes: ['id', 'schedule_id', 'cost', 'rating', 'votes_count']
+      }).catch(() => [])
+    : [];
+  signal?.throwIfAborted();
+
+  const sampleMap = new Map();
+  for (const s of samples) {
+    if (s.id) sampleMap.set(s.id, s);
+    if (s.schedule_id) sampleMap.set(s.schedule_id, s);
+  }
+
+  // Load all official catalog tours from Schedule
+  const allSchedules = await Schedule.findAll({
     readPreference: 'primaryPreferred',
-    attributes: ['id', 'cost', 'rating', 'votes_count']
+    attributes: [
+      'id', 'tour_name', 'destination', 'days', 'carbon',
+      'tour_description', 'image_url', 'highlights',
+      'catalog_status', 'price', 'rating', 'votes_count', 'current_data'
+    ]
   });
   signal?.throwIfAborted();
 
-  const ids = samples.map(s => s.id);
-  const schedules = await Schedule.findAll({
-    where: { id: { [Op.in]: ids } },
-    readPreference: 'primaryPreferred',
-    attributes: ['id', 'tour_name', 'destination', 'days', 'carbon', 'tour_description', 'image_url', 'highlights']
+  const officialTours = allSchedules.filter(s => {
+    if (!s.id) return false;
+    if (sampleMap.has(s.id)) return true;
+    if (s.id.startsWith('SCH') || s.id.startsWith('tour_') || s.id.startsWith('demo-')) return true;
+    if (['demo', 'editorial', 'published', 'active', 'legacy'].includes(s.catalog_status)) return true;
+    return false;
   });
-  signal?.throwIfAborted();
 
-  const scheduleMap = new Map();
-  schedules.forEach(s => scheduleMap.set(s.id, s));
-
-  const destination = normalizeText(query.destination);
-  const matched = samples.filter(sample => {
-    const schedule = scheduleMap.get(sample.id);
-    if (!schedule) return false;
-    if (destination && !normalizeText(schedule.destination).includes(destination)) return false;
-    if (query.durationDays && Number(schedule.days) !== query.durationDays) return false;
-    if (query.maxBudget !== null && safeNumber(sample.cost) > query.maxBudget) return false;
+  const matched = officialTours.filter(schedule => {
+    if (query.destination && !destinationMatches(schedule.destination, query.destination)) {
+      return false;
+    }
+    if (query.durationDays && Number(schedule.days) !== query.durationDays) {
+      return false;
+    }
+    const sample = sampleMap.get(schedule.id);
+    const cost = safeNumber(sample?.cost || schedule.price || schedule.current_data?.price || schedule.current_data?.cost);
+    if (query.maxBudget !== null && cost !== null && cost > query.maxBudget) {
+      return false;
+    }
     return true;
-  }).sort((a, b) => safeNumber(b.rating) - safeNumber(a.rating)
-    || safeNumber(b.votes_count) - safeNumber(a.votes_count)
-    || safeNumber(a.cost) - safeNumber(b.cost)
-    || String(a.id).localeCompare(String(b.id)));
+  }).sort((a, b) => {
+    const sA = sampleMap.get(a.id);
+    const sB = sampleMap.get(b.id);
+    const rA = safeNumber(sA?.rating || a.rating || 5);
+    const rB = safeNumber(sB?.rating || b.rating || 5);
+    const vA = safeNumber(sA?.votes_count || a.votes_count || 1);
+    const vB = safeNumber(sB?.votes_count || b.votes_count || 1);
+    const cA = safeNumber(sA?.cost || a.price || a.current_data?.price || 0);
+    const cB = safeNumber(sB?.cost || b.price || b.current_data?.price || 0);
+    return rB - rA || vB - vA || cA - cB || String(a.id).localeCompare(String(b.id));
+  });
 
   const offset = (query.page - 1) * query.pageSize;
   const page = pageInfo(matched.slice(offset, offset + query.pageSize + 1), query.pageSize);
 
   return {
-    rows: page.rows.map(row => {
-      const schedule = scheduleMap.get(row.id) || {};
+    rows: page.rows.map(schedule => {
+      const sample = sampleMap.get(schedule.id) || {};
+      const cost = safeNumber(sample.cost || schedule.price || schedule.current_data?.price || schedule.current_data?.cost);
+      const isDemo = ['demo', 'editorial'].includes(schedule.catalog_status);
+      const bookingAvailable = !isDemo && Boolean(cost && cost > 0);
+      const imageUrl = schedule.image_url || schedule.current_data?.coverImage || schedule.current_data?.imageUrl || '';
       return {
-        id: short(row.id, 80),
+        id: short(schedule.id, 80),
         title: short(schedule.tour_name),
         destination: short(schedule.destination, 100),
         days: safeNumber(schedule.days),
-        cost: safeNumber(row.cost),
+        cost,
         carbon: safeNumber(schedule.carbon),
-        rating: safeNumber(row.rating),
-        votes_count: safeNumber(row.votes_count),
-        description: short(schedule.tour_description, 240),
-        image: short(schedule.image_url, 500),
+        rating: safeNumber(sample.rating || schedule.rating || 5),
+        votes_count: safeNumber(sample.votes_count || schedule.votes_count || 1),
+        description: short(schedule.tour_description, 280),
+        image: short(imageUrl, 500),
+        imageUrl: short(imageUrl, 500),
         highlights: Array.isArray(schedule.highlights) ? schedule.highlights.slice(0, 5).map(item => short(item, 80)) : [],
+        bookingAvailable,
         data: []
       };
     }).filter(row => row.id && row.title),

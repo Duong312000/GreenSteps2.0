@@ -41,7 +41,10 @@ function createSupportRouter(options = {}) {
 
   router.post('/catalog', async (req, res) => {
     const expectedKey = env.N8N_CATALOG_API_KEY;
-    if (!catalogKeyMatches(req.get('X-GreenSteps-Catalog-Key'), expectedKey)) {
+    const providedKey = req.get('X-GreenSteps-Catalog-Key')
+      || req.get('X-GreenSteps-Agent-Key')
+      || req.get('authorization')?.replace(/^Bearer\s+/i, '');
+    if (!catalogKeyMatches(providedKey, expectedKey)) {
       return res.status(401).json({ success: false, code: 'CATALOG_UNAUTHORIZED' });
     }
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';

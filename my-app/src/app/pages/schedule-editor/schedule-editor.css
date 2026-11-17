@@ -4966,8 +4966,8 @@
 
   /* Bottom sheet snap states */
   .editor-main-panel.mobile-sheet-peek {
-    height: 98px !important;
-    max-height: 98px !important;
+    height: auto !important;
+    max-height: max-content !important;
     overflow: hidden !important;
     padding-bottom: 0 !important;
     background: #ffffff !important;
@@ -4999,8 +4999,8 @@
     z-index: 50 !important;
     background: #ffffff !important;
     border-radius: 18px 18px 0 0 !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
   }
 
   .mobile-sheet-header {
@@ -5043,7 +5043,7 @@
     align-items: center !important;
     gap: 8px !important;
     overflow-x: auto !important;
-    padding: 4px 16px 8px 16px !important;
+    padding: 6px 16px 12px 16px !important;
     background: #ffffff !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
@@ -5055,26 +5055,30 @@
   }
 
   .mobile-day-pill {
-    padding: 6px 14px !important;
+    padding: 0 16px !important;
     border-radius: 999px !important;
-    font-size: 12px !important;
+    font-size: 12.5px !important;
     font-weight: 600 !important;
-    color: #475569 !important;
+    color: #334155 !important;
     background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1.5px solid #cbd5e1 !important;
     white-space: nowrap !important;
     cursor: pointer !important;
     transition: all 0.15s ease !important;
     box-sizing: border-box !important;
     height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    line-height: 30px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
   }
 
   .mobile-day-pill.add-day-pill {
     background: #f0fdf4 !important;
-    border: 1.5px dashed #15803d !important;
+    border: 1.5px dashed #16a34a !important;
     color: #15803d !important;
     font-weight: 700 !important;
   }
@@ -5088,8 +5092,8 @@
 
   /* 7. Timeline Cover container on mobile */
   .timeline-cover-container {
-    height: 130px !important;
-    margin: 10px 14px 6px 14px !important;
+    height: 120px !important;
+    margin: 12px 16px 10px 16px !important;
     border-radius: 14px !important;
     overflow: hidden !important;
     position: relative !important;
