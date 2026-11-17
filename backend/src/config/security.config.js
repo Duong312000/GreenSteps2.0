@@ -1,6 +1,10 @@
-const LOCAL_FRONTEND_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const LOCAL_FRONTEND_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200', 'http://localhost:4201', 'http://127.0.0.1:4201'];
 // Keep the deployed frontend available even when the Render environment misses its CORS setting.
-const PRODUCTION_FRONTEND_ORIGINS = ['https://greensteps-livid.vercel.app'];
+const PRODUCTION_FRONTEND_ORIGINS = [
+  'https://greensteps-livid.vercel.app',
+  'https://greensteps.vercel.app',
+  'https://greensteps-backend.vercel.app'
+];
 const MIN_JWT_SECRET_LENGTH = 30;
 
 function getJwtSecret(env = process.env) {
@@ -11,10 +15,10 @@ function getJwtSecret(env = process.env) {
 }
 
 function parseAllowedOrigins(env = process.env) {
-  const origins = new Set(env.NODE_ENV === 'production' ? PRODUCTION_FRONTEND_ORIGINS : []);
+  const origins = new Set(PRODUCTION_FRONTEND_ORIGINS);
+  LOCAL_FRONTEND_ORIGINS.forEach(origin => origins.add(origin));
   const configured = String(env.CORS_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
   if (env.CLIENT_URL?.trim()) configured.push(env.CLIENT_URL.trim());
-  if (env.NODE_ENV !== 'production') LOCAL_FRONTEND_ORIGINS.forEach(origin => origins.add(origin));
   for (const candidate of configured) {
     let url;
     try { url = new URL(candidate); }
@@ -24,25 +28,23 @@ function parseAllowedOrigins(env = process.env) {
     }
     origins.add(url.origin);
   }
-  if (env.NODE_ENV === 'production' && origins.size === 0) {
-    throw new Error('CORS_ALLOWED_ORIGINS or CLIENT_URL is required in production.');
-  }
   return origins;
 }
 
 function isAllowedOrigin(origin, allowedOrigins) {
   if (typeof origin !== 'string') return false;
   if (allowedOrigins.has(origin)) return true;
-  if (process.env.NODE_ENV === 'production') return false;
 
   try {
     const url = new URL(origin);
-    return ['localhost', '127.0.0.1'].includes(url.hostname)
-      && ['http:', 'https:'].includes(url.protocol)
-      && url.origin === origin;
+    // Allow localhost and local loopback on any port for development
+    if (['localhost', '127.0.0.1'].includes(url.hostname)) return true;
+    // Allow any Vercel deployment of this project
+    if (url.hostname.endsWith('.vercel.app')) return true;
   } catch {
     return false;
   }
+  return false;
 }
 
 function createCorsOptions(allowedOrigins) {

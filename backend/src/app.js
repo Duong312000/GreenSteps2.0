@@ -76,7 +76,7 @@ app.use('/uploads', (req, res) => {
   res.send(TRANSPARENT_1PX_PNG);
 });
 
-app.post('/api/upload-base64', (req, res) => {
+app.post('/api/upload-base64', async (req, res) => {
   try {
     const { base64, type } = req.body;
     if (!base64) {
@@ -116,7 +116,50 @@ app.post('/api/upload-base64', (req, res) => {
     else if (mimeType.includes('gif')) ext = 'gif';
     else if (mimeType.includes('webp')) ext = 'webp';
 
-    // Determine subfolder based on type
+    const filename = `community_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+    // 1. CLOUDINARY CLOUD STORAGE (Recommended & Zero MongoDB Storage Bloat)
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (cloudName && apiKey && apiSecret) {
+      try {
+        const crypto = require('crypto');
+        const timestamp = Math.floor(Date.now() / 1000);
+        const folder = isVideo ? 'greensteps/videos' : 'greensteps/images';
+        const publicId = `${folder}/${type || 'upload'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const params = { public_id: publicId, timestamp };
+        const toSign = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+        const signature = crypto.createHash('sha1').update(`${toSign}${apiSecret}`).digest('hex');
+
+        const form = new FormData();
+        form.set('file', new Blob([buffer], { type: mimeType }), filename);
+        form.set('api_key', apiKey);
+        form.set('timestamp', String(timestamp));
+        form.set('public_id', publicId);
+        form.set('signature', signature);
+
+        const resourceType = isVideo ? 'video' : 'image';
+        const cRes = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${resourceType}/upload`, {
+          method: 'POST',
+          body: form
+        });
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData && cData.secure_url) {
+            return res.json({ success: true, url: cData.secure_url });
+          }
+        } else {
+          const errText = await cRes.text();
+          console.warn('Cloudinary upload warning:', errText);
+        }
+      } catch (cErr) {
+        console.warn('Cloudinary upload error, falling back:', cErr.message);
+      }
+    }
+
+    // 2. Local / Base64 Fallback
     let subfolder = isVideo ? path.join('community', 'videos') : 'posts';
     if (type === 'avatar') subfolder = 'avatars';
     else if (type === 'service') subfolder = 'services';
@@ -127,11 +170,9 @@ app.post('/api/upload-base64', (req, res) => {
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
-    const filename = `community_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
     const filePath = path.join(dirPath, filename);
     fs.writeFileSync(filePath, buffer);
 
-    // For images, return data URI so MongoDB stores it permanently across Render restarts and cross-origin frontends
     if (!isVideo) {
       return res.json({ success: true, url: base64 });
     }

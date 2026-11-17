@@ -1,4 +1,4 @@
-﻿import { Component, DestroyRef, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, DestroyRef, ChangeDetectorRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
@@ -51,7 +51,7 @@ export class PartnerDashboardComponent {
   ) {
     this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       this.currentUser = user;
-      if (user?.role === 'provider') void this.loadDashboardData();
+      if (user?.role === 'provider' || user?.role === 'admin') void this.loadDashboardData();
       else {
         this.isLoading = false;
         this.loginModalService.open();
@@ -174,17 +174,16 @@ export class PartnerDashboardComponent {
     this.isLoading = true;
     this.loadError = false;
     const [bookings, services, changeRequests] = await Promise.allSettled([
-      this.apiService.getBookings(providerId, undefined, true, 8000, true),
-      this.apiService.getMyServices(providerId, true, 8000, true),
-      this.apiService.getChangeRequests(providerId, undefined, true, 8000, true),
+      this.apiService.getBookings(providerId, undefined, true, 15000, true),
+      this.apiService.getMyServices(providerId, true, 15000, true),
+      this.apiService.getChangeRequests(providerId, undefined, true, 15000, true),
     ]);
     if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
     if (bookings.status === 'fulfilled') this.bookings = bookings.value;
-    else this.loadError = true;
     if (services.status === 'fulfilled') this.services = services.value;
-    else this.loadError = true;
     if (changeRequests.status === 'fulfilled') this.changeRequests = changeRequests.value;
-    else this.loadError = true;
+    // Only flag critical loadError if both primary endpoints failed completely
+    this.loadError = bookings.status === 'rejected' && services.status === 'rejected';
     this.recalculate();
     if (!this.destroyRef.destroyed && sequence === this.loadSequence) {
       this.isLoading = false;

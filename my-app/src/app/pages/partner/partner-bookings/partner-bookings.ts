@@ -138,7 +138,7 @@ export class PartnerBookingsComponent implements OnInit {
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
-      if (!user || user.role !== 'provider') {
+      if (!user || (user.role !== 'provider' && user.role !== 'admin')) {
         this.loginModalService.open();
       } else {
         this.loadAllData();
@@ -154,7 +154,7 @@ export class PartnerBookingsComponent implements OnInit {
     this.loadError = false;
     try {
       const results = await Promise.allSettled([
-        this.apiService.getMyServices(providerId, true, 8000, true),
+        this.apiService.getMyServices(providerId, true, 15000, true),
         this.loadBookings(),
         this.loadChangeRequests(),
         this.loadOperations(),
@@ -162,7 +162,8 @@ export class PartnerBookingsComponent implements OnInit {
       ]);
       const servicesResult = results[0];
       if (servicesResult.status === 'fulfilled') this.myServices = servicesResult.value;
-      this.loadError = results.some(result => result.status === 'rejected');
+      // Only set loadError if both core service and booking requests failed
+      this.loadError = results[0].status === 'rejected' && results[1].status === 'rejected';
     } catch {
       this.loadError = true;
     } finally {
@@ -177,7 +178,7 @@ export class PartnerBookingsComponent implements OnInit {
   public async loadBookings() {
     if (!this.currentUser) return;
     const providerId = this.currentUser.id || this.currentUser._id || '';
-    const res = await this.apiService.getBookings(providerId, undefined, true, 8000, true);
+    const res = await this.apiService.getBookings(providerId, undefined, true, 15000, true);
     this.bookings = res || [];
   }
 

@@ -73,6 +73,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public sharingItinerary: any = null;
   public shareMessage: string = '';
   public shareLink: string = '';
+  public shareAllowClone: boolean = true;
+  public shareAllowCollab: boolean = false;
 
   // Collaborator Invitation properties
   public isInviteFriendModalOpen: boolean = false;
@@ -93,7 +95,32 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   private destCoords: { [key: string]: [number, number] } = {
     'Đà Lạt': [11.940419, 108.458313],
     'Phú Yên': [13.088198, 109.314957],
-    'Đà Nẵng - Hội An': [16.047079, 108.206230]
+    'Đà Nẵng': [16.0544, 108.2022],
+    'Hội An': [15.8801, 108.3380],
+    'Đà Nẵng – Hội An': [16.047079, 108.206230],
+    'Đà Nẵng - Hội An': [16.047079, 108.206230],
+    'Sa Pa': [22.3364, 103.8438],
+    'Hà Giang': [22.8233, 104.9839],
+    'Mộc Châu': [20.8443, 104.6475],
+    'Điện Biên': [21.3853, 103.0173],
+    'Hạ Long': [20.9505, 107.0733],
+    'Cát Bà': [20.7275, 106.9996],
+    'Cao Bằng': [22.6657, 105.9734],
+    'Ba Bể': [22.4042, 105.6174],
+    'Hà Nội': [21.0285, 105.8542],
+    'Ninh Bình': [20.2506, 105.9745],
+    'Phong Nha': [17.5898, 106.2829],
+    'Huế': [16.4637, 107.5909],
+    'Quy Nhơn': [13.7820, 109.2197],
+    'Nha Trang': [12.2388, 109.1967],
+    'Măng Đen': [14.6000, 108.2917],
+    'Buôn Ma Thuột': [12.6675, 108.0383],
+    'TP. Hồ Chí Minh': [10.8231, 106.6297],
+    'Côn Đảo': [8.6835, 106.6074],
+    'Cần Thơ': [10.0452, 105.7469],
+    'Phú Quốc': [10.2899, 103.9840],
+    'An Giang': [10.5186, 105.0289],
+    'Bến Tre': [10.2433, 106.3759]
   };
 
   // Maps properties
@@ -264,12 +291,100 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // Dual View Mode & Route Pipeline Canvas
   public activeTimelineViewMode: 'timeline' | 'pipeline' = (typeof localStorage !== 'undefined' && localStorage.getItem('greensteps_timeline_view_mode') as any) || 'timeline';
   public pipelineZoomScale: number = 1.0;
-  public mobileSheetState: 'peek' | 'half' | 'full' = 'half';
+  public mobileSheetState: 'peek' | 'half' | 'full' = 'full';
+  public mobileViewMode: 'list' | 'map' = 'list';
+  public mobileActionSheetAct: any = null;
+  public mobileActionSheetIdx: number = -1;
+  public isMobileNoteModalOpen: boolean = false;
+  public mobileNoteTargetAct: any = null;
+  public mobileNoteText: string = '';
+  public isWalletPromptModalOpen: boolean = false;
+
+  public async handleWalletBadgeClick(event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.showAlert('Vui lòng đăng nhập để sử dụng tính năng Ví GreenSteps!', 'warning');
+      return;
+    }
+
+    if (this.walletRegistered) {
+      // Đã đăng ký ví: Chạy song song lưu lịch trình và dẫn tới trang ví GreenSteps
+      void this.saveItineraryToDb();
+      void this.router.navigate(['/profile'], { queryParams: { section: 'wallet' } });
+    } else {
+      // Chưa có ví: Hiện thông báo chức năng cần mở ví
+      this.isWalletPromptModalOpen = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  public closeWalletPromptModal() {
+    this.isWalletPromptModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public confirmOpenWallet() {
+    this.isWalletPromptModalOpen = false;
+    // Chạy song song lưu lịch trình
+    void this.saveItineraryToDb();
+    // Chuyển sang đăng ký ví tại trang profile ví
+    void this.router.navigate(['/profile'], { queryParams: { section: 'wallet' } });
+    this.cdr.detectChanges();
+  }
+
+  public toggleMobileViewMode() {
+    this.mobileViewMode = this.mobileViewMode === 'list' ? 'map' : 'list';
+    this.mobileSheetState = this.mobileViewMode === 'map' ? 'peek' : 'full';
+    this.cdr.detectChanges();
+  }
+
+  public openMobileActActions(act: any, idx: number, event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    this.mobileActionSheetAct = act;
+    this.mobileActionSheetIdx = idx;
+    this.cdr.detectChanges();
+  }
+
+  public closeMobileActActions() {
+    this.mobileActionSheetAct = null;
+    this.mobileActionSheetIdx = -1;
+    this.cdr.detectChanges();
+  }
+
+  public openMobileNoteModal(act: any, event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    this.closeMobileActActions();
+    this.mobileNoteTargetAct = act;
+    this.mobileNoteText = act.note || '';
+    this.isMobileNoteModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  public closeMobileNoteModal() {
+    this.isMobileNoteModalOpen = false;
+    this.mobileNoteTargetAct = null;
+    this.mobileNoteText = '';
+    this.cdr.detectChanges();
+  }
+
+  public saveMobileNote() {
+    if (!this.mobileNoteTargetAct) return;
+    const trimmed = (this.mobileNoteText || '').trim();
+    this.mobileNoteTargetAct.note = trimmed;
+    this.saveItineraryToDb();
+    this.closeMobileNoteModal();
+    this.cdr.detectChanges();
+  }
 
   public toggleMobileSheet() {
-    if (this.mobileSheetState === 'peek') this.mobileSheetState = 'half';
-    else if (this.mobileSheetState === 'half') this.mobileSheetState = 'full';
-    else this.mobileSheetState = 'half';
+    if (this.mobileSheetState === 'peek') {
+      this.mobileSheetState = 'full';
+      this.mobileViewMode = 'list';
+    } else {
+      this.mobileSheetState = 'peek';
+      this.mobileViewMode = 'map';
+    }
     this.cdr.detectChanges();
   }
 
@@ -904,21 +1019,40 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     this.sharingItinerary = iti || this.activeItinerary;
-    if (this.activeItinerary) {
-      this.activeItinerary.user_id = user.id || user._id;
-      await this.saveItineraryToDb();
-    }
-
-    const targetId = this.sharingItinerary?.id || this.activeItinerary?.id;
-    const destName = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
-    const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
-
-    const snap = this.encodeShareSnapshot(this.sharingItinerary);
-    this.shareLink = snap
-      ? `${window.location.origin}/schedule/${targetId}?s=${snap}`
-      : `${window.location.origin}/schedule/${targetId}`;
-    this.shareMessage = `Khám phá hành trình "${tripName}" tại ${destName} trên GreenSteps! 🌿\nXem chi tiết lịch trình tại: ${this.shareLink}`;
+    this.shareAllowClone = true;
+    this.shareAllowCollab = false;
+    this.updateSharePayload();
     this.isShareModalOpen = true;
+    this.cdr.detectChanges();
+
+    if (this.activeItinerary) {
+      this.activeItinerary.user_id = user.id || (user as any)._id;
+      this.saveItineraryToDb().catch(e => console.warn('Background save itinerary notice:', e));
+    }
+  }
+
+  public onShareOptionsChanged() {
+    this.updateSharePayload();
+  }
+
+  public updateSharePayload() {
+    const targetId = this.sharingItinerary?.id || this.activeItinerary?.id;
+    if (!targetId) return;
+    const user = this.authService.getCurrentUser();
+    const userName = user?.fullname || user?.username || 'Bạn';
+    const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
+    const destName = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
+    const snap = this.encodeShareSnapshot(this.sharingItinerary || this.activeItinerary);
+
+    if (this.shareAllowCollab) {
+      this.shareLink = `${window.location.origin}/schedule/${targetId}?join=1&collab=1&senderName=${encodeURIComponent(userName)}`;
+      this.shareMessage = `🌿 ${userName} mời bạn cùng tham gia chỉnh sửa & thanh toán lịch trình "${tripName}" tại ${destName} trên GreenSteps!\nXem và tham gia tại: ${this.shareLink}`;
+    } else {
+      this.shareLink = snap
+        ? `${window.location.origin}/schedule/${targetId}?s=${snap}`
+        : `${window.location.origin}/schedule/${targetId}`;
+      this.shareMessage = `Khám phá hành trình "${tripName}" tại ${destName} trên GreenSteps! 🌿\nXem chi tiết lịch trình tại: ${this.shareLink}`;
+    }
     this.cdr.detectChanges();
   }
 
@@ -940,18 +1074,23 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     try {
+      const shareTripName = this.sharingItinerary.name || this.sharingItinerary.title || 'Lịch trình du lịch';
+      const cover = this.getUnifiedCoverImage(this.sharingItinerary);
       const payload = {
-        authorId: user.id || user._id || '',
-        author: user.fullname || 'Thành viên GreenSteps',
-        text: this.shareMessage,
+        authorId: user.id || (user as any)._id || '',
+        author: user.fullname || user.username || 'Thành viên GreenSteps',
+        text: this.shareMessage?.trim() || `Khám phá lịch trình du lịch "${shareTripName}" cùng mình trên GreenSteps!`,
         rating: 5,
-        tripName: this.sharingItinerary.name,
-        dest: this.sharingItinerary.destination,
+        tripName: shareTripName,
+        dest: this.sharingItinerary.destination || this.sharingItinerary.dest || 'Việt Nam',
         days: this.getItineraryDaysCount(this.sharingItinerary),
         likes: 0,
         comments: 0,
-        image: null,
-        itineraryId: this.sharingItinerary.id
+        image: cover || null,
+        images: cover ? [cover] : [],
+        itineraryId: this.sharingItinerary.id,
+        allowClone: this.shareAllowClone,
+        allowCollab: this.shareAllowCollab
       };
 
       const res = await this.apiService.addCommunityPost(payload);
@@ -961,7 +1100,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           this.router.navigate(['/community']);
         });
       } else {
-        this.showAlert('Chia sẻ lên cộng đồng thất bại!', 'error');
+        this.showAlert(res?.message || 'Chia sẻ lên cộng đồng thất bại!', 'error');
       }
     } catch (e) {
       console.error(e);
@@ -971,29 +1110,55 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public shareSocial(platform: 'facebook' | 'instagram' | 'zalo' | 'twitter' | 'messenger') {
     const link = this.shareLink || `${window.location.origin}/schedule/${this.sharingItinerary?.id || this.activeItinerary?.id || ''}`;
+    const tripName = this.sharingItinerary?.name || this.sharingItinerary?.title || this.activeItinerary?.title || 'Lịch trình du lịch';
+    const dest = this.sharingItinerary?.destLabel || this.sharingItinerary?.destination || this.activeItinerary?.destLabel || 'Việt Nam';
+    const coverUrl = this.getUnifiedCoverImage(this.sharingItinerary || this.activeItinerary);
     const url = encodeURIComponent(link);
-    const text = encodeURIComponent(this.shareMessage || `Khám phá lịch trình du lịch xanh trên GreenSteps: ${link}`);
+
     if (platform === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=620,height=480');
+      const quote = `🌿 ${this.shareMessage || `Cùng mình trải nghiệm "${tripName}" tại ${dest} trên GreenSteps!`}\n\nXem hành trình tại: ${link}`;
+      try { navigator.clipboard.writeText(quote); } catch (e) {}
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(quote)}`, '_blank', 'width=620,height=520');
+      this.showAlert('Đã sao chép nội dung & hình ảnh vào bộ nhớ tạm! Bạn có thể dán vào bài viết Facebook.', 'info');
       return;
     }
     if (platform === 'zalo') {
-      navigator.clipboard.writeText(`${this.shareMessage || ''}\n${link}`.trim());
-      window.open(`https://sp.zalo.me/plugins/sdk?url=${url}`, '_blank', 'width=600,height=520');
-      this.showAlert('Đã sao chép liên kết lịch trình & mở cửa sổ chia sẻ Zalo!', 'success');
+      const zaloText = `${this.shareMessage || `Khám phá lịch trình du lịch xanh "${tripName}" tại ${dest}!`}\n\nXem chi tiết: ${link}`;
+      try { navigator.clipboard.writeText(zaloText); } catch (e) {}
+      window.open(`https://zalo.me/share?url=${url}`, '_blank', 'width=600,height=520');
+      this.showAlert('Đã mở cửa sổ chia sẻ Zalo và sao chép toàn bộ thông tin lịch trình vào bộ nhớ tạm!', 'success');
       return;
     }
     if (platform === 'instagram') {
-      navigator.clipboard.writeText(`${this.shareMessage || ''}\n${link}`.trim());
+      const igCaption = `🌿 Hành trình xanh: ${tripName} tại ${dest}!\nLịch trình chi tiết: ${link}\n\n#GreenSteps #DuLichXanh #${this.mapDestToSlug(dest)}`;
+      try { navigator.clipboard.writeText(igCaption); } catch (e) {}
+      if (coverUrl) {
+        this.downloadCoverImage(coverUrl, `greensteps-${this.mapDestToSlug(dest)}-cover.jpg`);
+      }
       window.open('https://www.instagram.com/', '_blank');
-      this.showAlert('Đã sao chép nội dung & liên kết lịch trình! Bạn có thể dán ngay vào Story hoặc Tin nhắn Instagram.', 'success');
+      this.showAlert('Đã tải ảnh đại diện chuyến đi và sao chép nội dung bài đăng! Hãy tải ảnh lên Instagram và dán (Paste) nội dung nhé.', 'success');
       return;
     }
     if (platform === 'messenger') {
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=450');
       return;
     }
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=450');
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(this.shareMessage || '')}&url=${url}`, '_blank', 'width=600,height=450');
+  }
+
+  public downloadCoverImage(url: string, filename: string = 'greensteps-cover.jpg') {
+    if (!url) return;
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.warn('Cannot download cover photo directly:', e);
+    }
   }
 
   public copyShareLink() {
@@ -1915,8 +2080,112 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.cdr.detectChanges();
     }, 150);
 
+    // Auto-join collaborator if user is accessing shared itinerary
+    this.checkAndJoinCollaborator(itinerary);
+
     // Start silent background synchronization polling
     this.startBackgroundSync();
+  }
+
+  private async checkAndJoinCollaborator(itinerary: any) {
+    if (!itinerary || !itinerary.id || String(itinerary.id).startsWith('SCH-') || this.isSampleItinerary) return;
+    const isJoinIntent = this.route.snapshot.queryParamMap.has('join') || this.route.snapshot.queryParamMap.has('collab');
+    const senderName = this.route.snapshot.queryParamMap.get('senderName');
+    const user = this.authService.getCurrentUser();
+
+    if (!user) {
+      if (isJoinIntent) {
+        this.showAlert(
+          `Bạn được ${senderName || 'bạn bè'} mời cùng tham gia chỉnh sửa và thanh toán lịch trình này! Vui lòng đăng nhập để hệ thống nhận diện tài khoản của bạn nhé.`,
+          'info',
+          () => { this.loginModalService.open(); }
+        );
+      }
+      return;
+    }
+
+    const currentUserId = user.id || (user as any)._id;
+    if (!currentUserId) return;
+
+    const creatorId = itinerary.user_id || itinerary.userId;
+    const isOwner = creatorId && String(creatorId) === String(currentUserId);
+    const alreadyInCollabs = Array.isArray(itinerary.collaborators) && itinerary.collaborators.some((c: any) => String(c.id) === String(currentUserId));
+
+    if (!alreadyInCollabs || isJoinIntent) {
+      try {
+        const cleanId = String(itinerary.id).replace(/^iti_/, '');
+        const res = await this.apiService.joinItinerary(cleanId, currentUserId);
+        if (res && res.success && Array.isArray(res.collaborators)) {
+          if (this.activeItinerary) {
+            this.activeItinerary.collaborators = res.collaborators;
+            this.cdr.detectChanges();
+          }
+          if (isJoinIntent && !isOwner) {
+            this.showAlert(`Bạn đã tham gia cùng chỉnh sửa lịch trình "${itinerary.title || itinerary.name || 'này'}" thành công!`, 'success');
+          }
+        }
+      } catch (e) {
+        console.warn('Auto join collaborator notice:', e);
+      }
+    }
+  }
+
+  public getVisibleCollaborators(): any[] {
+    const list: any[] = [];
+    const seen = new Set<string>();
+
+    // 1. Current User presence
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      const myId = String(user.id || (user as any)._id || 'me');
+      seen.add(myId);
+      list.push({
+        id: myId,
+        fullname: user.fullname || user.username || 'Bạn',
+        username: user.username,
+        avatarUrl: user.avatarUrl || (user as any).avatar_url || ''
+      });
+    }
+
+    // 2. Sender / inviter presence from query param if opened from invite link
+    const senderName = this.route.snapshot.queryParamMap.get('senderName');
+    if (senderName && (!user || (user.fullname !== senderName && user.username !== senderName))) {
+      seen.add('sender_' + senderName);
+      list.push({
+        id: 'sender_' + senderName,
+        fullname: senderName,
+        username: senderName,
+        avatarUrl: ''
+      });
+    }
+
+    // 3. Database synced collaborators from activeItinerary
+    if (this.activeItinerary && Array.isArray(this.activeItinerary.collaborators)) {
+      for (const col of this.activeItinerary.collaborators) {
+        const id = String(col.id || col.username || col.fullname);
+        if (!seen.has(id)) {
+          seen.add(id);
+          list.push(col);
+        }
+      }
+    }
+
+    // 4. Creator / Host if different from current user
+    if (this.activeItinerary) {
+      const ownerId = String(this.activeItinerary.user_id || this.activeItinerary.userId || '');
+      if (ownerId && !seen.has(ownerId)) {
+        seen.add(ownerId);
+        list.push({
+          id: ownerId,
+          fullname: this.activeItinerary.author || this.activeItinerary.creatorName || 'Trưởng nhóm',
+          username: this.activeItinerary.author || 'TruongNhom',
+          avatarUrl: this.activeItinerary.creatorAvatar || '',
+          isOwner: true
+        });
+      }
+    }
+
+    return list;
   }
 
   public async loadDynamicRecommendations() {
@@ -3383,14 +3652,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     try {
       this.map = L.map('leafletMap', {
-        zoomControl: false
+        zoomControl: false,
+        attributionControl: false
       }).setView(center, 12);
 
       // Google Maps road map style
       L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google Maps'
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
       }).addTo(this.map);
 
 
@@ -6374,15 +6643,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       });
       return;
     }
-    if (this.activeItinerary) {
-      this.activeItinerary.user_id = user.id || user._id;
-      await this.saveItineraryToDb();
-    }
     this.isInviteFriendModalOpen = true;
     this.inviteEmails = '';
     this.inviteEmailChipList = [];
     this.isSendingInvites = false;
     this.cdr.detectChanges();
+
+    if (this.activeItinerary) {
+      this.activeItinerary.user_id = user.id || user._id;
+      this.saveItineraryToDb().catch(e => console.warn('Background save itinerary notice:', e));
+    }
   }
 
   public closeInviteFriendModal() {

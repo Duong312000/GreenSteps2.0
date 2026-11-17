@@ -1,76 +1,86 @@
-<style>
-    .gs-footer { font-family: 'Be Vietnam Pro', 'Inter', Arial, sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
-    .gs-footer button, .gs-footer input, .gs-footer a { font-family: inherit; }
-</style>
-
 <footer class="gs-footer bg-[#073D2B] text-white">
-    <div class="gs-footer-inner mx-auto max-w-[1280px] px-12 py-12 max-md:px-6 max-sm:px-4">
-        <div class="gs-footer-grid grid gap-9 md:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr_1.25fr]">
-            <div class="gs-footer-brand">
-                <div class="gs-footer-logo mb-4 flex items-center gap-3">
-                    <img src="image/greensteps_logo.png" class="h-8 w-8 rounded-full bg-white object-cover" alt="GreenSteps">
-                    <span class="flex flex-col text-base font-extrabold leading-tight">GREENSTEPS<span class="mt-1 text-[9px] font-bold uppercase tracking-[.2em] text-[#B9D9BD]">Travel with care</span></span>
+    <div class="gs-footer-inner mx-auto max-w-[1280px] px-6 py-10 md:px-12 md:py-12">
+        <!-- Main Footer Grid: 6 columns on Desktop (Win), Balanced Multi-Column on Mobile -->
+        <div class="gs-footer-grid grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr_1.25fr]">
+            <!-- Column 1: Brand Info -->
+            <div class="gs-footer-brand sm:col-span-2 lg:col-span-1">
+                <div class="gs-footer-logo mb-3 flex items-center gap-3">
+                    <img src="image/greensteps_logo.png" class="h-8 w-8 rounded-full bg-white object-cover shadow-sm" alt="GreenSteps">
+                    <span class="flex flex-col text-base font-extrabold leading-tight tracking-tight">GREENSTEPS<span class="mt-0.5 text-[9px] font-bold uppercase tracking-[.2em] text-[#B9D9BD]">Travel with care</span></span>
                 </div>
-                <p class="max-w-xs text-xs leading-6 text-white/75">Du lịch có mục đích. Khám phá có trách nhiệm. Tạo tác động tích cực.</p>
-                <div class="gs-footer-socials mt-4 flex gap-3 text-white/85">
-                    <span class="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-xs"><i class="bi bi-facebook"></i></span>
-                    <span class="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-xs"><i class="bi bi-instagram"></i></span>
-                    <span class="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-xs"><i class="bi bi-youtube"></i></span>
-                </div>
-            </div>
-
-            <div class="gs-footer-col">
-                <h3 class="mb-4 text-xs font-extrabold">Công ty</h3>
-                <div class="flex flex-col gap-2 text-xs text-white/70">
-                    <a routerLink="/about" class="hover:text-white">Về chúng tôi</a>
-                    <a routerLink="/sustainability" class="hover:text-white">Cam kết bền vững</a>
+                <p class="max-w-xs text-xs leading-5 text-white/75">Du lịch có mục đích. Khám phá có trách nhiệm. Tạo tác động tích cực cho cộng đồng và thiên nhiên.</p>
+                <div class="gs-footer-socials mt-4 flex items-center gap-2.5 text-white/85">
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs transition-colors hover:bg-white/20 hover:text-white" title="Facebook" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs transition-colors hover:bg-white/20 hover:text-white" title="Instagram" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs transition-colors hover:bg-white/20 hover:text-white" title="YouTube" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
                 </div>
             </div>
 
-            <div class="gs-footer-col">
-                <h3 class="mb-4 text-xs font-extrabold">Hỗ trợ</h3>
-                <div class="flex flex-col gap-2 text-xs text-white/70">
-                    <a routerLink="/how-it-works" class="hover:text-white">Hướng dẫn sử dụng</a>
-                    <a routerLink="/cancellation-policy" class="hover:text-white">Chính sách hủy & hoàn tiền</a>
-                    <a routerLink="/help-center" class="hover:text-white">Trung tâm hỗ trợ</a>
-                    <a routerLink="/contact" class="hover:text-white">Liên hệ hỗ trợ</a>
-                    <a href="#" class="hover:text-white">Điều khoản sử dụng</a>
-                    <a href="#" class="hover:text-white">Chính sách bảo mật</a>
-                </div>
+            <!-- Navigation Links Container on Mobile / Distinct Columns on Desktop -->
+            <div class="gs-footer-col col-span-1">
+                <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Công ty</h3>
+                <ul class="flex flex-col gap-2 text-xs text-white/70 list-none p-0 m-0">
+                    <li><a routerLink="/about" class="transition-colors hover:text-white">Về chúng tôi</a></li>
+                    <li><a routerLink="/sustainability" class="transition-colors hover:text-white">Cam kết bền vững</a></li>
+                </ul>
+
+                <h3 class="mb-3 mt-6 text-xs font-bold uppercase tracking-wider text-white/90">Dành cho đối tác</h3>
+                <ul class="flex flex-col gap-2 text-xs text-white/70 list-none p-0 m-0">
+                    <li *ngIf="authService.currentUser$ | async as currentUser; else partnerSignupGuest">
+                        <a *ngIf="currentUser.role === 'traveler'" routerLink="/become-a-partner" class="transition-colors hover:text-white">Trở thành đối tác</a>
+                        <a *ngIf="currentUser.role === 'provider' || currentUser.role === 'admin'" routerLink="/partner" class="transition-colors hover:text-white">Cổng đối tác</a>
+                    </li>
+                    <ng-template #partnerSignupGuest>
+                        <li><a routerLink="/become-a-partner" class="transition-colors hover:text-white">Trở thành đối tác</a></li>
+                    </ng-template>
+                    <li><a routerLink="/provider-terms" class="transition-colors hover:text-white">Điều khoản nhà cung cấp</a></li>
+                    <li><a routerLink="/payment-policy" class="transition-colors hover:text-white">Chính sách thanh toán</a></li>
+                </ul>
             </div>
 
-            <div class="gs-footer-col">
-                <h3 class="mb-4 text-xs font-extrabold">Điểm đến nổi bật</h3>
-                <div class="flex flex-col gap-2 text-xs text-white/70">
-                    <a routerLink="/tours" class="hover:text-white">Đà Lạt</a>
-                    <a routerLink="/tours" class="hover:text-white">Đà Nẵng - Hội An</a>
-                    <a routerLink="/tours" class="hover:text-white">Phú Yên</a>
-                    <a routerLink="/tours" class="hover:text-white">Tất cả điểm đến</a>
-                </div>
+            <div class="gs-footer-col col-span-1">
+                <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Hỗ trợ</h3>
+                <ul class="flex flex-col gap-2 text-xs text-white/70 list-none p-0 m-0">
+                    <li><a routerLink="/how-it-works" class="transition-colors hover:text-white">Hướng dẫn sử dụng</a></li>
+                    <li><a routerLink="/cancellation-policy" class="transition-colors hover:text-white">Chính sách hủy & hoàn tiền</a></li>
+                    <li><a routerLink="/help-center" class="transition-colors hover:text-white">Trung tâm hỗ trợ</a></li>
+                    <li><a routerLink="/contact" class="transition-colors hover:text-white">Liên hệ hỗ trợ</a></li>
+                    <li><a routerLink="/about" class="transition-colors hover:text-white">Điều khoản sử dụng</a></li>
+                    <li><a routerLink="/sustainability" class="transition-colors hover:text-white">Chính sách bảo mật</a></li>
+                </ul>
             </div>
 
-            <div class="gs-footer-col">
-                <h3 class="mb-4 text-xs font-extrabold">Dành cho đối tác</h3>
-                <div class="flex flex-col gap-2 text-xs text-white/75">
-                    <ng-container *ngIf="authService.currentUser$ | async as currentUser; else partnerSignupGuest"><a *ngIf="currentUser.role === 'traveler'" routerLink="/become-a-partner" class="hover:text-white">Trở thành đối tác</a></ng-container>
-                    <ng-template #partnerSignupGuest><a routerLink="/become-a-partner" class="hover:text-white">Trở thành đối tác</a></ng-template>
-                    <a routerLink="/provider-terms" class="hover:text-white">Điều khoản dành cho nhà cung cấp</a>
-                    <a routerLink="/payment-policy" class="hover:text-white">Chính sách thanh toán</a>
-                </div>
+            <div class="gs-footer-col col-span-1">
+                <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Điểm đến nổi bật</h3>
+                <ul class="flex flex-col gap-2 text-xs text-white/70 list-none p-0 m-0">
+                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Đà Lạt</a></li>
+                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Đà Nẵng - Hội An</a></li>
+                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Phú Yên</a></li>
+                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Tất cả điểm đến</a></li>
+                </ul>
             </div>
 
-            <div class="gs-footer-newsletter">
-                <h3 class="mb-4 text-xs font-extrabold">Bản tin</h3>
-                <p class="max-w-xs text-xs leading-6 text-white/70">Nhận cảm hứng du lịch và ưu đãi độc quyền.</p>
-                <div class="gs-footer-form mt-4 flex rounded-lg border border-white/15 bg-white/5 p-1">
+            <!-- Column 6: Newsletter Form -->
+            <div class="gs-footer-newsletter col-span-1 sm:col-span-2 lg:col-span-1">
+                <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Bản tin</h3>
+                <p class="max-w-xs text-xs leading-5 text-white/70">Nhận cảm hứng du lịch xanh và các gói ưu đãi độc quyền.</p>
+                <form class="gs-footer-form mt-4 flex rounded-lg border border-white/15 bg-white/5 p-1 transition-focus focus-within:border-white/30" (submit)="$event.preventDefault()">
                     <input type="email" placeholder="Nhập email của bạn" class="min-w-0 flex-1 bg-transparent px-3 text-xs text-white outline-none placeholder:text-white/45">
-                    <button class="grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white"><i class="bi bi-arrow-right"></i></button>
-                </div>
+                    <button type="submit" class="grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white transition-colors hover:bg-emerald-500" title="Gửi" aria-label="Gửi"><i class="bi bi-arrow-right"></i></button>
+                </form>
             </div>
         </div>
 
-        <div class="gs-footer-bottom mt-8 border-t border-white/10 pt-5 text-xs text-white/55">
-            &copy; 2026 GreenSteps. Đã đăng ký bản quyền.
+        <!-- Footer Bottom Bar -->
+        <div class="gs-footer-bottom mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs text-white/55 sm:flex-row">
+            <div>&copy; 2026 GreenSteps. Đã đăng ký bản quyền.</div>
+            <div class="flex items-center gap-4 text-xs text-white/50">
+                <a routerLink="/about" class="hover:text-white/80">Điều khoản</a>
+                <span>•</span>
+                <a routerLink="/sustainability" class="hover:text-white/80">Bảo mật</a>
+                <span>•</span>
+                <a routerLink="/contact" class="hover:text-white/80">Hỗ trợ</a>
+            </div>
         </div>
     </div>
 </footer>

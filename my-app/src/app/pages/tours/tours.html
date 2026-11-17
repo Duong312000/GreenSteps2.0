@@ -33,13 +33,36 @@
 
         <!-- 1. Destination Section -->
         <div class="filter-section">
-          <h4 class="filter-section-title">Điểm Đến</h4>
-          <div class="destinations-pill-list">
-            <button *ngFor="let dest of destinations" type="button" (click)="filterByDestination(dest)"
+          <div class="filter-section-header">
+            <h4 class="filter-section-title">Điểm Đến</h4>
+            <span class="dest-count-badge" *ngIf="destinations.length > 1">{{ destinations.length - 1 }} tỉnh thành</span>
+          </div>
+
+          <!-- Mini Search for Destinations -->
+          <div class="dest-search-wrapper">
+            <i class="bi bi-search dest-search-icon"></i>
+            <input type="text" [(ngModel)]="destSearchQuery" placeholder="Tìm tỉnh thành..." class="dest-search-field">
+            <button *ngIf="destSearchQuery" type="button" (click)="destSearchQuery = ''" class="dest-search-clear-btn" aria-label="Xóa tìm kiếm">&times;</button>
+          </div>
+
+          <div class="destinations-pill-list" [class.is-expanded]="isDestExpanded">
+            <button *ngFor="let dest of filteredDestinations" type="button" (click)="filterByDestination(dest)"
               class="dest-pill-btn" [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
               <span>{{ dest }}</span>
             </button>
+            <div *ngIf="filteredDestinations.length === 0" class="no-dest-found">
+              Không tìm thấy "{{ destSearchQuery }}"
+            </div>
           </div>
+
+          <!-- Toggle View More Button -->
+          <button *ngIf="!destSearchQuery && destinations.length > 8" 
+                  type="button" 
+                  (click)="isDestExpanded = !isDestExpanded" 
+                  class="dest-toggle-more-btn">
+            <span>{{ isDestExpanded ? 'Thu gọn' : '+ Xem thêm (' + (destinations.length - 8) + ' tỉnh thành)' }}</span>
+            <i class="bi" [class.bi-chevron-up]="isDestExpanded" [class.bi-chevron-down]="!isDestExpanded"></i>
+          </button>
         </div>
 
         <hr class="shopco-divider" />
@@ -136,6 +159,14 @@
               <span>{{ s }}</span>
             </div>
           </div>
+        </div>
+
+        <!-- Mobile Quick Destination Chips (Horizontal Scrollable) -->
+        <div class="mobile-quick-chips" *ngIf="destinations && destinations.length > 0">
+          <button *ngFor="let dest of destinations" type="button" (click)="filterByDestination(dest)"
+            class="quick-chip-btn" [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
+            <span>{{ dest }}</span>
+          </button>
         </div>
 
         <!-- Active Filter Badges -->

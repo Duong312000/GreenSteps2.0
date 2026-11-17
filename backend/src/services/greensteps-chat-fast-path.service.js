@@ -272,23 +272,53 @@ function compactAiInput(input, catalog) {
   const message = normalize(input.message);
   const places = destinationOptions(catalog).filter(place => message.includes(normalize(place)));
   const relevant = row => !places.length || places.some(place => matchesDestination(place, row.destination));
-  const compact = row => ({ ...row, description: row.description?.slice(0, 120), tags: undefined });
-  const tours = catalog.tours.filter(relevant), services = catalog.services.filter(relevant);
-  const serviceCandidates = Array.isArray(catalog.serviceCandidates)
-    ? catalog.serviceCandidates.slice(0, 40).map(compact)
-    : undefined;
+
+  // Ultra-lean projection: strip heavy images, descriptions, tags, and internal structures
+  const compactTour = row => ({
+    id: row.id,
+    title: row.title || row.name,
+    destination: row.destination,
+    days: row.days || row.durationDays || 1,
+    cost: row.cost,
+    carbon: row.carbon
+  });
+
+  const compactService = row => ({
+    id: row.id,
+    name: row.name || row.name_service,
+    type: row.type || row.serviceType,
+    destination: row.destination,
+    cost: row.cost
+  });
+
+  const rawTours = (catalog.tours || []).filter(relevant);
+  const rawServices = (catalog.services || []).filter(relevant);
+
+  // Keep strictly up to 3 relevant tours and 5 relevant services
+  const tours = rawTours.slice(0, 3).map(compactTour);
+  const services = rawServices.slice(0, 5).map(compactService);
+
+  const rawCandidates = Array.isArray(catalog.serviceCandidates) ? catalog.serviceCandidates.filter(relevant) : [];
+  const serviceCandidates = rawCandidates.slice(0, 6).map(compactService);
+
   const selectedIds = new Set((input.currentTours || []).map(tour => tour.id));
-  const currentTours = catalog.tours.filter(tour => selectedIds.has(tour.id)).slice(0, 9).map(tour => ({
-    id: tour.id, title: tour.title, destination: tour.destination, days: tour.days, cost: tour.cost
+  const currentTours = rawTours.filter(tour => selectedIds.has(tour.id)).slice(0, 3).map(compactTour);
+
+  const history = (input.history || []).slice(-3).map(item => ({
+    role: item.role,
+    content: (item.content || '').slice(0, 250)
   }));
+
   return {
-    ...input, currentTours, history: input.history.slice(-6).map(item => ({ role: item.role, content: item.content.slice(0, 1000) })),
+    ...input,
+    currentTours,
+    history,
     catalog: {
-      ...catalog,
-      tours: tours.slice(0, 20).map(compact),
-      services: services.slice(0, 20).map(compact),
-      ...(serviceCandidates ? { serviceCandidates, serviceCandidatesComplete: catalog.serviceCandidatesComplete === true } : {}),
-      truncated: Boolean(catalog.truncated || places.length || tours.length > 20 || services.length > 20)
+      tours,
+      services,
+      serviceCandidates,
+      available: Boolean(catalog?.available),
+      truncated: true
     }
   };
 }

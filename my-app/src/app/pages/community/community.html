@@ -63,11 +63,22 @@
           </div>
         </div>
 
-        <a class="gs-itinerary-chip" *ngIf="post.itinerary_id" href="javascript:void(0)" (click)="saveItinerary(post, $event)">
-          <span class="gs-itinerary-icon"><i class="bi bi-map-fill"></i></span>
-          <span class="gs-itinerary-text"><strong>Chia sẻ lịch trình: {{ post.tripName || post.dest }}</strong><small><i class="bi bi-clock"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small></span>
-          <span class="gs-outline-button"><i class="bi bi-bookmark-plus"></i> Lưu lịch trình</span>
-        </a>
+        <div class="gs-itinerary-chip" *ngIf="post.itinerary_id">
+          <img *ngIf="post.image" [src]="mediaUrl(post.image)" alt="Cover" class="w-12 h-12 rounded-xl object-cover border border-emerald-100 flex-shrink-0" />
+          <span class="gs-itinerary-icon" *ngIf="!post.image"><i class="bi bi-map-fill"></i></span>
+          <span class="gs-itinerary-text">
+            <strong>{{ post.tripName || post.dest || 'Lịch trình du lịch xanh' }}</strong>
+            <small><i class="bi bi-clock"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small>
+          </span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" class="gs-outline-button" *ngIf="post.allowClone !== false" (click)="saveItinerary(post, $event)">
+              <i class="bi bi-copy"></i> Sao chép lịch trình
+            </button>
+            <button type="button" class="gs-outline-button bg-emerald-600 text-white border-0 hover:bg-emerald-700 font-bold" *ngIf="post.allowCollab" (click)="joinCollaborativeItinerary(post, $event)">
+              <i class="bi bi-people-fill"></i> Tham gia chỉnh sửa & thanh toán
+            </button>
+          </div>
+        </div>
 
         <div class="gs-reel-frame" *ngIf="post.postType === 'reel' && post.videoUrl">
           <video [src]="mediaUrl(post.videoUrl)" controls playsinline preload="metadata" [attr.aria-label]="post.tripName || 'Video du lịch'">Trình duyệt không hỗ trợ video.</video>

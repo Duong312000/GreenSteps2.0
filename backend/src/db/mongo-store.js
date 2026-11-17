@@ -342,15 +342,10 @@ class Repository {
 class MongoStore {
   constructor(uri, { prefix = 'app_' } = {}) {
     this.client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      readPreference: 'primaryPreferred',
-      // Allow realistic query time on Atlas free tier & cold start
-      socketTimeoutMS: 45_000,
-      // Prune dead/idle sockets before AWS NAT drops them
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
+      socketTimeoutMS: 20_000,
       maxIdleTimeMS: 30_000,
-      compressors: ['zlib'],
-      zlibCompressionLevel: 1,
       monitorCommands: process.env.MONGO_PERF_LOGS === 'true'
     });
     if (process.env.MONGO_PERF_LOGS === 'true') {

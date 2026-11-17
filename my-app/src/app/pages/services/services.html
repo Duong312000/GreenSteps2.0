@@ -29,16 +29,39 @@
 
         <!-- 1. Destination Section -->
         <div class="filter-section">
-          <h4 class="filter-section-title">Điểm Đến</h4>
-          <div class="destinations-pill-list">
-            <button *ngFor="let dest of destinations"
+          <div class="filter-section-header">
+            <h4 class="filter-section-title">Điểm Đến</h4>
+            <span class="dest-count-badge" *ngIf="destinations.length > 1">{{ destinations.length - 1 }} tỉnh thành</span>
+          </div>
+
+          <!-- Mini Search for Destinations -->
+          <div class="dest-search-wrapper">
+            <i class="bi bi-search dest-search-icon"></i>
+            <input type="text" [(ngModel)]="destSearchQuery" placeholder="Tìm tỉnh thành..." class="dest-search-field">
+            <button *ngIf="destSearchQuery" type="button" (click)="destSearchQuery = ''" class="dest-search-clear-btn" aria-label="Xóa tìm kiếm">&times;</button>
+          </div>
+
+          <div class="destinations-pill-list" [class.is-expanded]="isDestExpanded">
+            <button *ngFor="let dest of filteredDestinations"
                     type="button"
                     (click)="filterByDestination(dest)"
                     class="dest-pill-btn"
                     [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
               <span>{{ dest }}</span>
             </button>
+            <div *ngIf="filteredDestinations.length === 0" class="no-dest-found">
+              Không tìm thấy "{{ destSearchQuery }}"
+            </div>
           </div>
+
+          <!-- Toggle View More Button -->
+          <button *ngIf="!destSearchQuery && destinations.length > 8" 
+                  type="button" 
+                  (click)="isDestExpanded = !isDestExpanded" 
+                  class="dest-toggle-more-btn">
+            <span>{{ isDestExpanded ? 'Thu gọn' : '+ Xem thêm (' + (destinations.length - 8) + ' tỉnh thành)' }}</span>
+            <i class="bi" [class.bi-chevron-up]="isDestExpanded" [class.bi-chevron-down]="!isDestExpanded"></i>
+          </button>
         </div>
 
         <hr class="shopco-divider" />
@@ -119,6 +142,14 @@
                  class="search-input">
           <button *ngIf="searchQuery" (click)="searchQuery = ''; filterServices()" class="clear-search-btn" type="button">
             <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+
+        <!-- Mobile Quick Destination Chips (Horizontal Scrollable) -->
+        <div class="mobile-quick-chips" *ngIf="destinations && destinations.length > 0">
+          <button *ngFor="let dest of destinations" type="button" (click)="filterByDestination(dest)"
+            class="quick-chip-btn" [class.active]="(dest === 'Tất cả' && filterDest === 'all') || filterDest === dest">
+            <span>{{ dest }}</span>
           </button>
         </div>
 
@@ -245,14 +276,35 @@
             <button type="button" (click)="retryLoad()" class="btn-reset-large">Thử lại</button>
           </div>
           <div class="no-results-box" *ngIf="!isPageLoading && !loadError">
-            <i class="bi bi-search no-results-icon"></i>
-            <h3>Không tìm thấy dịch vụ phù hợp</h3>
-            <p>Vui lòng thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
-            <button (click)="resetFilters()" class="btn-reset-large">
-              Khôi phục tất cả bộ lọc
-            </button>
+            <i class="bi bi-geo-alt no-results-icon"></i>
+            <h3>Chưa tìm thấy dịch vụ tại {{ filterDest !== 'all' ? filterDest : (searchQuery.trim() ? '"' + searchQuery.trim() + '"' : 'khu vực này') }}</h3>
+            <p>
+              Bạn có thể sử dụng công cụ Thiết Kế Lịch Trình để tìm kiếm tọa độ, định vị các điểm đến yêu thích và kết nối dịch vụ trực tiếp ngay trên bản đồ tương tác.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-4">
+              <a [routerLink]="['/schedule-editor']" 
+                 [queryParams]="{ destination: filterDest !== 'all' ? filterDest : searchQuery.trim() }"
+                 class="btn-explore-map">
+                <i class="bi bi-map"></i>
+                <span>Khám phá trên Bản đồ Lịch trình</span>
+              </a>
+              <button (click)="resetFilters()" class="btn-reset-large">
+                Đặt lại bộ lọc
+              </button>
+            </div>
           </div>
         </ng-template>
+
+        <!-- Discover More Bar -->
+        <div class="crawl-more-bar" *ngIf="filterDest !== 'all' && paginatedServices.length > 0">
+          <button type="button" (click)="triggerCrawlMore()" class="crawl-more-action-btn" [disabled]="isCrawlingMore">
+            <i class="bi" [class.bi-arrow-clockwise]="!isCrawlingMore" [class.bi-arrow-repeat]="isCrawlingMore" [class.animate-spin]="isCrawlingMore"></i>
+            <span>{{ isCrawlingMore ? 'Đang cập nhật thêm dữ liệu...' : 'Cập nhật thêm dịch vụ tại ' + filterDest }}</span>
+          </button>
+          <a [routerLink]="['/schedule-editor']" [queryParams]="{ destination: filterDest }" class="explore-map-link">
+            Xem trên Bản đồ Lịch trình &rarr;
+          </a>
+        </div>
 
         <hr class="shopco-divider mt-8" />
 

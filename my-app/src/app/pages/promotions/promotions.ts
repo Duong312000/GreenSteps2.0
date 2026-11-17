@@ -74,7 +74,20 @@ export class PromotionsComponent implements OnInit, OnDestroy {
       this.applyFilters();
       if (this.pendingScroll) this.scrollToResults(this.pendingScroll);
     });
-    void this.loadOffers(true);
+    // Instant SWR cache retrieval (0ms render like Tours)
+    try {
+      const rawCached = localStorage.getItem('greensteps_swr_promotions');
+      if (rawCached) {
+        const cachedItems = JSON.parse(rawCached);
+        if (Array.isArray(cachedItems) && cachedItems.length > 0) {
+          this.offers = this.combineGlobalVouchers(cachedItems.map((row: any) => this.toOffer(row)).filter((o: Offer | null): o is Offer => !!o));
+          this.loading = false;
+          this.applyFilters();
+        }
+      }
+    } catch {}
+
+    void this.loadOffers(!this.offers.length);
     this.refreshTimer = window.setInterval(() => void this.loadOffers(), 30000);
     this.countdownTimer = window.setInterval(() => {
       this.now = Date.now();
@@ -94,11 +107,14 @@ export class PromotionsComponent implements OnInit, OnDestroy {
   async loadOffers(showLoading = false) {
     if (this.refreshInFlight) return;
     this.refreshInFlight = true;
-    if (showLoading) this.loading = true;
+    if (showLoading && !this.offers.length) this.loading = true;
     try {
       const base = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:5055/api' : 'https://greensteps-backend.vercel.app/api';
       const result = await firstValueFrom(this.http.get<{items: any[]}>(`${base}/partner/promotions/public`));
       this.offers = this.combineGlobalVouchers((result.items || []).map((row: any) => this.toOffer(row)).filter((o: Offer | null): o is Offer => !!o));
+      try {
+        localStorage.setItem('greensteps_swr_promotions', JSON.stringify(result.items || []));
+      } catch {}
       this.loadError = false;
       this.applyFilters();
     } catch (e) {

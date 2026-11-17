@@ -18,7 +18,7 @@ const cleanHashtags = value => {
   return [...new Set(items.map(item => String(item).replace(/^#/, '').trim().replace(/[^\p{L}\p{N}_]/gu, '').slice(0, 40)).filter(Boolean))].slice(0, 12);
 };
 
-const safeMediaUrl = value => typeof value === 'string' && (value.startsWith('/uploads/') || value.startsWith('image/') || /^https:\/\//i.test(value));
+const safeMediaUrl = value => typeof value === 'string' && (value.startsWith('/uploads/') || value.startsWith('image/') || value.startsWith('data:image/') || /^https?:\/\//i.test(value));
 const validUser = req => req.user?.id || req.body?.authorId || req.cookies?.userId;
 const userAvatar = user => user?.avatarUrl || user?.fullname?.slice(0, 1)?.toUpperCase() || 'G';
 
@@ -45,6 +45,7 @@ async function getCurrentChallenge() {
 }
 
 function formatPost(row, user, isSaved = false) {
+  const currentData = row.current_data || {};
   return {
     id: row.id,
     authorId: row.user_id,
@@ -67,9 +68,11 @@ function formatPost(row, user, isSaved = false) {
     videoUrl: row.video_url || '',
     hashtags: row.hashtags || [],
     itinerary_id: row.itinerary_id || null,
+    allowClone: currentData.allow_clone !== undefined ? !!currentData.allow_clone : true,
+    allowCollab: !!currentData.allow_collab,
     challengeId: row.challenge_id || null,
     isSaved,
-    current_data: row.current_data || {}
+    current_data: currentData
   };
 }
 
@@ -114,7 +117,11 @@ exports.addPost = async (req, res, next) => {
   try {
     const userId = validUser(req);
     const type = ['post', 'reel', 'question'].includes(req.body.postType) ? req.body.postType : 'post';
-    const text = String(req.body.text || '').trim();
+    const itineraryId = typeof req.body.itineraryId === 'string' ? req.body.itineraryId.slice(0, 120) : '';
+    let text = String(req.body.text || '').trim();
+    if (!text && (itineraryId || req.body.tripName)) {
+      text = `Khám phá lịch trình du lịch ${req.body.tripName || 'xanh'} cùng GreenSteps!`;
+    }
     const location = String(req.body.location || req.body.dest || '').trim().slice(0, 160);
     const images = [...new Set((Array.isArray(req.body.images) ? req.body.images : req.body.image ? [req.body.image] : []).filter(safeMediaUrl))].slice(0, 8);
     const videoUrl = safeMediaUrl(req.body.videoUrl) ? req.body.videoUrl : '';
@@ -123,11 +130,11 @@ exports.addPost = async (req, res, next) => {
     if (type !== 'reel' && videoUrl) return res.status(400).json({ success: false, message: 'Video chỉ được đăng trong Thước phim.' });
     const submittedTags = Array.isArray(req.body.hashtags) ? req.body.hashtags : cleanHashtags(req.body.hashtags);
     const hashtags = cleanHashtags([...submittedTags, ...cleanHashtags(text)]);
-    const itineraryId = typeof req.body.itineraryId === 'string' ? req.body.itineraryId.slice(0, 120) : '';
     let itinerary = null;
+    let custom = null;
     if (itineraryId) {
       const { ScheduleCustom, Schedule, UserSchedule } = require('../models');
-      const custom = await ScheduleCustom.findByPk(itineraryId);
+      custom = await ScheduleCustom.findByPk(itineraryId);
       const link = await UserSchedule.findOne({ where: { schedule_id: itineraryId, user_id: userId } });
       try { itinerary = (await Schedule.findByPk(itineraryId)) || custom; } catch(e) {}
     }
@@ -140,18 +147,27 @@ exports.addPost = async (req, res, next) => {
       const entryId = `${challenge.id}:${userId}`;
       if (await CommunityChallengeEntry.findByPk(entryId)) return res.status(409).json({ success: false, message: 'Bạn đã hoàn thành thử thách tuần này rồi.' });
     }
+    const allowClone = req.body.allowClone !== undefined ? !!req.body.allowClone : true;
+    const allowCollab = req.body.allowCollab !== undefined ? !!req.body.allowCollab : false;
     const id = `post_${randomUUID()}`;
     const post = await CommunityPost.create({
-      id, user_id: userId, post_type: type, rating: Math.max(1, Math.min(5, Number(req.body.rating) || 5)), text,
+      id, user_id: userId || 'anonymous', post_type: type, rating: Math.max(1, Math.min(5, Number(req.body.rating) || 5)), text,
       tour_name: itinerary?.tour_name || custom?.name || custom?.tour_name || String(req.body.tripName || '').slice(0, 160),
       destination: itinerary?.destination || custom?.destination || location, location, days: itinerary?.days || custom?.days || Math.max(0, Number(req.body.days) || 0),
       hashtags, image_urls: images, image_url: images[0] || null, video_url: videoUrl || null,
       itinerary_id: itineraryId || null, challenge_id: challenge?.id || null,
-      likes_count: 0, comments_count: 0, shares_count: 0
+      likes_count: 0, comments_count: 0, shares_count: 0,
+      current_data: {
+        allow_clone: allowClone,
+        allow_collab: allowCollab
+      }
     });
     if (challenge) await awardChallenge(challenge, userId, id);
-    const user = await User.findByPk(userId);
-    res.status(201).json({ success: true, post: formatPost(post, user), challenge: challenge ? { points: challenge.points, badge: challenge.badge_name } : null });
+    let user = userId ? await User.findByPk(userId) : null;
+    if (!user && req.body.author) {
+      user = { id: userId, fullname: req.body.author, username: req.body.author };
+    }
+    res.status(201).json({ success: true, message: 'Đã chia sẻ bài viết lên cộng đồng thành công!', post: formatPost(post, user), challenge: challenge ? { points: challenge.points, badge: challenge.badge_name } : null });
   } catch (error) { next(error); }
 };
 

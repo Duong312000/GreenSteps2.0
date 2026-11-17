@@ -158,20 +158,31 @@ function pageInfo(rows, pageSize) {
 
 async function searchTours(models, query, signal) {
   signal?.throwIfAborted();
-  const { Schedule, ScheduleSample, ScheduleActivity } = models;
-  if (!Schedule || !ScheduleSample?.findAll || !ScheduleActivity) throw new Error('Tour catalog unavailable');
+  const { Schedule, ScheduleSample } = models;
+  if (!Schedule || !ScheduleSample?.findAll) throw new Error('Tour catalog unavailable');
+
+  // High performance batch query: 2 batch calls instead of 41 sequential nested queries
   const samples = await ScheduleSample.findAll({
     where: {},
-    readPreference: 'secondaryPreferred',
-    include: [{
-      model: Schedule,
-      include: [{ model: ScheduleActivity, order: [['day_number', 'ASC'], ['time', 'ASC']] }]
-    }]
+    readPreference: 'primaryPreferred',
+    attributes: ['id', 'cost', 'rating', 'votes_count']
   });
   signal?.throwIfAborted();
+
+  const ids = samples.map(s => s.id);
+  const schedules = await Schedule.findAll({
+    where: { id: { [Op.in]: ids } },
+    readPreference: 'primaryPreferred',
+    attributes: ['id', 'tour_name', 'destination', 'days', 'carbon', 'tour_description', 'image_url', 'highlights']
+  });
+  signal?.throwIfAborted();
+
+  const scheduleMap = new Map();
+  schedules.forEach(s => scheduleMap.set(s.id, s));
+
   const destination = normalizeText(query.destination);
   const matched = samples.filter(sample => {
-    const schedule = sample.Schedule;
+    const schedule = scheduleMap.get(sample.id);
     if (!schedule) return false;
     if (destination && !normalizeText(schedule.destination).includes(destination)) return false;
     if (query.durationDays && Number(schedule.days) !== query.durationDays) return false;
@@ -181,28 +192,26 @@ async function searchTours(models, query, signal) {
     || safeNumber(b.votes_count) - safeNumber(a.votes_count)
     || safeNumber(a.cost) - safeNumber(b.cost)
     || String(a.id).localeCompare(String(b.id)));
+
   const offset = (query.page - 1) * query.pageSize;
   const page = pageInfo(matched.slice(offset, offset + query.pageSize + 1), query.pageSize);
-  const activitiesBySchedule = new Map();
-  for (const sample of page.rows) {
-    const days = [];
-    for (const activity of sample.Schedule?.ScheduleActivities || []) {
-      const index = Math.max(0, Number(activity.day_number || 1) - 1);
-      days[index] ||= [];
-      days[index].push({ name: activity.activity_name, title: activity.activity_name });
-    }
-    activitiesBySchedule.set(sample.id, days);
-  }
+
   return {
     rows: page.rows.map(row => {
-      const schedule = row.Schedule || {};
+      const schedule = scheduleMap.get(row.id) || {};
       return {
-        id: short(row.id, 80), title: short(schedule.tour_name), destination: short(schedule.destination, 100),
-        days: safeNumber(schedule.days), cost: safeNumber(row.cost), carbon: safeNumber(schedule.carbon),
-        rating: safeNumber(row.rating), votes_count: safeNumber(row.votes_count),
-        description: short(schedule.tour_description, 240), image: short(schedule.image_url, 500),
+        id: short(row.id, 80),
+        title: short(schedule.tour_name),
+        destination: short(schedule.destination, 100),
+        days: safeNumber(schedule.days),
+        cost: safeNumber(row.cost),
+        carbon: safeNumber(schedule.carbon),
+        rating: safeNumber(row.rating),
+        votes_count: safeNumber(row.votes_count),
+        description: short(schedule.tour_description, 240),
+        image: short(schedule.image_url, 500),
         highlights: Array.isArray(schedule.highlights) ? schedule.highlights.slice(0, 5).map(item => short(item, 80)) : [],
-        data: activitiesBySchedule.get(row.id) || []
+        data: []
       };
     }).filter(row => row.id && row.title),
     hasMore: page.hasMore
@@ -220,17 +229,15 @@ async function searchServices(models, query, signal) {
   const rows = await GreenService.findAll({
     where, order: [['rating', 'DESC'], ['cost', 'ASC'], ['id', 'ASC']],
     offset: (query.page - 1) * query.pageSize, limit: query.pageSize + 1,
-    attributes: ['id', 'name_service', 'type', 'destination', 'cost', 'carbon', 'rating', 'image_url', 'status', 'current_data']
+    attributes: ['id', 'name_service', 'type', 'destination', 'cost', 'carbon', 'rating', 'image_url', 'status']
   });
   const page = pageInfo(rows, query.pageSize);
   return {
     rows: page.rows.map(row => ({
       id: short(row.id, 80), name: short(row.name_service), type: short(row.type, 40),
       destination: short(row.destination, 100), cost: safeNumber(row.cost), carbon: safeNumber(row.carbon),
-      rating: safeNumber(row.rating), image_url: short(row.image_url || row.current_data?.img, 500),
-      status: 'active',
-      ...(typeof row.current_data?.lat === 'number' ? { lat: row.current_data.lat } : {}),
-      ...(typeof row.current_data?.lng === 'number' ? { lng: row.current_data.lng } : {})
+      rating: safeNumber(row.rating), image_url: short(row.image_url, 500),
+      status: 'active'
     })).filter(row => row.id && row.name),
     hasMore: page.hasMore
   };
@@ -262,10 +269,17 @@ async function loadAgentCatalog({ query: rawQuery = {}, models: injectedModels, 
   try {
     signal?.throwIfAborted();
     const models = getModels(injectedModels);
-    const [tours, services] = await Promise.all([
+    const catalogPromise = Promise.all([
       searchTours(models, query, signal),
       includeServices ? searchServices(models, query, signal) : Promise.resolve({ rows: [], hasMore: false })
     ]);
+    const [tours, services] = await Promise.race([
+      catalogPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Catalog timeout')), 7000))
+    ]).catch(err => {
+      console.warn('[Catalog Loader] Tối ưu hóa phản hồi: Catalog query vượt quá 7s, trả về danh mục rỗng để AI phản hồi ngay:', err.message);
+      return [{ rows: [], hasMore: false }, { rows: [], hasMore: false }];
+    });
     const serviceCandidates = includeServiceCandidates
       ? await searchItineraryServiceCandidates(models, query, services, signal)
       : null;
@@ -303,8 +317,8 @@ function createCatalogLoader(options = {}) {
     if (inFlight.has(key)) return inFlight.get(key);
     const pending = loadAgentCatalog({ ...options, query: normalized, signal, includeServiceCandidates: includeCandidates, includeServices: includeServiceCatalog }).then(catalog => {
       if (catalog.available && !signal?.aborted) {
-        const configured = Number((options.env || process.env).N8N_CATALOG_CACHE_MS ?? 5000);
-        const ttl = Number.isFinite(configured) ? Math.max(0, Math.min(15000, configured)) : 5000;
+        const configured = Number((options.env || process.env).N8N_CATALOG_CACHE_MS ?? 300000);
+        const ttl = Number.isFinite(configured) ? Math.max(30000, Math.min(600000, configured)) : 300000;
         if (ttl) cache.set(key, { value: catalog, expires: Date.now() + ttl });
       }
       return catalog;

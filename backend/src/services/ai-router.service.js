@@ -160,19 +160,55 @@ Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư mục Spam trong vòn
   }
 }
 
+const NATIONAL_DESTINATION_KEYWORDS = [
+  { dest: 'Hà Nội', keywords: ['ha noi', 'hanoi', 'thu do'] },
+  { dest: 'Hạ Long', keywords: ['ha long', 'halong', 'quang ninh', 'vinh ha long'] },
+  { dest: 'Cát Bà', keywords: ['cat ba', 'lan ha', 'hai phong'] },
+  { dest: 'Hà Giang', keywords: ['ha giang', 'dong van', 'meo vac', 'ma pi leng', 'tu san'] },
+  { dest: 'Sa Pa', keywords: ['sa pa', 'sapa', 'fansipan', 'lao cai'] },
+  { dest: 'Ninh Bình', keywords: ['ninh binh', 'trang an', 'tam coc', 'hang mua'] },
+  { dest: 'Mộc Châu', keywords: ['moc chau', 'son la'] },
+  { dest: 'Phong Nha', keywords: ['phong nha', 'ke bang', 'quang binh', 'son doong'] },
+  { dest: 'Huế', keywords: ['hue', 'co do', 'song huong', 'thua thien'] },
+  { dest: 'Đà Nẵng', keywords: ['da nang', 'ba na', 'son tra'] },
+  { dest: 'Hội An', keywords: ['hoi an', 'pho co', 'an bang'] },
+  { dest: 'Quy Nhơn', keywords: ['quy nhon', 'ky co', 'eo gio', 'binh dinh'] },
+  { dest: 'Phú Yên', keywords: ['phu yen', 'tuy hoa', 'ganh da dia', 'hon yen'] },
+  { dest: 'Nha Trang', keywords: ['nha trang', 'khanh hoa', 'hon mun'] },
+  { dest: 'Đà Lạt', keywords: ['da lat', 'dalat', 'lam dong', 'xuan huong', 'langbiang', 'tuyen lam'] },
+  { dest: 'Măng Đen', keywords: ['mang den', 'kon tum'] },
+  { dest: 'Buôn Ma Thuột', keywords: ['buon ma thuot', 'bmt', 'dak lak'] },
+  { dest: 'TP. Hồ Chí Minh', keywords: ['sai gon', 'tp hcm', 'tphcm', 'ho chi minh', 'can gio'] },
+  { dest: 'Côn Đảo', keywords: ['con dao', 'vung tau'] },
+  { dest: 'Cần Thơ', keywords: ['can tho', 'cai rang', 'ninh kieu', 'song hau'] },
+  { dest: 'Phú Quốc', keywords: ['phu quoc', 'dao ngoc', 'kien giang', 'sao beach'] },
+  { dest: 'An Giang', keywords: ['an giang', 'tra su', 'chau doc'] },
+  { dest: 'Bến Tre', keywords: ['ben tre', 'xu dua'] }
+];
+
+function detectDestinationFromText(normalizedText) {
+  for (const item of NATIONAL_DESTINATION_KEYWORDS) {
+    if (item.keywords.some(k => normalizedText.includes(k))) {
+      return item.dest;
+    }
+  }
+  return null;
+}
+
 /**
  * Main AI Router Engine with Training Dataset Retrieval & Interactive Actions
  */
 async function routeUserIntent({ message, destination, currentActivities, history, userId, catalogChat = sendCatalogTravelChat }) {
   const cleanMessage = String(message || '').trim();
   const normalized = normalizeText(cleanMessage);
+  const detectedDest = destination || detectDestinationFromText(normalized) || 'Việt Nam';
 
   const scheduleAction = /(?:toi uu lich trinh|sua gio|trung gio|chinh gio|tu dong sua|sap xep lai gio|doi gio hop ly|giam phat thai carbon)/.test(normalized);
   const bookingAction = /\b(?:BKT-[A-Z0-9_-]+|SCH[A-Z0-9_-]+)\b/i.test(cleanMessage)
     || /(?:tra cuu|kiem tra|tim don|ma don|ma ve|tinh trang don|trang thai don)/.test(normalized);
   const resendAction = /(?:gui lai ve|gui lai email|chua nhan duoc ve|ban lai ve|gui ve qua mail|gui mail ve)/.test(normalized);
   if (isCatalogDependentRequest(cleanMessage) && !scheduleAction && !bookingAction && !resendAction) {
-    return catalogChat({ message: cleanMessage, destination, currentActivities, history });
+    return catalogChat({ message: cleanMessage, destination: detectedDest, currentActivities, history });
   }
 
   // 1. Check against the 85+ Curated Training Samples in Dataset
@@ -243,7 +279,7 @@ async function routeUserIntent({ message, destination, currentActivities, histor
   // 3. Generative AI Query via n8n Agent (Primary Agent Engine)
   const n8nReply = await triggerN8nWorkflow({
     message: cleanMessage,
-    destination: destination || 'Đà Lạt',
+    destination: detectedDest,
     currentActivities: currentActivities || []
   });
 
@@ -259,7 +295,7 @@ async function routeUserIntent({ message, destination, currentActivities, histor
   // 4. Secondary fallback: Gemini API if available
   if (geminiModel) {
     try {
-      const destName = destination || 'Đà Lạt';
+      const destName = detectedDest;
       const systemInstruction = `
 Bạn là Trợ lý Lịch trình Sinh Thái GreenSteps Việt Nam.
 Nhiệm vụ: Tư vấn thân thiện, gợi ý điểm tham quan, quán ăn, cafe, bảo vệ môi trường, giảm phát thải carbon tại: ${destName}.
@@ -295,7 +331,7 @@ Luôn trả lời bằng tiếng Việt tự nhiên, súc tích và hữu ích.
   // Friendly conversational fallback
   return {
     success: true,
-    reply: `Chào bạn! Cảm ơn bạn đã nhắn tin cho Trợ lý GreenSteps. Tôi có thể hỗ trợ bạn tìm hiểu lịch trình khám phá sinh thái tại ${destination || 'các điểm đến xanh'}, tra cứu mã đơn hàng (*BKT-...*), hoặc giải đáp chính sách hoàn hủy và thanh toán. Bạn cần mình tư vấn chi tiết phần nào?`,
+    reply: `Chào bạn! Cảm ơn bạn đã nhắn tin cho Trợ lý GreenSteps. Tôi có thể hỗ trợ bạn tìm hiểu lịch trình khám phá sinh thái tại ${detectedDest !== 'Việt Nam' ? detectedDest : 'các điểm đến xanh trên toàn quốc'}, tra cứu mã đơn hàng (*BKT-...*), hoặc giải đáp chính sách hoàn hủy và thanh toán. Bạn cần mình tư vấn chi tiết phần nào?`,
     recommendation: null,
     action: null
   };

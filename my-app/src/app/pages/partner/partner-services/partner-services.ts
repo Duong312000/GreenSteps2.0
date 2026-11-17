@@ -181,7 +181,7 @@ export class PartnerServicesComponent implements OnInit {
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
-      if (!user || user.role !== 'provider') {
+      if (!user || (user.role !== 'provider' && user.role !== 'admin')) {
         this.loginModalService.open();
       } else {
         this.loadServices();
@@ -200,9 +200,14 @@ export class PartnerServicesComponent implements OnInit {
     this.isLoading = true;
     this.loadError = false;
     try {
-      this.myServices = await this.apiService.getMyServices(providerId, true, 8000, true);
+      this.myServices = await this.apiService.getMyServices(providerId, true, 15000, true);
     } catch {
-      this.loadError = true;
+      try {
+        await new Promise(r => setTimeout(r, 600));
+        this.myServices = await this.apiService.getMyServices(providerId, true, 15000, true);
+      } catch {
+        this.loadError = true;
+      }
     } finally {
       this.isLoading = false;
       this.cdr.detectChanges();

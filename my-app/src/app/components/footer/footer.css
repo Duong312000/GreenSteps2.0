@@ -1,0 +1,40 @@
+.gs-footer {
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gs-footer a,
+.gs-footer button,
+.gs-footer input {
+  font-family: inherit;
+}
+
+.gs-footer a {
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .gs-footer-inner {
+    padding-top: 2rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .gs-footer-brand {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .gs-footer-newsletter {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .gs-footer-bottom {
+    margin-top: 1.75rem;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

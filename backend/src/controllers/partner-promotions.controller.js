@@ -45,7 +45,7 @@ function dto(row, services = []) {
 exports.authorize = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id);
-    if (!user || user.role !== 'provider' || !user.is_verified)
+    if (!user || (user.role !== 'provider' && user.role !== 'admin') || (!user.is_verified && user.role !== 'admin'))
       return res.status(403).json({
         success: false,
         message: 'Chỉ nhà cung cấp đã xác thực được quản lý khuyến mãi.',
@@ -379,8 +379,16 @@ exports.list = wrap(async (req, res) => {
   });
 });
 
+let publicListCache = { data: null, expiresAt: 0 };
+
 // Customer facing feed. Only live campaigns attached to approved, active services are shown.
 exports.publicList = wrap(async (req, res) => {
+  const nowMs = Date.now();
+  if (publicListCache.data && publicListCache.expiresAt > nowMs) {
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    return res.json(publicListCache.data);
+  }
+
   const now = new Date();
   const rows = await Campaign.collection.find({
     archived_at: null,
@@ -422,7 +430,10 @@ exports.publicList = wrap(async (req, res) => {
       }, [service]));
     }
   }
-  res.json({ success: true, items, total: items.length });
+  const payload = { success: true, items, total: items.length };
+  publicListCache = { data: payload, expiresAt: nowMs + 45000 };
+  res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+  res.json(payload);
 });
 
 exports.create = wrap(async (req, res) => {
@@ -432,6 +443,7 @@ exports.create = wrap(async (req, res) => {
     id: 'PC-' + randomUUID(),
     user_id: req.user.id,
   });
+  publicListCache = { data: null, expiresAt: 0 };
   res.status(201).json({
     success: true,
     item: dto(await Campaign.collection.findOne({ id: created.id })),
@@ -471,6 +483,7 @@ exports.update = wrap(async (req, res) => {
     fail('Chiến dịch đã kết thúc hoặc hủy không thể chỉnh sửa.', 409);
   const data = await validate(req.body, req.user.id, row);
   await update(row, req.body, data);
+  publicListCache = { data: null, expiresAt: 0 };
   res.json({ success: true });
 });
 
@@ -500,6 +513,7 @@ exports.status = wrap(async (req, res) => {
       fail('Ngân sách đã sử dụng hết.');
   }
   await update(row, req.body, { status: req.body.status });
+  publicListCache = { data: null, expiresAt: 0 };
   res.json({ success: true });
 });
 
@@ -510,5 +524,6 @@ exports.remove = wrap(async (req, res) => {
     archived_at: new Date(),
     status: 'cancelled',
   });
+  publicListCache = { data: null, expiresAt: 0 };
   res.json({ success: true, archived: true });
 });

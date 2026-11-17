@@ -28,22 +28,33 @@ exports.getChangeRequests = async (req, res, next) => {
     let where = {};
     let relatedBookings = [];
     if (providerId) {
-      const vender = await Vender.findOne({ where: { user_id: providerId }, attributes: compact ? ['id'] : undefined });
+      const [vender, provider] = await Promise.all([
+        Vender.findOne({ where: { user_id: providerId }, attributes: ['id'] }),
+        providerForUser(providerId)
+      ]);
       const venderId = vender ? vender.id : '';
-      const services = await GreenService.findAll({ where: { vender_id: venderId }, attributes: compact ? ['id'] : undefined });
+
+      const [services, schedules] = await Promise.all([
+        venderId ? GreenService.findAll({ where: { vender_id: venderId }, attributes: ['id'] }) : [],
+        provider ? ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: ['id'] }) : []
+      ]);
       const serviceIds = services.map(s => s.id);
-      const bookingFields = compact ? ['id', 'fullname', 'name_service', 'tour_name', 'guests', 'value', 'booking_date', 'service_id', 'schedule_id'] : undefined;
-      const sBookings = await ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } }, attributes: bookingFields });
-      const provider = await providerForUser(providerId);
-      const schedules = provider
-        ? await ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: compact ? ['id'] : undefined })
-        : [];
       const scheduleIds = schedules.map(schedule => schedule.id);
-      const tBookings = scheduleIds.length
-        ? await TourBooking.findAll({ where: { schedule_id: { [Op.in]: scheduleIds } }, attributes: bookingFields })
-        : [];
+
+      if (serviceIds.length === 0 && scheduleIds.length === 0) {
+        return res.json([]);
+      }
+
+      const bookingFields = compact ? ['id', 'fullname', 'name_service', 'tour_name', 'guests', 'value', 'booking_date', 'service_id', 'schedule_id'] : undefined;
+      const [sBookings, tBookings] = await Promise.all([
+        serviceIds.length ? ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } }, attributes: bookingFields }) : [],
+        scheduleIds.length ? TourBooking.findAll({ where: { schedule_id: { [Op.in]: scheduleIds } }, attributes: bookingFields }) : []
+      ]);
       relatedBookings = [...sBookings, ...tBookings];
       const bookingIds = relatedBookings.map(b => b.id);
+      if (bookingIds.length === 0) {
+        return res.json([]);
+      }
       where.booking_id = { [Op.in]: bookingIds };
     } else if (customerId) {
       const [sBookings, tBookings] = await Promise.all([

@@ -56,7 +56,7 @@ export class PartnerAdsComponent implements OnInit {
   ngOnInit() {
     this.authService.currentUser$.subscribe(async user => {
       this.currentUser = user;
-      if (!user || user.role !== 'provider') {
+      if (!user || (user.role !== 'provider' && user.role !== 'admin')) {
         this.loginModalService.open();
         return;
       }
@@ -70,14 +70,16 @@ export class PartnerAdsComponent implements OnInit {
     try {
       const userId = String((user as any).id || (user as any)._id || '');
       this.loadReadReviewIds(userId);
-      const [services, providerReviews] = await Promise.all([
-        this.apiService.getMyServices(userId, true, 8000, true),
+      const [servicesResult, providerReviewsResult] = await Promise.allSettled([
+        this.apiService.getMyServices(userId, true, 15000, true),
         this.apiService.getProviderReviews(userId, {}),
       ]);
+      const services = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
+      const providerReviews = providerReviewsResult.status === 'fulfilled' ? providerReviewsResult.value : [];
       const serviceNames = new Map(services.map(service => [service.id, service.name]));
       const allReviews = providerReviews.map((review: any) => ({
         ...review,
-        serviceName: serviceNames.get(review.targetId) || review.target?.name || 'D?ch v?',
+        serviceName: serviceNames.get(review.targetId) || review.target?.name || 'Dịch vụ',
         replied: Boolean(review.replied || review.providerReply),
         replyDraft: '',
         replyText: review.providerReply?.text || '',

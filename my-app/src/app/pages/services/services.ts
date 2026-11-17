@@ -48,6 +48,26 @@ export class ServicesComponent implements OnInit, OnDestroy {
   ];
 
   public destinations = ['Tất cả'];
+  public destSearchQuery: string = '';
+  public isDestExpanded: boolean = false;
+  public isCrawlingMore: boolean = false;
+
+  get filteredDestinations(): string[] {
+    if (!this.destinations || this.destinations.length === 0) return [];
+    if (this.destSearchQuery.trim()) {
+      const q = this.destSearchQuery.toLowerCase().trim();
+      return this.destinations.filter(d => d.toLowerCase().includes(q));
+    }
+    if (this.isDestExpanded) {
+      return this.destinations;
+    }
+    // Show top 8 default + selected if selected is not in top 8
+    const top = this.destinations.slice(0, 8);
+    if (this.filterDest !== 'all' && !top.includes(this.filterDest) && this.destinations.includes(this.filterDest)) {
+      return [...top, this.filterDest];
+    }
+    return top;
+  }
 
   public priceRanges = [
     { id: 'all', label: 'Tất cả mức giá' },
@@ -79,7 +99,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     public router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   async ngOnInit() {
     void this.loadDestinationFilters().catch(error => {
@@ -227,7 +247,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
     }, 250);
   }
 
-  
+
   public addToSchedule(service: any) {
     this.router.navigate(['/schedule'], {
       queryParams: {
@@ -257,9 +277,34 @@ export class ServicesComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 120, behavior: 'smooth' });
   }
 
-  public nextPage() {
+  public async nextPage() {
     if (this.currentPage < this.totalPages) {
       this.setPage(this.currentPage + 1);
+    } else if (this.filterDest !== 'all') {
+      // Khách đã lướt tới cuối trang mà vẫn bấm trang tiếp -> tự động cào tiếp từ Google Maps
+      await this.triggerCrawlMore();
+    }
+  }
+
+  public async triggerCrawlMore(): Promise<void> {
+    const targetDest = this.filterDest !== 'all' ? this.filterDest : this.searchQuery.trim();
+    if (this.isCrawlingMore || !targetDest) return;
+    this.isCrawlingMore = true;
+    this.cdr.detectChanges();
+    try {
+      const url = `${this.apiService.BACKEND_URL}/services/crawl-more?dest=${encodeURIComponent(targetDest)}&type=${encodeURIComponent(this.serviceType || 'stay')}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.status === 429) {
+        alert(data?.message || 'Bạn đã đạt giới hạn tra cứu trong phiên. Vui lòng thử lại sau ít phút.');
+      } else if (data?.success) {
+        await this.loadServicesFromServer();
+      }
+    } catch (e) {
+      console.warn('Lỗi khi cào thêm dịch vụ từ Google Maps:', e);
+    } finally {
+      this.isCrawlingMore = false;
+      this.cdr.detectChanges();
     }
   }
 

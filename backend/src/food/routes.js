@@ -24,7 +24,7 @@ router.get(
       // Food records contain large base64 photos; keep them out of list reads
       // and return the source URL or a bundled fallback instead.
       .find({ status: "published" }, {
-        readPreference: "secondaryPreferred",
+        readPreference: "primaryPreferred",
         projection: { image: 0 },
       })
       .sort({ createdAt: 1, id: 1 })

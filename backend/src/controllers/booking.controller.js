@@ -970,24 +970,33 @@ exports.getBookings = async (req, res, next) => {
       : undefined;
 
     if (providerId) {
-      const vender = await Vender.findOne({ where: { user_id: providerId } });
+      const [vender, provider] = await Promise.all([
+        Vender.findOne({ where: { user_id: providerId } }),
+        providerForUser(providerId)
+      ]);
       const venderId = vender ? vender.id : '';
 
-      const services = await GreenService.findAll({
-        where: { vender_id: venderId },
-        attributes: compact ? ['id'] : undefined
-      });
+      const [services, tours] = await Promise.all([
+        venderId ? GreenService.findAll({ where: { vender_id: venderId }, attributes: compact ? ['id'] : undefined }) : [],
+        provider ? ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: compact ? ['id'] : undefined }) : []
+      ]);
       const serviceIds = services.map(s => s.id);
+      const tourIds = tours.map(tour => tour.id);
 
-      serviceBookings = await ServiceBooking.findAll({
-        where: { service_id: { [Op.in]: serviceIds } },
-        attributes: compactBookingFields,
-        order: [['createdAt', 'DESC']]
-      });
+      if (serviceIds.length === 0 && tourIds.length === 0) {
+        return res.json([]);
+      }
 
-      const provider = await providerForUser(providerId);
-      const tours = provider ? await ScheduleSample.findAll({ where: { provider_id: provider.id }, attributes: compact ? ['id'] : undefined }) : [];
-      tourBookings = await TourBooking.findAll({ where: { schedule_id: { [Op.in]: tours.map(tour => tour.id) } }, attributes: compactBookingFields, order: [['createdAt', 'DESC']] });
+      const [sBookings, tBookings] = await Promise.all([
+        serviceIds.length
+          ? ServiceBooking.findAll({ where: { service_id: { [Op.in]: serviceIds } }, attributes: compactBookingFields, order: [['createdAt', 'DESC']] })
+          : [],
+        tourIds.length
+          ? TourBooking.findAll({ where: { schedule_id: { [Op.in]: tourIds } }, attributes: compactBookingFields, order: [['createdAt', 'DESC']] })
+          : []
+      ]);
+      serviceBookings = sBookings;
+      tourBookings = tBookings;
     } else if (customerId) {
       serviceBookings = await ServiceBooking.findAll({
         where: { user_id: customerId },

@@ -1,6 +1,7 @@
 const express = require('express');
 const { randomUUID } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
+const jwt = require('jsonwebtoken');
 const { softAuth } = require('../middlewares/auth.middleware');
 const { validateChatInput, createChatAdapter } = require('../services/greensteps-chat.service');
 const { createChatAccess, catalogKeyMatches } = require('../services/n8n-chat-access.service');
@@ -68,6 +69,17 @@ function createSupportRouter(options = {}) {
     }
   });
 
+  // Chat Session Token Minter for Frontend & n8n JWT Verification
+  router.get('/token', (req, res) => {
+    const sessionId = req.query.sessionId || randomUUID();
+    const secret = env.N8N_CHAT_JWT_SECRET || process.env.JWT_SECRET || 'greensteps-jwt-secret-key-2026';
+    const token = jwt.sign(
+      { scope: 'greensteps:chat', sessionId },
+      secret,
+      { expiresIn: '24h' }
+    );
+    res.json({ success: true, token, sessionId });
+  });
   router.post('/chat', softAuth, async (req, res) => {
     const start = performance.now();
     const requestId = randomUUID();

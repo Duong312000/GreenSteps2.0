@@ -1,5 +1,6 @@
 const { Op } = require('../db/mongo-store');
 const { catalogMetadata } = require('../services/catalog-presentation.service');
+const { crawlAndPersistServices } = require('../services/google-places-crawler.service');
 
 const serviceSearchCache = { data: null, expiresAt: 0, refreshing: false };
 const SERVICE_SEARCH_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL with SWR
@@ -7,7 +8,13 @@ const SERVICE_SEARCH_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL with SWR
 async function loadAllServicesForSearch(GreenService) {
   const services = await GreenService.findAll({
     where: {},
-    readPreference: 'secondaryPreferred'
+    attributes: [
+      'id', 'vender_id', 'name_service', 'type', 'destination', 'cost',
+      'carbon', 'rating', 'reviews_count', 'bookings_count', 'max_capacity',
+      'status', 'views_count', 'is_partner', 'source', 'google_place_id',
+      'image_url'
+    ],
+    readPreference: 'primaryPreferred'
   });
 
   return (services || []).filter(s => s.status !== 'deleted' && !s.current_data?.catalogHidden).map(s => ({
@@ -35,16 +42,18 @@ async function loadAllServicesForSearch(GreenService) {
   }));
 }
 
-async function searchServices({ models, query = {} }) {
+async function searchServices({ models, query = {}, clientIp = 'anonymous' }) {
   const { GreenService } = models;
 
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const pageSize = Math.max(1, Math.min(100, parseInt(query.pageSize || query.limit, 10) || 12));
   const keyword = (query.q || query.keyword || query.search || '').trim().toLowerCase();
-  const dest = (query.dest || '').trim().toLowerCase();
+  const rawDest = (query.dest || query.destination || '').trim();
+  const dest = rawDest.toLowerCase();
   const type = (query.type || '').trim();
   const minPrice = query.minPrice ? Number(query.minPrice) : null;
   const maxPrice = query.maxPrice ? Number(query.maxPrice) : null;
+  const crawlMore = query.crawlMore === 'true' || query.crawlNext === 'true';
 
   const now = Date.now();
   let allFormatted;
@@ -66,7 +75,7 @@ async function searchServices({ models, query = {} }) {
     serviceSearchCache.expiresAt = now + SERVICE_SEARCH_TTL_MS;
   }
 
-  let filtered = allFormatted.filter(s => {
+  const filterFn = (items) => items.filter(s => {
     if (keyword && !String(s.name || '').toLowerCase().includes(keyword) && !String(s.destination || '').toLowerCase().includes(keyword)) return false;
     if (dest && dest !== 'all' && dest !== 'tất cả' && !String(s.destination || '').toLowerCase().includes(dest)) return false;
     if (type && type !== 'all' && s.type !== type) return false;
@@ -75,8 +84,36 @@ async function searchServices({ models, query = {} }) {
     return true;
   });
 
-  const total = filtered.length;
+  let filtered = filterFn(allFormatted);
+
+  // ON-DEMAND AUTO CRAWL FROM GOOGLE PLACES IF 0 RESULTS OR EXPLICITLY REQUESTED
+  const hasDestFilter = dest && dest !== 'all' && dest !== 'tất cả';
   const offset = (page - 1) * pageSize;
+  const isOutOfPages = offset >= filtered.length && filtered.length > 0;
+
+  if (hasDestFilter && (filtered.length === 0 || crawlMore || isOutOfPages)) {
+    try {
+      console.log(`[SearchServices] Kích hoạt cào Google Places cho: ${rawDest} (Lý do: ${filtered.length === 0 ? 'Chưa có dữ liệu' : 'Yêu cầu tải thêm'})`);
+      const crawled = await crawlAndPersistServices({
+        destination: rawDest,
+        serviceType: type || 'stay',
+        maxResults: 8,
+        clientIp: clientIp || 'anonymous'
+      });
+
+      if (crawled && crawled.length > 0) {
+        // Reload all services to include newly crawled items
+        allFormatted = await loadAllServicesForSearch(GreenService);
+        serviceSearchCache.data = allFormatted;
+        serviceSearchCache.expiresAt = Date.now() + SERVICE_SEARCH_TTL_MS;
+        filtered = filterFn(allFormatted);
+      }
+    } catch (crawlErr) {
+      console.warn('[SearchServices] Auto-crawl error:', crawlErr.message);
+    }
+  }
+
+  const total = filtered.length;
   const formatted = filtered.slice(offset, offset + pageSize);
 
   return {
@@ -84,7 +121,8 @@ async function searchServices({ models, query = {} }) {
     total,
     page,
     pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize))
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    canCrawlMore: hasDestFilter
   };
 }
 
@@ -99,11 +137,3 @@ module.exports = {
   searchServices,
   removeServiceFromSearchCache
 };
-
-// Warm up service search catalog cache on server startup
-setTimeout(() => {
-  try {
-    const models = require('../models/index');
-    searchServices({ models, query: { page: 1, pageSize: 6 } }).catch(() => {});
-  } catch {}
-}, 600);

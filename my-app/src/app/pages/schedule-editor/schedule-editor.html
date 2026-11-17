@@ -216,11 +216,11 @@
                 <i class="bi bi-lock-fill"></i> Đã đặt cọc & Khóa sửa đổi
             </div>
             <button *ngIf="!isItineraryLocked()" class="btn-checkout-pay-modern" (click)="triggerCheckout()">
-                <i class="bi bi-credit-card-2-front-fill"></i>
-                <span>{{ currentUser ? 'Thanh Toán Gộp Ví / VietQR' : 'Đặt cọc & Thanh toán ngay' }}</span>
+                <i class="bi bi-shield-check"></i>
+                <span>Đặt cọc chuyến đi</span>
             </button>
-            <div *ngIf="currentUser" class="wallet-badge-pill" (click)="openCheckout()">
-                <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletBalance | number:'1.0-0':'vi-VN' }}đ
+            <div *ngIf="currentUser" class="wallet-badge-pill" (click)="handleWalletBadgeClick($event)">
+                <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Chưa kích hoạt' }}
             </div>
         </div>
     </aside>
@@ -293,32 +293,35 @@
              [class.mobile-sheet-half]="mobileSheetState === 'half'"
              [class.mobile-sheet-full]="mobileSheetState === 'full'">
 
-        <!-- Mobile Sheet Drag Handle & Quick Stats (Only on < 768px) -->
-        <div class="mobile-sheet-header" (click)="toggleMobileSheet()">
-            <div class="mobile-sheet-grabber"></div>
-            <div class="mobile-sheet-summary">
-                <span class="mobile-sheet-day-label">
-                    {{ activeItinerary.days[activeDayIdx]?.title }} · {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} điểm dừng
-                </span>
-                <span class="mobile-sheet-state-btn">
-                    <i class="bi" [ngClass]="mobileSheetState === 'full' ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
-                </span>
+        <!-- Mobile Sheet Top Control Bar (Sticky, Unified Surface on < 768px) -->
+        <div class="mobile-sheet-top-control-bar">
+            <!-- Mobile Sheet Drag Handle & Quick Stats (Only on < 768px) -->
+            <div class="mobile-sheet-header" (click)="toggleMobileSheet()">
+                <div class="mobile-sheet-grabber"></div>
+                <div class="mobile-sheet-summary">
+                    <span class="mobile-sheet-day-label">
+                        {{ activeItinerary.days[activeDayIdx]?.title }} · {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} điểm dừng
+                    </span>
+                    <span class="mobile-sheet-state-btn">
+                        <i class="bi" [ngClass]="mobileSheetState === 'full' ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+                    </span>
+                </div>
             </div>
-        </div>
 
-        <!-- Mobile Day Selector Carousel (Shown only on mobile screens < 768px) -->
-        <div class="mobile-days-scroller" *ngIf="activeItinerary?.days?.length">
-            <button *ngFor="let day of activeItinerary.days; let dIdx = index"
-                    type="button" 
-                    class="mobile-day-pill" 
-                    [class.active]="activeDayIdx === dIdx"
-                    (click)="switchActiveDay(dIdx); $event.stopPropagation()">
-                <span>{{ day.title || ('Ngày ' + (dIdx + 1)) }}</span>
-            </button>
-            <button type="button" class="mobile-day-pill add-day-pill" *ngIf="!isItineraryLocked()"
-                    (click)="addDayToItinerary(); $event.stopPropagation()" title="Thêm một ngày mới vào lịch trình">
-                <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
-            </button>
+            <!-- Mobile Day Selector Carousel (Shown only on mobile screens < 768px) -->
+            <div class="mobile-days-scroller" *ngIf="activeItinerary?.days?.length">
+                <button *ngFor="let day of activeItinerary.days; let dIdx = index"
+                        type="button" 
+                        class="mobile-day-pill" 
+                        [class.active]="activeDayIdx === dIdx"
+                        (click)="switchActiveDay(dIdx); $event.stopPropagation()">
+                    <span>{{ day.title || ('Ngày ' + (dIdx + 1)) }}</span>
+                </button>
+                <button type="button" class="mobile-day-pill add-day-pill" *ngIf="!isItineraryLocked()"
+                        (click)="addDayToItinerary(); $event.stopPropagation()" title="Thêm một ngày mới vào lịch trình">
+                    <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
+                </button>
+            </div>
         </div>
         <div class="timeline-cover-container" style="position: relative;">
             <!-- Hidden File Input for Custom Cover Image -->
@@ -356,15 +359,15 @@
                     </button>
 
                     <!-- Collaborators Avatars (stacked behind the Add button to the right) -->
-                    <ng-container *ngIf="activeItinerary.collaborators && activeItinerary.collaborators.length > 0">
-                        <div *ngFor="let col of activeItinerary.collaborators; let idx = index"
-                            [style.margin-left.px]="-12" [style.z-index]="9 - idx"
-                            style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4); background: #e6ede9; overflow: hidden; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.15); flex-shrink: 0;"
-                            [title]="col.fullname || col.username">
+                    <ng-container *ngIf="getVisibleCollaborators().length > 0">
+                        <div *ngFor="let col of getVisibleCollaborators(); let idx = index"
+                            [style.margin-left.px]="-10" [style.z-index]="9 - idx"
+                            style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ffffff; background: #e6ede9; overflow: hidden; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); flex-shrink: 0;"
+                            [title]="(col.isOwner ? '👑 Chủ lịch trình: ' : 'Đồng hành: ') + (col.fullname || col.username)">
                             <img *ngIf="col.avatarUrl" [src]="col.avatarUrl"
                                 style="width: 100%; height: 100%; object-fit: cover;">
                             <div *ngIf="!col.avatarUrl"
-                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #174c39; text-transform: uppercase;">
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #174c39; text-transform: uppercase;">
                                 {{ (col.fullname || col.username || '?').charAt(0) }}
                             </div>
                         </div>
@@ -541,8 +544,8 @@
                                         </div>
                                     </div>
 
-                                    <!-- Reorder & Management Controls -->
-                                    <div class="act-min-actions" *ngIf="!isItineraryLocked()"
+                                    <!-- Reorder & Management Controls (Desktop) -->
+                                    <div class="act-min-actions desktop-act-actions" *ngIf="!isItineraryLocked()"
                                         (click)="$event.stopPropagation()">
                                         <button type="button" class="act-icon-btn" (click)="toggleActivityNote(act)"
                                             [class.has-gps]="!!act.note"
@@ -568,6 +571,13 @@
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </div>
+
+                                    <!-- Mobile 3-Dots Action Trigger -->
+                                    <button type="button" class="btn-mobile-act-more" *ngIf="!isItineraryLocked()"
+                                        (click)="openMobileActActions(act, idx, $event)"
+                                        title="Tùy chọn địa điểm">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
                                 </div>
 
                                 <!-- Inline Illogical Time Conflict Alert -->
@@ -1467,18 +1477,132 @@
         </div>
     </aside>
 
+    <!-- Mobile Floating View Toggle (Map / List) -->
+    <div class="mobile-view-toggle-wrap" *ngIf="activeItinerary && !isLoadingEditor">
+        <button type="button" class="mobile-view-toggle-btn" (click)="toggleMobileViewMode()">
+            <i class="bi" [ngClass]="mobileViewMode === 'map' ? 'bi-list-ul' : 'bi-map'"></i>
+            <span>{{ mobileViewMode === 'map' ? 'Xem lịch trình' : 'Xem bản đồ' }}</span>
+        </button>
+    </div>
+
     <!-- Mobile Sticky Checkout Bar (Always accessible in thumb zone on < 768px) -->
     <div class="mobile-sticky-checkout-bar" *ngIf="activeItinerary && !isLoadingEditor">
         <div class="mobile-checkout-summary">
             <span class="mobile-checkout-price">{{ (itineraryTotalCost || totalCost) | number:'1.0-0':'vi-VN' }}₫</span>
-            <span class="mobile-checkout-carbon">
-                <i class="bi bi-leaf-fill"></i> {{ formatCarbon(totalCarbon) }}
-            </span>
+            <div class="mobile-checkout-subline">
+                <span class="mobile-checkout-carbon">
+                    <i class="bi bi-leaf-fill"></i> {{ formatCarbon(totalCarbon) }}
+                </span>
+                <span *ngIf="currentUser" class="mobile-wallet-inline-pill" (click)="handleWalletBadgeClick($event)" title="Xem ví GreenSteps">
+                    <i class="bi bi-wallet2"></i> {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Mở ví' }}
+                </span>
+            </div>
         </div>
         <button type="button" class="btn-mobile-checkout" (click)="triggerCheckout()" [disabled]="isItineraryLocked()">
-            <i class="bi" [ngClass]="isItineraryLocked() ? 'bi-lock-fill' : 'bi-credit-card-2-front'"></i>
-            <span>{{ isItineraryLocked() ? 'Đã đặt cọc' : 'Đặt cọc ngay' }}</span>
+            <i class="bi" [ngClass]="isItineraryLocked() ? 'bi-lock-fill' : 'bi-shield-check'"></i>
+            <span>{{ isItineraryLocked() ? 'Đã đặt cọc' : 'Đặt cọc chuyến đi' }}</span>
         </button>
+    </div>
+
+    <!-- WALLET ACTIVATION PROMPT MODAL (Khi người dùng chưa có ví) -->
+    <div class="wallet-prompt-modal-backdrop" *ngIf="isWalletPromptModalOpen" (click)="closeWalletPromptModal()">
+        <div class="wallet-prompt-modal-card" (click)="$event.stopPropagation()">
+            <div class="wallet-prompt-icon-wrap">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <h3 class="wallet-prompt-title">Chức năng cần mở Ví GreenSteps</h3>
+            <p class="wallet-prompt-desc">
+                Tài khoản của bạn chưa kích hoạt Ví GreenSteps. Hãy mở ví để quản lý số dư, nhận quà tặng chào mừng <strong>200.000đ</strong> và thực hiện đặt cọc chuyến đi thuận tiện, an toàn.
+            </p>
+            <div class="wallet-prompt-actions">
+                <button type="button" class="btn-wallet-back" (click)="closeWalletPromptModal()">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </button>
+                <button type="button" class="btn-wallet-open" (click)="confirmOpenWallet()">
+                    <i class="bi bi-sparkles"></i> Mở ví ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE ACTIVITY ACTION SHEET (Clean Bottom Drawer) -->
+    <div class="mobile-action-sheet-backdrop" *ngIf="mobileActionSheetAct" (click)="closeMobileActActions()">
+        <div class="mobile-action-sheet-panel" (click)="$event.stopPropagation()">
+            <div class="mobile-sheet-pull-bar"></div>
+            <div class="mobile-action-sheet-header">
+                <div class="mobile-act-info">
+                    <span class="mobile-act-time-pill">{{ mobileActionSheetAct.time || '08:00' }}</span>
+                    <h4 class="mobile-act-name">{{ mobileActionSheetAct.title }}</h4>
+                </div>
+                <button type="button" class="mobile-sheet-close-btn" (click)="closeMobileActActions()">×</button>
+            </div>
+
+            <div class="mobile-action-sheet-menu">
+                <button type="button" class="mobile-action-row" (click)="openMobileNoteModal(mobileActionSheetAct, $event)">
+                    <i class="bi bi-chat-left-text-fill action-icon-note"></i>
+                    <div class="action-text-wrap">
+                        <span class="action-label">{{ mobileActionSheetAct.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú nhắc nhở' }}</span>
+                        <small class="action-hint">{{ mobileActionSheetAct.note ? mobileActionSheetAct.note : 'Lưu ý mua vé, trang phục, hành lý...' }}</small>
+                    </div>
+                </button>
+
+                <button type="button" class="mobile-action-row" (click)="openGooglePlacePanel(mobileActionSheetAct, $event); closeMobileActActions()">
+                    <i class="bi bi-geo-alt-fill action-icon-gps"></i>
+                    <div class="action-text-wrap">
+                        <span class="action-label">Xem chi tiết & chỉ đường</span>
+                        <small class="action-hint">Tọa độ vệ tinh, đánh giá, vị trí bản đồ</small>
+                    </div>
+                </button>
+
+                <button type="button" class="mobile-action-row" (click)="moveActivity(mobileActionSheetIdx, -1); closeMobileActActions()">
+                    <i class="bi bi-arrow-up-circle action-icon-move"></i>
+                    <div class="action-text-wrap">
+                        <span class="action-label">Di chuyển lên trước</span>
+                    </div>
+                </button>
+
+                <button type="button" class="mobile-action-row" (click)="moveActivity(mobileActionSheetIdx, 1); closeMobileActActions()">
+                    <i class="bi bi-arrow-down-circle action-icon-move"></i>
+                    <div class="action-text-wrap">
+                        <span class="action-label">Di chuyển xuống sau</span>
+                    </div>
+                </button>
+
+                <button type="button" class="mobile-action-row danger-row" (click)="deleteActivity(mobileActionSheetIdx); closeMobileActActions()">
+                    <i class="bi bi-trash3-fill action-icon-danger"></i>
+                    <div class="action-text-wrap">
+                        <span class="action-label">Xóa khỏi lịch trình</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE NOTE EDITOR MODAL (Dedicated, ergonomic input) -->
+    <div class="mobile-action-sheet-backdrop" *ngIf="isMobileNoteModalOpen && mobileNoteTargetAct" (click)="closeMobileNoteModal()">
+        <div class="mobile-action-sheet-panel mobile-note-editor-panel" (click)="$event.stopPropagation()">
+            <div class="mobile-sheet-pull-bar"></div>
+            <div class="mobile-action-sheet-header">
+                <div>
+                    <span class="text-xs text-gray-500 font-medium">Ghi chú cho địa điểm</span>
+                    <h4 class="mobile-act-name text-base font-bold text-gray-800">{{ mobileNoteTargetAct.title }}</h4>
+                </div>
+                <button type="button" class="mobile-sheet-close-btn" (click)="closeMobileNoteModal()">×</button>
+            </div>
+
+            <div class="mobile-note-input-body">
+                <textarea [(ngModel)]="mobileNoteText" rows="3"
+                          class="mobile-note-textarea"
+                          placeholder="Nhập ghi chú cho riêng bạn hoặc nhóm (VD: Mua vé online trước 1 ngày, cần mang áo ấm, lưu ý ăn chay...)"></textarea>
+                
+                <div class="mobile-note-actions-row">
+                    <button type="button" class="btn-mobile-cancel-note" (click)="closeMobileNoteModal()">Hủy</button>
+                    <button type="button" class="btn-mobile-save-note" (click)="saveMobileNote()">
+                        <i class="bi bi-check2"></i> Lưu ghi chú
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2274,21 +2398,45 @@
         </div>
 
         <div class="p-5 space-y-4">
-            <!-- Sharing Preview Details -->
+            <!-- Sharing Preview Details with Destination & Cover Image -->
             <div class="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
-                <i class="bi bi-journal-check text-2xl text-[#0E9F6E]"></i>
-                <div class="flex-grow min-w-0">
+                <img *ngIf="getUnifiedCoverImage(sharingItinerary || activeItinerary)" [src]="getUnifiedCoverImage(sharingItinerary || activeItinerary)"
+                    alt="Cover" class="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0" />
+                <div *ngIf="!getUnifiedCoverImage(sharingItinerary || activeItinerary)" class="w-14 h-14 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0E9F6E] flex-shrink-0">
+                    <i class="bi bi-journal-check text-2xl"></i>
+                </div>
+                <div class="flex-grow min-w-0 text-left">
                     <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name || sharingItinerary?.title }}</h4>
-                    <span class="text-[10px] text-gray-500 font-semibold uppercase">{{ sharingItinerary?.destLabel || sharingItinerary?.destination }}
-                        • {{ getItineraryDaysCount(sharingItinerary) }} ngày</span>
+                    <span class="text-[10px] text-gray-500 font-semibold uppercase block mt-0.5">
+                        <i class="bi bi-geo-alt-fill text-[#0E9F6E]"></i> {{ sharingItinerary?.destLabel || sharingItinerary?.destination || 'Việt Nam' }} • {{ getItineraryDaysCount(sharingItinerary) }} ngày
+                    </span>
+                    <span class="text-[9.5px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1 font-medium">Tự động gắn thông tin & ảnh bìa chuyến đi</span>
                 </div>
             </div>
 
+            <!-- Sharing Permissions / Modes Checkboxes -->
+            <div class="p-3 bg-emerald-50/40 border border-emerald-100/80 rounded-2xl space-y-2.5 text-left">
+                <div class="text-[10.5px] font-bold text-[#184A37] uppercase tracking-wider">Tùy chọn quyền truy cập:</div>
+                <label class="flex items-start gap-2.5 cursor-pointer text-xs text-[#184A37]">
+                    <input type="checkbox" [(ngModel)]="shareAllowClone" (change)="onShareOptionsChanged()" class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
+                    <div>
+                        <div class="font-bold text-xs">Chia sẻ lịch trình mẫu (Cho phép tham khảo & sao chép)</div>
+                        <div class="text-[10.5px] text-gray-500">Người xem có thể tham khảo chi tiết và sao chép lịch trình này về tài khoản riêng.</div>
+                    </div>
+                </label>
+                <label class="flex items-start gap-2.5 cursor-pointer text-xs text-[#184A37]">
+                    <input type="checkbox" [(ngModel)]="shareAllowCollab" (change)="onShareOptionsChanged()" class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
+                    <div>
+                        <div class="font-bold text-xs">Mời tham gia lịch trình (Cùng chỉnh sửa & thanh toán)</div>
+                        <div class="text-[10.5px] text-gray-500">Mời bạn bè trở thành thành viên đồng hành để cùng thêm/sửa điểm dừng và cùng đặt cọc/thanh toán.</div>
+                    </div>
+                </label>
+            </div>
+
             <!-- Option 1: Post to Community -->
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-[#184A37]/60 uppercase tracking-wider">Đăng lên cộng đồng
-                    GreenSteps</label>
-                <textarea [(ngModel)]="shareMessage" rows="3"
+            <div class="space-y-2 text-left">
+                <label class="text-[10px] font-bold text-[#184A37]/60 uppercase tracking-wider">Đăng lên cộng đồng GreenSteps</label>
+                <textarea [(ngModel)]="shareMessage" rows="2"
                     class="w-full p-3 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] resize-none bg-gray-50 focus:bg-white transition-all"
                     placeholder="Nhập cảm nghĩ về lịch trình này..."></textarea>
                 <button (click)="postToCommunity()"

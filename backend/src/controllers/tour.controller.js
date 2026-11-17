@@ -117,7 +117,7 @@ const DESTINATIONS_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
 async function fetchAllPresetToursFromDb() {
   const samples = await ScheduleSample.findAll({
     where: {},
-    readPreference: 'secondaryPreferred',
+    readPreference: 'primaryPreferred',
     include: [
       {
         model: Schedule,
@@ -430,133 +430,130 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
       cachedAt: Date.now()
     });
 
-    // MongoDB transaction
-    await store.transaction(async (t) => {
-      const [userExists, existingSchedule, existingSample, existingCustom] = await Promise.all([
-        User.findByPk(user_id, { transaction: t }),
-        Schedule.findByPk(id, { transaction: t }),
-        ScheduleSample.findByPk(id, { transaction: t }),
-        ScheduleCustom.findByPk(id, { transaction: t })
-      ]);
-
-      if (!userExists) {
-        const hashedPwd = await bcrypt.hash('123456', 10);
-        await User.create({
-          id: user_id,
-          username: `recovered_${user_id}`,
-          password_hash: hashedPwd,
-          fullname: 'Khách hàng phục hồi',
-          email: `${user_id}@greensteps.vn`,
-          role: 'traveler'
-        }, { transaction: t });
-      }
-      const catalogStatus = !existingSample && (existingCustom || !existingSchedule)
-        ? 'personal'
-        : existingSchedule?.catalog_status;
-
-      await Schedule.upsert({
-        id: id,
-        tour_name: name,
-        destination: destination,
-        days: days,
-        discount: 0,
-        carbon: computedCarbon,
-        image_url: (imageUrl && imageUrl !== 'image/Viet Nam.png') ? imageUrl : (image_url && image_url !== 'image/Viet Nam.png' ? image_url : null),
-        tour_description: `Hành trình tự thiết kế đi ${destination}`,
-        ...(catalogStatus !== undefined ? { catalog_status: catalogStatus } : {})
-      }, { transaction: t });
-
-      // Check current status if exists to create notification
-      const statusChanged = existingCustom && existingCustom.status !== status;
-
-      await ScheduleCustom.upsert({
-        id: id,
-        user_id: user_id,
-        total_cost: totalCost,
-        ...(status ? { status } : {}),
-        ...(deposit_deadline !== undefined ? { deposit_deadline } : {}),
-        ...(start_date !== undefined ? { start_date } : {}),
-        ...(end_date !== undefined ? { end_date } : {}),
-        ...(companion_email !== undefined ? { companion_email } : {})
-      }, { transaction: t });
-
-      // Create UserSchedule junction if not exist
-      await UserSchedule.findOrCreate({
-        where: { user_id: user_id, schedule_id: id },
-        transaction: t
+    // 1. Ensure user exists
+    let userExists = await User.findByPk(user_id);
+    if (!userExists) {
+      const hashedPwd = await bcrypt.hash('123456', 10);
+      await User.create({
+        id: user_id,
+        username: `recovered_${user_id}`,
+        password_hash: hashedPwd,
+        fullname: 'Khách hàng phục hồi',
+        email: `${user_id}@greensteps.vn`,
+        role: 'traveler'
       });
+    }
 
-      // Create notifications on status change
-      if (statusChanged || (!existingCustom && status)) {
-        if (status === 'deposited') {
-          await Notification.create({
-            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            user_id: user_id,
-            title: 'Đặt cọc thành công',
-            message: `Bạn đã hoàn tất đặt cọc cho chuyến đi ${destination || 'của bạn'}. Lịch trình hiện tại đã được khóa.`,
-            type: 'wallet',
-            read: false
-          }, { transaction: t });
-        } else if (status === 'cancelled') {
-          await Notification.create({
-            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            user_id: user_id,
-            title: 'Đã hủy đặt cọc',
-            message: `Lịch trình chuyến đi ${destination || 'của bạn'} đã được hủy thành công. Số tiền cọc đã được hoàn trả về ví của bạn.`,
-            type: 'wallet',
-            read: false
-          }, { transaction: t });
-        }
-      } else if (!existingCustom) {
-        // Initial creation notification
+    const [existingSchedule, existingSample, existingCustom] = await Promise.all([
+      Schedule.findByPk(id),
+      ScheduleSample.findByPk(id),
+      ScheduleCustom.findByPk(id)
+    ]);
+
+    const catalogStatus = !existingSample && (existingCustom || !existingSchedule)
+      ? 'personal'
+      : existingSchedule?.catalog_status;
+
+    await Schedule.upsert({
+      id: id,
+      tour_name: name,
+      destination: destination,
+      days: days,
+      discount: 0,
+      carbon: computedCarbon,
+      image_url: (imageUrl && imageUrl !== 'image/Viet Nam.png') ? imageUrl : (image_url && image_url !== 'image/Viet Nam.png' ? image_url : null),
+      tour_description: `Hành trình tự thiết kế đi ${destination}`,
+      ...(catalogStatus !== undefined ? { catalog_status: catalogStatus } : {})
+    });
+
+    // Check current status if exists to create notification
+    const statusChanged = existingCustom && existingCustom.status !== status;
+
+    await ScheduleCustom.upsert({
+      id: id,
+      user_id: user_id,
+      total_cost: totalCost,
+      ...(status ? { status } : {}),
+      ...(deposit_deadline !== undefined ? { deposit_deadline } : {}),
+      ...(start_date !== undefined ? { start_date } : {}),
+      ...(end_date !== undefined ? { end_date } : {}),
+      ...(companion_email !== undefined ? { companion_email } : {})
+    });
+
+    // Create UserSchedule junction if not exist
+    await UserSchedule.findOrCreate({
+      where: { user_id: user_id, schedule_id: id }
+    });
+
+    // Create notifications on status change
+    if (statusChanged || (!existingCustom && status)) {
+      if (status === 'deposited') {
         await Notification.create({
           id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           user_id: user_id,
-          title: 'Hành trình mới',
-          message: `Lịch trình tự thiết kế đi ${destination || 'điểm đến mới'} đã được khởi tạo thành công!`,
-          type: 'system',
+          title: 'Đặt cọc thành công',
+          message: `Bạn đã hoàn tất đặt cọc cho chuyến đi ${destination || 'của bạn'}. Lịch trình hiện tại đã được khóa.`,
+          type: 'wallet',
           read: false
-        }, { transaction: t });
-      }
-
-      // Destroy old activities
-      await ScheduleActivity.destroy({ where: { schedule_id: id }, transaction: t });
-
-
-      // Save new activities
-      const activitiesToSave = [];
-      if (daysData && daysData.length > 0) {
-        // Query green services at this destination to auto-link service_id by name if not provided
-        const { GreenService } = require('../models/index');
-        const services = await GreenService.findAll({ where: { destination }, transaction: t });
-        const serviceMap = {};
-        services.forEach(s => {
-          serviceMap[s.name_service.toLowerCase().trim()] = s.id;
         });
+      } else if (status === 'cancelled') {
+        await Notification.create({
+          id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          user_id: user_id,
+          title: 'Đã hủy đặt cọc',
+          message: `Lịch trình chuyến đi ${destination || 'của bạn'} đã được hủy thành công. Số tiền cọc đã được hoàn trả về ví của bạn.`,
+          type: 'wallet',
+          read: false
+        });
+      }
+    } else if (!existingCustom) {
+      // Initial creation notification
+      await Notification.create({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        user_id: user_id,
+        title: 'Hành trình mới',
+        message: `Lịch trình tự thiết kế đi ${destination || 'điểm đến mới'} đã được khởi tạo thành công!`,
+        type: 'system',
+        read: false
+      });
+    }
 
-        daysData.forEach((day, dIdx) => {
-          day.forEach((act, aIdx) => {
-            const actId = `act_${id}_${dIdx + 1}_${aIdx + 1}_${Math.random().toString(36).substring(2, 7)}`;
-            const actName = act.name || act.title || '[Địa điểm tự do]';
-            const nameKey = actName.toLowerCase().trim();
-            const serviceId = aiGenerated ? (act.service_id || null) : (act.service_id || act.serviceId || serviceMap[nameKey] || null);
+    // Destroy old activities
+    await ScheduleActivity.destroy({ where: { schedule_id: id } });
 
-            activitiesToSave.push({
-              id: actId,
-              schedule_id: id,
-              day_number: dIdx + 1,
-              time: act.time || '08:00',
-              activity_name: actName,
-              activity_cost: act.cost || 0,
-              carbon: act.carbon || 0,
-              coordinates: act.lat && act.lng ? `${act.lat}, ${act.lng}` : null,
-              service_id: serviceId
-            });
+    // Save new activities
+    const activitiesToSave = [];
+    if (daysData && daysData.length > 0) {
+      // Query green services at this destination to auto-link service_id by name if not provided
+      const { GreenService } = require('../models/index');
+      const services = await GreenService.findAll({ where: { destination }, attributes: ['id', 'name_service'], include: [] });
+      const serviceMap = {};
+      services.forEach(s => {
+        serviceMap[s.name_service.toLowerCase().trim()] = s.id;
+      });
+
+      daysData.forEach((day, dIdx) => {
+        day.forEach((act, aIdx) => {
+          const actId = `act_${id}_${dIdx + 1}_${aIdx + 1}_${Math.random().toString(36).substring(2, 7)}`;
+          const actName = act.name || act.title || '[Địa điểm tự do]';
+          const nameKey = actName.toLowerCase().trim();
+          const serviceId = aiGenerated ? (act.service_id || null) : (act.service_id || act.serviceId || serviceMap[nameKey] || null);
+
+          activitiesToSave.push({
+            id: actId,
+            schedule_id: id,
+            day_number: dIdx + 1,
+            time: act.time || '08:00',
+            activity_name: actName,
+            activity_cost: act.cost || 0,
+            carbon: act.carbon || 0,
+            coordinates: act.lat && act.lng ? `${act.lat}, ${act.lng}` : null,
+            service_id: serviceId
           });
         });
-        await ScheduleActivity.bulkCreate(activitiesToSave, { transaction: t });
-      }
-    });
+      });
+      await ScheduleActivity.bulkCreate(activitiesToSave);
+    }
 
     res.json({ success: true, itineraryId: id, id, message: 'Đã lưu lịch trình thành công và đồng bộ carbon!' });
   } catch (error) {
@@ -669,15 +666,32 @@ exports.getCustomItineraryById = async (req, res, next) => {
       return res.json(cached.data);
     }
 
-    const [c, userSchedules] = await Promise.all([
-      ScheduleCustom.findByPk(id, {
+    const cleanId = String(id).replace(/^iti_/, '');
+    let c = await ScheduleCustom.findByPk(id, {
+      include: [{
+        model: Schedule,
+        include: [{ model: ScheduleActivity }]
+      }]
+    });
+    if (!c) {
+      c = await ScheduleCustom.findByPk(`iti_${cleanId}`, {
         include: [{
           model: Schedule,
           include: [{ model: ScheduleActivity }]
         }]
-      }),
-      UserSchedule.findAll({ where: { schedule_id: id } })
-    ]);
+      });
+    }
+    if (!c) {
+      c = await ScheduleCustom.findByPk(cleanId, {
+        include: [{
+          model: Schedule,
+          include: [{ model: ScheduleActivity }]
+        }]
+      });
+    }
+
+    const actualId = c ? c.id : id;
+    const userSchedules = await UserSchedule.findAll({ where: { schedule_id: actualId } });
 
     if (!c || !c.Schedule) {
       // Fallback: if someone shared a preset/sample tour ID on /schedule/:id
@@ -707,7 +721,7 @@ exports.getCustomItineraryById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
-    const collaboratorIds = userSchedules.map(us => us.user_id);
+    const collaboratorIds = [...new Set([c.user_id, ...userSchedules.map(us => us.user_id)].filter(Boolean))];
     const collaborators = collaboratorIds.length > 0
       ? await User.findAll({
           where: { id: { [Op.in]: collaboratorIds } },
@@ -751,12 +765,10 @@ exports.deleteCustomItinerary = async (req, res, next) => {
   const { id } = req.params;
   customItineraryCache.delete(id);
   try {
-    await store.transaction(async (t) => {
-      await ScheduleActivity.destroy({ where: { schedule_id: id }, transaction: t });
-      await UserSchedule.destroy({ where: { schedule_id: id }, transaction: t });
-      await ScheduleCustom.destroy({ where: { id }, transaction: t });
-      await Schedule.destroy({ where: { id }, transaction: t });
-    });
+    await ScheduleActivity.destroy({ where: { schedule_id: id } });
+    await UserSchedule.destroy({ where: { schedule_id: id } });
+    await ScheduleCustom.destroy({ where: { id } });
+    await Schedule.destroy({ where: { id } });
 
     res.json({ success: true, message: 'Đã xóa lịch trình thành công!' });
   } catch (error) {
@@ -1014,80 +1026,78 @@ exports.cloneItinerary = async (req, res, next) => {
 
     const newId = 'iti_' + Date.now();
 
-    await store.transaction(async (t) => {
-      // Create Base Schedule
-      await Schedule.create({
-        id: newId,
-        tour_name: `Bản sao - ${base.tour_name}`,
-        destination: base.destination,
-        days: base.days,
-        discount: base.discount,
-        carbon: base.carbon,
-        image_url: base.image_url,
-        tour_description: base.tour_description,
-        catalog_status: 'personal'
-      }, { transaction: t });
-
-      // Create ScheduleCustom for new user
-      await ScheduleCustom.create({
-        id: newId,
-        user_id: newUserId,
-        total_cost: custom ? custom.total_cost : 0,
-        status: 'draft',
-        deposit_deadline: null,
-        start_date: custom ? custom.start_date : null,
-        end_date: custom ? custom.end_date : null,
-        companion_email: null
-      }, { transaction: t });
-
-      // Create UserSchedule junction
-      await UserSchedule.create({
-        user_id: newUserId,
-        schedule_id: newId
-      }, { transaction: t });
-
-      // Copy Activities
-      const newActivities = activities.map((act, idx) => {
-        return {
-          id: `act_${newId}_${act.day_number}_${idx + 1}_${Math.random().toString(36).substring(2, 7)}`,
-          schedule_id: newId,
-          day_number: act.day_number,
-          time: act.time,
-          activity_name: act.activity_name,
-          activity_cost: act.activity_cost,
-          carbon: act.carbon,
-          coordinates: act.coordinates,
-          service_id: act.service_id
-        };
-      });
-
-      if (newActivities.length > 0) {
-        await ScheduleActivity.bulkCreate(newActivities, { transaction: t });
-      }
-
-      // Trigger Notifications
-      await Notification.create({
-        id: `notif_${Date.now()}_b_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: newUserId,
-        title: 'Sao chép thành công',
-        message: `Đã tham khảo & sao chép lịch trình "${base.tour_name}" thành công!`,
-        type: 'system',
-        read: false
-      }, { transaction: t });
-
-      if (custom && custom.user_id && custom.user_id !== newUserId) {
-        const clonerUser = await User.findByPk(newUserId, { transaction: t });
-        const clonerName = clonerUser ? clonerUser.fullname : 'Một người dùng';
-        await Notification.create({
-          id: `notif_${Date.now()}_a_${Math.random().toString(36).substring(2, 7)}`,
-          user_id: custom.user_id,
-          title: 'Lịch trình được tham khảo',
-          message: `${clonerName} đã tham khảo & sao chép lịch trình "${base.tour_name}" của bạn!`,
-          type: 'community',
-          read: false
-        }, { transaction: t });
-      }
+    // Create Base Schedule
+    await Schedule.create({
+      id: newId,
+      tour_name: `Bản sao - ${base.tour_name}`,
+      destination: base.destination,
+      days: base.days,
+      discount: base.discount,
+      carbon: base.carbon,
+      image_url: base.image_url,
+      tour_description: base.tour_description,
+      catalog_status: 'personal'
     });
+
+    // Create ScheduleCustom for new user
+    await ScheduleCustom.create({
+      id: newId,
+      user_id: newUserId,
+      total_cost: custom ? custom.total_cost : 0,
+      status: 'draft',
+      deposit_deadline: null,
+      start_date: custom ? custom.start_date : null,
+      end_date: custom ? custom.end_date : null,
+      companion_email: null
+    });
+
+    // Create UserSchedule junction
+    await UserSchedule.create({
+      user_id: newUserId,
+      schedule_id: newId
+    });
+
+    // Copy Activities
+    const newActivities = activities.map((act, idx) => {
+      return {
+        id: `act_${newId}_${act.day_number}_${idx + 1}_${Math.random().toString(36).substring(2, 7)}`,
+        schedule_id: newId,
+        day_number: act.day_number,
+        time: act.time,
+        activity_name: act.activity_name,
+        activity_cost: act.activity_cost,
+        carbon: act.carbon,
+        coordinates: act.coordinates,
+        service_id: act.service_id
+      };
+    });
+
+    if (newActivities.length > 0) {
+      await ScheduleActivity.bulkCreate(newActivities);
+    }
+
+    // Trigger Notifications
+    await Notification.create({
+      id: `notif_${Date.now()}_b_${Math.random().toString(36).substring(2, 7)}`,
+      user_id: newUserId,
+      title: 'Sao chép thành công',
+      message: `Đã tham khảo & sao chép lịch trình "${base.tour_name}" thành công!`,
+      type: 'system',
+      read: false
+    });
+
+    if (custom && custom.user_id && custom.user_id !== newUserId) {
+      const clonerUser = await User.findByPk(newUserId);
+      const clonerName = clonerUser ? clonerUser.fullname : 'Một người dùng';
+      await Notification.create({
+        id: `notif_${Date.now()}_a_${Math.random().toString(36).substring(2, 7)}`,
+        user_id: custom.user_id,
+        title: 'Lịch trình được tham khảo',
+        message: `${clonerName} đã tham khảo & sao chép lịch trình "${base.tour_name}" của bạn!`,
+        type: 'community',
+        read: false
+      });
+    }
 
     res.json({ success: true, message: 'Đã sao chép lịch trình thành công!', newItineraryId: newId });
   } catch (error) {
@@ -1145,16 +1155,35 @@ exports.joinItinerary = async (req, res, next) => {
   const { userId } = req.body;
 
   try {
-    const c = await ScheduleCustom.findByPk(id, {
+    const cleanId = (id || '').replace('iti_', '');
+    let c = await ScheduleCustom.findByPk(id, {
       include: [{ model: Schedule }]
     });
+    if (!c) c = await ScheduleCustom.findByPk(`iti_${cleanId}`, { include: [{ model: Schedule }] });
+    if (!c) c = await ScheduleCustom.findByPk(cleanId, { include: [{ model: Schedule }] });
+
     if (!c || !c.Schedule) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
+    const actualScheduleId = c.id;
     await UserSchedule.findOrCreate({
-      where: { user_id: userId, schedule_id: id }
+      where: { user_id: userId, schedule_id: actualScheduleId }
     });
+
+    customItineraryCache.delete(actualScheduleId);
+    customItineraryCache.delete(id);
+    customItineraryCache.delete(`iti_${cleanId}`);
+    customItineraryCache.delete(cleanId);
+
+    const userSchedules = await UserSchedule.findAll({ where: { schedule_id: actualScheduleId } });
+    const collaboratorIds = [...new Set([c.user_id, ...userSchedules.map(us => us.user_id)].filter(Boolean))];
+    const collaborators = collaboratorIds.length > 0
+      ? await User.findAll({
+          where: { id: { [Op.in]: collaboratorIds } },
+          attributes: ['id', 'username', 'fullname', 'avatarUrl', 'email']
+        })
+      : [];
 
     const joinedUser = await User.findByPk(userId);
     if (joinedUser && c.user_id !== userId) {
@@ -1168,7 +1197,17 @@ exports.joinItinerary = async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, message: 'Bạn đã tham gia lịch trình thành công!' });
+    res.json({
+      success: true,
+      message: 'Bạn đã tham gia lịch trình thành công!',
+      collaborators: collaborators.map(u => ({
+        id: u.id,
+        username: u.username,
+        fullname: u.fullname || u.username,
+        avatarUrl: u.avatarUrl || u.avatar_url || '',
+        email: u.email
+      }))
+    });
   } catch (error) {
     next(error);
   }

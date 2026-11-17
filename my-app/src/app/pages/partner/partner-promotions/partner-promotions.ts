@@ -86,7 +86,7 @@ export class PartnerPromotionsComponent implements OnInit, OnDestroy {
     this.subscription = this.auth.currentUser$.subscribe((user) => {
       this.items = [];
       this.total = 0;
-      if (user?.role === 'provider') {
+      if (user?.role === 'provider' || user?.role === 'admin') {
         void this.loadOptions();
         void this.load();
       } else {

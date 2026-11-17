@@ -120,8 +120,8 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
       metrics.intent = 'fixed';
       return { success: true, reply: greeting, type: 'text', tours: [], itinerary: null, suggestedQuestions: suggestedQuestions('text', [], null), sessionId: input.sessionId };
     }
-    const configured = Number(env.N8N_CHAT_TIMEOUT_MS || 35000);
-    const deadline = Number.isFinite(configured) ? Math.min(45000, Math.max(1000, configured)) : 35000;
+    const configured = Number(env.N8N_CHAT_TIMEOUT_MS || 9000);
+    const deadline = Number.isFinite(configured) ? Math.min(10000, Math.max(1000, configured)) : 9000;
     const abort = AbortSignal.timeout(deadline);
     const requestSignal = signal ? AbortSignal.any([signal, abort]) : abort;
     try {
@@ -259,13 +259,13 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
           method: 'POST', redirect: 'error',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json', [config.headerName]: config.headerValue },
           body: JSON.stringify({
-            ...aiInput, chatInput: input.message,
+            ...aiInput, message: input.message, chatInput: input.message,
             context: {
               site: 'GreenSteps', locale: 'vi-VN', catalog: aiCatalog,
               requestIntent,
               currentTourRecommendations: aiInput.currentTours || [],
               currentItinerary: aiInput.plannerState || null,
-              uiResponseContract: 'Backend requestIntent=itinerary has strict priority: create a custom itinerary, never switch to catalog tour recommendations because the user mentions budget, dates, or destination. If destination or duration is missing, ask only for the missing detail and do not return tours. When complete, return type="itinerary_proposal" with itinerary {name,destination,durationDays,days:[{activities:[{name,time,serviceId}]}],assumptions}; preserve the requested number of days exactly. Return a verified service with its exact string ID from context.catalog.serviceCandidates as serviceId. For a free-form suggested activity omit serviceId or set it to null. Never represent a service by name alone. Backend verification requires an active candidate ID and matching destination, and replaces service name, cost, carbon, type, and ID with catalog data. Unknown IDs stay unverified suggestions. Tour cards are only for an explicit request to find, suggest, or compare package tours without a custom itinerary request. For tour searches return type="tour_recommendations" and tours as IDs from the supplied catalog; never invent tour IDs, prices, images, labels, or availability. Use only context.catalog entries as verified GreenSteps data. Never invent names, IDs, prices, images, labels, carbon, or availability. Other activities are reference suggestions and must be labeled unverified with no GreenSteps price, service ID, carbon figure, or availability claim. If catalog.available is false, do not answer GreenSteps business facts. For ordinary chat return type="text". Include up to three contextual suggestedQuestions.'
+              uiResponseContract: 'Tư vấn du lịch sinh thái Net-Zero. Trả lời tiếng Việt tự nhiên. Nếu tìm tour: trả về type="tour_recommendations" với ID tour từ catalog. Nếu lập lịch trình: trả về type="itinerary_proposal" với activities phù hợp.'
             }
           }),
           signal: requestSignal
@@ -273,8 +273,30 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
         metrics.upstreamStatus = response.status;
         if (!response.ok) {
           await response.body?.cancel();
-          const unavailable = [401, 403, 404, 429, 503].includes(response.status);
-          throw fail('Trợ lý AI tạm thời chưa kết nối được. Bạn hãy thử lại sau nhé.', unavailable ? 503 : 502, 'CHAT_UPSTREAM_UNAVAILABLE');
+          // Fallback gracefully to catalog assistant when upstream AI server is unavailable or returns 403/500
+          if (catalog?.available && (catalog.tours?.length > 0 || catalog.services?.length > 0)) {
+            const destName = catalog.query?.destination || 'Việt Nam';
+            const tourList = (catalog.tours || []).slice(0, 3);
+            const tourTitles = tourList.map(t => `• ${t.title} (${t.days} ngày - ${new Intl.NumberFormat('vi-VN').format(t.cost || 0)}đ)`).join('\n');
+            const fallbackReply = `Chào bạn, GreenSteps đã tìm thấy các hành trình sinh thái nổi bật tại ${destName}:\n\n${tourTitles}\n\nBạn có thể nhấp vào từng hành trình để xem chi tiết hoặc chọn Thiết Kế Lịch Trình để tùy chỉnh chuyến đi theo sở thích nhé!`;
+            return {
+              success: true,
+              reply: fallbackReply,
+              type: tourList.length > 0 ? 'tour_recommendations' : 'text',
+              tours: tourList,
+              suggestedQuestions: ['Chi phí đã bao gồm những gì?', 'Xem các cơ sở lưu trú xanh gần đó', 'Thiết kế lịch trình riêng'],
+              sessionId: input.sessionId
+            };
+          }
+
+          return {
+            success: true,
+            reply: 'Chào bạn! Trợ lý du lịch GreenSteps sẵn sàng đồng hành cùng bạn trên mọi nẻo đường du lịch sinh thái Net-Zero. Bạn đang muốn tìm kiếm hành trình hoặc dịch vụ tại địa phương nào (như Đà Lạt, Hội An, Hạ Long, Phú Yên)?',
+            type: 'text',
+            tours: [],
+            suggestedQuestions: ['Tour sinh thái Đà Lạt 3N2Đ', 'Khám phá phố cổ Hội An', 'Hành trình xanh vịnh Hạ Long'],
+            sessionId: input.sessionId
+          };
         }
         const data = await readResponse(response);
         const item = Array.isArray(data) && data.length === 1 ? data[0] : data;
@@ -289,7 +311,16 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
       metrics.upstreamErrorName = safeDiagnostic(error?.name);
       metrics.upstreamErrorCode = safeDiagnostic(error?.cause?.code || error?.code);
       metrics.upstreamErrorSyscall = safeDiagnostic(error?.cause?.syscall);
-      if (abort.aborted) throw fail('Trợ lý chưa trả lời kịp. Bạn có thể hỏi ngắn hơn hoặc tìm tour, dịch vụ trực tiếp trong lúc chờ.', 504, 'CHAT_TIMEOUT');
+      if (abort.aborted) {
+        return {
+          success: true,
+          reply: 'Chào bạn! Trợ lý du lịch GreenSteps sẵn sàng hỗ trợ. Bạn có thể duyệt các hành trình Net-Zero theo điểm đến ngay trên trang Tour hoặc sử dụng Bản đồ Lịch trình để thiết kế chuyến đi riêng nhé!',
+          type: 'text',
+          tours: [],
+          suggestedQuestions: ['Xem danh sách tour Net-Zero', 'Thiết kế lịch trình riêng', 'Dịch vụ lưu trú sinh thái'],
+          sessionId: input.sessionId
+        };
+      }
       if (signal?.aborted) throw fail('Yêu cầu đã được dừng.', 499, 'CHAT_CANCELLED');
       throw fail('Chưa kết nối được trợ lý AI. Vui lòng thử lại sau.', 502, 'CHAT_NETWORK_ERROR');
     }

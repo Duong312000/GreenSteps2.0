@@ -73,7 +73,23 @@
   padding: 1.5rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   position: sticky;
-  top: 104px;
+  top: 92px;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.shopco-filter-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.shopco-filter-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.shopco-filter-sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 
 .filter-header {
@@ -169,11 +185,220 @@
   color: #1b5e20;
 }
 
+/* Filter Section Header */
+.filter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.dest-count-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #1b5e20;
+  background: #e8f5e9;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+/* Destination Search Input Box */
+.dest-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+
+.dest-search-icon {
+  position: absolute;
+  left: 0.625rem;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.dest-search-field {
+  width: 100%;
+  padding: 0.4rem 1.75rem 0.4rem 1.85rem;
+  font-size: 0.8125rem;
+  background: #fbfbfb;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  color: #111827;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dest-search-field:focus {
+  background: #ffffff;
+  border-color: #1b5e20;
+  box-shadow: 0 0 0 2px rgba(27, 94, 32, 0.1);
+}
+
+.dest-search-clear-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.dest-search-clear-btn:hover {
+  color: #000000;
+}
+
 /* Destinations Pills */
 .destinations-pill-list {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.4rem;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  transition: max-height 0.3s ease;
+}
+
+.destinations-pill-list.is-expanded {
+  max-height: 280px;
+}
+
+.destinations-pill-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.destinations-pill-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+}
+
+.no-dest-found {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 0;
+  font-style: italic;
+}
+
+/* Toggle More Button */
+.dest-toggle-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px dashed rgba(27, 94, 32, 0.3);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1b5e20;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.dest-toggle-more-btn:hover {
+  background: #e8f5e9;
+  border-color: #1b5e20;
+}
+
+/* Discover More & Map Links */
+.btn-explore-map {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
+  background: #1b5e20;
+  color: #ffffff !important;
+  padding: 0.65rem 1.35rem;
+  border-radius: 9999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(27, 94, 32, 0.15);
+}
+
+.btn-explore-map:hover {
+  background: #144718;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.crawl-more-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2rem 0;
+}
+
+.explore-map-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1b5e20;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.explore-map-link:hover {
+  text-decoration: underline;
+  color: #144718;
+}
+
+.crawl-more-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #1b5e20;
+  color: #1b5e20;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(27, 94, 32, 0.08);
+}
+
+.crawl-more-action-btn:hover:not(:disabled) {
+  background: #1b5e20;
+  color: #ffffff;
+}
+
+.crawl-more-action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.crawl-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1b5e20;
+  color: #ffffff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  border: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.crawl-trigger-btn:hover:not(:disabled) {
+  background: #144718;
+}
+
+.crawl-trigger-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .dest-pill-btn {
@@ -443,16 +668,17 @@
   text-decoration: underline;
 }
 
-/* 5. Products Grid (Shop.co 3-column Grid) */
+/* 5. Products Grid (2-Column Mobile First, 3-Column Desktop) */
 .shopco-products-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 @media (min-width: 640px) {
   .shopco-products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
   }
 }
 
@@ -1016,4 +1242,292 @@
 .google-action-btn:hover {
   background-color: #e2e8f0 !important;
   color: #0f172a !important;
+}
+
+/* ==========================================================================
+   Mobile 2-Column Grid & Layout Excellence (< 768px)
+   ========================================================================== */
+
+.mobile-quick-chips {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .shopco-main {
+    padding-top: 80px;
+    padding-bottom: 3rem;
+  }
+
+  .shopco-container {
+    padding: 0.75rem 0.75rem 2rem;
+  }
+
+  /* Breadcrumb: hidden on mobile to give room for hero & search */
+  .shopco-breadcrumb {
+    display: none;
+  }
+
+  /* Toolbar: compact single-row header */
+  .shopco-toolbar {
+    margin-bottom: 0.75rem;
+  }
+
+  .toolbar-title-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .shopco-page-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  .mobile-filter-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1f2421;
+    cursor: pointer;
+  }
+
+  .toolbar-controls-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .results-count-text {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .sort-by-wrapper {
+    gap: 0.35rem;
+  }
+
+  .sort-by-label {
+    display: none;
+  }
+
+  .shopco-sort-select {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Search input: compact & rounded */
+  .shopco-search-bar {
+    margin-bottom: 0.75rem;
+    height: 40px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .shopco-search-bar .search-input {
+    font-size: 0.8125rem;
+  }
+
+  /* Quick Destination Chips (Horizontal Scrollable) */
+  .mobile-quick-chips {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 2px 0 8px;
+    margin-bottom: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-quick-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-chip-btn {
+    flex-shrink: 0;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .quick-chip-btn.active {
+    background: #1b5e20;
+    border-color: #1b5e20;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  /* Active Filter chips row */
+  .active-chips-row {
+    margin-bottom: 0.75rem;
+    gap: 0.35rem;
+  }
+
+  .filter-chip {
+    font-size: 0.6875rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* 2-Column Product Grid on Mobile */
+  .shopco-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.625rem !important;
+  }
+
+  /* Compact 2-Column Product Card */
+  .shopco-product-card {
+    border-radius: 12px;
+    border: 1px solid #ebebeb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: none;
+  }
+
+  .shopco-product-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-img-container {
+    aspect-ratio: 1 / 1;
+    border-radius: 11px 11px 0 0;
+  }
+
+  .card-floating-badges {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+
+  .eco-carbon-badge,
+  .rating-badge {
+    font-size: 0.625rem;
+    padding: 0.15rem 0.4rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-body {
+    padding: 0.55rem 0.55rem 0.65rem;
+    gap: 0.2rem;
+  }
+
+  .card-dest-row {
+    font-size: 0.625rem;
+    gap: 0.25rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .card-dest-tag {
+    font-size: 0.625rem;
+  }
+
+  .partner-verified-tag,
+  .google-public-tag {
+    font-size: 0.58rem;
+    padding: 0.05rem 0.3rem;
+  }
+
+  .card-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 0 0 0.2rem 0;
+    min-height: 34px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-rating-row {
+    font-size: 0.6875rem;
+    gap: 0.2rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .stars-box {
+    font-size: 0.65rem;
+    gap: 1px;
+  }
+
+  .rating-number {
+    font-size: 0.6875rem;
+  }
+
+  .reviews-count {
+    font-size: 0.65rem;
+  }
+
+  /* Hide verbose text inside card on 2-col mobile to keep it breathable */
+  .card-eco-desc {
+    display: none;
+  }
+
+  /* Price row */
+  .card-price-row {
+    margin-top: auto;
+    margin-bottom: 0;
+    padding-top: 0.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .current-price {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1f2421;
+  }
+
+  .old-price {
+    font-size: 0.6875rem;
+  }
+
+  .discount-pill {
+    font-size: 0.58rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  /* Hide huge button on mobile 2-col card (whole card is already clickable) */
+  .card-action-btn {
+    display: none;
+  }
+
+  /* Pagination: compact & thumb-friendly */
+  .shopco-pagination {
+    margin-top: 1.5rem;
+    gap: 0.35rem;
+  }
+
+  .pagination-btn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  .page-number-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
 }

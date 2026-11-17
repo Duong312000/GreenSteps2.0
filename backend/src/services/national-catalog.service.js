@@ -13,7 +13,7 @@ async function listCatalog({ model, query = {}, allowedStatuses = ['published', 
   const pageSize = integer(query.pageSize ?? query.limit, 12, 1, 100);
   const sortField = ['name', 'code', 'slug', 'createdAt'].includes(query.sort) ? query.sort : 'name';
   const direction = query.order === 'desc' ? -1 : 1;
-  const rows = await model.findAll({ where: { status: allowedStatuses }, readPreference: 'secondaryPreferred' });
+  const rows = await model.findAll({ where: { status: allowedStatuses }, readPreference: 'primaryPreferred' });
   const needle = normalizeSearch(query.q ?? query.search);
   const matched = rows.filter(row => {
     if (!allowedStatuses.includes(row.status) || !filterItem(row, query)) return false;
@@ -31,7 +31,7 @@ async function listCatalog({ model, query = {}, allowedStatuses = ['published', 
 }
 
 async function getPublishedBySlug(model, slug, allowedStatuses = ['published', 'editorial']) {
-  const row = await model.findOne({ where: { slug }, readPreference: 'secondaryPreferred' });
+  const row = await model.findOne({ where: { slug }, readPreference: 'primaryPreferred' });
   return row && allowedStatuses.includes(row.status) ? row : null;
 }
 

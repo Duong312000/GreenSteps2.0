@@ -11,7 +11,7 @@ router.post('/reports/:id/review', authMiddleware, checkRole(['admin']), moderat
 
 router.get('/posts', softAuth, communityController.getPosts);
 router.get('/posts/saved', authMiddleware, communityController.getSavedItems);
-router.post('/posts', authMiddleware, communityController.addPost);
+router.post('/posts', softAuth, communityController.addPost);
 router.put('/posts/:id', authMiddleware, communityController.updatePost);
 router.delete('/posts/:id', authMiddleware, communityController.deletePost);
 router.post('/posts/:id/like', authMiddleware, communityController.likePost);

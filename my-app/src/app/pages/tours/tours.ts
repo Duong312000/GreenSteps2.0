@@ -53,6 +53,24 @@ export class ToursComponent implements OnInit {
   ];
 
   public destinations = ['Tất cả'];
+  public destSearchQuery: string = '';
+  public isDestExpanded: boolean = false;
+
+  get filteredDestinations(): string[] {
+    if (!this.destinations || this.destinations.length === 0) return [];
+    if (this.destSearchQuery.trim()) {
+      const q = this.destSearchQuery.toLowerCase().trim();
+      return this.destinations.filter(d => d.toLowerCase().includes(q));
+    }
+    if (this.isDestExpanded) {
+      return this.destinations;
+    }
+    const top = this.destinations.slice(0, 8);
+    if (this.filterDest !== 'all' && !top.includes(this.filterDest) && this.destinations.includes(this.filterDest)) {
+      return [...top, this.filterDest];
+    }
+    return top;
+  }
 
   public tourTypes = [
     { id: 'all', label: 'Tất cả loại tour' },

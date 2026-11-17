@@ -17,7 +17,17 @@ const { catalogMetadata } = require('../services/catalog-presentation.service');
 const { searchServices, removeServiceFromSearchCache } = require('../services/service-search.service');
 
 exports.searchServices = async (req, res, next) => {
-  try { res.json({ success: true, ...(await searchServices({ models: { GreenService, Destination: require('../models').Destination }, query: req.query })) }); }
+  try {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || 'anonymous';
+    res.json({
+      success: true,
+      ...(await searchServices({
+        models: { GreenService, Destination: require('../models').Destination },
+        query: req.query,
+        clientIp
+      }))
+    });
+  }
   catch (error) { next(error); }
 };
 
@@ -57,7 +67,7 @@ const SERVICES_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL
 async function fetchAllServicesFromDb() {
   const services = await GreenService.findAll({
     where: {},
-    readPreference: 'secondaryPreferred',
+    readPreference: 'primaryPreferred',
     include: [
       { model: Badge, through: { attributes: [] } },
       { model: Vender }
@@ -157,8 +167,11 @@ exports.getProviderServices = async (req, res, next) => {
     return res.status(403).json({ success: false, message: 'Access denied.' });
   }
   try {
-    const vender = await Vender.findOne({ where: { user_id: providerId } });
-    const venderId = vender ? vender.id : '';
+    const vender = await Vender.findOne({ where: { user_id: providerId }, attributes: ['id'] });
+    if (!vender) {
+      return res.json([]);
+    }
+    const venderId = vender.id;
 
     // Dashboard cards only need counts and labels. Avoid transferring large
     // current_data galleries and embedded base64 images for every service.
@@ -643,4 +656,42 @@ exports.cacheGooglePlace = async (req, res, next) => {
     code: 'PLACES_PERSISTENCE_BLOCKED',
     message: 'Chưa được phép lưu nội dung Google Maps vào danh mục nội bộ.'
   });
+};
+
+const { crawlAndPersistServices } = require('../services/google-places-crawler.service');
+
+exports.crawlMoreServices = async (req, res, next) => {
+  try {
+    const destination = req.query.dest || req.query.destination;
+    const type = req.query.type || 'stay';
+    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || 'anonymous';
+    if (!destination) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp điểm đến (dest).' });
+    }
+    const crawled = await crawlAndPersistServices({
+      destination: String(destination).trim(),
+      serviceType: type,
+      maxResults: 6,
+      clientIp
+    });
+
+    const { removeServiceFromSearchCache } = require('../services/service-search.service');
+    removeServiceFromSearchCache('__all__');
+
+    return res.json({
+      success: true,
+      message: `Đã tự động cào và lưu ${crawled.length} địa điểm thật từ Google Places vào cơ sở dữ liệu.`,
+      items: crawled,
+      count: crawled.length
+    });
+  } catch (error) {
+    if (error.statusCode === 429) {
+      return res.status(429).json({
+        success: false,
+        code: error.code,
+        message: error.message
+      });
+    }
+    next(error);
+  }
 };

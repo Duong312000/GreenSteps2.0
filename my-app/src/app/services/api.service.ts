@@ -702,7 +702,7 @@ export class ApiService {
       const headers: any = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
       const res = await firstValueFrom(this.http.post<any>(this.BACKEND_URL + '/community/posts', postData, { headers, withCredentials: true }));
-      return { success: true, message: res?.message };
+      return { success: true, message: res?.message || 'Đã chia sẻ bài viết lên cộng đồng thành công!' };
     } catch (e: any) {
       console.error('addCommunityPost error:', e);
       return { success: false, message: e?.error?.message || e?.message || 'Không thể chia sẻ bài viết lên cộng đồng.' };
@@ -1408,6 +1408,57 @@ export class ApiService {
     try {
       return await firstValueFrom(this.http.post<any>(`${this.BACKEND_URL}/community/comments/${commentId}/helpful`, {}));
     } catch { return { success: false, helpful: false, helpfulCount: 0 }; }
+  }
+
+  public compressImageFile(file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.82): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          let compressed = canvas.toDataURL('image/webp', quality);
+          if (!compressed.startsWith('data:image/webp')) {
+            compressed = canvas.toDataURL('image/jpeg', quality);
+          }
+          resolve(compressed);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   public async uploadImageBase64(base64Data: string, type?: string): Promise<{ success: boolean; url: string }> {

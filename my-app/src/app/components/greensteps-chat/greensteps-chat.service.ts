@@ -279,7 +279,6 @@ export class GreenStepsChatService {
       catalogDestination: catalogDestinationForMessage(message),
       ...(requestIntent ? { requestIntent } : {})
     };
-    while (JSON.stringify(body.history).length > 60000) body.history.shift();
     if (manageSendingState) this.isSending.set(true);
     this.lastMessage.set(message);
     this.connectionError.set(null);

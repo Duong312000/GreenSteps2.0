@@ -104,6 +104,25 @@ export class CommunityComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // 0ms SWR instant feed rendering
+    try {
+      const cachedFeed = localStorage.getItem('greensteps_swr_community_feed');
+      if (cachedFeed) {
+        const parsed = JSON.parse(cachedFeed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.posts = parsed;
+          this.loading = false;
+        }
+      }
+      const cachedSide = localStorage.getItem('greensteps_swr_community_side');
+      if (cachedSide) {
+        const sideData = JSON.parse(cachedSide);
+        if (sideData.challenge) this.challenge = sideData.challenge;
+        if (sideData.leaderboard) this.leaderboard = sideData.leaderboard;
+        if (sideData.trendingHashtags) this.trendingHashtags = sideData.trendingHashtags;
+      }
+    } catch {}
+
     this.auth.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
       const nextAccountId = user?.id || user?._id || '';
       const accountChanged = this.hasFeedAccountState && nextAccountId !== this.feedAccountId;
@@ -112,7 +131,6 @@ export class CommunityComponent implements OnInit {
       this.feedAccountId = nextAccountId;
       if (accountChanged) {
         ++this.feedRequestSequence;
-        this.posts = [];
         this.page = 0;
         this.hasMore = true;
         this.loadError = false;
@@ -132,13 +150,12 @@ export class CommunityComponent implements OnInit {
 
   async refreshPage(): Promise<void> {
     const sequence = ++this.feedRequestSequence;
-    this.loading = true;
+    if (!this.posts.length) this.loading = true;
     this.loadingMore = false;
     this.loadError = false;
     this.page = 0;
     this.hasMore = true;
     this.api.clearCache('community_posts_');
-    this.posts = [];
     const type = this.activeTab === 'all' ? 'all' : this.activeTab;
     try {
       const posts = await this.api.getCommunityPosts(0, 10, type, this.query, true);
@@ -147,6 +164,9 @@ export class CommunityComponent implements OnInit {
       this.hasMore = posts.length === 10;
       this.loading = false;
       this.cdr.markForCheck();
+      try {
+        localStorage.setItem('greensteps_swr_community_feed', JSON.stringify(posts.slice(0, 10)));
+      } catch {}
 
       const [challenge, ranking, tags] = await Promise.allSettled([
         this.api.getCommunityChallenge(), this.api.getCommunityLeaderboard(3), this.api.getTrendingCommunityHashtags()
@@ -155,6 +175,13 @@ export class CommunityComponent implements OnInit {
       this.challenge = challenge.status === 'fulfilled' ? challenge.value : null;
       this.leaderboard = ranking.status === 'fulfilled' ? ranking.value : [];
       this.trendingHashtags = tags.status === 'fulfilled' ? tags.value : [];
+      try {
+        localStorage.setItem('greensteps_swr_community_side', JSON.stringify({
+          challenge: this.challenge,
+          leaderboard: this.leaderboard,
+          trendingHashtags: this.trendingHashtags
+        }));
+      } catch {}
     } catch {
       if (sequence !== this.feedRequestSequence) return;
       this.loadError = true;
@@ -275,7 +302,7 @@ export class CommunityComponent implements OnInit {
     this.errorMessage = '';
     try {
       const urls = await Promise.all(files.map(async file => {
-        const data = await this.readFile(file);
+        const data = await this.api.compressImageFile(file);
         const result = await this.api.uploadImageBase64(data, type);
         if (!result.success || !result.url) throw new Error('Tải tệp lên thất bại.');
         return result.url;
@@ -403,6 +430,12 @@ export class CommunityComponent implements OnInit {
     const result = await this.api.cloneItinerary(post.itinerary_id, this.userId);
     if (result?.success) window.location.assign(`/schedule/${encodeURIComponent(result.newItineraryId)}`);
     else this.errorMessage = result?.message || 'Không thể lưu lịch trình.';
+  }
+
+  async joinCollaborativeItinerary(post: CommunityPost, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (!this.requireLogin() || !post.itinerary_id) return;
+    window.location.assign(`/schedule/${encodeURIComponent(post.itinerary_id)}?join=1&collab=1`);
   }
 
   hashtagClick(tag: string): void {

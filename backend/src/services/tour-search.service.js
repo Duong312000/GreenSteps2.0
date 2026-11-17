@@ -6,7 +6,7 @@ const TOUR_CATALOG_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL with SWR
 async function loadAllToursForSearch({ Schedule, ScheduleSample, ScheduleActivity, BadgeSchedule, formatTourResponse }) {
   const [samples, editorialSchedules] = await Promise.all([
     ScheduleSample.findAll({
-      readPreference: 'secondaryPreferred',
+      readPreference: 'primaryPreferred',
       include: [
         {
           model: Schedule,
@@ -19,7 +19,7 @@ async function loadAllToursForSearch({ Schedule, ScheduleSample, ScheduleActivit
     }),
     Schedule.findAll({
       where: { catalog_status: { [Op.in]: ['demo', 'editorial'] } },
-      readPreference: 'secondaryPreferred',
+      readPreference: 'primaryPreferred',
       include: [{ model: ScheduleActivity }]
     }).catch(() => [])
   ]);
