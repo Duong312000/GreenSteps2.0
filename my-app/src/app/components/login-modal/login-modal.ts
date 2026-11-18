@@ -40,6 +40,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly passwordRequirements = PASSWORD_MESSAGE;
   public registerPassword = '';
   public registerConfirmPassword = '';
+  public acceptedLegalTerms = false;
   public showRegisterConfirm = false;
 
   public identifier = '';
@@ -97,6 +98,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public setMode(mode: AuthMode) {
     this.mode = mode;
+    this.acceptedLegalTerms = false;
     this.setStep('login');
   }
 
@@ -164,6 +166,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!PASSWORD_REGEX.test(password)) return this.setError(PASSWORD_MESSAGE);
     if (!confirmPassword) return this.setError('Vui lòng xác nhận mật khẩu.');
     if (password !== confirmPassword) return this.setError('Mật khẩu xác nhận không khớp.');
+    if (!this.acceptedLegalTerms) return this.setError('Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.');
 
     this.isSubmitting = true;
     const res = await this.authService.register({ username, email, password });
@@ -183,6 +186,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loginUsername = email;
       this.registerPassword = '';
       this.registerConfirmPassword = '';
+      this.acceptedLegalTerms = false;
       this.successMessage = res.message || 'Đăng ký thành công. Vui lòng đăng nhập.';
       return;
     }

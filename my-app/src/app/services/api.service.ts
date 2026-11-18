@@ -207,6 +207,10 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
+  subscribeNewsletter(email: string): Promise<{ success: boolean; message?: string }> {
+    return firstValueFrom(this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/newsletter`, { email }, { withCredentials: true }));
+  }
+
 
   private mapTourToFrontend(tour: any): Tour {
     const v3PhotoData = DEMO_TOUR_PHOTO_DATA[tour.id];

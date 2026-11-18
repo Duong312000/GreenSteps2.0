@@ -45,18 +45,18 @@
                     <li><a routerLink="/cancellation-policy" class="transition-colors hover:text-white">Chính sách hủy & hoàn tiền</a></li>
                     <li><a routerLink="/help-center" class="transition-colors hover:text-white">Trung tâm hỗ trợ</a></li>
                     <li><a routerLink="/contact" class="transition-colors hover:text-white">Liên hệ hỗ trợ</a></li>
-                    <li><a routerLink="/about" class="transition-colors hover:text-white">Điều khoản sử dụng</a></li>
-                    <li><a routerLink="/sustainability" class="transition-colors hover:text-white">Chính sách bảo mật</a></li>
+                    <li><a routerLink="/terms-of-use" class="transition-colors hover:text-white">Điều khoản sử dụng</a></li>
+                    <li><a routerLink="/privacy-policy" class="transition-colors hover:text-white">Chính sách bảo mật</a></li>
                 </ul>
             </div>
 
             <div class="gs-footer-col col-span-1">
                 <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Điểm đến nổi bật</h3>
                 <ul class="flex flex-col gap-2 text-xs text-white/70 list-none p-0 m-0">
-                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Đà Lạt</a></li>
-                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Đà Nẵng - Hội An</a></li>
-                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Phú Yên</a></li>
-                    <li><a routerLink="/tours" class="transition-colors hover:text-white">Tất cả điểm đến</a></li>
+                    <li><a routerLink="/services" [queryParams]="{ type: 'all', dest: 'Đà Lạt' }" class="transition-colors hover:text-white">Đà Lạt</a></li>
+                    <li><a routerLink="/services" [queryParams]="{ type: 'all', dest: 'Đà Nẵng – Hội An' }" class="transition-colors hover:text-white">Đà Nẵng - Hội An</a></li>
+                    <li><a routerLink="/services" [queryParams]="{ type: 'all', dest: 'Phú Yên' }" class="transition-colors hover:text-white">Phú Yên</a></li>
+                    <li><a routerLink="/home" fragment="diem-den-noi-bat" class="transition-colors hover:text-white">Tất cả điểm đến</a></li>
                 </ul>
             </div>
 
@@ -64,10 +64,12 @@
             <div class="gs-footer-newsletter col-span-1 sm:col-span-2 lg:col-span-1">
                 <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-white/90">Bản tin</h3>
                 <p class="max-w-xs text-xs leading-5 text-white/70">Nhận cảm hứng du lịch xanh và các gói ưu đãi độc quyền.</p>
-                <form class="gs-footer-form mt-4 flex rounded-lg border border-white/15 bg-white/5 p-1 transition-focus focus-within:border-white/30" (submit)="$event.preventDefault()">
-                    <input type="email" placeholder="Nhập email của bạn" class="min-w-0 flex-1 bg-transparent px-3 text-xs text-white outline-none placeholder:text-white/45">
-                    <button type="submit" class="grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white transition-colors hover:bg-emerald-500" title="Gửi" aria-label="Gửi"><i class="bi bi-arrow-right"></i></button>
+                <form class="gs-footer-form mt-4 flex rounded-lg border border-white/15 bg-white/5 p-1 transition-focus focus-within:border-white/30" (submit)="subscribeNewsletter($event)">
+                    <input type="email" name="newsletterEmail" [(ngModel)]="newsletterEmail" required autocomplete="email" placeholder="Nhập email của bạn" class="min-w-0 flex-1 bg-transparent px-3 text-xs text-white outline-none placeholder:text-white/45" [disabled]="newsletterSubmitting" aria-label="Email nhận bản tin">
+                    <button type="submit" class="grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white transition-colors hover:bg-emerald-500 disabled:opacity-60" title="Đăng ký nhận bản tin" aria-label="Đăng ký nhận bản tin" [disabled]="newsletterSubmitting"><i class="bi" [ngClass]="newsletterSubmitting ? 'bi-arrow-repeat' : 'bi-arrow-right'"></i></button>
                 </form>
+                <p class="mt-2 text-[10px] leading-4 text-white/55">Khi đăng ký, bạn đồng ý lưu email để nhận bản tin. Có thể liên hệ GreenSteps để yêu cầu ngừng nhận.</p>
+                <p class="mt-2 text-xs" role="status" aria-live="polite" [class.text-red-200]="newsletterError" [class.text-emerald-200]="!newsletterError" *ngIf="newsletterMessage">{{ newsletterMessage }}</p>
             </div>
         </div>
 
@@ -75,9 +77,9 @@
         <div class="gs-footer-bottom mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs text-white/55 sm:flex-row">
             <div>&copy; 2026 GreenSteps. Đã đăng ký bản quyền.</div>
             <div class="flex items-center gap-4 text-xs text-white/50">
-                <a routerLink="/about" class="hover:text-white/80">Điều khoản</a>
+                <a routerLink="/terms-of-use" class="hover:text-white/80">Điều khoản</a>
                 <span>•</span>
-                <a routerLink="/sustainability" class="hover:text-white/80">Bảo mật</a>
+                <a routerLink="/privacy-policy" class="hover:text-white/80">Bảo mật</a>
                 <span>•</span>
                 <a routerLink="/contact" class="hover:text-white/80">Hỗ trợ</a>
             </div>

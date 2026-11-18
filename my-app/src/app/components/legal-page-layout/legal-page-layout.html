@@ -1,13 +1,13 @@
 <main class="legal-page" aria-labelledby="legal-title">
   <nav class="legal-breadcrumb" aria-label="Điều hướng">
     <a routerLink="/home">Trang chủ</a><span aria-hidden="true">/</span>
-    <a routerLink="/become-a-partner">Dành cho đối tác</a><span aria-hidden="true">/</span>
+    <a [routerLink]="audienceRoute">{{ audience }}</a><span aria-hidden="true">/</span>
     <span aria-current="page">{{ title }}</span>
   </nav>
 
   <header class="legal-header">
     <div>
-      <p class="legal-eyebrow">Thông tin dành cho đối tác</p>
+      <p class="legal-eyebrow">Thông tin {{ audience.toLowerCase() }}</p>
       <h1 id="legal-title">{{ title }}</h1>
       <p class="legal-description">{{ description }}</p>
       <p class="legal-updated">Cập nhật lần cuối: <time>{{ updatedAt }}</time></p>

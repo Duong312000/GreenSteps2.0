@@ -103,6 +103,7 @@
             </div>
           </div>
           <p id="register-password-help" class="password-help register-password-help">8–72 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt; không dấu, không khoảng trắng.</p>
+          <label class="auth-terms"><input type="checkbox" name="acceptedLegalTerms" [(ngModel)]="acceptedLegalTerms" required><span>Tôi đồng ý với <a routerLink="/terms-of-use" (click)="requestClose()">Điều khoản sử dụng</a> và <a routerLink="/privacy-policy" (click)="requestClose()">Chính sách bảo mật</a> của GreenSteps.</span></label>
           <p class="auth-alert error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
           <button type="submit" class="login-button" [disabled]="isSubmitting">
             <span>{{ isSubmitting ? 'Đang đăng ký...' : 'Đăng ký' }}</span>

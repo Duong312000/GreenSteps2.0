@@ -14,10 +14,11 @@ import { PartnerPromotionsComponent } from './partner-promotions/partner-promoti
 import { PartnerRegisterComponent } from './partner-register/partner-register';
 import { PartnerServicesComponent } from './partner-services/partner-services';
 import { LoadingIndicator } from '../../components/loading-indicator/loading-indicator';
+import { PublicLegalComponent } from '../public-legal/public-legal';
 
 @NgModule({
   declarations: [PartnerAdsComponent, PartnerBookingsComponent, PartnerDashboardComponent, PartnerLegalComponent,
-    PartnerPromotionsComponent, PartnerRegisterComponent, PartnerServicesComponent, LegalPageLayoutComponent],
+    PartnerPromotionsComponent, PartnerRegisterComponent, PartnerServicesComponent, LegalPageLayoutComponent, PublicLegalComponent],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, PartnerIconComponent, PartnerLayoutComponent, LoadingIndicator,
     RouterModule.forChild([
       { path: '', component: PartnerLayoutComponent, children: [
@@ -30,7 +31,9 @@ import { LoadingIndicator } from '../../components/loading-indicator/loading-ind
       { path: 'partner-register', component: PartnerRegisterComponent },
       { path: 'become-a-partner', component: PartnerRegisterComponent },
       { path: 'provider-terms', component: PartnerLegalComponent, data: { partnerPolicy: 'terms' } },
-      { path: 'payment-policy', component: PartnerLegalComponent, data: { partnerPolicy: 'payment' } }
+      { path: 'payment-policy', component: PartnerLegalComponent, data: { partnerPolicy: 'payment' } },
+      { path: 'terms-of-use', component: PublicLegalComponent, data: { publicPolicy: 'terms' } },
+      { path: 'privacy-policy', component: PublicLegalComponent, data: { publicPolicy: 'privacy' } }
     ])]
 })
 export class PartnerModule {}

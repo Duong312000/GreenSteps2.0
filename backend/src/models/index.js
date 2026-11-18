@@ -947,6 +947,13 @@ CommentPost.addHook('afterCreate', async (comment, options) => {
   }
 });
 
+const NewsletterSubscription = store.define('NewsletterSubscription', {
+  id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
+  email: { type: FieldTypes.STRING, allowNull: false, unique: true },
+  consented_at: { type: FieldTypes.DATE, allowNull: false, defaultValue: FieldTypes.NOW },
+  status: { type: FieldTypes.ENUM('subscribed', 'unsubscribed'), allowNull: false, defaultValue: 'subscribed' }
+}, { tableName: 'newsletter_subscriptions', underscored: true, timestamps: true });
+
 CommentPost.addHook('afterDestroy', async (comment, options) => {
   if (comment.tour_id) {
     await updateTargetRating(comment.tour_id, 'tour', comment.store, options);
@@ -1013,6 +1020,7 @@ module.exports = {
   Voucher,
   SavedPromotion,
   FAQ,
+  NewsletterSubscription,
   Notification,
   ChangeRequest,
   OperationsAssignment

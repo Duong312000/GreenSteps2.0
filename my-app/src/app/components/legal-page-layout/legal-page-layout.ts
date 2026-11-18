@@ -23,6 +23,8 @@ export interface LegalSection {
 })
 export class LegalPageLayoutComponent implements AfterViewInit, OnDestroy {
   @Input() title = '';
+  @Input() audience = 'Dành cho đối tác';
+  @Input() audienceRoute = '/become-a-partner';
   @Input() description = '';
   @Input() updatedAt = '';
   @Input() sections: LegalSection[] = [];
