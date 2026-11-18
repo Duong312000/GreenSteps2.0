@@ -25,12 +25,13 @@ app.use(createCookieCsrfProtection(allowedOrigins));
 app.use(compressPublicCatalogJson);
 app.use(requestPerformanceMiddleware());
 
-app.get(['/api', '/api/', '/api/v1', '/api/v1/'], (req, res) => {
+app.get(['/', '/api', '/api/', '/api/v1', '/api/v1/'], (req, res) => {
   const apiRoot = req.path.startsWith('/api/v1') ? '/api/v1' : '/api';
   res.json({
     success: true,
-    service: 'GreenSteps API',
-    status: 'running',
+    service: 'GreenSteps Backend API Server',
+    status: 'online',
+    version: '2.0.0',
     health: `${apiRoot}/health`,
     endpoints: {
       tours: `${apiRoot}/tours`,
