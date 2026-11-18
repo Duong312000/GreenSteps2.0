@@ -47,15 +47,16 @@ function formatActivitiesIntoDays(schedule, activities) {
       data[dIdx].push({
         id: act.id,
         time: act.time,
-        name: act.activity_name || '[Địa điểm tự do]',
-        cost: act.activity_cost,
-        carbon: act.carbon,
-        icon: act.icon,
-        type: act.type,
-        is_shared: act.is_shared,
+        name: act.activity_name || act.name || '[Địa điểm tự do]',
+        cost: act.cost !== undefined ? Number(act.cost) : (act.activity_cost !== undefined ? Number(act.activity_cost) : 0),
+        carbon: act.carbon !== undefined ? Number(act.carbon) : 0.8,
+        icon: act.icon || (act.type === 'lodging' ? 'bi-house-door-fill' : (act.type === 'dining' ? 'bi-cup-hot-fill' : (act.type === 'transport' ? 'bi-scooter' : 'bi-tree-fill'))),
+        type: act.type || 'attraction',
+        is_shared: act.is_shared !== undefined ? act.is_shared : false,
         description: act.editorial_note || act.description || '',
-        lat: act.coordinates ? parseFloat(act.coordinates.split(',')[0]) : null,
-        lng: act.coordinates ? parseFloat(act.coordinates.split(',')[1]) : null
+        address: act.address || '',
+        lat: act.lat !== undefined ? Number(act.lat) : (act.coordinates ? parseFloat(act.coordinates.split(',')[0]) : null),
+        lng: act.lng !== undefined ? Number(act.lng) : (act.coordinates ? parseFloat(act.coordinates.split(',')[1]) : null)
       });
     }
   });
