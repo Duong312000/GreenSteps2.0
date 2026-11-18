@@ -239,7 +239,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public inviteEmailChipList: string[] = [];
 
   // Resizer Panel properties
-  public sidebarWidth: number = 285;
+  public sidebarWidth: number = 250;
   public mapWidthPct: number = 38;
   public isResizing: boolean = false;
   private resizeType: 'left' | 'right' = 'left';
@@ -7545,7 +7545,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       if (!this.isResizing) return;
       if (this.resizeType === 'left') {
         const newWidth = moveEvent.clientX;
-        if (newWidth >= 180 && newWidth <= 450) {
+        if (newWidth >= 160 && newWidth <= 420) {
           this.sidebarWidth = newWidth;
           this.cdr.detectChanges();
         }

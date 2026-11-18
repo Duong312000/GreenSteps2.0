@@ -1,6 +1,10 @@
 <aside class="food-schedule-handoff" *ngIf="pendingFood as food" role="region" aria-label="Thêm quán vào lịch trình">
-    <div><strong>{{ food.name }}</strong><p>{{ activeItinerary ? ('Thêm quán vào ngày ' + (activeDayIdx + 1) + ' đang chọn') : 'Mở hoặc tạo lịch trình, sau đó chọn ngày để thêm quán.' }}</p></div>
-    <button *ngIf="activeItinerary" type="button" [disabled]="addingFood || isItineraryLocked()" (click)="addPendingFood()">{{ addingFood ? 'Đang thêm…' : 'Thêm vào ngày này' }}</button>
+    <div><strong>{{ food.name }}</strong>
+        <p>{{ activeItinerary ? ('Thêm quán vào ngày ' + (activeDayIdx + 1) + ' đang chọn') : 'Mở hoặc tạo lịch trình,
+            sau đó chọn ngày để thêm quán.' }}</p>
+    </div>
+    <button *ngIf="activeItinerary" type="button" [disabled]="addingFood || isItineraryLocked()"
+        (click)="addPendingFood()">{{ addingFood ? 'Đang thêm…' : 'Thêm vào ngày này' }}</button>
     <button type="button" [disabled]="addingFood" (click)="dismissPendingFood()" aria-label="Bỏ thêm quán">×</button>
 </aside>
 
@@ -13,7 +17,8 @@
             <div class="skel-bone skel-card mb-4" style="height: 48px; border-radius: 12px;"></div>
             <div class="skel-bone skel-line mb-3" style="width: 60%; height: 14px;"></div>
             <div class="space-y-3 mt-4">
-                <div class="skel-bone skel-card" style="height: 52px; border-radius: 10px;" *ngFor="let i of [1,2,3,4]"></div>
+                <div class="skel-bone skel-card" style="height: 52px; border-radius: 10px;" *ngFor="let i of [1,2,3,4]">
+                </div>
             </div>
             <div class="mt-auto pt-6">
                 <div class="skel-bone skel-card" style="height: 90px; border-radius: 12px;"></div>
@@ -25,8 +30,12 @@
             <!-- Cover image placeholder -->
             <div class="skel-bone skel-cover mb-6">
                 <div class="skel-cover-shimmer-content">
-                    <div class="skel-bone" style="width: 240px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.25);"></div>
-                    <div class="skel-bone mt-2" style="width: 140px; height: 16px; border-radius: 4px; background: rgba(255,255,255,0.2);"></div>
+                    <div class="skel-bone"
+                        style="width: 240px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.25);">
+                    </div>
+                    <div class="skel-bone mt-2"
+                        style="width: 140px; height: 16px; border-radius: 4px; background: rgba(255,255,255,0.2);">
+                    </div>
                 </div>
             </div>
 
@@ -40,7 +49,8 @@
             <div class="space-y-4">
                 <div class="skel-timeline-item" *ngFor="let item of [1,2,3]">
                     <div class="skel-bone" style="width: 65px; height: 32px; border-radius: 6px; flex-shrink: 0;"></div>
-                    <div class="skel-bone" style="width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0;"></div>
+                    <div class="skel-bone" style="width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0;">
+                    </div>
                     <div class="flex-grow space-y-2">
                         <div class="skel-bone" style="width: 50%; height: 18px; border-radius: 4px;"></div>
                         <div class="skel-bone" style="width: 30%; height: 13px; border-radius: 4px;"></div>
@@ -69,24 +79,24 @@
 
     <!-- 1. LEFT SIDEBAR: Professional Days & Navigation Panel -->
     <aside class="sidebar-panel" [style.width.px]="sidebarWidth"
-        style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 12px 14px 10px 14px; overflow: visible !important;">
+        style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 8px 8px 6px 8px; overflow: visible !important;">
         <!-- Fixed Header & AI Button Area (Overflow Visible) -->
         <div
-            style="display: flex; flex-direction: column; margin-bottom: 10px; overflow: visible !important; position: relative; z-index: 20;">
+            style="display: flex; flex-direction: column; margin-bottom: 6px; overflow: visible !important; position: relative; z-index: 20;">
             <div class="sidebar-header"
-                style="border: none; padding-bottom: 6px; margin-bottom: 8px; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; width: 100%;">
+                style="border: none; padding-bottom: 4px; margin-bottom: 6px; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; width: 100%;">
                 <button type="button" (click)="goBackToList()"
-                    style="background: none; border: none; font-size: 12px; font-weight: 700; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 2px 0; outline: none; box-shadow: none;">
+                    style="background: none; border: none; font-size: 8.5px; font-weight: 700; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 3px; padding: 2px 0; outline: none; box-shadow: none;">
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </button>
                 <span *ngIf="isAutoSaving" class="text-xs text-emerald-600 font-bold flex items-center gap-1"
-                    style="font-size: 10px;">
+                    style="font-size: 8px;">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                     Đang lưu...
                 </span>
                 <span *ngIf="!isAutoSaving && !isItineraryLocked()"
                     class="text-[10px] text-gray-500 font-medium bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                    style="font-size: 10px; padding: 2px 6px;"
+                    style="font-size: 8px; padding: 1px 5px;"
                     [title]="currentUser ? ('Đang tự động đồng bộ vào tài khoản: ' + (currentUser.fullname || currentUser.username || currentUser.id)) : 'Đang tự động lưu bản nháp trên trình duyệt này (Khách vãng lai)'">
                     <i class="bi bi-check2"></i> {{ currentUser ? 'Lưu tài khoản' : 'Lưu nháp' }}
                 </span>
@@ -99,78 +109,74 @@
 
         <!-- Scrollable content -->
         <div
-            style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex-grow: 1; min-height: 0; padding-right: 2px;">
+            style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex-grow: 1; min-height: 0; padding-right: 2px;">
             <!-- Sidebar Sections -->
             <div class="sidebar-menu-list" id="sidebarDaysList"
-                style="display: flex; flex-direction: column; gap: 10px;">
+                style="display: flex; flex-direction: column; gap: 6px;">
 
                 <!-- Section 2: Overview Group -->
-                <div class="menu-group" style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="menu-group" style="display: flex; flex-direction: column; gap: 3px;">
                     <span
-                        style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; padding-left: 6px;">Tổng quan</span>
+                        style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px; padding-left: 4px;">Tổng quan</span>
                     <div class="sidebar-menu-item"
                         (click)="openItineraryNotesModal()">
                         <i class="bi bi-file-earmark-text"></i> Ghi chú hành trình
                     </div>
-                    <div class="sidebar-menu-item"
-                        (click)="scrollToSuggestions()">
+                    <div class="sidebar-menu-item" (click)="scrollToSuggestions()">
                         <i class="bi bi-geo-alt"></i> Địa điểm tham quan
                     </div>
                 </div>
 
                 <!-- Section 3: Itinerary Group -->
-                <div class="menu-group" style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="menu-group" style="display: flex; flex-direction: column; gap: 3px;">
                     <span
-                        style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; padding-left: 6px;">Lịch trình ngày</span>
-                    <div *ngFor="let day of activeItinerary.days; let idx = index" class="sidebar-menu-item"
-                        [class.active]="activeDayIdx === idx" 
-                        [class.day-drop-target]="crossDayDropTargetIdx === idx"
-                        (click)="switchActiveDay(idx)"
-                        (dragover)="onDragOverDay($event, idx)"
-                        (dragleave)="onDragLeaveDay($event, idx)"
-                        (drop)="onDropOnDay($event, idx)"
-                        style="cursor: pointer; display: flex; flex-direction: column; gap: 3px; position: relative;">
+                        style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px; padding-left: 4px;">Lịch trình ngày</span>
+                    <div *ngFor="let day of activeItinerary.days; let idx = index" class="sidebar-menu-item sidebar-day-tab"
+                        [class.active]="activeDayIdx === idx" [class.day-drop-target]="crossDayDropTargetIdx === idx"
+                        (click)="switchActiveDay(idx)" (dragover)="onDragOverDay($event, idx)"
+                        (dragleave)="onDragLeaveDay($event, idx)" (drop)="onDropOnDay($event, idx)"
+                        style="cursor: pointer; display: flex; flex-direction: column; gap: 2px; position: relative;">
                         <div
-                            style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <i class="bi bi-calendar-event"></i>
-                                <span>{{ day.title }}</span>
+                            style="display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <i class="bi bi-calendar-event" style="font-size: 8px;"></i>
+                                <span class="day-tab-title" style="font-size: 8px; font-weight: 700;">{{ day.title }}</span>
                             </div>
                             <button *ngIf="!isItineraryLocked() && activeItinerary.days.length > 1"
                                 (click)="deleteDay(idx, $event)" class="delete-day-btn"
-                                style="background: none; border: none; padding: 2px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s;"
+                                style="background: none; border: none; padding: 1px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s;"
                                 title="Xóa ngày này">
-                                <i class="bi bi-trash-fill" style="font-size: 11px;"></i>
+                                <i class="bi bi-trash-fill" style="font-size: 8.5px;"></i>
                             </button>
                         </div>
                         <span class="sidebar-menu-item-preview"
-                            style="font-size: 11px; color: var(--text-muted); font-weight: 400; padding-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px;">
+                            style="font-size: 7.5px; color: var(--text-muted); font-weight: 400; padding-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px;">
                             {{ getDayPreviewText(day) }}
                         </span>
                     </div>
                 </div>
 
                 <button *ngIf="!isItineraryLocked()" class="btn-add-day" (click)="addDayToItinerary()"
-                    style="margin-top: 4px; background-color: var(--bg-secondary); border: 1px dashed var(--border-color); color: var(--text-primary); font-weight: 700; width: 100%; padding: 8px; font-size: 11.5px; border-radius: var(--border-radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i
+                    style="margin-top: 3px; background-color: var(--bg-secondary); border: 1px dashed var(--border-color); color: var(--text-primary); font-weight: 700; width: 100%; padding: 4px; font-size: 8px; border-radius: var(--border-radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i
                         class="bi bi-plus-lg"></i> Thêm ngày mới</button>
             </div>
         </div>
 
         <!-- Section 3.5: Guest Count Selector -->
         <div
-            style="padding: 6px 0px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-shrink: 0;">
+            style="padding: 4px 0px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-shrink: 0;">
             <span
-                style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                style="font-size: 8.5px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
                 <i class="bi bi-people-fill" style="color: var(--primary-green);"></i> Số người:
             </span>
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 3px;">
                 <button type="button" (click)="decrementGuests()"
-                    style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-primary); transition: all 0.2s; font-size: 12px;">-</button>
+                    style="width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-primary); transition: all 0.2s; font-size: 9px;">-</button>
                 <input type="number" [(ngModel)]="guestCount" (ngModelChange)="onGuestCountChange()"
-                    style="width: 36px; height: 24px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-primary); background: var(--bg-primary);"
+                    style="width: 28px; height: 20px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center; font-size: 9px; font-weight: 700; color: var(--text-primary); background: var(--bg-primary);"
                     min="1">
                 <button type="button" (click)="incrementGuests()"
-                    style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-primary); transition: all 0.2s; font-size: 12px;">+</button>
+                    style="width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-primary); transition: all 0.2s; font-size: 9px;">+</button>
             </div>
         </div>
 
@@ -196,16 +202,20 @@
                     <span class="cost-total-label">Tổng chi phí:</span>
                     <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" *ngIf="itineraryDepositAmount > 0" style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
+                <div class="cost-row" *ngIf="itineraryDepositAmount > 0"
+                    style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
                     <span class="cost-label" style="font-weight: 700; color: #134e4a;">Cọc 30% đối tác:</span>
-                    <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                    <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount |
+                        number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" *ngIf="itineraryDepositAmount === 0" style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
+                <div class="cost-row" *ngIf="itineraryDepositAmount === 0"
+                    style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
                     <span class="cost-label">Cọc giữ chỗ:</span>
                     <span class="cost-val" style="font-weight: 700; color: #047857;">0đ (Tự túc)</span>
                 </div>
                 <div class="cost-row">
-                    <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại tại điểm:' : 'Thanh toán tại điểm:' }}</span>
+                    <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại tại điểm:' : 'Thanh toán tại
+                        điểm:' }}</span>
                     <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
             </div>
@@ -229,10 +239,12 @@
             </div>
             <button *ngIf="!isItineraryLocked()" class="btn-checkout-pay-modern" (click)="triggerCheckout()">
                 <i class="bi" [ngClass]="itineraryDepositAmount > 0 ? 'bi-shield-check' : 'bi-bookmark-check'"></i>
-                <span>{{ itineraryDepositAmount > 0 ? ('Đặt cọc giữ chỗ (' + (itineraryDepositAmount | number:'1.0-0':'vi-VN') + 'đ)') : 'Lưu hành trình chuyến đi' }}</span>
+                <span>{{ itineraryDepositAmount > 0 ? ('Đặt cọc giữ chỗ (' + (itineraryDepositAmount |
+                    number:'1.0-0':'vi-VN') + 'đ)') : 'Lưu hành trình chuyến đi' }}</span>
             </button>
             <div *ngIf="currentUser" class="wallet-badge-pill" (click)="handleWalletBadgeClick($event)">
-                <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Chưa kích hoạt' }}
+                <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN')
+                + 'đ') : 'Chưa kích hoạt' }}
             </div>
         </div>
     </aside>
@@ -254,8 +266,7 @@
                 <!-- If message contains addable recommendation card -->
                 <div class="ai-rec-card" *ngIf="msg.rec">
                     <span class="ai-rec-title">
-                        <i class="bi"
-                            [ngClass]="msg.rec.type === 'dining' ? 'bi-cup-hot-fill' : 'bi-tree-fill'"></i>
+                        <i class="bi" [ngClass]="msg.rec.type === 'dining' ? 'bi-cup-hot-fill' : 'bi-tree-fill'"></i>
                         {{ msg.rec.name }}
                     </span>
                     <span style="font-size:11px; color:var(--text-secondary); display:block; margin: 4px 0;">
@@ -286,24 +297,27 @@
 
         <!-- Quick Suggestion Chips -->
         <div class="ai-chips-container" *ngIf="!isItineraryLocked()">
-            <button type="button" class="ai-chip" (click)="sendAiMessage('Chính sách hoàn tiền như thế nào?')">⚡ Hoàn hủy</button>
-            <button type="button" class="ai-chip" (click)="sendAiMessage('Phương thức thanh toán VietQR?')">💳 Thanh toán</button>
-            <button type="button" class="ai-chip" (click)="sendAiMessage('Khách vãng lai lưu lịch trình thế nào?')">🛡️ Khách vãng lai</button>
-            <button type="button" class="ai-chip" (click)="sendAiMessage('Gợi ý cho tôi quán cafe đẹp yên tĩnh ở đây')">🌿 Gợi ý quán cafe</button>
+            <button type="button" class="ai-chip" (click)="sendAiMessage('Chính sách hoàn tiền như thế nào?')">⚡ Hoàn
+                hủy</button>
+            <button type="button" class="ai-chip" (click)="sendAiMessage('Phương thức thanh toán VietQR?')">💳 Thanh
+                toán</button>
+            <button type="button" class="ai-chip" (click)="sendAiMessage('Khách vãng lai lưu lịch trình thế nào?')">🛡️
+                Khách vãng lai</button>
+            <button type="button" class="ai-chip"
+                (click)="sendAiMessage('Gợi ý cho tôi quán cafe đẹp yên tĩnh ở đây')">🌿 Gợi ý quán cafe</button>
         </div>
 
         <div class="chat-input-row" *ngIf="!isItineraryLocked()">
             <input type="text" [(ngModel)]="aiInputText" (keyup.enter)="sendAiMessage()"
                 placeholder="Nhập câu hỏi hoặc yêu cầu tư vấn...">
-            <button type="button" (click)="sendAiMessage()" [disabled]="isAiThinking"><i class="bi bi-send-fill"></i></button>
+            <button type="button" (click)="sendAiMessage()" [disabled]="isAiThinking"><i
+                    class="bi bi-send-fill"></i></button>
         </div>
     </div>
 
     <!-- 2. CENTER PANEL: Cover, Timeline activities & AI Search (Responsive Mobile Bottom Sheet) -->
-    <section class="editor-main-panel"
-             [class.mobile-sheet-peek]="mobileSheetState === 'peek'"
-             [class.mobile-sheet-half]="mobileSheetState === 'half'"
-             [class.mobile-sheet-full]="mobileSheetState === 'full'">
+    <section class="editor-main-panel" [class.mobile-sheet-peek]="mobileSheetState === 'peek'"
+        [class.mobile-sheet-half]="mobileSheetState === 'half'" [class.mobile-sheet-full]="mobileSheetState === 'full'">
 
         <!-- Mobile Sheet Top Control Bar (Sticky, Unified Surface on < 768px) -->
         <div class="mobile-sheet-top-control-bar">
@@ -312,7 +326,8 @@
                 <div class="mobile-sheet-grabber"></div>
                 <div class="mobile-sheet-summary">
                     <span class="mobile-sheet-day-label">
-                        {{ activeItinerary.days[activeDayIdx]?.title }} · {{ activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} điểm dừng
+                        {{ activeItinerary.days[activeDayIdx]?.title }} · {{
+                        activeItinerary.days[activeDayIdx]?.activities?.length || 0 }} điểm dừng
                     </span>
                     <span class="mobile-sheet-state-btn">
                         <i class="bi" [ngClass]="mobileSheetState === 'full' ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
@@ -322,15 +337,12 @@
 
             <!-- Mobile Day Selector Carousel (Shown only on mobile screens < 768px) -->
             <div class="mobile-days-scroller" *ngIf="activeItinerary?.days?.length">
-                <button *ngFor="let day of activeItinerary.days; let dIdx = index"
-                        type="button" 
-                        class="mobile-day-pill" 
-                        [class.active]="activeDayIdx === dIdx"
-                        (click)="switchActiveDay(dIdx); $event.stopPropagation()">
+                <button *ngFor="let day of activeItinerary.days; let dIdx = index" type="button" class="mobile-day-pill"
+                    [class.active]="activeDayIdx === dIdx" (click)="switchActiveDay(dIdx); $event.stopPropagation()">
                     <span>{{ day.title || ('Ngày ' + (dIdx + 1)) }}</span>
                 </button>
                 <button type="button" class="mobile-day-pill add-day-pill" *ngIf="!isItineraryLocked()"
-                        (click)="addDayToItinerary(); $event.stopPropagation()" title="Thêm một ngày mới vào lịch trình">
+                    (click)="addDayToItinerary(); $event.stopPropagation()" title="Thêm một ngày mới vào lịch trình">
                     <i class="bi bi-plus-lg"></i> <span>Thêm ngày</span>
                 </button>
             </div>
@@ -343,7 +355,10 @@
             <!-- 3 Actions Buttons in a Row at the Top-Right (with merged avatar stack) -->
             <div
                 style="position: absolute; top: 15px; right: 15px; display: flex; align-items: center; gap: 8px; z-index: 10;">
-                <app-favorite-button *ngIf="!activeItinerary.id?.startsWith('BKT-') && !activeItinerary.id?.startsWith('BKS-')" targetType="itinerary" [targetId]="activeItinerary.id" [label]="activeItinerary.name || activeItinerary.title" [beforeSave]="persistFavoriteItinerary" />
+                <app-favorite-button
+                    *ngIf="!activeItinerary.id?.startsWith('BKT-') && !activeItinerary.id?.startsWith('BKS-')"
+                    targetType="itinerary" [targetId]="activeItinerary.id"
+                    [label]="activeItinerary.name || activeItinerary.title" [beforeSave]="persistFavoriteItinerary" />
                 <!-- Button 1: Chia sẻ lịch trình -->
                 <button (click)="openShareModal(activeItinerary, $event)"
                     style="width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: white; border: 1.5px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
@@ -372,8 +387,8 @@
 
                     <!-- Collaborators Avatars (stacked behind the Add button to the right) -->
                     <ng-container *ngIf="getVisibleCollaborators().length > 0">
-                        <div *ngFor="let col of getVisibleCollaborators(); let idx = index"
-                            [style.margin-left.px]="-10" [style.z-index]="9 - idx"
+                        <div *ngFor="let col of getVisibleCollaborators(); let idx = index" [style.margin-left.px]="-10"
+                            [style.z-index]="9 - idx"
                             style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ffffff; background: #e6ede9; overflow: hidden; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); flex-shrink: 0;"
                             [title]="(col.isOwner ? '👑 Chủ lịch trình: ' : 'Đồng hành: ') + (col.fullname || col.username)">
                             <img *ngIf="col.avatarUrl || col.avatar" [src]="col.avatarUrl || col.avatar"
@@ -387,7 +402,8 @@
                 </div>
             </div>
 
-            <img id="timelineCoverImg" [src]="getUnifiedCoverImage(activeItinerary)" alt="Dest Cover" class="cover-bg-img">
+            <img id="timelineCoverImg" [src]="getUnifiedCoverImage(activeItinerary)" alt="Dest Cover"
+                class="cover-bg-img">
 
             <!-- Bottom Left Info Overlay -->
             <div class="cover-overlay">
@@ -412,23 +428,22 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px;">
-                <button type="button" class="btn-quick-sort-header" *ngIf="!isItineraryLocked() && (activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 1"
+                <button type="button" class="btn-quick-sort-header"
+                    *ngIf="!isItineraryLocked() && (activeItinerary.days[activeDayIdx]?.activities?.length || 0) > 1"
                     (click)="sortCurrentDayByTime()" title="Sắp xếp toàn bộ hoạt động theo thứ tự giờ tăng dần">
                     <i class="bi bi-sort-numeric-down"></i> <span>Xếp theo giờ</span>
                 </button>
                 <div class="place-search-inline" style="position: relative;" *ngIf="!isItineraryLocked()">
-                    <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput"
-                        autocomplete="off"
-                        placeholder="Tìm địa điểm đối tác hoặc bản đồ..."
-                        (input)="onSearchInputKeyup()"
+                    <input type="text" [(ngModel)]="customPlaceTitle" id="timelineCustomPlaceInput" autocomplete="off"
+                        placeholder="Tìm địa điểm đối tác hoặc bản đồ..." (input)="onSearchInputKeyup()"
                         (keydown.enter)="searchSidebarPlaceOnMap(); $event.preventDefault()">
                     <button type="button" (click)="searchSidebarPlaceOnMap()"><i class="bi bi-search"></i> Tìm</button>
 
                     <!-- Hybrid Search Suggestions Dropdown (Partner Services First -> Map Places Second) -->
-                    <div class="hybrid-search-dropdown" *ngIf="customSearchSuggestions && customSearchSuggestions.length > 0">
-                        <div *ngFor="let sug of customSearchSuggestions"
-                             class="hybrid-sug-item"
-                             (click)="selectSearchSuggestion(sug)">
+                    <div class="hybrid-search-dropdown"
+                        *ngIf="customSearchSuggestions && customSearchSuggestions.length > 0">
+                        <div *ngFor="let sug of customSearchSuggestions" class="hybrid-sug-item"
+                            (click)="selectSearchSuggestion(sug)">
                             <div class="hybrid-sug-icon" [class.partner]="sug.isPartner">
                                 <i class="bi" [ngClass]="sug.isPartner ? 'bi-patch-check-fill' : 'bi-geo-alt'"></i>
                             </div>
@@ -440,7 +455,8 @@
                                 </div>
                                 <div class="hybrid-sug-sub">
                                     <span>{{ sug.address }}</span>
-                                    <span *ngIf="sug.cost !== undefined && sug.cost !== null"> · {{ sug.cost === 0 ? 'Miễn phí' : (sug.cost | number) + 'đ' }}</span>
+                                    <span *ngIf="sug.cost !== undefined && sug.cost !== null"> · {{ sug.cost === 0 ?
+                                        'Miễn phí' : (sug.cost | number) + 'đ' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -456,18 +472,19 @@
                 <span>Phát hiện mốc thời gian chưa hợp lý giữa các điểm dừng</span>
             </div>
             <div class="conflict-banner-actions">
-                <button type="button" class="btn-conflict-tool" (click)="sortCurrentDayByTime()" title="Sắp xếp lại thứ tự từ sáng đến tối theo mốc giờ đã nhập">
+                <button type="button" class="btn-conflict-tool" (click)="sortCurrentDayByTime()"
+                    title="Sắp xếp lại thứ tự từ sáng đến tối theo mốc giờ đã nhập">
                     <i class="bi bi-sort-numeric-down"></i> Sắp xếp theo giờ
                 </button>
-                <button type="button" class="btn-conflict-tool primary" (click)="autoAdjustIllogicalTimes()" title="Tự động tính lại mốc giờ chuẩn dựa trên thời gian tham quan và di chuyển">
+                <button type="button" class="btn-conflict-tool primary" (click)="autoAdjustIllogicalTimes()"
+                    title="Tự động tính lại mốc giờ chuẩn dựa trên thời gian tham quan và di chuyển">
                     <i class="bi bi-magic"></i> Căn lại mốc giờ chuẩn
                 </button>
             </div>
         </div>
 
         <!-- Timeline Activities List -->
-        <div class="timeline-list-container" id="timelineList"
-             [class.dragging-active]="isDraggingCard">
+        <div class="timeline-list-container" id="timelineList" [class.dragging-active]="isDraggingCard">
             <!-- Empty state -->
             <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0"
                 style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-size:14px; position:relative; z-index:2;">
@@ -478,7 +495,8 @@
                     động.</p>
             </div>
 
-            <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index; trackBy: trackByActId">
+            <ng-container
+                *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index; trackBy: trackByActId">
                 <!-- Drop indicator line BEFORE target card -->
                 <div class="timeline-drop-line"
                     *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx">
@@ -490,33 +508,26 @@
                     [class.is-drag-source]="dragSrcIdx === idx"
                     [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
                     [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
-                    [attr.data-type]="act.type" 
-                    (dragover)="onDragOver($event, idx)"
-                    (dragleave)="onDragLeave($event, idx)"
-                    (drop)="onDrop($event, idx)" 
-                    (mouseenter)="highlightMapPin(idx, true)"
-                    (mouseleave)="highlightMapPin(idx, false)">
+                    [attr.data-type]="act.type" (dragover)="onDragOver($event, idx)"
+                    (dragleave)="onDragLeave($event, idx)" (drop)="onDrop($event, idx)"
+                    (mouseenter)="highlightMapPin(idx, true)" (mouseleave)="highlightMapPin(idx, false)">
 
                     <!-- Ergonomic Grip Handle (Linear/Notion/Wanderlog Standard) -->
-                    <div class="drag-handle-grip" 
-                        *ngIf="!isItineraryLocked()"
-                        [draggable]="true"
-                        (dragstart)="onDragStart($event, idx)"
-                        (dragend)="onDragEnd($event)"
+                    <div class="drag-handle-grip" *ngIf="!isItineraryLocked()" [draggable]="true"
+                        (dragstart)="onDragStart($event, idx)" (dragend)="onDragEnd($event)"
                         title="Kéo thả để sắp xếp lại thứ tự">
                         <i class="bi bi-grip-vertical"></i>
                     </div>
 
                     <div class="timeline-time-node">
                         <div class="time-input-wrap">
-                            <input type="time" [(ngModel)]="act.time" 
-                                   (input)="onActivityTimeChanged(act)"
-                                   (change)="onActivityTimeChanged(act)" 
-                                   [disabled]="isItineraryLocked()" 
-                                   [class.time-conflict-input]="act.hasTimeConflict"
-                                   [title]="act.hasTimeConflict ? act.conflictReason : 'Nhấp để chỉnh giờ'"
-                                   class="timeline-native-time-input">
-                            <div class="time-conflict-hover-wrap" *ngIf="act.hasTimeConflict" (click)="$event.stopPropagation()">
+                            <input type="time" [(ngModel)]="act.time" (input)="onActivityTimeChanged(act)"
+                                (change)="onActivityTimeChanged(act)" [disabled]="isItineraryLocked()"
+                                [class.time-conflict-input]="act.hasTimeConflict"
+                                [title]="act.hasTimeConflict ? act.conflictReason : 'Nhấp để chỉnh giờ'"
+                                class="timeline-native-time-input">
+                            <div class="time-conflict-hover-wrap" *ngIf="act.hasTimeConflict"
+                                (click)="$event.stopPropagation()">
                                 <span class="time-conflict-chip" title="Mốc giờ chưa hợp lý · Rê chuột xem chi tiết">
                                     <i class="bi bi-exclamation-triangle-fill"></i>
                                 </span>
@@ -526,7 +537,9 @@
                                         <span>Giờ chưa hợp lý</span>
                                     </div>
                                     <div class="conflict-popover-msg">{{ act.conflictReason }}</div>
-                                    <button type="button" class="btn-conflict-quick-fix" (click)="fixSingleActivityTime(idx, $event)" title="Tự động căn chỉnh lại giờ điểm này">
+                                    <button type="button" class="btn-conflict-quick-fix"
+                                        (click)="fixSingleActivityTime(idx, $event)"
+                                        title="Tự động căn chỉnh lại giờ điểm này">
                                         <i class="bi bi-magic"></i> Căn chỉnh lại giờ
                                     </button>
                                 </div>
@@ -543,8 +556,8 @@
                         <div class="act-min-body">
                             <!-- Left: Thumbnail Image with Category Badge -->
                             <div class="act-min-media">
-                                <img [src]="act.img || getPlacePlaceholderImage(act.title, act.type, activeItinerary?.destLabel || activeItinerary?.destination)" [alt]="act.title" class="act-min-img"
-                                    (error)="handleActivityImgError($event, act)">
+                                <img [src]="act.img || getPlacePlaceholderImage(act.title, act.type, activeItinerary?.destLabel || activeItinerary?.destination)"
+                                    [alt]="act.title" class="act-min-img" (error)="handleActivityImgError($event, act)">
                                 <span class="act-min-type-tag">{{ getActivityTypeLabel(act.type, act.title) }}</span>
                             </div>
 
@@ -553,10 +566,14 @@
                                 <!-- Top Row: Title + Controls -->
                                 <div class="act-min-top">
                                     <div class="act-min-title-wrap">
-                                        <h4 class="act-min-title">{{ act.title || act.name || act.activity_name || 'Địa điểm' }}</h4>
+                                        <h4 class="act-min-title">{{ act.title || act.name || act.activity_name || 'Địa
+                                            điểm' }}</h4>
                                         <div class="act-min-rating-sub">
-                                            <span class="act-star-score"><i class="bi bi-star-fill"></i> {{ act.rating || 4.8 }}</span>
-                                            <span class="act-reviews-count">({{ (act.reviews || act.reviews_count || ((act.title || act.name || 'địa điểm').length * 37 % 450 + 95)) | number }})</span>
+                                            <span class="act-star-score"><i class="bi bi-star-fill"></i> {{ act.rating
+                                                || 4.8 }}</span>
+                                            <span class="act-reviews-count">({{ (act.reviews || act.reviews_count ||
+                                                ((act.title || act.name || 'địa điểm').length * 37 % 450 + 95)) | number
+                                                }})</span>
                                             <span class="act-divider">·</span>
                                             <span class="act-address-text"><i class="bi bi-geo-alt-fill"></i> {{
                                                 act.address || getPlaceAddress(act.title || act.name) }}</span>
@@ -567,9 +584,9 @@
                                     <div class="act-min-actions desktop-act-actions" *ngIf="!isItineraryLocked()"
                                         (click)="$event.stopPropagation()">
                                         <button type="button" class="act-icon-btn" (click)="toggleActivityNote(act)"
-                                            [class.has-gps]="!!act.note"
-                                            title="Thêm / sửa ghi chú cho địa điểm này">
-                                            <i class="bi" [ngClass]="act.note ? 'bi-chat-left-text-fill' : 'bi-chat-left-text'"></i>
+                                            [class.has-gps]="!!act.note" title="Thêm / sửa ghi chú cho địa điểm này">
+                                            <i class="bi"
+                                                [ngClass]="act.note ? 'bi-chat-left-text-fill' : 'bi-chat-left-text'"></i>
                                         </button>
                                         <button type="button" class="act-icon-btn" (click)="moveActivity(idx, -1)"
                                             title="Di chuyển lên">
@@ -593,8 +610,7 @@
 
                                     <!-- Mobile 3-Dots Action Trigger -->
                                     <button type="button" class="btn-mobile-act-more" *ngIf="!isItineraryLocked()"
-                                        (click)="openMobileActActions(act, idx, $event)"
-                                        title="Tùy chọn địa điểm">
+                                        (click)="openMobileActActions(act, idx, $event)" title="Tùy chọn địa điểm">
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                 </div>
@@ -606,11 +622,14 @@
                                     <div class="act-meta-line">
                                         <!-- Clickable Price or Inline Price Input -->
                                         <ng-container *ngIf="editingPriceActId !== act.id">
-                                            <span class="act-meta-cost" (click)="startEditActivityPrice(act)" title="Nhấp để chỉnh sửa chi phí địa điểm này" style="cursor: pointer;">
+                                            <span class="act-meta-cost" (click)="startEditActivityPrice(act)"
+                                                title="Nhấp để chỉnh sửa chi phí địa điểm này" style="cursor: pointer;">
                                                 {{ formatPriceOrFree(act) }}
-                                                <i class="bi bi-pencil" style="font-size: 10px; opacity: 0.6; margin-left: 2px;"></i>
+                                                <i class="bi bi-pencil"
+                                                    style="font-size: 10px; opacity: 0.6; margin-left: 2px;"></i>
                                             </span>
-                                            <span class="act-unknown-price-badge" *ngIf="act.priceUnknown" (click)="startEditActivityPrice(act)">
+                                            <span class="act-unknown-price-badge" *ngIf="act.priceUnknown"
+                                                (click)="startEditActivityPrice(act)">
                                                 Chưa có dữ liệu giá · Tự điền
                                             </span>
                                         </ng-container>
@@ -618,14 +637,15 @@
                                             <input type="number" [(ngModel)]="tempActivityPrice" min="0" step="10000"
                                                 class="act-price-input" placeholder="Nhập giá (đ)..."
                                                 (keydown.enter)="saveEditedActivityPrice(act)">
-                                            <button type="button" class="act-price-save-btn" (click)="saveEditedActivityPrice(act)">Lưu</button>
-                                            <button type="button" class="act-price-cancel-btn" (click)="editingPriceActId = null">×</button>
+                                            <button type="button" class="act-price-save-btn"
+                                                (click)="saveEditedActivityPrice(act)">Lưu</button>
+                                            <button type="button" class="act-price-cancel-btn"
+                                                (click)="editingPriceActId = null">×</button>
                                         </div>
 
                                         <span class="act-meta-dot">·</span>
                                         <span *ngIf="act.cost > 0" class="act-meta-shared"
-                                            (click)="toggleActivityShared(act)"
-                                            title="Nhấp để đổi hình thức chi tiêu">
+                                            (click)="toggleActivityShared(act)" title="Nhấp để đổi hình thức chi tiêu">
                                             {{ (act.is_shared || act.type === 'lodging') ? 'Dùng chung' : 'Cá nhân' }}
                                         </span>
                                         <span *ngIf="act.cost > 0" class="act-meta-dot">·</span>
@@ -636,13 +656,16 @@
                                 </div>
 
                                 <!-- Inline Activity Comment / Note -->
-                                <div class="act-note-box" *ngIf="act.note || editingNoteActId === act.id" (click)="$event.stopPropagation()">
-                                    <div *ngIf="editingNoteActId !== act.id" class="act-note-display" (click)="toggleActivityNote(act)">
+                                <div class="act-note-box" *ngIf="act.note || editingNoteActId === act.id"
+                                    (click)="$event.stopPropagation()">
+                                    <div *ngIf="editingNoteActId !== act.id" class="act-note-display"
+                                        (click)="toggleActivityNote(act)">
                                         <i class="bi bi-chat-left-text"></i>
                                         <span>{{ act.note }}</span>
                                     </div>
                                     <div *ngIf="editingNoteActId === act.id" class="act-note-editor">
-                                        <input type="text" [(ngModel)]="act.note" placeholder="Nhập ghi chú tại địa điểm này (VD: Mua vé trước, mang áo khoác...)"
+                                        <input type="text" [(ngModel)]="act.note"
+                                            placeholder="Nhập ghi chú tại địa điểm này (VD: Mua vé trước, mang áo khoác...)"
                                             (keydown.enter)="saveActivityNote(act)">
                                         <button type="button" (click)="saveActivityNote(act)">Lưu</button>
                                     </div>
@@ -665,32 +688,37 @@
                 </div>
 
                 <!-- Organic Travel Transit note in Timeline -->
-                <div class="travel-gap-item" *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
+                <div class="travel-gap-item"
+                    *ngIf="idx < (activeItinerary.days[activeDayIdx]?.activities?.length || 0) - 1"
                     [class.active-leg]="activeLegDirections && activeLegDirections.fromIdx === idx"
                     [class.is-drop-gap]="isDraggingCard && dragTargetIdx === idx + 1 && dragDropPosition === 'before'"
-                    (dragover)="onDragOverTravelGap($event, idx)"
-                    (dragleave)="onDragLeaveTravelGap($event, idx)"
+                    (dragover)="onDragOverTravelGap($event, idx)" (dragleave)="onDragLeaveTravelGap($event, idx)"
                     (drop)="onDropTravelGap($event, idx)">
-                    <div class="travel-gap-badge" (click)="openLegDirections(idx)" title="Nhấp để đặt trước xe hoặc xem đường đi chặng này">
+                    <div class="travel-gap-badge" (click)="openLegDirections(idx)"
+                        title="Nhấp để đặt trước xe hoặc xem đường đi chặng này">
                         <i class="bi bi-geo-alt"></i>
                         <span class="travel-gap-text">{{ getTravelGapText(idx) }}</span>
                         <span class="travel-gap-booked-inline" *ngIf="getLegTransport(activeDayIdx, idx) as legTrans">
-                            · <i [class]="getTransportIcon(legTrans.vehicleType)"></i> {{ legTrans.provider }} ({{ legTrans.pickupTime || '09:00' }})
+                            · <i [class]="getTransportIcon(legTrans.vehicleType)"></i> {{ legTrans.provider }} ({{
+                            legTrans.pickupTime || '09:00' }})
                         </span>
                         <span class="travel-gap-cta">Xem đường đi <i class="bi bi-arrow-right"></i></span>
                         <button type="button" class="leg-note-trigger-btn" *ngIf="!isItineraryLocked()"
                             (click)="$event.stopPropagation(); toggleLegNoteEditor(idx)"
                             title="Ghi chú cho chặng đường này">
-                            <i class="bi" [ngClass]="getLegNote(activeDayIdx, idx) ? 'bi-chat-dots-fill' : 'bi-chat-dots'"></i>
+                            <i class="bi"
+                                [ngClass]="getLegNote(activeDayIdx, idx) ? 'bi-chat-dots-fill' : 'bi-chat-dots'"></i>
                         </button>
                     </div>
                     <!-- Route Leg Comment / Note -->
-                    <div class="leg-note-inline-box" *ngIf="getLegNote(activeDayIdx, idx) || editingLegNoteIdx === idx" (click)="$event.stopPropagation()">
+                    <div class="leg-note-inline-box" *ngIf="getLegNote(activeDayIdx, idx) || editingLegNoteIdx === idx"
+                        (click)="$event.stopPropagation()">
                         <div *ngIf="editingLegNoteIdx !== idx" class="leg-note-text" (click)="toggleLegNoteEditor(idx)">
                             <i class="bi bi-chat-dots"></i> {{ getLegNote(activeDayIdx, idx) }}
                         </div>
                         <div *ngIf="editingLegNoteIdx === idx" class="leg-note-input-row">
-                            <input type="text" [(ngModel)]="tempLegNoteText" placeholder="Ghi chú chặng đường (VD: Đường đèo đẹp, dừng chụp ảnh...)"
+                            <input type="text" [(ngModel)]="tempLegNoteText"
+                                placeholder="Ghi chú chặng đường (VD: Đường đèo đẹp, dừng chụp ảnh...)"
                                 (keydown.enter)="saveLegNote(activeDayIdx, idx)">
                             <button type="button" (click)="saveLegNote(activeDayIdx, idx)">Lưu</button>
                         </div>
@@ -761,7 +789,8 @@
                             </span>
                             <span *ngIf="rec.badges && rec.badges.length > 0" class="sugg-modern-pill-badge"
                                 [ngClass]="rec.badges[0] === 'green' ? 'eco-tag' : (rec.badges[0] === 'budget' ? 'budget-tag' : 'popular-tag')">
-                                {{ rec.badges[0] === 'green' ? 'Eco' : (rec.badges[0] === 'budget' ? 'Tiết kiệm' : 'Phổ biến') }}
+                                {{ rec.badges[0] === 'green' ? 'Eco' : (rec.badges[0] === 'budget' ? 'Tiết kiệm' : 'Phổ
+                                biến') }}
                             </span>
                         </div>
 
@@ -811,8 +840,7 @@
             <div class="favorite-places-grid" *ngIf="favoritePlaces.length > 0">
                 <div class="favorite-place-card" *ngFor="let fav of favoritePlaces; let fIdx = index">
                     <div class="fav-card-thumb">
-                        <img [src]="fav.img" [alt]="fav.name"
-                            (error)="handleFavImgError($event, fav)">
+                        <img [src]="fav.img" [alt]="fav.name" (error)="handleFavImgError($event, fav)">
                         <span class="fav-card-cat">{{ fav.category }}</span>
                     </div>
                     <div class="fav-card-body">
@@ -842,11 +870,9 @@
     <div class="layout-resizer" (mousedown)="startResizing($event, 'right')"></div>
 
     <!-- 3. RIGHT PANEL: LEAFLET MAP & AI ROBOT CHAT SPACER -->
-    <aside class="right-map-panel"
-           [style.width.%]="mapWidthPct"
-           [style.flex]="'0 0 ' + mapWidthPct + '%'"
-           [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections"
-           [style.pointer-events]="isResizing ? 'none' : 'auto'">
+    <aside class="right-map-panel" [style.width.%]="mapWidthPct" [style.flex]="'0 0 ' + mapWidthPct + '%'"
+        [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections"
+        [style.pointer-events]="isResizing ? 'none' : 'auto'">
         <!-- =========================================================================
              OFFICIAL GOOGLE MAPS PLACE DETAILS SIDE PANEL (Matches Google Maps 100%)
              Only appears when activated; completely hidden when closed!
@@ -870,8 +896,7 @@
                 <!-- Hero Photo Banner from Google Maps -->
                 <div class="gm-panel-hero">
                     <img [src]="activeGooglePlacePanel.img" [alt]="activeGooglePlacePanel.title"
-                        class="gm-panel-hero-img"
-                        (error)="handlePanelImgError($event, activeGooglePlacePanel)">
+                        class="gm-panel-hero-img" (error)="handlePanelImgError($event, activeGooglePlacePanel)">
                     <span class="gm-panel-badge" *ngIf="!activeGooglePlacePanel.isPartner">{{
                         activeGooglePlacePanel.category }}</span>
                     <span class="gm-panel-badge" *ngIf="activeGooglePlacePanel.isPartner"
@@ -957,7 +982,8 @@
                                 <i class="bi"
                                     [ngClass]="isPlaceFavorited(activeGooglePlacePanel) ? 'bi-heart-fill text-rose-500' : 'bi-heart'"></i>
                             </button>
-                            <span class="gm-action-label">{{ isPlaceFavorited(activeGooglePlacePanel) ? 'Đã thích' : 'Yêu thích' }}</span>
+                            <span class="gm-action-label">{{ isPlaceFavorited(activeGooglePlacePanel) ? 'Đã thích' :
+                                'Yêu thích' }}</span>
                         </div>
 
                         <!-- 3. Chia sẻ -->
@@ -1159,13 +1185,15 @@
              OFFICIAL GOOGLE MAPS LEG DIRECTIONS & PRE-BOOKING PANEL (DRAGGABLE, 2 TABS)
              ========================================================================= -->
         <div class="gm-directions-panel" *ngIf="activeLegDirections"
-             [style.transform]="'translate3d(' + dirPanelOffsetX + 'px, ' + dirPanelOffsetY + 'px, 0)'">
+            [style.transform]="'translate3d(' + dirPanelOffsetX + 'px, ' + dirPanelOffsetY + 'px, 0)'">
             <!-- 1. Draggable Header (Cố định ở cả 2 tab) -->
-            <div class="gm-dir-header" (mousedown)="startDraggingDirectionsPanel($event)" style="cursor: move; user-select: none;" title="Giữ chuột để kéo di chuyển bảng này">
+            <div class="gm-dir-header" (mousedown)="startDraggingDirectionsPanel($event)"
+                style="cursor: move; user-select: none;" title="Giữ chuột để kéo di chuyển bảng này">
                 <span class="gm-dir-title" style="display: flex; align-items: center; gap: 6px;">
                     <i class="bi bi-grip-vertical"></i> Chỉ đường & Phương tiện chặng
                 </span>
-                <button type="button" class="gm-dir-close-btn" (mousedown)="$event.stopPropagation()" (click)="closeLegDirections()" title="Đóng">
+                <button type="button" class="gm-dir-close-btn" (mousedown)="$event.stopPropagation()"
+                    (click)="closeLegDirections()" title="Đóng">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -1218,22 +1246,24 @@
                     </div>
                 </div>
                 <!-- Booked Vehicle Status Pill if any -->
-                <div *ngIf="getLegTransport(activeDayIdx, activeLegDirections.fromIdx) as booked" class="gm-booked-pill" style="margin-top: 6px; align-self: flex-start;">
-                    <i class="bi bi-check2-circle"></i> Đã đặt: {{ booked.provider }} - {{ booked.vehicleName }} ({{ booked.pickupTime }})
-                    <button type="button" class="gm-unbook-btn" (click)="removeLegTransport(activeDayIdx, activeLegDirections.fromIdx, $event)" title="Hủy đặt xe">×</button>
+                <div *ngIf="getLegTransport(activeDayIdx, activeLegDirections.fromIdx) as booked" class="gm-booked-pill"
+                    style="margin-top: 6px; align-self: flex-start;">
+                    <i class="bi bi-check2-circle"></i> Đã đặt: {{ booked.provider }} - {{ booked.vehicleName }} ({{
+                    booked.pickupTime }})
+                    <button type="button" class="gm-unbook-btn"
+                        (click)="removeLegTransport(activeDayIdx, activeLegDirections.fromIdx, $event)"
+                        title="Hủy đặt xe">×</button>
                 </div>
             </div>
 
             <!-- 4. 2-Tab Selector Bar (Nằm ngay dưới Điểm xuất phát -> Điểm đến) -->
             <div class="gm-mid-tabs-bar">
-                <button type="button" class="gm-mid-tab-btn"
-                    [class.active]="legPanelTab === 'book'"
+                <button type="button" class="gm-mid-tab-btn" [class.active]="legPanelTab === 'book'"
                     (click)="switchLegPanelTab('book')">
                     <i class="bi bi-car-front"></i>
                     <span>Đặt trước xe</span>
                 </button>
-                <button type="button" class="gm-mid-tab-btn"
-                    [class.active]="legPanelTab === 'directions'"
+                <button type="button" class="gm-mid-tab-btn" [class.active]="legPanelTab === 'directions'"
                     (click)="switchLegPanelTab('directions')">
                     <i class="bi bi-sign-turn-right"></i>
                     <span>Xem chỉ đường</span>
@@ -1248,10 +1278,8 @@
                 <ng-container *ngIf="!showVehiclePolicyView">
                     <!-- Saved Partner Transport Services List -->
                     <div class="gm-book-vehicle-list">
-                        <div *ngFor="let v of filteredLegVehicles"
-                            class="gm-vehicle-card"
-                            [class.selected]="selectedLegVehicle?.id === v.id"
-                            (click)="selectLegVehicleOption(v)">
+                        <div *ngFor="let v of filteredLegVehicles" class="gm-vehicle-card"
+                            [class.selected]="selectedLegVehicle?.id === v.id" (click)="selectLegVehicleOption(v)">
                             <div class="gm-veh-icon">
                                 <i [class]="v.category === 'motorbike' ? 'bi bi-bicycle' : 'bi bi-car-front-fill'"></i>
                             </div>
@@ -1268,7 +1296,8 @@
                             </div>
                             <div class="gm-veh-price-col">
                                 <span class="gm-veh-price">{{ getLegOptionFinalPrice(v.price) | number }}đ</span>
-                                <span class="gm-veh-old-price" *ngIf="legVoucherDiscount > 0">{{ v.price | number }}đ</span>
+                                <span class="gm-veh-old-price" *ngIf="legVoucherDiscount > 0">{{ v.price | number
+                                    }}đ</span>
                             </div>
                         </div>
                     </div>
@@ -1277,7 +1306,8 @@
                     <div class="gm-time-picker-bar" *ngIf="isLegTimePickerOpen">
                         <label><i class="bi bi-clock"></i> Giờ đón dự kiến:</label>
                         <input type="time" [(ngModel)]="legPickupTime" class="gm-time-input">
-                        <button type="button" class="gm-time-done-btn" (click)="isLegTimePickerOpen = false">Xong</button>
+                        <button type="button" class="gm-time-done-btn"
+                            (click)="isLegTimePickerOpen = false">Xong</button>
                     </div>
 
                     <!-- Bottom Controls: 2 Rows -->
@@ -1286,24 +1316,26 @@
                         <div class="gm-book-meta-row" (click)="$event.stopPropagation()">
                             <!-- Payment Method Dropdown -->
                             <div class="gm-meta-dropdown-wrap">
-                                <button type="button" class="gm-meta-item" (click)="toggleLegPaymentDropdown($event)" title="Chọn phương thức thanh toán">
-                                    <i class="bi" [ngClass]="legPaymentMethods[legPaymentMethodIdx]?.icon || 'bi-wallet2'"></i>
+                                <button type="button" class="gm-meta-item" (click)="toggleLegPaymentDropdown($event)"
+                                    title="Chọn phương thức thanh toán">
+                                    <i class="bi"
+                                        [ngClass]="legPaymentMethods[legPaymentMethodIdx]?.icon || 'bi-wallet2'"></i>
                                     <span>{{ legPaymentMethodLabel }}</span>
                                     <i class="bi bi-chevron-down gm-chevron-mini"></i>
                                 </button>
                                 <!-- Popover Menu -->
                                 <div class="gm-meta-popover" *ngIf="isLegPaymentDropdownOpen">
                                     <div class="gm-popover-header">Phương thức thanh toán</div>
-                                    <div *ngFor="let m of legPaymentMethods; let mIdx = index" 
-                                         class="gm-popover-item" 
-                                         [class.active]="legPaymentMethodIdx === mIdx"
-                                         (click)="selectLegPaymentMethod(mIdx, $event)">
+                                    <div *ngFor="let m of legPaymentMethods; let mIdx = index" class="gm-popover-item"
+                                        [class.active]="legPaymentMethodIdx === mIdx"
+                                        (click)="selectLegPaymentMethod(mIdx, $event)">
                                         <i class="bi" [class]="m.icon"></i>
                                         <div class="gm-popover-text">
                                             <div class="gm-popover-title">{{ m.name }}</div>
                                             <div class="gm-popover-desc">{{ m.desc }}</div>
                                         </div>
-                                        <i class="bi bi-check-lg gm-popover-check" *ngIf="legPaymentMethodIdx === mIdx"></i>
+                                        <i class="bi bi-check-lg gm-popover-check"
+                                            *ngIf="legPaymentMethodIdx === mIdx"></i>
                                     </div>
                                 </div>
                             </div>
@@ -1312,7 +1344,8 @@
 
                             <!-- Voucher Dropdown -->
                             <div class="gm-meta-dropdown-wrap">
-                                <button type="button" class="gm-meta-item" (click)="toggleLegVoucherDropdown($event)" title="Chọn mã giảm giá">
+                                <button type="button" class="gm-meta-item" (click)="toggleLegVoucherDropdown($event)"
+                                    title="Chọn mã giảm giá">
                                     <i class="bi bi-ticket-perforated"></i>
                                     <span>{{ legVoucherLabel }}</span>
                                     <i class="bi bi-chevron-down gm-chevron-mini"></i>
@@ -1320,10 +1353,9 @@
                                 <!-- Popover Menu -->
                                 <div class="gm-meta-popover" *ngIf="isLegVoucherDropdownOpen">
                                     <div class="gm-popover-header">Mã giảm giá phương tiện</div>
-                                    <div *ngFor="let v of legVouchers; let vIdx = index" 
-                                         class="gm-popover-item" 
-                                         [class.active]="legVoucherIdx === vIdx"
-                                         (click)="selectLegVoucher(vIdx, $event)">
+                                    <div *ngFor="let v of legVouchers; let vIdx = index" class="gm-popover-item"
+                                        [class.active]="legVoucherIdx === vIdx"
+                                        (click)="selectLegVoucher(vIdx, $event)">
                                         <i class="bi bi-tag-fill" [class.text-emerald-600]="v.discount > 0"></i>
                                         <div class="gm-popover-text">
                                             <div class="gm-popover-title">{{ v.label }}</div>
@@ -1334,7 +1366,8 @@
                                 </div>
                             </div>
 
-                            <button type="button" class="gm-policy-mini-btn" (click)="showVehiclePolicyView = true" title="Xem chính sách phương tiện">
+                            <button type="button" class="gm-policy-mini-btn" (click)="showVehiclePolicyView = true"
+                                title="Xem chính sách phương tiện">
                                 <i class="bi bi-file-earmark-text"></i>
                                 <span>Chính sách</span>
                             </button>
@@ -1342,7 +1375,8 @@
 
                         <!-- Last row: Chọn thời gian | Tìm xe ôm | Đặt xe -->
                         <div class="gm-book-action-row">
-                            <button type="button" class="gm-action-btn outline" (click)="toggleLegTimePicker()" title="Chọn thời gian đón">
+                            <button type="button" class="gm-action-btn outline" (click)="toggleLegTimePicker()"
+                                title="Chọn thời gian đón">
                                 <i class="bi bi-clock"></i>
                                 <span>{{ legPickupTime || 'Chọn giờ' }}</span>
                             </button>
@@ -1371,7 +1405,8 @@
                             <i class="bi bi-clock-history"></i>
                             <div>
                                 <strong>Đặt trước & Đón đúng giờ</strong>
-                                <p>Tài xế đối tác có mặt tại điểm xuất phát trước 5–10 phút theo khung giờ đã hẹn trong lịch trình.</p>
+                                <p>Tài xế đối tác có mặt tại điểm xuất phát trước 5–10 phút theo khung giờ đã hẹn trong
+                                    lịch trình.</p>
                             </div>
                         </div>
                         <div class="gm-policy-item">
@@ -1385,14 +1420,16 @@
                             <i class="bi bi-shield-check"></i>
                             <div>
                                 <strong>Giá cước minh bạch</strong>
-                                <p>Giá hiển thị được tính trọn gói theo quãng đường chặng, đã bao gồm bảo hiểm hành khách và không phát sinh phụ phí.</p>
+                                <p>Giá hiển thị được tính trọn gói theo quãng đường chặng, đã bao gồm bảo hiểm hành
+                                    khách và không phát sinh phụ phí.</p>
                             </div>
                         </div>
                         <div class="gm-policy-item">
                             <i class="bi bi-leaf"></i>
                             <div>
                                 <strong>Tiêu chuẩn di chuyển xanh</strong>
-                                <p>Ưu tiên phương tiện thuần điện và giảm phát thải CO₂ từ các nhà cung cấp đối tác chính thức của GreenSteps.</p>
+                                <p>Ưu tiên phương tiện thuần điện và giảm phát thải CO₂ từ các nhà cung cấp đối tác
+                                    chính thức của GreenSteps.</p>
                             </div>
                         </div>
                     </div>
@@ -1448,9 +1485,11 @@
 
                 <!-- Bottom GPS Navigation Bar -->
                 <div class="gm-dir-gps-footer">
-                    <button type="button" class="gm-btn-gps-start" [class.active]="isGpsNavigating" (click)="startGpsDirections()">
+                    <button type="button" class="gm-btn-gps-start" [class.active]="isGpsNavigating"
+                        (click)="startGpsDirections()">
                         <i class="bi bi-cursor-fill"></i>
-                        <span>{{ isGpsNavigating ? 'Đang bật GPS dẫn đường trực tiếp' : 'Đường đi (Bật định vị GPS)' }}</span>
+                        <span>{{ isGpsNavigating ? 'Đang bật GPS dẫn đường trực tiếp' : 'Đường đi (Bật định vị GPS)'
+                            }}</span>
                     </button>
                 </div>
             </ng-container>
@@ -1500,8 +1539,10 @@
                 <span class="mobile-checkout-carbon">
                     <i class="bi bi-leaf-fill"></i> {{ formatCarbon(totalCarbon) }}
                 </span>
-                <span *ngIf="currentUser" class="mobile-wallet-inline-pill" (click)="handleWalletBadgeClick($event)" title="Xem ví GreenSteps">
-                    <i class="bi bi-wallet2"></i> {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Mở ví' }}
+                <span *ngIf="currentUser" class="mobile-wallet-inline-pill" (click)="handleWalletBadgeClick($event)"
+                    title="Xem ví GreenSteps">
+                    <i class="bi bi-wallet2"></i> {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ')
+                    : 'Mở ví' }}
                 </span>
             </div>
         </div>
@@ -1519,7 +1560,8 @@
             </div>
             <h3 class="wallet-prompt-title">Chức năng cần mở Ví GreenSteps</h3>
             <p class="wallet-prompt-desc">
-                Tài khoản của bạn chưa kích hoạt Ví GreenSteps. Hãy mở ví để quản lý số dư, nhận quà tặng chào mừng <strong>200.000đ</strong> và thực hiện đặt cọc chuyến đi thuận tiện, an toàn.
+                Tài khoản của bạn chưa kích hoạt Ví GreenSteps. Hãy mở ví để quản lý số dư, nhận quà tặng chào mừng
+                <strong>200.000đ</strong> và thực hiện đặt cọc chuyến đi thuận tiện, an toàn.
             </p>
             <div class="wallet-prompt-actions">
                 <button type="button" class="btn-wallet-back" (click)="closeWalletPromptModal()">
@@ -1545,15 +1587,19 @@
             </div>
 
             <div class="mobile-action-sheet-menu">
-                <button type="button" class="mobile-action-row" (click)="openMobileNoteModal(mobileActionSheetAct, $event)">
+                <button type="button" class="mobile-action-row"
+                    (click)="openMobileNoteModal(mobileActionSheetAct, $event)">
                     <i class="bi bi-chat-left-text-fill action-icon-note"></i>
                     <div class="action-text-wrap">
-                        <span class="action-label">{{ mobileActionSheetAct.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú nhắc nhở' }}</span>
-                        <small class="action-hint">{{ mobileActionSheetAct.note ? mobileActionSheetAct.note : 'Lưu ý mua vé, trang phục, hành lý...' }}</small>
+                        <span class="action-label">{{ mobileActionSheetAct.note ? 'Chỉnh sửa ghi chú' : 'Thêm ghi chú
+                            nhắc nhở' }}</span>
+                        <small class="action-hint">{{ mobileActionSheetAct.note ? mobileActionSheetAct.note : 'Lưu ý mua
+                            vé, trang phục, hành lý...' }}</small>
                     </div>
                 </button>
 
-                <button type="button" class="mobile-action-row" (click)="openGooglePlacePanel(mobileActionSheetAct, $event); closeMobileActActions()">
+                <button type="button" class="mobile-action-row"
+                    (click)="openGooglePlacePanel(mobileActionSheetAct, $event); closeMobileActActions()">
                     <i class="bi bi-geo-alt-fill action-icon-gps"></i>
                     <div class="action-text-wrap">
                         <span class="action-label">Xem chi tiết & chỉ đường</span>
@@ -1561,21 +1607,24 @@
                     </div>
                 </button>
 
-                <button type="button" class="mobile-action-row" (click)="moveActivity(mobileActionSheetIdx, -1); closeMobileActActions()">
+                <button type="button" class="mobile-action-row"
+                    (click)="moveActivity(mobileActionSheetIdx, -1); closeMobileActActions()">
                     <i class="bi bi-arrow-up-circle action-icon-move"></i>
                     <div class="action-text-wrap">
                         <span class="action-label">Di chuyển lên trước</span>
                     </div>
                 </button>
 
-                <button type="button" class="mobile-action-row" (click)="moveActivity(mobileActionSheetIdx, 1); closeMobileActActions()">
+                <button type="button" class="mobile-action-row"
+                    (click)="moveActivity(mobileActionSheetIdx, 1); closeMobileActActions()">
                     <i class="bi bi-arrow-down-circle action-icon-move"></i>
                     <div class="action-text-wrap">
                         <span class="action-label">Di chuyển xuống sau</span>
                     </div>
                 </button>
 
-                <button type="button" class="mobile-action-row danger-row" (click)="deleteActivity(mobileActionSheetIdx); closeMobileActActions()">
+                <button type="button" class="mobile-action-row danger-row"
+                    (click)="deleteActivity(mobileActionSheetIdx); closeMobileActActions()">
                     <i class="bi bi-trash3-fill action-icon-danger"></i>
                     <div class="action-text-wrap">
                         <span class="action-label">Xóa khỏi lịch trình</span>
@@ -1586,7 +1635,8 @@
     </div>
 
     <!-- MOBILE NOTE EDITOR MODAL (Dedicated, ergonomic input) -->
-    <div class="mobile-action-sheet-backdrop" *ngIf="isMobileNoteModalOpen && mobileNoteTargetAct" (click)="closeMobileNoteModal()">
+    <div class="mobile-action-sheet-backdrop" *ngIf="isMobileNoteModalOpen && mobileNoteTargetAct"
+        (click)="closeMobileNoteModal()">
         <div class="mobile-action-sheet-panel mobile-note-editor-panel" (click)="$event.stopPropagation()">
             <div class="mobile-sheet-pull-bar"></div>
             <div class="mobile-action-sheet-header">
@@ -1598,10 +1648,9 @@
             </div>
 
             <div class="mobile-note-input-body">
-                <textarea [(ngModel)]="mobileNoteText" rows="3"
-                          class="mobile-note-textarea"
-                          placeholder="Nhập ghi chú cho riêng bạn hoặc nhóm (VD: Mua vé online trước 1 ngày, cần mang áo ấm, lưu ý ăn chay...)"></textarea>
-                
+                <textarea [(ngModel)]="mobileNoteText" rows="3" class="mobile-note-textarea"
+                    placeholder="Nhập ghi chú cho riêng bạn hoặc nhóm (VD: Mua vé online trước 1 ngày, cần mang áo ấm, lưu ý ăn chay...)"></textarea>
+
                 <div class="mobile-note-actions-row">
                     <button type="button" class="btn-mobile-cancel-note" (click)="closeMobileNoteModal()">Hủy</button>
                     <button type="button" class="btn-mobile-save-note" (click)="saveMobileNote()">
@@ -1616,36 +1665,36 @@
 <!-- SAVED PLANS LIST VIEW (When in List Mode - Minimalist Monochrome Design) -->
 <div class="max-w-[1200px] mx-auto px-6 py-12 mt-20" *ngIf="isListMode">
     <!-- Header Row with Integrated Search & Booking Lookup -->
-    <div
-        class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-200/80">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-200/80">
         <div>
             <h1 class="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2.5">
                 <i class="bi bi-journal-text text-slate-400 text-xl"></i>
                 Lịch trình của tôi
             </h1>
-            <p class="text-xs text-slate-500 mt-1 font-normal">Quản lý và tùy chỉnh các lịch trình du lịch cá nhân hóa của bạn</p>
+            <p class="text-xs text-slate-500 mt-1 font-normal">Quản lý và tùy chỉnh các lịch trình du lịch cá nhân hóa
+                của bạn</p>
         </div>
 
         <!-- Search & Order Code Lookup Toolbar -->
         <div class="flex items-center gap-2.5 flex-wrap">
             <div class="relative flex items-center">
                 <i class="bi bi-search absolute left-3.5 text-slate-400 text-xs"></i>
-                <input type="text"
-                       [(ngModel)]="searchOrLookupQuery"
-                       (keyup.enter)="onSearchOrLookup()"
-                       placeholder="Tìm từ khóa hoặc Mã đơn (BKT-...)"
-                       class="h-10 pl-9 pr-8 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 w-60 md:w-72 bg-white transition-all">
-                <button *ngIf="searchOrLookupQuery" (click)="clearSearchOrLookup()" class="absolute right-2.5 text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0" title="Xóa tìm kiếm">
+                <input type="text" [(ngModel)]="searchOrLookupQuery" (keyup.enter)="onSearchOrLookup()"
+                    placeholder="Tìm từ khóa hoặc Mã đơn (BKT-...)"
+                    class="h-10 pl-9 pr-8 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 w-60 md:w-72 bg-white transition-all">
+                <button *ngIf="searchOrLookupQuery" (click)="clearSearchOrLookup()"
+                    class="absolute right-2.5 text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                    title="Xóa tìm kiếm">
                     <i class="bi bi-x-circle-fill text-xs"></i>
                 </button>
             </div>
             <button (click)="onSearchOrLookup()" [disabled]="isSearchingOrLookingUp"
-                    class="h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5">
+                class="h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5">
                 <i class="bi" [ngClass]="isSearchingOrLookingUp ? 'bi-arrow-repeat animate-spin' : 'bi-search'"></i>
                 <span>{{ isSearchingOrLookingUp ? 'Đang tra...' : 'Tra cứu' }}</span>
             </button>
             <button (click)="openCreateNewModal()"
-                    class="h-10 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shadow-none border-0 cursor-pointer transition-all flex items-center gap-1.5">
+                class="h-10 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shadow-none border-0 cursor-pointer transition-all flex items-center gap-1.5">
                 <i class="bi bi-plus-lg"></i>
                 <span>Tạo Mới</span>
             </button>
@@ -1675,16 +1724,19 @@
     <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center"
         *ngIf="!isLoadingList && filteredSavedItineraries.length === 0">
         <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="bi text-2xl text-slate-400" [ngClass]="searchOrLookupQuery ? 'bi-search' : 'bi-calendar-event'"></i>
+            <i class="bi text-2xl text-slate-400"
+                [ngClass]="searchOrLookupQuery ? 'bi-search' : 'bi-calendar-event'"></i>
         </div>
         <h3 class="text-base font-bold text-slate-800">
             {{ searchOrLookupQuery ? 'Không tìm thấy lịch trình hoặc đơn đặt chỗ' : 'Chưa có lịch trình nào' }}
         </h3>
         <p class="text-xs text-slate-500 mt-1.5 max-w-md mx-auto" *ngIf="searchOrLookupQuery">
-            Không có kết quả khớp với "<strong>{{ searchOrLookupQuery }}</strong>". Vui lòng kiểm tra lại mã đơn hàng hoặc số điện thoại.
+            Không có kết quả khớp với "<strong>{{ searchOrLookupQuery }}</strong>". Vui lòng kiểm tra lại mã đơn hàng
+            hoặc số điện thoại.
         </p>
         <p class="text-xs text-slate-500 mt-1.5 max-w-md mx-auto" *ngIf="!searchOrLookupQuery">
-            {{ currentUser ? 'Bạn chưa lưu lịch trình nào. Hãy bắt đầu lên kế hoạch cho chuyến đi tiếp theo!' : 'Chưa có lịch trình nào trên thiết bị này. Bạn có thể tự thiết kế hoặc khám phá các tour có sẵn.' }}
+            {{ currentUser ? 'Bạn chưa lưu lịch trình nào. Hãy bắt đầu lên kế hoạch cho chuyến đi tiếp theo!' : 'Chưa có
+            lịch trình nào trên thiết bị này. Bạn có thể tự thiết kế hoặc khám phá các tour có sẵn.' }}
         </p>
         <div class="mt-5 flex items-center justify-center gap-2.5 flex-wrap">
             <button *ngIf="searchOrLookupQuery" (click)="clearSearchOrLookup()"
@@ -1717,20 +1769,22 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="getUnifiedCoverImage(iti)"
-                                    alt="Destination cover"
+                                <img [src]="getUnifiedCoverImage(iti)" alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
                                     class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
                                     <div>
-                                        <span class="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{{
+                                        <span
+                                            class="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{{
                                             iti.destination }}</span>
-                                        <h3 class="text-base font-bold text-white mt-0.5 line-clamp-1">{{ iti.name }}</h3>
+                                        <h3 class="text-base font-bold text-white mt-0.5 line-clamp-1">{{ iti.name }}
+                                        </h3>
                                     </div>
                                 </div>
 
                                 <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
-                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary" [targetId]="iti.id" [label]="iti.name" />
+                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary"
+                                        [targetId]="iti.id" [label]="iti.name" />
                                     <button (click)="openShareModal(iti, $event)"
                                         class="h-7 w-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all"
                                         title="Chia sẻ">
@@ -1804,24 +1858,28 @@
                         <div>
                             <!-- Cover Area -->
                             <div class="relative h-44 w-full overflow-hidden bg-slate-100">
-                                <img [src]="getUnifiedCoverImage(iti)"
-                                    alt="Destination cover"
+                                <img [src]="getUnifiedCoverImage(iti)" alt="Destination cover"
                                     class="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300">
                                 <div
                                     class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-4">
                                     <div>
-                                        <span class="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{{
+                                        <span
+                                            class="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{{
                                             iti.destination }}</span>
-                                        <h3 class="text-base font-bold text-white mt-0.5 line-clamp-1">{{ iti.name }}</h3>
+                                        <h3 class="text-base font-bold text-white mt-0.5 line-clamp-1">{{ iti.name }}
+                                        </h3>
                                     </div>
                                 </div>
 
-                                <span class="absolute top-3.5 left-3.5 bg-black/40 backdrop-blur-sm text-white/90 border border-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 shadow-sm">
-                                    <i class="bi bi-shield-lock-fill text-[9px]"></i> {{ iti.bookingStatusText || 'Đã đặt chỗ' }}
+                                <span
+                                    class="absolute top-3.5 left-3.5 bg-black/40 backdrop-blur-sm text-white/90 border border-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 shadow-sm">
+                                    <i class="bi bi-shield-lock-fill text-[9px]"></i> {{ iti.bookingStatusText || 'Đã
+                                    đặt chỗ' }}
                                 </span>
 
                                 <div class="absolute top-3.5 right-3.5 flex items-center gap-2">
-                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary" [targetId]="iti.id" [label]="iti.name" />
+                                    <app-favorite-button *ngIf="!iti.isTourBooking" targetType="itinerary"
+                                        [targetId]="iti.id" [label]="iti.name" />
                                     <button (click)="openShareModal(iti, $event)"
                                         class="h-7 w-7 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all"
                                         title="Chia sẻ">
@@ -2031,20 +2089,23 @@
                 <!-- 2. Billing details -->
                 <div class="billing-container text-left">
                     <h4 class="text-xs font-bold text-[#184A37] mb-2">Chi tiết từng dịch vụ trong lịch trình</h4>
-                    <div class="checkout-items-list max-h-40 overflow-y-auto space-y-1.5 border-b border-gray-100 pb-2 mb-2">
+                    <div
+                        class="checkout-items-list max-h-40 overflow-y-auto space-y-1.5 border-b border-gray-100 pb-2 mb-2">
                         <div class="billing-item-row flex justify-between text-xs" *ngIf="checkoutItems.length === 0">
-                            <span class="text-gray-400">Lịch trình hiện tại hoàn toàn miễn phí hoặc chưa có dịch vụ.</span>
+                            <span class="text-gray-400">Lịch trình hiện tại hoàn toàn miễn phí hoặc chưa có dịch
+                                vụ.</span>
                         </div>
                         <div class="billing-item-row flex justify-between items-center text-xs text-gray-700 py-1 border-b border-gray-50"
                             *ngFor="let item of checkoutItems">
                             <div class="flex items-center gap-1.5 min-w-0 pr-2">
                                 <span class="truncate font-medium">{{ item.title }}</span>
                                 <span class="text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap"
-                                      [ngClass]="item.isPartner ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'">
+                                    [ngClass]="item.isPartner ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'">
                                     {{ item.isPartner ? 'Đối tác · Có cọc' : 'Tự túc · Không cọc' }}
                                 </span>
                             </div>
-                            <span class="font-semibold text-slate-800 whitespace-nowrap">{{ item.cost === 0 ? '0đ (Miễn phí)' : ((item.cost | number:'1.0-0':'vi-VN') + 'đ') }}</span>
+                            <span class="font-semibold text-slate-800 whitespace-nowrap">{{ item.cost === 0 ? '0đ (Miễn
+                                phí)' : ((item.cost | number:'1.0-0':'vi-VN') + 'đ') }}</span>
                         </div>
                     </div>
 
@@ -2069,16 +2130,20 @@
                     </div>
 
                     <!-- Deposit row (Only for partner services) -->
-                    <div class="billing-total-row flex justify-between items-center text-sm pt-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 mt-2">
+                    <div
+                        class="billing-total-row flex justify-between items-center text-sm pt-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 mt-2">
                         <div class="flex flex-col">
-                            <span class="font-bold text-emerald-950 text-xs">Tiền đặt cọc giữ chỗ ngay (30% Đối tác):</span>
+                            <span class="font-bold text-emerald-950 text-xs">Tiền đặt cọc giữ chỗ ngay (30% Đối
+                                tác):</span>
                             <small class="text-[10px] text-emerald-700">Chỉ thu cọc dịch vụ đối tác GreenSteps</small>
                         </div>
-                        <strong class="text-base text-emerald-700 font-extrabold">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
+                        <strong class="text-base text-emerald-700 font-extrabold">{{ itineraryDepositAmount |
+                            number:'1.0-0':'vi-VN' }}đ</strong>
                     </div>
                     <div class="flex justify-between items-center text-[11px] text-gray-500 px-1 pt-1">
                         <span>Còn lại thanh toán khi khởi hành:</span>
-                        <span class="font-bold text-gray-700">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
+                        <span class="font-bold text-gray-700">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN'
+                            }}đ</span>
                     </div>
                 </div>
 
@@ -2438,42 +2503,55 @@
         <div class="p-5 space-y-4">
             <!-- Sharing Preview Details with Destination & Cover Image -->
             <div class="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
-                <img *ngIf="getUnifiedCoverImage(sharingItinerary || activeItinerary)" [src]="getUnifiedCoverImage(sharingItinerary || activeItinerary)"
-                    alt="Cover" class="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0" />
-                <div *ngIf="!getUnifiedCoverImage(sharingItinerary || activeItinerary)" class="w-14 h-14 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0E9F6E] flex-shrink-0">
+                <img *ngIf="getUnifiedCoverImage(sharingItinerary || activeItinerary)"
+                    [src]="getUnifiedCoverImage(sharingItinerary || activeItinerary)" alt="Cover"
+                    class="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0" />
+                <div *ngIf="!getUnifiedCoverImage(sharingItinerary || activeItinerary)"
+                    class="w-14 h-14 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0E9F6E] flex-shrink-0">
                     <i class="bi bi-journal-check text-2xl"></i>
                 </div>
                 <div class="flex-grow min-w-0 text-left">
-                    <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name || sharingItinerary?.title }}</h4>
+                    <h4 class="text-xs font-bold text-[#184A37] truncate">{{ sharingItinerary?.name ||
+                        sharingItinerary?.title }}</h4>
                     <span class="text-[10px] text-gray-500 font-semibold uppercase block mt-0.5">
-                        <i class="bi bi-geo-alt-fill text-[#0E9F6E]"></i> {{ sharingItinerary?.destLabel || sharingItinerary?.destination || 'Việt Nam' }} • {{ getItineraryDaysCount(sharingItinerary) }} ngày
+                        <i class="bi bi-geo-alt-fill text-[#0E9F6E]"></i> {{ sharingItinerary?.destLabel ||
+                        sharingItinerary?.destination || 'Việt Nam' }} • {{ getItineraryDaysCount(sharingItinerary) }}
+                        ngày
                     </span>
-                    <span class="text-[9.5px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1 font-medium">Tự động gắn thông tin & ảnh bìa chuyến đi</span>
+                    <span
+                        class="text-[9.5px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1 font-medium">Tự
+                        động gắn thông tin & ảnh bìa chuyến đi</span>
                 </div>
             </div>
 
             <!-- Sharing Permissions / Modes Checkboxes -->
             <div class="p-3 bg-emerald-50/40 border border-emerald-100/80 rounded-2xl space-y-2.5 text-left">
-                <div class="text-[10.5px] font-bold text-[#184A37] uppercase tracking-wider">Tùy chọn quyền truy cập:</div>
+                <div class="text-[10.5px] font-bold text-[#184A37] uppercase tracking-wider">Tùy chọn quyền truy cập:
+                </div>
                 <label class="flex items-start gap-2.5 cursor-pointer text-xs text-[#184A37]">
-                    <input type="checkbox" [(ngModel)]="shareAllowClone" (change)="onShareOptionsChanged()" class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
+                    <input type="checkbox" [(ngModel)]="shareAllowClone" (change)="onShareOptionsChanged()"
+                        class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
                     <div>
                         <div class="font-bold text-xs">Chia sẻ lịch trình mẫu (Cho phép tham khảo & sao chép)</div>
-                        <div class="text-[10.5px] text-gray-500">Người xem có thể tham khảo chi tiết và sao chép lịch trình này về tài khoản riêng.</div>
+                        <div class="text-[10.5px] text-gray-500">Người xem có thể tham khảo chi tiết và sao chép lịch
+                            trình này về tài khoản riêng.</div>
                     </div>
                 </label>
                 <label class="flex items-start gap-2.5 cursor-pointer text-xs text-[#184A37]">
-                    <input type="checkbox" [(ngModel)]="shareAllowCollab" (change)="onShareOptionsChanged()" class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
+                    <input type="checkbox" [(ngModel)]="shareAllowCollab" (change)="onShareOptionsChanged()"
+                        class="mt-0.5 rounded border-gray-300 text-[#0E9F6E] focus:ring-[#0E9F6E] w-4 h-4 cursor-pointer" />
                     <div>
                         <div class="font-bold text-xs">Mời tham gia lịch trình (Cùng chỉnh sửa & thanh toán)</div>
-                        <div class="text-[10.5px] text-gray-500">Mời bạn bè trở thành thành viên đồng hành để cùng thêm/sửa điểm dừng và cùng đặt cọc/thanh toán.</div>
+                        <div class="text-[10.5px] text-gray-500">Mời bạn bè trở thành thành viên đồng hành để cùng
+                            thêm/sửa điểm dừng và cùng đặt cọc/thanh toán.</div>
                     </div>
                 </label>
             </div>
 
             <!-- Option 1: Post to Community -->
             <div class="space-y-2 text-left">
-                <label class="text-[10px] font-bold text-[#184A37]/60 uppercase tracking-wider">Đăng lên cộng đồng GreenSteps</label>
+                <label class="text-[10px] font-bold text-[#184A37]/60 uppercase tracking-wider">Đăng lên cộng đồng
+                    GreenSteps</label>
                 <textarea [(ngModel)]="shareMessage" rows="2"
                     class="w-full p-3 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] resize-none bg-gray-50 focus:bg-white transition-all"
                     placeholder="Nhập cảm nghĩ về lịch trình này..."></textarea>
@@ -2485,15 +2563,18 @@
 
             <div class="relative flex py-1 items-center">
                 <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Hoặc chia sẻ qua mạng xã hội</span>
+                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Hoặc chia sẻ qua mạng
+                    xã hội</span>
                 <div class="flex-grow border-t border-gray-200"></div>
             </div>
 
             <!-- Direct Share Link Preview Box -->
             <div class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-xl">
                 <i class="bi bi-link-45deg text-gray-500 text-sm ml-1"></i>
-                <input type="text" [value]="shareLink" readonly class="flex-grow bg-transparent text-xs text-gray-700 outline-none select-all font-mono truncate" />
-                <button (click)="copyShareLink()" type="button" class="px-3 py-1.5 bg-[#184A37] text-white text-[11px] font-bold rounded-lg hover:bg-[#143d2d] cursor-pointer border-0 flex items-center gap-1 transition-all flex-shrink-0">
+                <input type="text" [value]="shareLink" readonly
+                    class="flex-grow bg-transparent text-xs text-gray-700 outline-none select-all font-mono truncate" />
+                <button (click)="copyShareLink()" type="button"
+                    class="px-3 py-1.5 bg-[#184A37] text-white text-[11px] font-bold rounded-lg hover:bg-[#143d2d] cursor-pointer border-0 flex items-center gap-1 transition-all flex-shrink-0">
                     <i class="bi bi-clipboard"></i> Sao chép
                 </button>
             </div>
@@ -2560,12 +2641,12 @@
                     <span *ngFor="let em of inviteEmailChipList; let eIdx = index"
                         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#184A37]">
                         <i class="bi bi-envelope"></i> {{ em }}
-                        <button type="button" (click)="removeInviteEmailChip(eIdx)" class="border-0 bg-transparent text-gray-500 hover:text-gray-800 cursor-pointer p-0 leading-none">×</button>
+                        <button type="button" (click)="removeInviteEmailChip(eIdx)"
+                            class="border-0 bg-transparent text-gray-500 hover:text-gray-800 cursor-pointer p-0 leading-none">×</button>
                     </span>
                 </div>
                 <div class="flex gap-2">
-                    <input type="text" [(ngModel)]="inviteEmails"
-                        (keydown.enter)="addInviteEmailFromInput($event)"
+                    <input type="text" [(ngModel)]="inviteEmails" (keydown.enter)="addInviteEmailFromInput($event)"
                         placeholder="Nhập 1 hoặc nhiều Gmail (cách nhau dấu phẩy)..."
                         class="flex-1 p-2.5 rounded-xl border border-gray-200 text-xs text-[#184A37] outline-none focus:border-[#184A37] bg-gray-50 focus:bg-white transition-all">
                     <button type="button" (click)="addInviteEmailFromInput()"
@@ -2583,7 +2664,8 @@
 
             <div class="relative flex py-1 items-center">
                 <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Chia sẻ Cộng đồng & Mạng xã hội</span>
+                <span class="flex-shrink mx-3 text-[10px] font-bold text-[#184A37]/40 uppercase">Chia sẻ Cộng đồng &
+                    Mạng xã hội</span>
                 <div class="flex-grow border-t border-gray-200"></div>
             </div>
 
@@ -2634,18 +2716,17 @@
             <!-- General Trip Notes -->
             <div>
                 <label class="text-xs font-bold text-gray-700 block mb-1.5">Sổ tay ghi chú chung cho chuyến đi</label>
-                <textarea [(ngModel)]="activeItinerary.generalNotes" rows="4"
-                    (change)="saveItineraryNotes()"
+                <textarea [(ngModel)]="activeItinerary.generalNotes" rows="4" (change)="saveItineraryNotes()"
                     placeholder="Ghi chú giờ tập trung, giấy tờ tùy thân, số điện thoại khẩn cấp, lưu ý thời tiết..."
                     class="w-full p-3 rounded-xl border border-gray-200 text-xs text-gray-800 outline-none focus:border-[#184A37] resize-y bg-gray-50 focus:bg-white"></textarea>
             </div>
 
             <!-- Checklist Items -->
             <div>
-                <label class="text-xs font-bold text-gray-700 block mb-1.5">Danh sách đồ cần chuẩn bị (Checklist)</label>
+                <label class="text-xs font-bold text-gray-700 block mb-1.5">Danh sách đồ cần chuẩn bị
+                    (Checklist)</label>
                 <div class="flex gap-2 mb-2.5">
-                    <input type="text" [(ngModel)]="newChecklistItemText"
-                        (keydown.enter)="addChecklistItem()"
+                    <input type="text" [(ngModel)]="newChecklistItemText" (keydown.enter)="addChecklistItem()"
                         placeholder="Thêm vật dụng hoặc việc cần làm..."
                         class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#184A37]">
                     <button type="button" (click)="addChecklistItem()"
@@ -2659,7 +2740,7 @@
                         <label class="flex items-center gap-2 cursor-pointer flex-1">
                             <input type="checkbox" [(ngModel)]="item.done" (change)="saveItineraryNotes()">
                             <span [style.text-decoration]="item.done ? 'line-through' : 'none'"
-                                  [style.color]="item.done ? '#94a3b8' : '#1f2421'">{{ item.text }}</span>
+                                [style.color]="item.done ? '#94a3b8' : '#1f2421'">{{ item.text }}</span>
                         </label>
                         <button type="button" (click)="removeChecklistItem(cIdx)"
                             class="border-0 bg-transparent text-gray-400 hover:text-gray-700 cursor-pointer">
@@ -2671,7 +2752,8 @@
 
             <!-- Summary of Activity & Leg Notes -->
             <div *ngIf="getAllActivityAndLegNotes().length > 0">
-                <label class="text-xs font-bold text-gray-700 block mb-1.5">Tổng hợp ghi chú theo từng điểm đến & đường đi</label>
+                <label class="text-xs font-bold text-gray-700 block mb-1.5">Tổng hợp ghi chú theo từng điểm đến & đường
+                    đi</label>
                 <div class="space-y-1.5 max-h-36 overflow-y-auto">
                     <div *ngFor="let n of getAllActivityAndLegNotes()"
                         class="px-3 py-2 rounded-lg bg-[#f4fbf7] border border-[#d1e7dd] text-xs text-[#192520]">
