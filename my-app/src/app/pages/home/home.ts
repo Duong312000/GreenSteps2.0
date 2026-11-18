@@ -24,66 +24,9 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   private plannerScrollFrame?: number;
   private revealObserver?: IntersectionObserver;
   private parallaxFrame = 0;
-  private storyProgrammaticTimer?: ReturnType<typeof setTimeout>;
   private previewImageTimer?: ReturnType<typeof setTimeout>;
-  private storyScrollFrame = 0;
-  private storyWheelGestureActive = false;
-  private storyWheelAnimationLocked = false;
-  private storyWheelLastAt = 0;
-  private storyWheelQuietMs = 140;
-  private storyWheelMonitorFrame = 0;
-  private programmaticStoryTarget: number | null = null;
   private previewImageRequest = 0;
   private readonly countFrames = new Set<number>();
-  private readonly onStoryWheel = (event: WheelEvent) => {
-    if (window.innerWidth <= 1100 || event.deltaY === 0) return;
-
-    const story = this.elementRef.nativeElement.querySelector<HTMLElement>('.gs-itinerary');
-    if (!story) return;
-
-    const rect = story.getBoundingClientRect();
-    const navbarHeight = this.getStoryNavbarHeight();
-    const stickyHeight = Math.max(1, window.innerHeight - navbarHeight);
-    const start = rect.top + window.scrollY - navbarHeight;
-    const scrollRange = Math.max(1, story.offsetHeight - stickyHeight);
-    const end = start + scrollRange;
-    const steps: Array<'eco' | 'guides' | 'dates' | 'ai'> = ['eco', 'guides', 'dates', 'ai'];
-    const direction = event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? window.innerHeight : 1);
-    const projectedScroll = window.scrollY + direction;
-    const enteringFromAbove = window.scrollY < start && projectedScroll >= start;
-    const enteringFromBelow = window.scrollY > end && projectedScroll <= end;
-    const isInsideStory = window.scrollY >= start && window.scrollY <= end;
-    if (!isInsideStory && !enteringFromAbove && !enteringFromBelow) return;
-
-    if (this.storyWheelGestureActive || this.storyWheelAnimationLocked) {
-      event.preventDefault();
-      this.recordStoryWheelEvent(event);
-      return;
-    }
-
-    if (enteringFromAbove) {
-      event.preventDefault();
-      this.beginStoryWheelGesture(event);
-      this.moveStoryToStep(0);
-      return;
-    }
-
-    if (enteringFromBelow) {
-      event.preventDefault();
-      this.beginStoryWheelGesture(event);
-      this.moveStoryToStep(3);
-      return;
-    }
-
-    const progress = Math.max(0, Math.min(.999, (window.scrollY - start) / scrollRange));
-    const currentStep = Math.floor(progress * steps.length);
-    const nextStep = currentStep + (direction > 0 ? 1 : -1);
-    if (nextStep < 0 || nextStep >= steps.length) return;
-
-    event.preventDefault();
-    this.beginStoryWheelGesture(event);
-    this.moveStoryToStep(nextStep);
-  };
   private readonly onScrollForParallax = () => {
     if (this.parallaxFrame) return;
     this.parallaxFrame = window.requestAnimationFrame(() => {
@@ -102,7 +45,6 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
           if (target.getBoundingClientRect().top <= revealLine) this.revealTarget(target);
         });
       }
-    this.updateStoryFromScroll(root);
     });
   };
 
@@ -259,27 +201,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public selectHighlight(section: 'eco' | 'guides' | 'dates' | 'ai') {
-    this.clearStoryWheelGesture();
     this.setStoryHighlight(section);
-    if (window.innerWidth > 1100) this.moveStoryToStep((['eco', 'guides', 'dates', 'ai'] as const).indexOf(section));
     this.scrollPreviewIntoViewOnMobile();
-  }
-
-  private updateStoryFromScroll(root: HTMLElement): void {
-    if (window.innerWidth <= 1100) return;
-    if (this.programmaticStoryTarget === null) return;
-    const section = root.querySelector<HTMLElement>('.gs-itinerary');
-    if (!section) return;
-    const rect = section.getBoundingClientRect();
-    const navbarHeight = this.getStoryNavbarHeight();
-    const stickyHeight = Math.max(1, window.innerHeight - navbarHeight);
-    const start = rect.top + window.scrollY - navbarHeight;
-    const scrollRange = Math.max(1, section.offsetHeight - stickyHeight);
-    const end = start + scrollRange;
-    if (window.scrollY < start || window.scrollY > end) return;
-    const progress = Math.max(0, Math.min(.999, (window.scrollY - start) / scrollRange));
-    const stepIndex = Math.floor(progress * 4);
-    if (stepIndex === this.programmaticStoryTarget) this.clearProgrammaticStoryTarget();
   }
 
   private setStoryHighlight(section: 'eco' | 'guides' | 'dates' | 'ai'): void {
@@ -287,10 +210,8 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeHighlight = section;
       this.crossfadeStoryPreviewImage(this.highlightPreviews[section]?.days[0]?.img);
       this.isStoryTransitioning = true;
-      this.storyWheelAnimationLocked = true;
       this.changeDetectorRef.detectChanges();
     }
-    const step = (['eco', 'guides', 'dates', 'ai'] as const).indexOf(section);
     this.setStoryIndicator(section);
   }
 
@@ -299,89 +220,12 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     // prefixed name such as `_ngcontent-..._gs-story-card-switch`.
     if (event.target !== event.currentTarget || !event.animationName.endsWith('gs-story-card-switch')) return;
     this.isStoryTransitioning = false;
-    this.storyWheelAnimationLocked = false;
     this.changeDetectorRef.detectChanges();
   }
 
   private getStoryNavbarHeight(): number {
     const header = document.querySelector<HTMLElement>('#app-header .editor-header');
     return header?.getBoundingClientRect().height || 70;
-  }
-
-  private moveStoryToStep(index: number): void {
-    const story = this.elementRef.nativeElement.querySelector<HTMLElement>('.gs-itinerary');
-    if (!story || window.innerWidth <= 1100) return;
-
-    const steps: Array<'eco' | 'guides' | 'dates' | 'ai'> = ['eco', 'guides', 'dates', 'ai'];
-    const targetStep = Math.max(0, Math.min(steps.length - 1, index));
-    const navbarHeight = this.getStoryNavbarHeight();
-    const stickyHeight = Math.max(1, window.innerHeight - navbarHeight);
-    const storyTop = story.getBoundingClientRect().top + window.scrollY;
-    const scrollRange = Math.max(1, story.offsetHeight - stickyHeight);
-    const fraction = targetStep === 0 ? .08 : (targetStep + .5) / steps.length;
-
-    this.programmaticStoryTarget = targetStep;
-    if (this.storyProgrammaticTimer) clearTimeout(this.storyProgrammaticTimer);
-    this.storyProgrammaticTimer = setTimeout(() => this.clearProgrammaticStoryTarget(), 1200);
-    this.setStoryHighlight(steps[targetStep]);
-    const targetY = storyTop - navbarHeight + scrollRange * fraction;
-    if (this.storyScrollFrame) window.cancelAnimationFrame(this.storyScrollFrame);
-    this.storyScrollFrame = 0;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      window.scrollTo({ top: targetY, behavior: 'auto' });
-      return;
-    }
-
-    const startY = window.scrollY;
-    const distance = targetY - startY;
-    const startedAt = performance.now();
-    const duration = 360;
-    const animateScroll = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      window.scrollTo(0, startY + distance * eased);
-      if (progress < 1) this.storyScrollFrame = window.requestAnimationFrame(animateScroll);
-      else this.storyScrollFrame = 0;
-    };
-    this.storyScrollFrame = window.requestAnimationFrame(animateScroll);
-  }
-
-  private clearProgrammaticStoryTarget(): void {
-    this.programmaticStoryTarget = null;
-    if (this.storyProgrammaticTimer) clearTimeout(this.storyProgrammaticTimer);
-    this.storyProgrammaticTimer = undefined;
-  }
-
-  private beginStoryWheelGesture(event: WheelEvent): void {
-    this.storyWheelGestureActive = true;
-    this.recordStoryWheelEvent(event);
-  }
-
-  private recordStoryWheelEvent(event: WheelEvent): void {
-    const now = performance.now();
-    const modeQuiet = event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? 220 : event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 170 : 130;
-    const interval = this.storyWheelLastAt ? now - this.storyWheelLastAt : 0;
-    this.storyWheelQuietMs = Math.min(300, Math.max(modeQuiet, interval * 1.8));
-    this.storyWheelLastAt = now;
-    if (!this.storyWheelMonitorFrame) this.storyWheelMonitorFrame = window.requestAnimationFrame(this.monitorStoryWheelGesture);
-  }
-
-  private readonly monitorStoryWheelGesture = (): void => {
-    this.storyWheelMonitorFrame = 0;
-    if (!this.storyWheelGestureActive) return;
-    if (performance.now() - this.storyWheelLastAt >= this.storyWheelQuietMs) {
-      this.storyWheelGestureActive = false;
-      this.storyWheelLastAt = 0;
-      return;
-    }
-    this.storyWheelMonitorFrame = window.requestAnimationFrame(this.monitorStoryWheelGesture);
-  };
-
-  private clearStoryWheelGesture(): void {
-    this.storyWheelGestureActive = false;
-    this.storyWheelLastAt = 0;
-    if (this.storyWheelMonitorFrame) window.cancelAnimationFrame(this.storyWheelMonitorFrame);
-    this.storyWheelMonitorFrame = 0;
   }
 
   private setStoryIndicator(section: 'eco' | 'guides' | 'dates' | 'ai'): void {
@@ -662,7 +506,6 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     requestAnimationFrame(() => this.initAiPlannerMap());
     const story = root.querySelector<HTMLElement>('.gs-itinerary');
     story?.style.setProperty('--gs-story-navbar', `${this.getStoryNavbarHeight()}px`);
-    window.addEventListener('wheel', this.onStoryWheel, { passive: false });
     this.setStoryIndicator(this.activeHighlight);
     window.addEventListener('scroll', this.onScrollForParallax, { passive: true });
     this.onScrollForParallax();
@@ -699,11 +542,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.aiPlannerMap?.remove();
     this.aiPlannerMap = null;
     window.removeEventListener('scroll', this.onScrollForParallax);
-    window.removeEventListener('wheel', this.onStoryWheel);
-    if (this.storyProgrammaticTimer) clearTimeout(this.storyProgrammaticTimer);
     if (this.previewImageTimer) clearTimeout(this.previewImageTimer);
-    if (this.storyWheelMonitorFrame) window.cancelAnimationFrame(this.storyWheelMonitorFrame);
-    if (this.storyScrollFrame) window.cancelAnimationFrame(this.storyScrollFrame);
     if (this.destinationTransitionTimer) clearTimeout(this.destinationTransitionTimer);
     if (this.destinationClickSuppressionTimer) clearTimeout(this.destinationClickSuppressionTimer);
     if (this.parallaxFrame) window.cancelAnimationFrame(this.parallaxFrame);

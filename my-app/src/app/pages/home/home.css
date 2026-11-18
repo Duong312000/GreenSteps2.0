@@ -162,10 +162,10 @@
 .gs-destination-pagination button:hover { transform: scale(1.12); }
 .gs-destination-pagination button.active { width: 25px; background: #168c65; }
 
-/* Centered, light editorial story with one deliberate state per wheel gesture. */
-.gs-itinerary { --gs-story-navbar: 70px; position: relative; height: 360svh; padding: 0 clamp(22px, 7vw, 128px); background-color: #f6f5ee; background-image: url('/image/brand/8918719f-2c2f-4728-b22f-0d662b99aef5.png'); background-position: center 52%; background-repeat: no-repeat; background-size: cover; background-attachment: fixed; color: #20382e; }
+/* Centered editorial story that remains part of the page's natural scroll flow. */
+.gs-itinerary { --gs-story-navbar: 70px; position: relative; min-height: 100svh; padding: 0 clamp(22px, 7vw, 128px); background-color: #f6f5ee; background-image: url('/image/brand/8918719f-2c2f-4728-b22f-0d662b99aef5.png'); background-position: center 52%; background-repeat: no-repeat; background-size: cover; background-attachment: fixed; color: #20382e; }
 .gs-itinerary::before { position: absolute; inset: 0; content: ''; background: radial-gradient(ellipse at 100% 14%, rgba(198,216,190,.28), transparent 27%), radial-gradient(ellipse at 0% 100%, rgba(203,218,193,.28), transparent 25%); pointer-events: none; }
-.gs-itinerary-shell { position: sticky; top: var(--gs-story-navbar); display: grid; width: 100%; height: calc(100svh - var(--gs-story-navbar)); grid-template-columns: minmax(0, .42fr) minmax(0, .58fr); align-items: center; gap: clamp(28px, 4vw, 68px); max-width: 1680px; margin: 0 auto; }
+.gs-itinerary-shell { position: relative; display: grid; width: 100%; min-height: calc(100svh - var(--gs-story-navbar)); grid-template-columns: minmax(0, .42fr) minmax(0, .58fr); align-items: center; gap: clamp(28px, 4vw, 68px); max-width: 1680px; margin: 0 auto; }
 .gs-itinerary-intro { min-width: 0; }
 .gs-itinerary-intro h2 { color: #173d30; font-size: clamp(42px, 4.2vw, 78px); line-height: .98; }
 .gs-itinerary-intro h2 em { color: #43864a; }
