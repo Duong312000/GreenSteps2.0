@@ -9,7 +9,7 @@ import { User, WalletTransaction } from '../../models/models';
 import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
 import { DestinationWeather, WeatherService } from '../../services/weather.service';
 
-type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'promotions' | 'settings' | 'map' | 'chatbot';
+type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'itineraries' | 'promotions' | 'settings' | 'map' | 'chatbot';
 
 type TravelPreference = {
   label: string;
@@ -93,6 +93,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   public userGreenPoints: number | null = null;
   public carbonSummary: ProfileCarbonSummary = profileCarbonSummary([]);
   public userTickets: any[] = [];
+  public userItineraries: any[] = [];
   public tripImageFailed = false;
   public destinationWeather: DestinationWeather | null = null;
   public weatherLoading = false;
@@ -333,7 +334,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe(params => {
       if (params['section']) {
         const sec = params['section'] as ProfileSection;
-        if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'promotions', 'settings', 'map', 'chatbot'].includes(sec)) {
+        if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'itineraries', 'promotions', 'settings', 'map', 'chatbot'].includes(sec)) {
           this.activeSection = sec;
         }
       }
@@ -488,10 +489,35 @@ export class ProfileComponent implements OnInit, OnDestroy {
       if (!this.isCurrentProfileUser(userId)) return;
       this.savedItinerariesCount = userItineraries.length || null;
       this.carbonSummary = profileCarbonSummary(userItineraries || []);
+      this.userItineraries = (userItineraries || []).map(iti => {
+        const dateDisplay = iti.start_date
+          ? `${this.formatDisplayDate(iti.start_date)}${iti.end_date ? ` - ${this.formatDisplayDate(iti.end_date)}` : ''}`
+          : (iti.days ? `${iti.days} ngày trải nghiệm` : 'Lịch trình tùy chỉnh');
+        let actCount = 0;
+        if (Array.isArray(iti.days_data)) {
+          actCount = iti.days_data.reduce((acc: number, d: any) => acc + (d.activities?.length || 0), 0);
+        } else if (Array.isArray(iti.activities)) {
+          actCount = iti.activities.length;
+        }
+        return {
+          id: iti.id || iti._id,
+          title: iti.name || iti.title || (iti.destination ? `Lịch trình tại ${iti.destination}` : 'Lịch trình tùy chỉnh'),
+          destination: iti.destination || iti.destLabel || 'Việt Nam',
+          dates: dateDisplay,
+          days: iti.days || (iti.days_data?.length || 1),
+          cost: iti.totalCost || iti.total_cost || 0,
+          activitiesCount: actCount,
+          carbon: iti.carbonSaved || iti.carbon || -2.5,
+          image: iti.imageUrl || iti.img || iti.cover_image || 'image/greensteps/phu-yen/phu-yen-ganh-da-dia-01.jpg',
+          statusText: 'Đang lên kế hoạch',
+          link: `/schedule-editor?id=${iti.id || iti._id}`
+        };
+      });
     } catch (e) {
       if (!this.isCurrentProfileUser(userId)) return;
       this.savedItinerariesCount = null;
       this.carbonSummary = profileCarbonSummary([]);
+      this.userItineraries = [];
     }
 
     // Filter active bookings

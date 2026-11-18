@@ -1082,9 +1082,9 @@
 }
 
 .editor-main-panel {
-  flex: 1 1 0% !important;
-  min-width: 360px !important;
-  max-width: none !important;
+  flex: 0 0 calc(40vw - 250px) !important;
+  min-width: 320px !important;
+  max-width: 440px !important;
   height: 100% !important;
   overflow-y: auto !important;
   background-color: #FFFFFF !important;
@@ -1133,7 +1133,7 @@
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
-  width: 395px !important;
+  width: 320px !important;
   max-width: 100% !important;
   height: 100% !important;
   z-index: 1050 !important;
@@ -1732,7 +1732,7 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 380px;
+  width: 320px;
   max-width: calc(100vw - 28px);
   max-height: calc(100% - 28px);
   background: #ffffff;
@@ -2802,8 +2802,8 @@
 
 .local-suggestions-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
-  gap: 14px !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
 }
 
 .sugg-modern-info {
@@ -7038,22 +7038,96 @@
   margin-top: 1px;
 }
 
-/* Visible Drag-and-Drop Placeholder Slot */
-.drag-placeholder-slot {
-  height: 62px;
-  margin: 8px 0 8px 34px;
-  border: 2px dashed #184a37;
-  border-radius: 12px;
-  background: rgba(24, 74, 55, 0.05);
-  color: #184a37;
-  font-size: 12px;
-  font-weight: 600;
+/* Sleek Non-Shifting Drop Indicator Line (Linear/Notion/Wanderlog Standard) */
+.timeline-drop-line {
+  height: 3px;
+  margin: 4px 0 4px 34px;
+  background: linear-gradient(90deg, #184a37 0%, #10b981 50%, #184a37 100%);
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  pointer-events: none;
+  animation: dropLinePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dropLinePulse {
+  0%, 100% { opacity: 0.8; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.3); }
+}
+
+.timeline-item.is-drag-source {
+  opacity: 0.45 !important;
+  transform: scale(0.99) !important;
+  border-style: dashed !important;
+}
+
+.drag-handle-grip {
+  cursor: grab !important;
+  user-select: none !important;
+  touch-action: none;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  pointer-events: auto !important;
-  transition: all 0.15s ease;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.drag-handle-grip:hover {
+  color: #184a37;
+}
+
+.drag-handle-grip:active {
+  cursor: grabbing !important;
+}
+
+/* Strict Typography Compaction Rules (Max 13px ceiling) */
+.sidebar-panel h2,
+.sidebar-panel h3,
+.editor-main-panel h3,
+.editor-main-panel .cover-title,
+.editor-main-panel #activeDayTitle,
+.gm-dir-title,
+.gm-place-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.act-min-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+.act-min-rating-sub,
+.act-min-type-tag,
+.act-address-text,
+.travel-gap-text,
+.cost-label,
+.sugg-modern-cat-tag,
+.sugg-modern-carbon-chip,
+.sugg-modern-pill-badge,
+.sugg-modern-price {
+  font-size: 10px !important;
+}
+
+.timeline-native-time-input,
+.sidebar-cost-card .cost-row,
+.sidebar-panel .sidebar-menu-item {
+  font-size: 11px !important;
+}
+
+.sugg-modern-name {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+.drag-placeholder-slot {
+  height: 3px;
+  margin: 4px 0 4px 34px;
+  border: none;
+  background: #10b981;
+  pointer-events: none;
 }
 
 /* Unknown Price Badge & Inline Price Input */

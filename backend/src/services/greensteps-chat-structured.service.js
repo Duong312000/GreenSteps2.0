@@ -344,6 +344,8 @@ function planDurationDays(input) {
   if (englishShorthand && Number(englishShorthand[1]) >= 1 && Number(englishShorthand[1]) <= 14) return Number(englishShorthand[1]);
   const dayMatch = context.match(/\b(\d{1,2})\s*(?:ngay|day)\b/);
   if (dayMatch && Number(dayMatch[1]) >= 1 && Number(dayMatch[1]) <= 14) return Number(dayMatch[1]);
+  const specificDayMatch = context.match(/\b(?:ngay|day)\s*(\d{1,2})\b/);
+  if (specificDayMatch && Number(specificDayMatch[1]) >= 1 && Number(specificDayMatch[1]) <= 14) return Number(specificDayMatch[1]);
   const weekMatch = context.match(/\b(\d)\s*tuan\b/);
   if (weekMatch && Number(weekMatch[1]) >= 1 && Number(weekMatch[1]) <= 2) return Number(weekMatch[1]) * 7;
   const nightMatch = context.match(/\b(\d{1,2})\s*(?:dem|night)\b/);
@@ -385,6 +387,11 @@ function itineraryClarification(input, catalog) {
       reply: `Thời lượng cần từ 1 đến 14 ngày. Bạn muốn đi ${destination} bao nhiêu ngày?`,
       suggestedQuestions: ['1 ngày', '2 ngày 1 đêm', '3 ngày 2 đêm']
     };
+  }
+  const mentionsSpecificDay = /\b(?:ngay|day)\s*\d{1,2}\b/.test(current);
+  const inPlannerContext = Boolean(input.plannerState || (input.currentActivities && input.currentActivities.length));
+  if (mentionsSpecificDay || inPlannerContext) {
+    return null;
   }
   if (!planDurationDays(input)) {
     return {

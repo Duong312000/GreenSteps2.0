@@ -33,3 +33,7 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+.vercel
+backend/backups/
+backend/scripts/

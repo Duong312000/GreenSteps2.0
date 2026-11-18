@@ -200,12 +200,16 @@
                     <span class="cost-total-label">Tổng chi phí chuyến đi:</span>
                     <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
+                <div class="cost-row" *ngIf="itineraryDepositAmount > 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
                     <span class="cost-label">Đặt cọc giữ chỗ (30% Đối tác):</span>
                     <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
+                <div class="cost-row" *ngIf="itineraryDepositAmount === 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #047857; font-weight: 600;">
+                    <span class="cost-label">Đặt cọc sàn:</span>
+                    <span class="cost-val" style="font-weight: 700; color: #047857;">0đ (Địa điểm tự túc)</span>
+                </div>
                 <div class="cost-row" style="font-size: 11px; color: #64748b;">
-                    <span class="cost-label">Còn lại khi khởi hành:</span>
+                    <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại khi khởi hành:' : 'Thanh toán tại điểm đến:' }}</span>
                     <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
             </div>
@@ -228,8 +232,8 @@
                 <i class="bi bi-lock-fill"></i> Đã đặt cọc & Khóa sửa đổi
             </div>
             <button *ngIf="!isItineraryLocked()" class="btn-checkout-pay-modern" (click)="triggerCheckout()">
-                <i class="bi bi-shield-check"></i>
-                <span>Đặt cọc giữ chỗ ({{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ)</span>
+                <i class="bi" [ngClass]="itineraryDepositAmount > 0 ? 'bi-shield-check' : 'bi-bookmark-check'"></i>
+                <span>{{ itineraryDepositAmount > 0 ? ('Đặt cọc giữ chỗ (' + (itineraryDepositAmount | number:'1.0-0':'vi-VN') + 'đ)') : 'Lưu hành trình chuyến đi' }}</span>
             </button>
             <div *ngIf="currentUser" class="wallet-badge-pill" (click)="handleWalletBadgeClick($event)">
                 <i class="bi bi-wallet2"></i> Số dư Ví: {{ walletRegistered ? ((walletBalance | number:'1.0-0':'vi-VN') + 'đ') : 'Chưa kích hoạt' }}
@@ -263,7 +267,7 @@
                         Carbon: {{ msg.rec.carbon }} kg CO₂
                     </span>
                     <div class="ai-rec-add-btn"
-                        (click)="addPoolItemToActiveDay(msg.rec.name, msg.rec.type, msg.rec.cost, msg.rec.carbon, msg.rec.lat, msg.rec.lng)">
+                        (click)="addPoolItemToActiveDay(msg.rec.name, msg.rec.type, msg.rec.cost, msg.rec.carbon, msg.rec.lat, msg.rec.lng, msg.rec.img, msg.rec.is_partner)">
                         + Thêm vào Timeline
                     </div>
                 </div>
@@ -479,36 +483,31 @@
             </div>
 
             <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index; trackBy: trackByActId">
-                <!-- Drag-and-Drop Placeholder Slot BEFORE target card -->
-                <div class="drag-placeholder-slot"
-                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx"
-                    (dragover)="onDragOverPlaceholder($event)"
-                    (drop)="onDrop($event, idx)">
-                    <i class="bi bi-arrows-move"></i>
-                    <span>Thả địa điểm vào vị trí này</span>
+                <!-- Drop indicator line BEFORE target card -->
+                <div class="timeline-drop-line"
+                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx">
                 </div>
 
-                <div class="timeline-item" [class.cursor-grab]="!isItineraryLocked()"
-                    [class.cursor-default]="isItineraryLocked()"
+                <div class="timeline-item"
                     [class.dimmed-when-routing]="activeLegDirections && (idx !== activeLegDirections.fromIdx && idx !== activeLegDirections.toIdx)"
                     [class.highlighted-when-routing]="activeLegDirections && (idx === activeLegDirections.fromIdx || idx === activeLegDirections.toIdx)"
                     [class.is-drag-source]="dragSrcIdx === idx"
                     [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
                     [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
                     [attr.data-type]="act.type" 
-                    [draggable]="!isItineraryLocked()"
-                    (dragstart)="onDragStart($event, idx)" 
                     (dragover)="onDragOver($event, idx)"
                     (dragleave)="onDragLeave($event, idx)"
                     (drop)="onDrop($event, idx)" 
-                    (dragend)="onDragEnd($event)" 
                     (mouseenter)="highlightMapPin(idx, true)"
                     (mouseleave)="highlightMapPin(idx, false)">
 
-                    <!-- Ergonomic Grip Handle -->
+                    <!-- Ergonomic Grip Handle (Linear/Notion/Wanderlog Standard) -->
                     <div class="drag-handle-grip" 
                         *ngIf="!isItineraryLocked()"
-                        title="Kéo thả trực tiếp thẻ hoặc tay nắm này">
+                        [draggable]="true"
+                        (dragstart)="onDragStart($event, idx)"
+                        (dragend)="onDragEnd($event)"
+                        title="Kéo thả để sắp xếp lại thứ tự">
                         <i class="bi bi-grip-vertical"></i>
                     </div>
 
@@ -664,13 +663,9 @@
                     </div>
                 </div>
 
-                <!-- Drag-and-Drop Placeholder Slot AFTER target card -->
-                <div class="drag-placeholder-slot"
-                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'after' && dragSrcIdx !== idx"
-                    (dragover)="onDragOverPlaceholder($event)"
-                    (drop)="onDrop($event, idx)">
-                    <i class="bi bi-arrows-move"></i>
-                    <span>Thả địa điểm vào vị trí này</span>
+                <!-- Drop indicator line AFTER target card -->
+                <div class="timeline-drop-line"
+                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'after' && dragSrcIdx !== idx">
                 </div>
 
                 <!-- Organic Travel Transit note in Timeline -->
@@ -779,7 +774,7 @@
                         <div class="sugg-modern-bottom-row">
                             <span class="sugg-modern-price">{{ formatPriceOrFree(rec) }}</span>
                             <button type="button" class="sugg-modern-add-btn"
-                                (click)="$event.stopPropagation(); addPoolItemToActiveDay(rec.name, rec.type, rec.cost, rec.carbon, rec.lat, rec.lng)"
+                                (click)="$event.stopPropagation(); addPoolItemToActiveDay(rec.name, rec.type, rec.cost, rec.carbon, rec.lat, rec.lng, rec.img, rec.is_partner)"
                                 title="Thêm vào ngày {{ activeDayIdx + 1 }}">
                                 <i class="bi bi-plus-lg"></i> Thêm
                             </button>
@@ -834,7 +829,7 @@
                         </div>
                         <div class="fav-card-actions">
                             <button type="button" class="btn-fav-add-day"
-                                (click)="addPoolItemToActiveDay(fav.name, fav.type, fav.cost, fav.carbon, fav.lat, fav.lng)">
+                                (click)="addPoolItemToActiveDay(fav.name, fav.type, fav.cost, fav.carbon, fav.lat, fav.lng, fav.img, fav.is_partner)">
                                 <i class="bi bi-plus-lg"></i> Thêm vào ngày {{ activeDayIdx + 1 }}
                             </button>
                             <button type="button" class="btn-fav-remove" (click)="removeFavoritePlace(fIdx, $event)"

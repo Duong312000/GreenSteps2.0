@@ -239,7 +239,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public inviteEmailChipList: string[] = [];
 
   // Resizer Panel properties
-  public sidebarWidth: number = 290;
+  public sidebarWidth: number = 250;
   public mapWidthPct: number = 42;
   private isResizing: boolean = false;
   private resizeType: 'left' | 'right' = 'left';
@@ -2230,6 +2230,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           if (recType === 'stay' || recType === 'lodging') recType = 'lodging';
           else if (recType === 'food' || recType === 'dining') recType = 'dining';
 
+          const isPartner = srv.is_partner === true || srv.provider !== undefined || !!srv.partner_id;
           return {
             id: srv.id, service_id: srv.id,
             name: srv.name || srv.name_service,
@@ -2240,9 +2241,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             img: srv.current_data?.img || this.getServiceFallbackImage(srv.type),
             lat: srv.current_data?.lat,
             lng: srv.current_data?.lng,
+            is_partner: isPartner,
+            isPartner: isPartner,
             badges: Array.from(new Set(Array.isArray(srv.badges) ? srv.badges : [srv.badges || 'green'])).filter(Boolean).slice(0, 1)
           };
         });
+        // Always prioritize GreenSteps Partner services at the top of recommendations!
+        recsList.sort((a, b) => (b.is_partner ? 1 : 0) - (a.is_partner ? 1 : 0));
       }
 
       this.allCombinedRecs = recsList;
@@ -2754,13 +2759,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     await this.saveItineraryToDb();
   }
 
-  public async addPoolItemToActiveDay(name: string, type: string, cost: number, carbon: number, lat?: number, lng?: number) {
-    console.log("addPoolItemToActiveDay called with:", { name, type, cost, carbon, lat, lng });
+  public async addPoolItemToActiveDay(name: string, type: string, cost: number, carbon: number, lat?: number, lng?: number, img?: string, is_partner?: boolean) {
+    console.log("addPoolItemToActiveDay called with:", { name, type, cost, carbon, lat, lng, img, is_partner });
     if (!this.activeItinerary || !name || !name.trim()) {
       console.warn("addPoolItemToActiveDay validation failed, activeItinerary:", this.activeItinerary, "name:", name);
       return;
     }
-    const time = this.getNextSuggestedTime();
 
     let finalLat = lat;
     let finalLng = lng;
@@ -2769,16 +2773,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     let finalType = type;
 
     // Search in localServices for a match if coordinates are not provided
-    if (!finalLat || !finalLng || isNaN(finalLat) || isNaN(finalLng)) {
-      const match = this.localServices.find(s =>
-        (s.name || s.name_service || '').toLowerCase().includes(name.toLowerCase()) ||
-        name.toLowerCase().includes((s.name || s.name_service || '').toLowerCase())
-      );
+    const match = this.localServices.find(s =>
+      (s.name || s.name_service || '').toLowerCase().includes(name.toLowerCase()) ||
+      name.toLowerCase().includes((s.name || s.name_service || '').toLowerCase())
+    );
 
-      if (match) {
+    if (match) {
+      if ((finalCost === 0 || isNaN(finalCost)) && match.cost > 0) finalCost = match.cost;
+      if ((finalCarbon === 0 || isNaN(finalCarbon)) && match.carbon > 0) finalCarbon = match.carbon;
+      if (!finalLat || !finalLng || isNaN(finalLat) || isNaN(finalLng)) {
         finalType = match.type || type;
-        finalCost = match.cost || 0;
-        finalCarbon = match.carbon || 0;
         const meta = match.current_data || {};
         finalLat = meta.lat || undefined;
         finalLng = meta.lng || undefined;
@@ -2786,6 +2790,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     const destSlug = this.activeItinerary.dest || 'da-lat';
+    const destLabel = this.activeItinerary.destLabel || this.mapSlugToDestLabel(destSlug);
 
     // Try samplePlacesRecs mapping
     if (!finalLat || !finalLng || isNaN(finalLat) || isNaN(finalLng)) {
@@ -2796,7 +2801,6 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Geocoding online fallback
     if (!finalLat || !finalLng || isNaN(finalLat) || isNaN(finalLng)) {
-      const destLabel = this.activeItinerary.destLabel || this.mapSlugToDestLabel(destSlug);
       const searchQuery = `${name}, ${destLabel}, Việt Nam`;
       try {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
@@ -2817,13 +2821,21 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       finalLng = center[1];
     }
 
-    const newAct = {
+    const greenMatch = this.findMatchingGreenStepsService(name, finalLat, finalLng);
+    const resolvedIsPartner = is_partner !== undefined ? is_partner : (!!greenMatch || !!match);
+    const resolvedImg = img || match?.current_data?.img || greenMatch?.current_data?.img || this.getPlacePlaceholderImage(name, finalType, destLabel);
+
+    const newAct: any = {
+      id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       time: this.getNextSuggestedTime(this.activeDayIdx, finalType, finalLat, finalLng),
       title: name,
       type: finalType,
       cost: finalCost,
       carbon: finalCarbon,
       is_shared: this.checkIfSharedByDefault(name, finalType),
+      is_partner: resolvedIsPartner,
+      isPartner: resolvedIsPartner,
+      img: resolvedImg,
       lat: finalLat,
       lng: finalLng
     };
@@ -5202,6 +5214,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       console.warn('Could not store booking context:', e);
     }
 
+    if (deposit <= 0) {
+      void this.saveItineraryToDb();
+      this.showAlert('Đã lưu hành trình chuyến đi thành công! Các địa điểm tự túc sẽ thanh toán trực tiếp tại điểm đến.', 'success');
+      return;
+    }
+
     this.router.navigate(['/booking'], { queryParams: bookingContext });
   }
 
@@ -5281,7 +5299,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.activeItinerary.days.forEach((day: any) => {
         if (day && day.activities) {
           day.activities.forEach((act: any) => {
-            const isPartner = act.is_partner === true || act.isPartner === true || act.source === 'partner' || (act.provider && act.provider !== 'Google Maps');
+            const isPartner = act.is_partner === true || act.isPartner === true || act.source === 'partner' || (act.provider && act.provider !== 'Google Maps') || !!this.findMatchingGreenStepsService(act.title, act.lat, act.lng);
             if (isPartner && Number(act.cost) > 0) {
               const isShared = act.is_shared === true || act.isShared === true || act.type === 'lodging';
               if (isShared) {
@@ -7766,11 +7784,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             this.activeGooglePlacePanel.website = rp.website || '';
             this.activeGooglePlacePanel.hours = rp.hours || 'Đang mở cửa';
             this.activeGooglePlacePanel.weekdayText = rp.weekdayText || [];
-            if (rp.photos && rp.photos.length > 0 && !item.img) {
+            if (item.img) {
+              this.activeGooglePlacePanel.img = item.img;
+            } else if (rp.photos && rp.photos.length > 0 && !this.activeGooglePlacePanel.img) {
               this.activeGooglePlacePanel.photos = rp.photos;
               this.activeGooglePlacePanel.img = rp.photos[0];
             }
-            if (rp.types && Array.isArray(rp.types)) {
+            // DO NOT mutate category or type of curated itinerary activities!
+            if (!item.type && !item.isActivity && rp.types && Array.isArray(rp.types)) {
               if (rp.types.some((t: string) => ['restaurant', 'food', 'cafe', 'supermarket', 'store', 'grocery_store'].includes(t))) {
                 this.activeGooglePlacePanel.category = 'Quán ăn / Ẩm thực địa phương';
                 this.activeGooglePlacePanel.type = 'dining';

@@ -96,24 +96,34 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private getNotificationDestination(notif: any): string | null {
     const rawLink = String(notif?.link || notif?.link_url || '').trim();
     const bookingId = String(notif?.bookingId || notif?.booking_id || notif?.reference_id || '').trim();
-    const counterRequest = /quay|counter/i.test(this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`));
+    const normalizedText = this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`);
+    const counterRequest = /quay|counter/i.test(normalizedText);
     if (counterRequest && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
-    if (!rawLink) return null;
-    try {
-      const url = new URL(rawLink, window.location.origin);
-      const code = url.searchParams.get('code');
-      const id = url.searchParams.get('bookingId');
-      if (url.pathname === '/booking-lookup' && code) {
-        return `/booking/confirm?bookingId=${encodeURIComponent(code)}`;
+    if (rawLink) {
+      try {
+        const url = new URL(rawLink, window.location.origin);
+        const code = url.searchParams.get('code');
+        const id = url.searchParams.get('bookingId');
+        if (url.pathname === '/booking-lookup' && code) {
+          return `/booking/confirm?bookingId=${encodeURIComponent(code)}`;
+        }
+        if (url.pathname === '/booking/confirm' && (id || code)) {
+          return `/booking/confirm?bookingId=${encodeURIComponent(id || code || '')}`;
+        }
+        if (url.origin === window.location.origin) {
+          return `${url.pathname}${url.search}${url.hash}`;
+        }
+      } catch {
+        if (rawLink.startsWith('/')) return rawLink;
       }
-      if (url.pathname === '/booking/confirm' && (id || code)) {
-        return `/booking/confirm?bookingId=${encodeURIComponent(id || code || '')}`;
-      }
-      if (url.origin !== window.location.origin) return null;
-      return `${url.pathname}${url.search}${url.hash}`;
-    } catch {
-      return null;
     }
+    // Fallback based on notification type and content keywords
+    if (notif?.type === 'booking' && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+    if (/lich trinh|hanh trinh|schedule|planner/i.test(normalizedText)) return '/profile?section=itineraries';
+    if (/dat ve|don hang|ve|booking/i.test(normalizedText)) return '/profile?section=tickets';
+    if (/vi|wallet|tien|nạp|rut/i.test(normalizedText)) return '/profile?section=wallet';
+    if (/binh luan|danh gia|review|comment/i.test(normalizedText)) return '/community';
+    return null;
   }
 
   public viewAllNotifications() {

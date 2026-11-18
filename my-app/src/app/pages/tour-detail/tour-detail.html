@@ -687,46 +687,56 @@
                 </div>
 
                 <section id="reviews-section" class="review-list-section" aria-label="Đánh giá từ du khách">
-                    <!-- Form viết đánh giá mới -->
-                    <div class="add-review-card" *ngIf="reviewBookings.length > 0" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid #dde6e0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
-                        <h4 style="font-size: 16px; font-weight: 800; color: #111816; margin: 0 0 16px;">Để lại đánh giá của bạn</h4>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #5f6863;">Điểm đánh giá:</span>
-                            <div *ngIf="reviewBookings.length > 1" style="margin-bottom:12px;">
-                                <label>Booking
-                                    <select [(ngModel)]="selectedReviewBookingId">
+                    <!-- Form viết đánh giá / bình luận mới -->
+                    <div class="add-review-card" *ngIf="currentUser; else loginPromptForReview" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid #dde6e0; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                        <h4 style="font-size: 16px; font-weight: 800; color: #111816; margin: 0 0 16px;">
+                            {{ hasUserRated ? 'Để lại bình luận hoặc câu hỏi của bạn' : 'Đánh giá & chia sẻ trải nghiệm' }}
+                        </h4>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <div *ngIf="!hasUserRated" style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 13px; font-weight: 700; color: #5f6863;">Chấm điểm trải nghiệm:</span>
+                                <div class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
+                                    <i *ngFor="let star of [1,2,3,4,5]"
+                                       [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
+                                       (click)="setNewReviewRating(star)"
+                                       [title]="'Chấm ' + star + ' sao'"></i>
+                                </div>
+                            </div>
+                            <div *ngIf="hasUserRated" style="font-size: 13px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="bi bi-check-circle-fill"></i> Bạn đã đánh giá trải nghiệm này (có thể gửi thêm bình luận/câu hỏi bên dưới)
+                            </div>
+                            <div *ngIf="reviewBookings.length > 1" style="margin-left: auto;">
+                                <label style="font-size: 12px; color: #64748b;">Đơn đặt chỗ:
+                                    <select [(ngModel)]="selectedReviewBookingId" style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; font-size: 12px;">
                                         <option *ngFor="let booking of reviewBookings" [value]="booking.id">{{ booking.id }} · {{ booking.date }}</option>
                                     </select>
                                 </label>
                             </div>
-                            <div *ngIf="!hasUserRated" class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
-                                <i *ngFor="let star of [1,2,3,4,5]"
-                                   [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
-                                   (click)="setNewReviewRating(star)"
-                                   [title]="'Chấm ' + star + ' sao'"></i>
-                            </div>
-                            <div *ngIf="hasUserRated" style="font-size: 13px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <i class="bi bi-check-circle-fill"></i> Bạn đã đánh giá trải nghiệm này (có thể để lại bình luận bổ sung bên dưới)
-                            </div>
                         </div>
                         <div class="comment-input-container" style="display: flex; gap: 12px; align-items: flex-end;">
                             <textarea [(ngModel)]="newReviewText"
-                                      placeholder="Chia sẻ trải nghiệm của bạn về chuyến đi..."
+                                      placeholder="Chia sẻ cảm nhận, kinh nghiệm hoặc đặt câu hỏi về chuyến đi..."
                                       style="flex: 1; min-height: 80px; border: 1px solid #dde6e0; border-radius: 12px; padding: 12px; font-size: 14px; resize: vertical; outline: none;"></textarea>
                             <button type="button"
-                                    (click)="submitRootReview()" [disabled]="isSubmittingReview"
+                                    (click)="submitRootReview()" [disabled]="isSubmittingReview || !newReviewText.trim()"
                                     style="background-color: var(--g, #174c39); color: white; border: none; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
                                 {{ hasUserRated ? 'Gửi bình luận' : 'Gửi đánh giá' }}
                             </button>
                         </div>
                     </div>
 
+                    <ng-template #loginPromptForReview>
+                        <div style="background: #f8fafc; padding: 20px 24px; border-radius: 16px; border: 1px dashed #cbd5e1; margin-bottom: 24px; text-align: center;">
+                            <p style="color: #64748b; font-size: 13px; margin: 0 0 12px;">Đăng nhập để đánh giá hoặc để lại bình luận về tour này.</p>
+                            <a routerLink="/login" style="display: inline-flex; align-items: center; justify-content: center; background: #174c39; color: white; text-decoration: none; padding: 8px 18px; border-radius: 10px; font-size: 12px; font-weight: 700;">
+                                Đăng nhập ngay
+                            </a>
+                        </div>
+                    </ng-template>
+
                     <p *ngIf="isReviewsLoading" class="review-empty-state">Đang tải đánh giá...</p>
                     <p *ngIf="!isReviewsLoading && reviewLoadError" class="review-empty-state">Không thể tải đánh giá. Vui lòng thử lại.</p>
                     <p *ngIf="!isReviewsLoading && !reviewLoadError && !reviewsList.length" class="review-empty-state">Chưa có đánh giá nào.</p>
-                    <p *ngIf="isReviewEligibilityLoading" class="review-empty-state">Đang kiểm tra điều kiện đánh giá...</p>
-                    <p *ngIf="!isReviewEligibilityLoading && reviewEligibilityError" class="review-empty-state">Không thể kiểm tra điều kiện viết đánh giá. Vui lòng thử lại.</p>
-                    <p *ngIf="!isReviewEligibilityLoading && !reviewEligibilityError && !reviewLoadError && !reviewBookings.length" class="review-empty-state">Chỉ khách hàng có đơn đặt chỗ đã hoàn thành mới có thể viết đánh giá.</p>
                     <div class="review-filter-bar">
                         <div>
                             <span class="section-kicker">Review</span>
