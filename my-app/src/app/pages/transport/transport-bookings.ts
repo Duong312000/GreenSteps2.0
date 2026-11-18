@@ -1,4 +1,4 @@
-﻿import { Component, inject, ChangeDetectorRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription, combineLatest } from 'rxjs';

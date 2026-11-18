@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs';
+import { Subscription, combineLatest } from 'rxjs';
 import { FavoritesService } from '../../services/favorites.service';
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, HostListener, NgZone, inject } from '@angular/core';
 import { FoodApi, FoodPlace } from '../local-food/food-api';
@@ -239,8 +239,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public inviteEmailChipList: string[] = [];
 
   // Resizer Panel properties
-  public sidebarWidth: number = 250;
-  public mapWidthPct: number = 42;
+  public sidebarWidth: number = 275;
+  public mapWidthPct: number = 38;
   public isResizing: boolean = false;
   private resizeType: 'left' | 'right' = 'left';
 
@@ -485,17 +485,40 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngAfterViewInit() {
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
+    combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, queryParams]) => {
+      let id = params.get('id') || 
+               queryParams.get('id') || 
+               this.route.parent?.snapshot.paramMap.get('id') || 
+               this.route.snapshot.paramMap.get('id') || 
+               this.route.snapshot.queryParamMap.get('id');
+
+      if (!id) {
+        try {
+          const segments = window.location.pathname.split('/').filter(Boolean);
+          const lastSeg = segments[segments.length - 1];
+          if (lastSeg && !['schedule', 'schedule-editor'].includes(lastSeg)) {
+            id = decodeURIComponent(lastSeg);
+          }
+        } catch (e) {}
+      }
+
+      if (!id) {
+        const storedId = localStorage.getItem('greensteps_working_itinerary_id');
+        if (storedId && storedId !== 'undefined' && storedId !== 'null') {
+          id = storedId;
+        }
+      }
+
+      this.isListMode = false;
+      this.isLoadingEditor = true;
+      this.cdr.detectChanges();
+
       if (id) {
-        this.isListMode = false;
-        this.isLoadingEditor = true;
-        this.cdr.detectChanges();
         this.loadItineraryToEditor(id);
         localStorage.setItem('greensteps_working_itinerary_id', id);
       } else {
-        this.router.navigate(['/profile'], { queryParams: { section: 'itineraries' } });
-        return;
+        // Safe graceful fallback: load active draft or default tour without redirect loop
+        this.loadItineraryToEditor('SCH01');
       }
     });
   }
@@ -1370,6 +1393,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             id: act.id || ('act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
             time: this.normalizeTimeTo24h(act.time || "08:00"),
             title: title,
+            name: title,
             type: type,
             cost: Number(act.cost) || 0,
             priceUnknown: !!act.priceUnknown,
@@ -1463,6 +1487,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           id: act.id || ('act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
           time: this.normalizeTimeTo24h(act.time || "08:00"),
           title: title,
+          name: title,
           type: type,
           cost: act.cost || 0,
           carbon: act.carbon || 0,
@@ -1537,6 +1562,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         dayActivities.push({
           id: act.id || ("act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7)),
           time: act.time,
+          title: act.title || act.name,
           name: act.title || act.name,
           cost: act.cost,
           carbon: act.carbon,
@@ -4623,7 +4649,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     activeDay.activities.push({
       id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       time: time,
+      title: item.title,
       name: item.title,
+      img: item.img || null,
       cost: cost,
       carbon: carbon,
       icon: type === 'lodging' ? 'bi-house-door-fill' : (type === 'dining' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),

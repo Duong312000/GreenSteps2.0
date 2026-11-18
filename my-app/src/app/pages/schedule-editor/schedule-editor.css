@@ -1127,27 +1127,23 @@
 
 
 /* ==========================================================================
-   OFFICIAL GOOGLE MAPS PLACE DETAILS SLIDE PANEL (Compact Floating Card)
+   OFFICIAL GOOGLE MAPS PLACE DETAILS SLIDE PANEL (Original Left Side Dock)
    ========================================================================== */
 .gm-full-place-panel {
   position: absolute !important;
-  top: 14px !important;
-  right: 14px !important;
-  left: auto !important;
-  width: 330px !important;
-  max-width: calc(100vw - 28px) !important;
-  height: auto !important;
-  max-height: min(480px, calc(100% - 28px)) !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 320px !important;
+  max-width: 100% !important;
+  height: 100% !important;
   z-index: 1050 !important;
   background: #ffffff !important;
-  border-radius: 14px !important;
-  box-shadow: 0 16px 36px -4px rgba(25, 37, 32, 0.18), 0 4px 14px rgba(25, 37, 32, 0.08) !important;
-  border: 1px solid #E2E8E4 !important;
+  box-shadow: 4px 0 28px rgba(15, 23, 42, 0.22) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   pointer-events: auto !important;
-  animation: gmDirSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: gmPanelSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 .gm-panel-hero {
@@ -7356,4 +7352,224 @@
 .food-schedule-handoff button:disabled { opacity:.5; cursor:default; }
 .food-schedule-handoff button:last-child { background:none; color:#376c43; font-size:24px; padding:3px 8px; }
 @media(max-width:600px) { .food-schedule-handoff { bottom:12px; flex-wrap:wrap; gap:10px; padding:14px; } .food-schedule-handoff div { flex:1 1 75%; } }
+
+/* =========================================================================
+   USER SPECIFIC DISCIPLINE & ANTI-WRAPPING CONTROLS
+   1. Place Details: Old location dock (left of map, top 0, height 100%)
+   2. Typography: Max title 13px, body 10.5-11.5px, no bloat
+   3. Anti-wrapping: Strict white-space nowrap on all sidebar metrics,
+      activity meta, and travel gap labels
+   ========================================================================= */
+
+/* 1. Place Details Panel: Restored to Old Dock (Left edge of map canvas) */
+.gm-full-place-panel {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  width: 320px !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  z-index: 1050 !important;
+  background: #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.16) !important;
+  border-right: 1px solid #E2E8E4 !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  animation: gmPanelSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes gmPanelSlide {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.gm-panel-hero {
+  height: 120px !important;
+  min-height: 120px !important;
+  max-height: 120px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.gm-panel-hero-img {
+  width: 100% !important;
+  height: 120px !important;
+  object-fit: cover !important;
+}
+
+.gm-panel-content {
+  padding: 10px 12px 16px !important;
+  overflow-y: auto !important;
+}
+
+.gm-place-name {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 0 4px 0 !important;
+  line-height: 1.3 !important;
+}
+
+.gm-tab-btn {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+}
+
+.gm-round-action-btn {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+}
+
+.gm-action-item span {
+  font-size: 10px !important;
+}
+
+/* 2. Sidebar Cost Card: 100% Anti-Wrapping */
+.sidebar-panel {
+  width: 275px !important;
+}
+
+.sidebar-metrics-modern {
+  padding: 8px 12px 8px 0 !important;
+}
+
+.sidebar-cost-card {
+  padding: 8px 10px !important;
+  gap: 4px !important;
+}
+
+.sidebar-cost-card .cost-row,
+.sidebar-cost-card .cost-total-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  gap: 4px !important;
+}
+
+.sidebar-cost-card .cost-label,
+.sidebar-cost-card .cost-total-label,
+.sidebar-cost-card .cost-val,
+.sidebar-cost-card .cost-total-val,
+.sidebar-eco-card .eco-card-header,
+.sidebar-eco-card .eco-title,
+.sidebar-eco-card .eco-val {
+  white-space: nowrap !important;
+}
+
+.sidebar-cost-card .cost-label {
+  font-size: 11px !important;
+  color: #64748B !important;
+}
+
+.sidebar-cost-card .cost-val {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #1E293B !important;
+}
+
+.sidebar-cost-card .cost-total-label {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: #166534 !important;
+}
+
+.sidebar-cost-card .cost-total-val {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  color: #166534 !important;
+}
+
+.sidebar-eco-card .eco-title,
+.sidebar-eco-card .eco-val {
+  font-size: 11px !important;
+}
+
+/* 3. Timeline Cards & Travel Transit: 100% Anti-Wrapping */
+.act-min-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+.act-min-media {
+  width: 54px !important;
+  height: 54px !important;
+  flex-shrink: 0 !important;
+}
+
+.act-min-media img {
+  width: 54px !important;
+  height: 54px !important;
+  object-fit: cover !important;
+}
+
+.act-min-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  flex-shrink: 0 !important;
+}
+
+.act-icon-btn {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.act-meta-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.act-meta-cost,
+.act-meta-shared,
+.act-meta-eco,
+.act-meta-dot {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.travel-gap-item {
+  white-space: nowrap !important;
+}
+
+.travel-gap-badge {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.travel-gap-text,
+.travel-gap-cta,
+.travel-gap-booked-inline {
+  white-space: nowrap !important;
+  font-size: 11px !important;
+}
+
 

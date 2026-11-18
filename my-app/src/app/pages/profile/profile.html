@@ -945,7 +945,10 @@
         </header>
 
         <div *ngIf="userItineraries.length > 0; else noItineraries" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-            <article class="profile-card dashboard-card" style="border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #e2e8f0; background: white; transition: transform 0.2s, box-shadow 0.2s;" *ngFor="let iti of userItineraries">
+            <article class="profile-card dashboard-card cursor-pointer"
+                     style="border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #e2e8f0; background: white; transition: transform 0.2s, box-shadow 0.2s;"
+                     *ngFor="let iti of userItineraries"
+                     (click)="openItineraryEditor(iti.id)">
                 <div style="position: relative; height: 160px; overflow: hidden; background: #e2e8f0;">
                     <img [src]="iti.image" [alt]="iti.title" style="width: 100%; height: 100%; object-fit: cover;">
                     <span style="position: absolute; top: 12px; left: 12px; background: rgba(17,24,22,0.75); backdrop-filter: blur(4px); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
@@ -965,7 +968,8 @@
                             <span style="font-size: 11px; color: #64748b; display: block;">Dự toán chi phí</span>
                             <strong style="font-size: 15px; color: #0f6b45; font-weight: 700;">{{ (iti.cost || 0) | number:'1.0-0' }}đ</strong>
                         </div>
-                        <a [routerLink]="['/schedule-editor']" [queryParams]="{ id: iti.id }"
+                        <a [routerLink]="['/schedule', iti.id]"
+                           (click)="$event.stopPropagation()"
                            style="display: inline-flex; align-items: center; gap: 6px; background: #0f6b45; color: white; padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; text-decoration: none;">
                             <i class="bi bi-pencil-square"></i> Mở chỉnh sửa
                         </a>

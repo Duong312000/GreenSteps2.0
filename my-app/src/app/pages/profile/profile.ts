@@ -510,7 +510,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
           carbon: iti.carbonSaved || iti.carbon || -2.5,
           image: iti.imageUrl || iti.img || iti.cover_image || 'image/greensteps/phu-yen/phu-yen-ganh-da-dia-01.jpg',
           statusText: 'Đang lên kế hoạch',
-          link: `/schedule-editor?id=${iti.id || iti._id}`
+          link: `/schedule/${iti.id || iti._id}`
         };
       });
     } catch (e) {
@@ -744,6 +744,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   public showSecurityInfo() {
     this.setActiveSection('security');
+  }
+
+  public openItineraryEditor(id: string) {
+    if (!id) return;
+    void this.router.navigate(['/schedule', id]);
   }
 
   public setActiveSection(section: ProfileSection) {

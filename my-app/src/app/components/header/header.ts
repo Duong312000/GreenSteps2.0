@@ -99,6 +99,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const normalizedText = this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`);
     const counterRequest = /quay|counter/i.test(normalizedText);
     if (counterRequest && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+
+    // 1. Explicit notification type handling (highest priority)
+    if (notif?.type === 'community' || /\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
+      if (notif?.postId) return `/community?post=${encodeURIComponent(notif.postId)}`;
+      return '/community';
+    }
+    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+      return '/profile?section=itineraries';
+    }
+    if (notif?.type === 'booking' || /\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
+      if (bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+      return '/profile?section=tickets';
+    }
+    if (notif?.type === 'wallet' || /\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
+      return '/profile?section=wallet';
+    }
+
+    // 2. Fallback to raw link if provided
     if (rawLink) {
       try {
         const url = new URL(rawLink, window.location.origin);
@@ -116,40 +134,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       } catch {
         if (rawLink.startsWith('/')) return rawLink;
       }
-    }
-
-    // 1. Explicit notification type handling
-    if (notif?.type === 'community') {
-      if (notif?.postId) return `/community?post=${encodeURIComponent(notif.postId)}`;
-      return '/community';
-    }
-    if (notif?.type === 'booking') {
-      if (bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
-      return '/profile?section=tickets';
-    }
-    if (notif?.type === 'wallet') {
-      return '/profile?section=wallet';
-    }
-    if (notif?.type === 'itinerary') {
-      return '/profile?section=itineraries';
-    }
-
-    // 2. Strict keyword matching in priority order
-    // Community keywords: cong dong, bai viet, binh luan, thao luan, hoi dap, phan hoi, vmt, comment
-    if (/\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
-      return '/community';
-    }
-    // Itinerary / Schedule keywords: lich trinh, hanh trinh, chuyen di, tu thiet ke, khoi tao thanh cong, planner, schedule
-    if (/\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
-      return '/profile?section=itineraries';
-    }
-    // Booking / Ticket keywords: dat ve, don hang, ma don, ve may bay, ve xe, dat tour, dat phong, booking
-    if (/\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
-      return '/profile?section=tickets';
-    }
-    // Wallet keywords: MUST have strict boundary and phrase (NEVER bare 'vi'!)
-    if (/\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
-      return '/profile?section=wallet';
     }
 
     return null;

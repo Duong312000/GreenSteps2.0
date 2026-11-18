@@ -197,19 +197,19 @@
                     <span class="cost-val">+{{ itineraryVatAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-total-row">
-                    <span class="cost-total-label">Tổng chi phí chuyến đi:</span>
+                    <span class="cost-total-label">Tổng chi phí:</span>
                     <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-row" *ngIf="itineraryDepositAmount > 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
-                    <span class="cost-label">Đặt cọc giữ chỗ (30% Đối tác):</span>
+                    <span class="cost-label">Cọc 30% đối tác:</span>
                     <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
                 <div class="cost-row" *ngIf="itineraryDepositAmount === 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #047857; font-weight: 600;">
-                    <span class="cost-label">Đặt cọc sàn:</span>
-                    <span class="cost-val" style="font-weight: 700; color: #047857;">0đ (Địa điểm tự túc)</span>
+                    <span class="cost-label">Cọc giữ chỗ:</span>
+                    <span class="cost-val" style="font-weight: 700; color: #047857;">0đ (Tự túc)</span>
                 </div>
                 <div class="cost-row" style="font-size: 11px; color: #64748b;">
-                    <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại khi khởi hành:' : 'Thanh toán tại điểm đến:' }}</span>
+                    <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại tại điểm:' : 'Thanh toán tại điểm:' }}</span>
                     <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
             </div>
@@ -217,7 +217,7 @@
             <!-- Eco Impact Widget -->
             <div class="sidebar-eco-card">
                 <div class="eco-card-header">
-                    <span class="eco-title"><i class="bi bi-leaf-fill"></i> Lượng CO₂ giảm thiểu:</span>
+                    <span class="eco-title"><i class="bi bi-leaf-fill"></i> CO₂ giảm thiểu:</span>
                     <span class="eco-val" id="sidebarCarbonVal">{{ formatCarbon(totalCarbon) }}</span>
                 </div>
                 <div class="eco-progress-track">
@@ -557,13 +557,13 @@
                                 <!-- Top Row: Title + Controls -->
                                 <div class="act-min-top">
                                     <div class="act-min-title-wrap">
-                                        <h4 class="act-min-title">{{ act.title }}</h4>
+                                        <h4 class="act-min-title">{{ act.title || act.name || act.activity_name || 'Địa điểm' }}</h4>
                                         <div class="act-min-rating-sub">
                                             <span class="act-star-score"><i class="bi bi-star-fill"></i> {{ act.rating || 4.8 }}</span>
-                                            <span class="act-reviews-count">({{ (act.reviews || act.reviews_count || (act.title?.length * 37 % 450 + 95)) | number }})</span>
+                                            <span class="act-reviews-count">({{ (act.reviews || act.reviews_count || ((act.title || act.name || 'địa điểm').length * 37 % 450 + 95)) | number }})</span>
                                             <span class="act-divider">·</span>
                                             <span class="act-address-text"><i class="bi bi-geo-alt-fill"></i> {{
-                                                act.address || getPlaceAddress(act.title) }}</span>
+                                                act.address || getPlaceAddress(act.title || act.name) }}</span>
                                         </div>
                                     </div>
 
