@@ -36,6 +36,14 @@ test('wallet API: verified money, points ledger, idempotency, ownership and book
     assert.equal((await request(`/deposits/${txId}/approve`, 'POST', { verificationReference: 'BANK-TEST-001' }, 'admin')).status, 200);
     assert.equal((await request(`/deposits/${txId}/approve`, 'POST', { verificationReference: 'BANK-TEST-001' }, 'admin')).status, 409);
     assert.equal((await request('/overview')).data.wallet.balance, 100000);
+    const moneyTransferKey = randomUUID();
+    assert.equal((await request('/transfer', 'POST', { email: 'bob@example.invalid', amount: 25000, note: 'Test transfer' }, 'alice', moneyTransferKey)).status, 200);
+    assert.equal((await request('/transfer', 'POST', { email: 'bob@example.invalid', amount: 25000, note: 'Test transfer' }, 'alice', moneyTransferKey)).status, 200);
+    assert.equal((await request('/overview')).data.wallet.balance, 75000);
+    assert.equal((await request('/overview', 'GET', null, 'bob')).data.wallet.balance, 25000);
+    assert.equal((await request('/transfer', 'POST', { email: 'alice@example.invalid', amount: 25000 }, 'bob')).status, 200);
+    assert.equal((await request('/overview')).data.wallet.balance, 100000);
+    assert.equal((await request('/transfer', 'POST', { email: 'bob@example.invalid', amount: 200000 }, 'alice')).status, 409);
     const w = await Wallet.findByPk(walletId); await w.update({ green_points: 3000, tier_points: 5000 });
     const redeemKey = randomUUID();
     const redemption = await request('/points/redeem', 'POST', { points: 1000 }, 'alice', redeemKey);

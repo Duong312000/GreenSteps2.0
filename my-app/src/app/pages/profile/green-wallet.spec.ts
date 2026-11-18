@@ -56,6 +56,16 @@ describe('GreenWalletComponent', () => {
     expect(api.walletRequest.mock.calls[0].slice(0, 3)).toEqual(['POST', '/demo/deposits', { amount: 50000, method: 'demo_bank' }]);
     expect(component.demoAvailable).toBe(0); expect(component.selectedTransaction.status).toBe('PENDING'); expect(component.demoModal).toBe('demoDetail');
   });
+  it('uses production wallet endpoints when sandbox is disabled', async () => {
+    const overview = { demo: { account_enabled: false }, wallet: { available_balance: 100000 }, transactions: [] };
+    const api = { walletRequest: vi.fn().mockResolvedValueOnce({ pending: true }).mockResolvedValueOnce(overview).mockResolvedValueOnce({ success: true }).mockResolvedValueOnce(overview) };
+    const component = new GreenWalletComponent(api as any, { markForCheck: vi.fn() } as any);
+    component.data = overview;
+    component.open('deposit'); await component.submit();
+    expect(api.walletRequest.mock.calls[0].slice(0, 3)).toEqual(['POST', '/deposit', expect.objectContaining({ amount: 50000 })]);
+    component.open('moneyTransfer'); component.email = 'friend@example.com'; component.amount = 10000; await component.submit();
+    expect(api.walletRequest.mock.calls[2].slice(0, 3)).toEqual(['POST', '/transfer', expect.objectContaining({ email: 'friend@example.com', amount: 10000 })]);
+  });
   it('blocks withdrawals over available funds and money transfers without a verified recipient', () => {
     const api = { walletRequest: vi.fn() };
     const component = new GreenWalletComponent(api as any, { markForCheck: vi.fn() } as any);

@@ -7,7 +7,7 @@ import { LoadingIndicator } from '../../components/loading-indicator/loading-ind
 @Component({ selector: 'app-green-wallet', standalone: true, imports: [CommonModule, FormsModule, LoadingIndicator], templateUrl: './green-wallet.html', styleUrl: './green-wallet.css' })
 export class GreenWalletComponent implements OnInit, OnDestroy {
   data: any; error = ''; notice = ''; busy = false; loading = true; hidden = false; modal = ''; all = false;
-  amount = 50000; points = 1000; email = ''; bankName = ''; bankAccount = ''; accountHolder = ''; qrText = '';
+  amount = 50000; points = 1000; email = ''; bankName = ''; bankAccount = ''; accountHolder = ''; qrText = ''; moneyNote = '';
   private timer?: ReturnType<typeof setInterval>;
   private key = crypto.randomUUID();
   demoModal = ''; demoStep = 'edit'; demoMethod = 'demo_bank'; demoBankId = ''; demoBankLabel = '';
@@ -36,7 +36,7 @@ export class GreenWalletComponent implements OnInit, OnDestroy {
   }
   open(action: string) {
     this.notice = ''; this.error = '';
-    if (['deposit', 'withdraw', 'moneyTransfer'].includes(action)) { this.openDemo(action); return; }
+    if (['deposit', 'withdraw', 'moneyTransfer'].includes(action) && this.data?.demo?.account_enabled) { this.openDemo(action); return; }
     this.modal = action; this.key = crypto.randomUUID();
   }
   openDemo(action: string) {
@@ -132,13 +132,13 @@ export class GreenWalletComponent implements OnInit, OnDestroy {
     if (this.busy) return;
     this.busy = true; this.error = '';
     try {
-      const paths: Record<string, string> = { transfer: '/points/transfer', redeem: '/points/redeem', method: '/methods' };
+      const paths: Record<string, string> = { deposit: '/deposit', withdraw: '/withdraw', moneyTransfer: '/transfer', transfer: '/points/transfer', redeem: '/points/redeem', method: '/methods' };
       if (this.modal === 'qr') {
         const uri = new URL(this.qrText);
         if (uri.protocol !== 'greensteps:' || uri.hostname !== 'points' || !uri.searchParams.get('email')) throw new Error('QR không phải yêu cầu chuyển điểm GreenSteps.');
         this.email = uri.searchParams.get('email')!; this.modal = 'transfer'; this.notice = 'Kiểm tra người nhận và số điểm trước khi chuyển.'; return;
       }
-      const result = await this.api.walletRequest('POST', paths[this.modal], { amount: this.amount, points: this.points, email: this.email, bankName: this.bankName, bankAccount: this.bankAccount, accountHolder: this.accountHolder }, this.key);
+      const result = await this.api.walletRequest('POST', paths[this.modal], { amount: this.amount, points: this.points, email: this.email, note: this.moneyNote, bankName: this.bankName, bankAccount: this.bankAccount, accountHolder: this.accountHolder }, this.key);
       this.notice = result.message || (result.code ? `Đã đổi ưu đãi: ${result.code}. Nhập mã khi thanh toán booking.` : 'Đã cập nhật ví thành công.');
       this.modal = ''; this.key = crypto.randomUUID(); await this.refresh();
     } catch (e: any) { this.error = e.error?.message || e.message || 'Giao dịch chưa hoàn tất. Vui lòng thử lại.'; }

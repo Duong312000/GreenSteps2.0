@@ -48,6 +48,33 @@ exports.request = wrap(async (req, res) => {
   });
   res.status(202).json({ success: true, pending: true, message: 'Đã ghi nhận yêu cầu. Số dư chỉ thay đổi sau khi đối soát thanh toán.' });
 });
+exports.moneyTransfer = wrap(async (req, res) => {
+  const amount = req.body.amount;
+  if (!Number.isSafeInteger(amount) || amount < 10000 || amount > 20000000) throw error('Số tiền từ 10.000đ đến 20.000.000đ.');
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const note = String(req.body.note || '').trim();
+  if (!email || note.length > 200) throw error('Thông tin chuyển tiền không hợp lệ.');
+  const recipient = await User.findOne({ where: { email } });
+  if (!recipient || recipient.id === req.user.id) throw error('Người nhận không hợp lệ.', 404);
+  const key = req.headers['idempotency-key'];
+  if (typeof key !== 'string' || key.length < 8 || key.length > 100) throw error('Thiếu mã yêu cầu giao dịch.');
+  const id = createHash('sha256').update(`${req.user.id}:money-transfer:${key}`).digest('hex');
+  await atomic(async t => {
+    if (await WalletTransaction.findByPk(id, { transaction: t })) return;
+    const sender = await walletFor(req.user.id, t);
+    const receiver = await walletFor(recipient.id, t);
+    const available = sender.balance - (sender.reserved_balance || 0);
+    if (available < amount) throw error('Số dư khả dụng không đủ.', 409);
+    sender.balance -= amount;
+    receiver.balance += amount;
+    await sender.save({ transaction: t });
+    await receiver.save({ transaction: t });
+    const shared = { status: 'success', reference_id: id, sender_id: req.user.id, recipient_id: recipient.id, note, completed_at: new Date() };
+    await WalletTransaction.create({ ...shared, id, wallet_id: sender.id, type: 'transfer_out', amount: -amount, description: `Chuyển tiền đến ${recipient.fullname || recipient.username}` }, { transaction: t });
+    await WalletTransaction.create({ ...shared, id: `${id}:in`, wallet_id: receiver.id, type: 'transfer_in', amount, description: 'Nhận tiền qua ví GreenSteps' }, { transaction: t });
+  });
+  res.json({ success: true, message: 'Chuyển tiền thành công.' });
+});
 exports.verify = wrap(async (req, res) => {
   const reference = req.body.verificationReference;
   if (typeof reference !== 'string' || reference.trim().length < 8 || reference.length > 150) throw error('Cần mã đối soát thực tế từ ngân hàng (ít nhất 8 ký tự).');

@@ -21,6 +21,7 @@ router.get('/overview', v2.overview);
 router.post('/activate', v2.activate);
 router.post('/deposit', v2.request);
 router.post('/withdraw', v2.request);
+router.post('/transfer', v2.moneyTransfer);
 router.post('/points/redeem', v2.redeem);
 router.post('/points/transfer', v2.transfer);
 router.post('/methods', v2.addMethod);
