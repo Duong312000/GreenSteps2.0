@@ -173,8 +173,9 @@ exports.createBooking = async (req, res, next) => {
       preloadedTour = await Schedule.findByPk(targetId);
       if (!preloadedTour) return res.status(404).json({ success: false, message: 'Tour không tồn tại.' });
       const allowPersonal = type === 'itinerary'
-        && Boolean(await ScheduleCustom.findByPk(targetId))
-        && !(await ScheduleSample.findByPk(targetId));
+        || Boolean(await ScheduleCustom.findByPk(targetId))
+        || preloadedTour.catalog_status === 'personal'
+        || Boolean(preloadedTour.user_id);
       require('../services/catalog-presentation.service').assertTourBookable(preloadedTour, { allowPersonal });
     }
     if ((paymentMethod === 'wallet' || voucherCode) && !req.user) return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để dùng ví hoặc ưu đãi.' });
@@ -1146,7 +1147,8 @@ exports.simulateBookingPayment = async (req, res, next) => {
       const schedule = await Schedule.findByPk(booking.schedule_id);
       if (!schedule) return res.status(404).json({ success: false, message: 'Tour not found.' });
       const allowPersonal = Boolean(await ScheduleCustom.findByPk(booking.schedule_id))
-        && !(await ScheduleSample.findByPk(booking.schedule_id));
+        || schedule.catalog_status === 'personal'
+        || Boolean(schedule.user_id);
       require('../services/catalog-presentation.service').assertTourBookable(schedule, { allowPersonal });
     }
     if (!['bank_transfer', 'card'].includes(booking.payment_method)) {

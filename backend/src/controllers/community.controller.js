@@ -113,6 +113,16 @@ exports.getPosts = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.getPostById = async (req, res, next) => {
+  try {
+    const row = await CommunityPost.findByPk(req.params.id, { include: [{ model: User, required: false }] });
+    if (!row || row.moderation_status === 'hidden') return res.status(404).json({ success: false, message: 'Bài viết không tồn tại.' });
+    const userId = validUser(req);
+    const saved = userId ? Boolean(await SavedCommunityItem.findOne({ where: { user_id: userId, item_type: 'post', item_id: row.id } })) : false;
+    res.json(formatPost(row, row.User, saved));
+  } catch (error) { next(error); }
+};
+
 exports.addPost = async (req, res, next) => {
   try {
     const userId = validUser(req);
@@ -285,8 +295,9 @@ exports.addPostComment = async (req, res, next) => {
     const text = String(req.body.text || '').trim();
     if (!text || text.length > 2000) return res.status(400).json({ success: false, message: 'Bình luận cần từ 1 đến 2.000 ký tự.' });
     const parentId = req.body.parentCommentId || null;
+    let parent = null;
     if (parentId) {
-      const parent = await CommentPost.findByPk(parentId);
+      parent = await CommentPost.findByPk(parentId);
       if (!parent || parent.moderation_status === 'hidden' || parent.post_id !== post.id) return res.status(400).json({ success: false, message: 'Bình luận trả lời không hợp lệ.' });
     }
     const userId = req.user.id;
@@ -294,14 +305,31 @@ exports.addPostComment = async (req, res, next) => {
     post.comments_count = (post.comments_count || 0) + 1;
     await post.save();
     const user = await User.findByPk(userId);
-    if (post.user_id && post.user_id !== userId) {
+    const commentDeepLink = `/community?post=${post.id}&comment=${comment.id}`;
+
+    // 1. Notify parent comment author if this is a reply
+    if (parent && parent.user_id && parent.user_id !== userId) {
+      await Notification.create({
+        id: `notif_${randomUUID()}`,
+        user_id: parent.user_id,
+        title: 'Phản hồi bình luận mới',
+        message: `${user?.fullname || 'Một thành viên'} đã trả lời bình luận của bạn.`,
+        type: 'community',
+        link: commentDeepLink,
+        reference_id: post.id,
+        read: false
+      });
+    }
+
+    // 2. Notify post author (if not the commenter and not already notified as parent author)
+    if (post.user_id && post.user_id !== userId && (!parent || parent.user_id !== post.user_id)) {
       await Notification.create({
         id: `notif_${randomUUID()}`,
         user_id: post.user_id,
         title: post.post_type === 'question' ? 'Câu hỏi có câu trả lời' : 'Bình luận mới',
-        message: `${user?.fullname || 'Một thành viên'} đã phản hồi bài viết của bạn.`,
+        message: `${user?.fullname || 'Một thành viên'} đã ${parentId ? 'trả lời bình luận trong' : 'bình luận vào'} bài viết của bạn.`,
         type: 'community',
-        link: `/community?post=${post.id}`,
+        link: commentDeepLink,
         reference_id: post.id,
         read: false
       });

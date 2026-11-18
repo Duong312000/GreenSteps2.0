@@ -69,7 +69,16 @@
 .gs-post-actions button.active { color: #248151; }
 .gs-post-actions i { font-size: 16px; }
 .gs-comments { margin: 0 18px; padding: 10px 0 14px; border-top: 1px solid #edf1ee; }
-.gs-comment { display: flex; gap: 9px; margin: 10px 0; }
+.gs-comment { display: flex; gap: 9px; margin: 10px 0; transition: all 0.3s ease; }
+.comment-highlight-pulse {
+  animation: gsCommentHighlight 2.5s ease-out;
+  border-radius: 8px;
+}
+@keyframes gsCommentHighlight {
+  0% { background-color: rgba(34, 197, 94, 0.28); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.5); }
+  60% { background-color: rgba(34, 197, 94, 0.15); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3); }
+  100% { background-color: transparent; box-shadow: none; }
+}
 .gs-comment-content { flex: 1; min-width: 0; padding: 9px 12px; background: #f4f7f5; border-radius: 4px 12px 12px; }
 .gs-comment-content > strong, .gs-reply strong { color: #33453b; font-size: 12px; }
 .gs-comment-content p, .gs-reply p { margin: 4px 0 2px; color: #52635a; font-size: 13px; line-height: 1.5; }

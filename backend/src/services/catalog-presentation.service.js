@@ -19,8 +19,9 @@ function assertCatalogBookable(service) {
 
 function assertTourBookable(tour, { allowPersonal = false } = {}) {
   const status = String(tour?.catalog_status || '').toLowerCase();
-  const allowedStatus = status === 'bookable' || (!status) || (allowPersonal && status === 'personal');
-  if (tour?.booking_enabled === false || tour?.is_demo === true || !allowedStatus) {
+  const isPersonalOrCustom = allowPersonal || status === 'personal' || status === 'draft' || status === 'custom' || Boolean(tour?.user_id) || Boolean(tour?.is_custom);
+  const allowedStatus = isPersonalOrCustom || ['bookable', 'verified', 'active', 'editorial', 'published', ''].includes(status);
+  if (tour?.booking_enabled === false || !allowedStatus) {
     throw Object.assign(new Error('Tour đang ở trạng thái tham khảo và chưa được xác minh để đặt.'), {
       statusCode: 409,
       code: 'TOUR_NOT_BOOKABLE'

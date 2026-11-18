@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
@@ -100,7 +101,8 @@ export class CommunityComponent implements OnInit {
     private readonly api: ApiService,
     private readonly auth: AuthService,
     private readonly login: LoginModalService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    private readonly route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -122,6 +124,14 @@ export class CommunityComponent implements OnInit {
         if (sideData.trendingHashtags) this.trendingHashtags = sideData.trendingHashtags;
       }
     } catch {}
+
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const postId = params['post'];
+      const commentId = params['comment'];
+      if (postId) {
+        void this.handleDeepLinkedPostAndComment(postId, commentId);
+      }
+    });
 
     this.auth.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
       const nextAccountId = user?.id || user?._id || '';
@@ -390,6 +400,40 @@ export class CommunityComponent implements OnInit {
       if (navigator.share) await navigator.share({ title: post.tripName || 'GreenSteps Travel', text: post.text, url });
       else { await navigator.clipboard.writeText(url); this.errorMessage = 'Đã sao chép liên kết bài viết.'; }
     } catch { /* User dismissed the native share sheet. */ }
+  }
+
+  private async handleDeepLinkedPostAndComment(postId: string, commentId?: string): Promise<void> {
+    let post = this.posts.find(p => p.id === postId);
+    if (!post) {
+      try {
+        const found = await this.api.getCommunityPost(postId);
+        if (found) {
+          this.posts = [found, ...this.posts.filter(p => p.id !== postId)];
+          post = found;
+          this.cdr.markForCheck();
+        }
+      } catch (e) {
+        console.warn('Could not fetch deep linked post:', e);
+      }
+    }
+
+    this.commentsOpen.add(postId);
+    await this.loadComments(postId);
+    this.cdr.markForCheck();
+
+    setTimeout(() => {
+      if (commentId) {
+        const el = document.getElementById('comment-' + commentId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('comment-highlight-pulse');
+          setTimeout(() => el.classList.remove('comment-highlight-pulse'), 3000);
+          return;
+        }
+      }
+      const postEl = document.getElementById('post-' + postId);
+      postEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
   }
 
   async toggleComments(post: CommunityPost): Promise<void> {

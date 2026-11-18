@@ -57,7 +57,11 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   } else {
     const schedule = await Schedule.findByPk(targetId);
     if (!schedule) throw Object.assign(new Error('Kh?ng t?m th?y tour.'), { statusCode: 404 });
-    require('./catalog-presentation.service').assertTourBookable(schedule);
+    const isCustom = type === 'itinerary'
+      || Boolean(await ScheduleCustom.findByPk(targetId))
+      || schedule.catalog_status === 'personal'
+      || Boolean(schedule.user_id);
+    require('./catalog-presentation.service').assertTourBookable(schedule, { allowPersonal: isCustom });
     const sample = await ScheduleSample.findByPk(targetId);
     if (sample) {
       unitTourPrice = integerVnd(sample.cost, 'Gi? tour');

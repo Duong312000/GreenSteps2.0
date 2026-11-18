@@ -69,26 +69,26 @@
 
     <!-- 1. LEFT SIDEBAR: Professional Days & Navigation Panel -->
     <aside class="sidebar-panel" [style.width.px]="sidebarWidth"
-        style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 16px 0 8px 12px !important; overflow: visible !important;">
+        style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 10px 4px 6px 8px !important; overflow: visible !important;">
         <!-- Fixed Header & AI Button Area (Overflow Visible) -->
         <div
-            style="display: flex; flex-direction: column; padding-right: 12px; margin-bottom: 20px; overflow: visible !important; position: relative; z-index: 20;">
+            style="display: flex; flex-direction: column; padding-right: 4px; margin-bottom: 8px; overflow: visible !important; position: relative; z-index: 20;">
             <div class="sidebar-header"
-                style="border: none; padding-bottom: 8px; margin-bottom: 10px; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; width: 100%;">
+                style="border: none; padding-bottom: 4px; margin-bottom: 6px; display: flex; flex-direction: row !important; align-items: center; justify-content: space-between; width: 100%;">
                 <button type="button" (click)="goBackToList()"
-                    style="background: none; border: none; font-size: 11px; font-weight: 700; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 0; outline: none; box-shadow: none;">
+                    style="background: none; border: none; font-size: 10px; font-weight: 700; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 3px; padding: 2px 0; outline: none; box-shadow: none;">
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </button>
                 <span *ngIf="isAutoSaving" class="text-xs text-emerald-600 font-bold flex items-center gap-1"
-                    style="font-size: 10px;">
+                    style="font-size: 8px;">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                     Đang lưu...
                 </span>
                 <span *ngIf="!isAutoSaving && !isItineraryLocked()"
-                    class="text-[10px] text-gray-500 font-medium bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full flex items-center gap-1"
-                    style="font-size: 9px; padding: 2px 7px;"
+                    class="text-[10px] text-gray-500 font-medium bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full flex items-center gap-1"
+                    style="font-size: 8px; padding: 1px 5px;"
                     [title]="currentUser ? ('Đang tự động đồng bộ vào tài khoản: ' + (currentUser.fullname || currentUser.username || currentUser.id)) : 'Đang tự động lưu bản nháp trên trình duyệt này (Khách vãng lai)'">
-                    <i class="bi bi-check2"></i> {{ currentUser ? 'Lưu tài khoản' : 'Lưu trình duyệt' }}
+                    <i class="bi bi-check2"></i> {{ currentUser ? 'Lưu tài khoản' : 'Lưu nháp' }}
                 </span>
             </div>
 
@@ -99,33 +99,29 @@
 
         <!-- Scrollable content -->
         <div
-            style="display: flex; flex-direction: column; gap: 20px; overflow-y: auto; flex-grow: 1; min-height: 0; padding-right: 12px;">
+            style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex-grow: 1; min-height: 0; padding-right: 4px;">
             <!-- Sidebar Sections -->
             <div class="sidebar-menu-list" id="sidebarDaysList"
-                style="display: flex; flex-direction: column; gap: 15px;">
+                style="display: flex; flex-direction: column; gap: 8px;">
 
                 <!-- Section 2: Overview Group -->
-                <div class="menu-group" style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="menu-group" style="display: flex; flex-direction: column; gap: 3px;">
                     <span
-                        style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; padding-left: 10px;">Tổng
-                        quan</span>
+                        style="font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px; padding-left: 6px;">Tổng quan</span>
                     <div class="sidebar-menu-item"
-                        style="padding: 10px 15px; border-radius: var(--border-radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: row !important; align-items: center; justify-content: center; gap: 8px; color: var(--text-secondary);"
                         (click)="openItineraryNotesModal()">
                         <i class="bi bi-file-earmark-text"></i> Ghi chú hành trình
                     </div>
                     <div class="sidebar-menu-item"
-                        style="padding: 10px 15px; border-radius: var(--border-radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: row !important; align-items: center; justify-content: center; gap: 8px; color: var(--text-secondary);"
                         (click)="scrollToSuggestions()">
                         <i class="bi bi-geo-alt"></i> Địa điểm tham quan
                     </div>
                 </div>
 
                 <!-- Section 3: Itinerary Group -->
-                <div class="menu-group" style="display: flex; flex-direction: column; gap: 4px;">
+                <div class="menu-group" style="display: flex; flex-direction: column; gap: 3px;">
                     <span
-                        style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; padding-left: 10px;">Lịch
-                        trình ngày</span>
+                        style="font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px; padding-left: 6px;">Lịch trình ngày</span>
                     <div *ngFor="let day of activeItinerary.days; let idx = index" class="sidebar-menu-item"
                         [class.active]="activeDayIdx === idx" 
                         [class.day-drop-target]="crossDayDropTargetIdx === idx"
@@ -133,36 +129,36 @@
                         (dragover)="onDragOverDay($event, idx)"
                         (dragleave)="onDragLeaveDay($event, idx)"
                         (drop)="onDropOnDay($event, idx)"
-                        style="padding: 10px 15px; border-radius: var(--border-radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; gap: 2px; position: relative;">
+                        style="cursor: pointer; display: flex; flex-direction: column; gap: 2px; position: relative;">
                         <div
-                            style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                            style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
                                 <i class="bi bi-calendar-event"></i>
                                 <span>{{ day.title }}</span>
                             </div>
                             <button *ngIf="!isItineraryLocked() && activeItinerary.days.length > 1"
                                 (click)="deleteDay(idx, $event)" class="delete-day-btn"
-                                style="background: none; border: none; padding: 4px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s;"
+                                style="background: none; border: none; padding: 2px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s;"
                                 title="Xóa ngày này">
-                                <i class="bi bi-trash-fill" style="font-size: 12px;"></i>
+                                <i class="bi bi-trash-fill" style="font-size: 10px;"></i>
                             </button>
                         </div>
                         <span class="sidebar-menu-item-preview"
-                            style="font-size: 11px; color: var(--text-muted); font-weight: 400; padding-left: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">
+                            style="font-size: 7.5px; color: var(--text-muted); font-weight: 400; padding-left: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">
                             {{ getDayPreviewText(day) }}
                         </span>
                     </div>
                 </div>
 
                 <button *ngIf="!isItineraryLocked()" class="btn-add-day" (click)="addDayToItinerary()"
-                    style="margin-top: 10px; background-color: var(--bg-secondary); border: 1px dashed var(--border-color); color: var(--text-primary); font-weight: 700; width: 100%; padding: 10px; font-size: 13px; border-radius: var(--border-radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i
+                    style="margin-top: 4px; background-color: var(--bg-secondary); border: 1px dashed var(--border-color); color: var(--text-primary); font-weight: 700; width: 100%; padding: 6px; font-size: 9px; border-radius: var(--border-radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;"><i
                         class="bi bi-plus-lg"></i> Thêm ngày mới</button>
             </div>
         </div>
 
         <!-- Section 3.5: Guest Count Selector -->
         <div
-            style="padding: 6px 0px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-shrink: 0; margin-right: 20px;">
+            style="padding: 4px 0px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-shrink: 0; margin-right: 4px;">
             <span
                 style="font-size: 11px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
                 <i class="bi bi-people-fill" style="color: var(--primary-green);"></i> Số người:
@@ -200,15 +196,15 @@
                     <span class="cost-total-label">Tổng chi phí:</span>
                     <span class="cost-total-val">{{ itineraryFinalTotal | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" *ngIf="itineraryDepositAmount > 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #134e4a; font-weight: 600;">
-                    <span class="cost-label">Cọc 30% đối tác:</span>
+                <div class="cost-row" *ngIf="itineraryDepositAmount > 0" style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
+                    <span class="cost-label" style="font-weight: 700; color: #134e4a;">Cọc 30% đối tác:</span>
                     <span class="cost-val" style="font-weight: 800; color: #064e3b;">{{ itineraryDepositAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>
-                <div class="cost-row" *ngIf="itineraryDepositAmount === 0" style="padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 4px; color: #047857; font-weight: 600;">
+                <div class="cost-row" *ngIf="itineraryDepositAmount === 0" style="padding-top: 3px; border-top: 1px dashed #cbd5e1; margin-top: 2px;">
                     <span class="cost-label">Cọc giữ chỗ:</span>
                     <span class="cost-val" style="font-weight: 700; color: #047857;">0đ (Tự túc)</span>
                 </div>
-                <div class="cost-row" style="font-size: 11px; color: #64748b;">
+                <div class="cost-row">
                     <span class="cost-label">{{ itineraryDepositAmount > 0 ? 'Còn lại tại điểm:' : 'Thanh toán tại điểm:' }}</span>
                     <span class="cost-val">{{ itineraryRemainingAmount | number:'1.0-0':'vi-VN' }}đ</span>
                 </div>

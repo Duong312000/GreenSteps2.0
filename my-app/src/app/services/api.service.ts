@@ -725,6 +725,14 @@ export class ApiService {
     }
   }
 
+  public async getCommunityPost(id: string): Promise<CommunityPost | null> {
+    try {
+      return await this.getWithTimeout<CommunityPost>(`${this.BACKEND_URL}/community/posts/${encodeURIComponent(id)}`);
+    } catch {
+      return null;
+    }
+  }
+
   public async addCommunityPost(postData: any): Promise<{ success: boolean; message?: string }> {
     try {
       this.clearCache('community_posts_');

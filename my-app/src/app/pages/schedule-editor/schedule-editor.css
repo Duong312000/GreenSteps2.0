@@ -1068,9 +1068,9 @@
 }
 
 .sidebar-panel {
-  width: 290px;
-  min-width: 210px;
-  max-width: 420px;
+  width: 165px;
+  min-width: 140px;
+  max-width: 320px;
   flex-shrink: 0 !important;
   height: 100% !important;
   border-right: 1px solid var(--border-color) !important;
@@ -7457,28 +7457,69 @@
   font-size: 7.5px !important;
 }
 
-/* 2. Sidebar Cost Card & Menu: Micro-typography (reduced by half) */
+/* 2. Sidebar Cost Card & Menu: Micro-typography & Compact Micro-Receipt (Proposal 1) */
 .sidebar-panel {
-  width: 275px !important;
+  width: 165px !important;
+  min-width: 140px !important;
+  max-width: 320px !important;
+  padding: 10px 4px 8px 8px !important;
+  box-sizing: border-box !important;
 }
 
-.sidebar-panel .sidebar-menu-item,
+.sidebar-panel .sidebar-header {
+  margin-bottom: 8px !important;
+  padding-bottom: 4px !important;
+}
+
+.sidebar-btn-back,
+.sidebar-panel button {
+  font-size: 8.5px !important;
+}
+
+.sidebar-panel .btn-ai-assistant {
+  height: 28px !important;
+  font-size: 9.5px !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.sidebar-panel .sidebar-menu-item {
+  padding: 5px 6px !important;
+  font-size: 8.5px !important;
+  gap: 4px !important;
+  border-radius: 4px !important;
+}
+
+.sidebar-panel .sidebar-menu-item-preview {
+  font-size: 7.5px !important;
+  padding-left: 14px !important;
+  max-width: 120px !important;
+}
+
 .sidebar-panel .sidebar-day-chip span,
 .sidebar-panel .sidebar-day-tab span,
 .sidebar-panel .guest-label,
 .sidebar-panel .guest-stepper span,
-.sidebar-btn-back,
 .sidebar-saving-indicator {
-  font-size: 8.5px !important;
+  font-size: 8px !important;
 }
 
 .sidebar-metrics-modern {
-  padding: 6px 10px 6px 0 !important;
+  padding: 4px 4px 4px 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-cost-card {
-  padding: 6px 8px !important;
-  gap: 3px !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  padding: 5px 6px !important;
+  gap: 2.5px !important;
+  box-sizing: border-box !important;
 }
 
 .sidebar-cost-card .cost-row,
@@ -7487,7 +7528,8 @@
   justify-content: space-between !important;
   align-items: center !important;
   white-space: nowrap !important;
-  gap: 4px !important;
+  gap: 2px !important;
+  line-height: 1.25 !important;
 }
 
 .sidebar-cost-card .cost-label,
@@ -7500,34 +7542,110 @@
   white-space: nowrap !important;
 }
 
-/* Non-title rows halved in size to 8px */
+/* Micro-Receipt rows */
 .sidebar-cost-card .cost-label {
-  font-size: 8px !important;
+  font-size: 7.5px !important;
   color: #64748B !important;
 }
 
 .sidebar-cost-card .cost-val {
-  font-size: 8px !important;
+  font-size: 7.5px !important;
   font-weight: 700 !important;
   color: #1E293B !important;
 }
 
 /* Total row kept distinct */
 .sidebar-cost-card .cost-total-label {
-  font-size: 9.5px !important;
-  font-weight: 700 !important;
-  color: #166534 !important;
-}
-
-.sidebar-cost-card .cost-total-val {
-  font-size: 10.5px !important;
+  font-size: 8.5px !important;
   font-weight: 800 !important;
   color: #166534 !important;
 }
 
-.sidebar-eco-card .eco-title,
+.sidebar-cost-card .cost-total-val {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #166534 !important;
+}
+
+/* Eco widget (Proposal 1: Inline compact eco badge) */
+.sidebar-eco-card {
+  background: #F0FDF4 !important;
+  border: 1px solid #BBF7D0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  padding: 4px 6px !important;
+  margin-top: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.sidebar-eco-card .eco-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-bottom: 3px !important;
+}
+
+.sidebar-eco-card .eco-title {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  color: #166534 !important;
+}
+
 .sidebar-eco-card .eco-val {
   font-size: 8px !important;
+  font-weight: 800 !important;
+  color: #166534 !important;
+}
+
+.sidebar-eco-card .eco-progress-track {
+  height: 3px !important;
+  background: #DCFCE7 !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  margin-top: 1px !important;
+}
+
+.sidebar-eco-card .eco-progress-bar {
+  height: 100% !important;
+  background: #16A34A !important;
+  border-radius: 2px !important;
+}
+
+/* Checkout actions compact */
+.checkout-actions {
+  padding: 4px 4px 2px 0 !important;
+  margin-top: 4px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.checkout-actions .btn-checkout-pay-modern {
+  height: 32px !important;
+  padding: 4px 6px !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.checkout-actions .wallet-badge-pill {
+  font-size: 7.5px !important;
+  padding: 2px 4px !important;
+  margin-top: 3px !important;
+  text-align: center !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 /* 3. Timeline Activities: Title kept at 12.5px, all other text halved to 8px */

@@ -100,7 +100,7 @@
         <section class="gs-comments" *ngIf="commentsOpen.has(post.id)">
           <div class="gs-feed-loading gs-comments-loading" *ngIf="commentsLoading.has(post.id)"><span class="gs-spinner"></span> Đang tải...</div>
           <ng-container *ngIf="!commentsLoading.has(post.id)">
-            <div class="gs-comment" *ngFor="let comment of comments[post.id] || []">
+            <div class="gs-comment" *ngFor="let comment of comments[post.id] || []" [id]="'comment-' + comment.id">
               <div class="gs-avatar gs-avatar-small">
                 <img *ngIf="avatarIsUrl(comment.user?.avatar)" [src]="mediaUrl(comment.user?.avatar)" alt="">
                 <span *ngIf="!avatarIsUrl(comment.user?.avatar)">{{ firstLetter(comment.user?.fullname) }}</span>
@@ -112,7 +112,7 @@
                   <button type="button" *ngIf="comment.user?.id !== userId" (click)="openReport('comment', comment.id)"><i class="bi bi-flag"></i> Báo cáo</button>
                 </div>
                 <form class="gs-reply-form" *ngIf="replyTo[comment.id]" (submit)="submitComment(post, comment.id); $event.preventDefault()"><input [(ngModel)]="replyDrafts[comment.id]" name="reply-{{comment.id}}" placeholder="Viết câu trả lời..." maxlength="2000"><button type="submit" aria-label="Gửi trả lời"><i class="bi bi-send-fill"></i></button></form>
-                <div class="gs-reply" *ngFor="let reply of comment.replies">
+                <div class="gs-reply" *ngFor="let reply of comment.replies" [id]="'comment-' + reply.id">
                   <div class="gs-avatar gs-avatar-small" style="width:24px;height:24px;flex-basis:24px;font-size:10px;">
                     <img *ngIf="avatarIsUrl(reply.user?.avatar)" [src]="mediaUrl(reply.user?.avatar)" alt="">
                     <span *ngIf="!avatarIsUrl(reply.user?.avatar)">{{ firstLetter(reply.user?.fullname) }}</span>
