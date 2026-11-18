@@ -197,6 +197,46 @@ async function sendItineraryInviteEmail({ to, itineraryName, inviteUrl }) {
   }
 }
 
+async function sendNewsletterWelcomeEmail({ to }) {
+  const subject = 'GreenSteps đã nhận đăng ký bản tin của bạn';
+  const text = 'Bạn đã đăng ký nhận bản tin GreenSteps Travel. Cảm ơn bạn đã đồng hành cùng những hành trình xanh. Nếu bạn không thực hiện đăng ký này, vui lòng liên hệ GreenSteps để được hỗ trợ.';
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.7;color:#12372d;max-width:560px;margin:0 auto;padding:28px;border:1px solid #e2e8f0;border-radius:14px;">
+      <p style="margin:0 0 12px;color:#0e9f6e;font-weight:700;letter-spacing:.08em;">GREENSTEPS TRAVEL</p>
+      <h1 style="margin:0 0 14px;font-size:24px;">Đăng ký bản tin thành công</h1>
+      <p>GreenSteps đã nhận email đăng ký nhận bản tin của bạn.</p>
+      <p>Chúng mình sẽ gửi cảm hứng du lịch xanh và thông tin ưu đãi khi có bản tin mới.</p>
+      <p style="margin:24px 0 0;color:#64748b;font-size:13px;">Nếu bạn không thực hiện đăng ký này, hãy liên hệ GreenSteps qua Trung tâm hỗ trợ để được trợ giúp.</p>
+    </div>
+  `;
+
+  if (process.env.GMAIL_API_URL) {
+    try {
+      const response = await fetch(process.env.GMAIL_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, html })
+      });
+      const data = await response.json();
+      if (response.ok && data?.success) return true;
+      console.warn('Newsletter confirmation email API rejected the message.');
+    } catch (error) {
+      console.warn('Newsletter confirmation email API failed:', error?.code || error?.name || 'unknown');
+    }
+  }
+
+  try {
+    const config = requireSmtpConfig();
+    const info = await getTransporter().sendMail({ from: config.from, to, subject, text, html });
+    const accepted = info.accepted || [];
+    const rejected = info.rejected || [];
+    return accepted.length > 0 && !rejected.includes(to);
+  } catch (error) {
+    console.warn('Newsletter confirmation SMTP delivery failed:', error?.code || error?.name || 'unknown');
+    return false;
+  }
+}
+
 async function sendBookingConfirmationEmail({ to, bookingId, tourName, bookingDate, guests, depositAmount, paymentMethod, lookupUrl, credentials }) {
   if (process.env.NODE_ENV === 'test') return false;
   const subject = `Xác nhận thông tin giữ chỗ GreenSteps - ${bookingId}`;
@@ -282,4 +322,4 @@ async function sendBookingConfirmationEmail({ to, bookingId, tourName, bookingDa
   }
 }
 
-module.exports = { assertMailDomainCanReceive, sendOtpEmail, sendItineraryInviteEmail, sendBookingConfirmationEmail };
+module.exports = { assertMailDomainCanReceive, sendOtpEmail, sendItineraryInviteEmail, sendNewsletterWelcomeEmail, sendBookingConfirmationEmail };

@@ -951,6 +951,8 @@ const NewsletterSubscription = store.define('NewsletterSubscription', {
   id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
   email: { type: FieldTypes.STRING, allowNull: false, unique: true },
   consented_at: { type: FieldTypes.DATE, allowNull: false, defaultValue: FieldTypes.NOW },
+  welcome_email_status: { type: FieldTypes.ENUM('pending', 'sent', 'failed'), allowNull: false, defaultValue: 'pending' },
+  welcome_email_sent_at: { type: FieldTypes.DATE, allowNull: true },
   status: { type: FieldTypes.ENUM('subscribed', 'unsubscribed'), allowNull: false, defaultValue: 'subscribed' }
 }, { tableName: 'newsletter_subscriptions', underscored: true, timestamps: true });
 

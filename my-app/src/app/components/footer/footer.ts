@@ -31,8 +31,9 @@ export class FooterComponent {
     this.newsletterMessage = '';
     try {
       const result = await this.apiService.subscribeNewsletter(email);
+      this.newsletterError = result.emailSent === false;
       this.newsletterMessage = result.message || 'Bạn đã đăng ký nhận bản tin GreenSteps.';
-      this.newsletterEmail = '';
+      if (result.emailSent !== false) this.newsletterEmail = '';
     } catch (error: any) {
       this.newsletterError = true;
       this.newsletterMessage = error?.error?.message || 'Chưa thể đăng ký lúc này. Vui lòng thử lại sau.';

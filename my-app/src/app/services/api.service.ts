@@ -207,8 +207,8 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  subscribeNewsletter(email: string): Promise<{ success: boolean; message?: string }> {
-    return firstValueFrom(this.http.post<{ success: boolean; message?: string }>(`${this.BACKEND_URL}/newsletter`, { email }, { withCredentials: true }));
+  subscribeNewsletter(email: string): Promise<{ success: boolean; emailSent?: boolean; message?: string }> {
+    return firstValueFrom(this.http.post<{ success: boolean; emailSent?: boolean; message?: string }>(`${this.BACKEND_URL}/newsletter`, { email }, { withCredentials: true }));
   }
 
 
