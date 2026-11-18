@@ -486,11 +486,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngAfterViewInit() {
     combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, queryParams]) => {
-      let id = params.get('id') || 
-               queryParams.get('id') || 
-               this.route.parent?.snapshot.paramMap.get('id') || 
-               this.route.snapshot.paramMap.get('id') || 
-               this.route.snapshot.queryParamMap.get('id');
+      let id = params.get('id') ||
+        queryParams.get('id') ||
+        this.route.parent?.snapshot.paramMap.get('id') ||
+        this.route.snapshot.paramMap.get('id') ||
+        this.route.snapshot.queryParamMap.get('id');
 
       if (!id) {
         try {
@@ -499,7 +499,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           if (lastSeg && !['schedule', 'schedule-editor'].includes(lastSeg)) {
             id = decodeURIComponent(lastSeg);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!id) {
@@ -598,7 +598,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
                 isTourBooking: false,
                 daysData: parsed.days
               });
-            } catch (e) {}
+            } catch (e) { }
           }
         }
       } catch (e) {
@@ -614,9 +614,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             if (found && !bookings.some(b => b.id === found.id)) {
               bookings.push(found);
             }
-          } catch (e) {}
+          } catch (e) { }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const depositedToursMapped = (bookings || [])
         .filter(b => b.status !== 'rejected' && b.status !== 'cancelled')
@@ -648,7 +648,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             if (parsed.imageUrl || parsed.image_url) {
               return { ...c, imageUrl: parsed.imageUrl || parsed.image_url };
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         return c;
       });
@@ -741,7 +741,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
               if (!guestBookings.includes(mb.id)) guestBookings.push(mb.id);
             }
             localStorage.setItem('greensteps_guest_bookings', JSON.stringify(guestBookings));
-          } catch(e) {}
+          } catch (e) { }
 
           // Prepend found items if not already present
           for (const m of mapped) {
@@ -785,7 +785,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           const guestIds: string[] = JSON.parse(localStorage.getItem('greensteps_guest_itinerary_ids') || '[]');
           const updated = guestIds.filter(x => x !== id);
           localStorage.setItem('greensteps_guest_itinerary_ids', JSON.stringify(updated));
-        } catch(e) {}
+        } catch (e) { }
         if (localStorage.getItem('greensteps_working_itinerary_id') === id) {
           localStorage.removeItem('greensteps_working_itinerary_id');
         }
@@ -1139,21 +1139,21 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     if (platform === 'facebook') {
       const quote = `🌿 ${this.shareMessage || `Cùng mình trải nghiệm "${tripName}" tại ${dest} trên GreenSteps!`}\n\nXem hành trình tại: ${link}`;
-      try { navigator.clipboard.writeText(quote); } catch (e) {}
+      try { navigator.clipboard.writeText(quote); } catch (e) { }
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(quote)}`, '_blank', 'width=620,height=520');
       this.showAlert('Đã sao chép nội dung & hình ảnh vào bộ nhớ tạm! Bạn có thể dán vào bài viết Facebook.', 'info');
       return;
     }
     if (platform === 'zalo') {
       const zaloText = `${this.shareMessage || `Khám phá lịch trình du lịch xanh "${tripName}" tại ${dest}!`}\n\nXem chi tiết: ${link}`;
-      try { navigator.clipboard.writeText(zaloText); } catch (e) {}
+      try { navigator.clipboard.writeText(zaloText); } catch (e) { }
       window.open(`https://zalo.me/share?url=${url}`, '_blank', 'width=600,height=520');
       this.showAlert('Đã mở cửa sổ chia sẻ Zalo và sao chép toàn bộ thông tin lịch trình vào bộ nhớ tạm!', 'success');
       return;
     }
     if (platform === 'instagram') {
       const igCaption = `🌿 Hành trình xanh: ${tripName} tại ${dest}!\nLịch trình chi tiết: ${link}\n\n#GreenSteps #DuLichXanh #${this.mapDestToSlug(dest)}`;
-      try { navigator.clipboard.writeText(igCaption); } catch (e) {}
+      try { navigator.clipboard.writeText(igCaption); } catch (e) { }
       if (coverUrl) {
         this.downloadCoverImage(coverUrl, `greensteps-${this.mapDestToSlug(dest)}-cover.jpg`);
       }
@@ -1644,7 +1644,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         try {
           try {
             localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-          } catch (le) {}
+          } catch (le) { }
           await this.apiService.saveItinerary(apiIti);
         } catch (e) {
           console.warn('Save failed, will retry with latest state:', e);
@@ -1681,37 +1681,37 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.favoritesService) return;
     this.favoritesSubscription?.unsubscribe();
     this.favoritesSubscription = this.favoritesService.items$.subscribe(items => {
-      this.favoritePlaces = items.filter(item => item.available && ['place','service'].includes(item.target_type)).map(item => ({
-        name:item.name,title:item.name,type:item.place_type||'explore',category:item.target_type === 'service' ? 'Dịch vụ':'Địa điểm',
-        cost:item.price||0,carbon:0,img:item.image,lat:item.lat,lng:item.lng,
-        _favoriteType:item.target_type,_favoriteId:item.target_id
+      this.favoritePlaces = items.filter(item => item.available && ['place', 'service'].includes(item.target_type)).map(item => ({
+        name: item.name, title: item.name, type: item.place_type || 'explore', category: item.target_type === 'service' ? 'Dịch vụ' : 'Địa điểm',
+        cost: item.price || 0, carbon: 0, img: item.image, lat: item.lat, lng: item.lng,
+        _favoriteType: item.target_type, _favoriteId: item.target_id
       }));
       this.cdr.markForCheck();
     });
   }
-  public isPlaceFavorite(place:any):boolean {
-    if(!this.favoritesService||!place)return false;
-    const ref=this.favoritesService.placeRef(place);
-    return this.favoritesService.isSaved(ref.type,ref.id);
+  public isPlaceFavorite(place: any): boolean {
+    if (!this.favoritesService || !place) return false;
+    const ref = this.favoritesService.placeRef(place);
+    return this.favoritesService.isSaved(ref.type, ref.id);
   }
-  public async toggleFavoritePlace(place:any,event?:Event) {
+  public async toggleFavoritePlace(place: any, event?: Event) {
     event?.stopPropagation();
-    if(!place||!this.favoritesService)return;
+    if (!place || !this.favoritesService) return;
     try {
-      const ref=this.favoritesService.placeRef({...place,img:place.img||this.getPlacePlaceholderImage(place.name||place.title)});
-      if(await this.favoritesService.toggle(ref))this.showAlert(this.favoritesService.isSaved(ref.type,ref.id)?'Đã lưu vào Địa điểm yêu thích.':'Đã bỏ khỏi Địa điểm yêu thích.','success');
-    } catch(error){this.showAlert(this.favoritesService.message(error),'error');}
+      const ref = this.favoritesService.placeRef({ ...place, img: place.img || this.getPlacePlaceholderImage(place.name || place.title) });
+      if (await this.favoritesService.toggle(ref)) this.showAlert(this.favoritesService.isSaved(ref.type, ref.id) ? 'Đã lưu vào Địa điểm yêu thích.' : 'Đã bỏ khỏi Địa điểm yêu thích.', 'success');
+    } catch (error) { this.showAlert(this.favoritesService.message(error), 'error'); }
     this.cdr.markForCheck();
   }
-  public async removeFavoritePlace(index:number,event?:Event) {
-    event?.stopPropagation();const place=this.favoritePlaces[index];
-    if(!place||!this.favoritesService)return;
-    try{await this.favoritesService.setSaved(place._favoriteType,place._favoriteId,false);}catch(error){this.showAlert(this.favoritesService.message(error),'error');}
+  public async removeFavoritePlace(index: number, event?: Event) {
+    event?.stopPropagation(); const place = this.favoritePlaces[index];
+    if (!place || !this.favoritesService) return;
+    try { await this.favoritesService.setSaved(place._favoriteType, place._favoriteId, false); } catch (error) { this.showAlert(this.favoritesService.message(error), 'error'); }
     this.cdr.markForCheck();
   }
   public readonly persistFavoriteItinerary = async () => {
-    if(!this.activeItinerary||!this.currentUser)return;
-    if(!await this.apiService.saveItinerary(this.convertEditorToApiItinerary(this.activeItinerary)))throw new Error('Không thể lưu lịch trình. Vui lòng thử lại.');
+    if (!this.activeItinerary || !this.currentUser) return;
+    if (!await this.apiService.saveItinerary(this.convertEditorToApiItinerary(this.activeItinerary))) throw new Error('Không thể lưu lịch trình. Vui lòng thử lại.');
   };
 
   // Smart Scheduler Math & Validation
@@ -1984,7 +1984,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             const fresh = this.convertApiToEditorItinerary(custom);
             this.openEditorWithItinerary(fresh);
           }
-        }).catch(() => {});
+        }).catch(() => { });
         return;
       }
     }
@@ -1992,9 +1992,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // 1. Check local working draft across variants
     for (const variant of idVariants) {
       try {
-        const rawDraft = localStorage.getItem(`greensteps_user_draft_${variant}`) || 
-                         localStorage.getItem(`greensteps_guest_draft_${variant}`) || 
-                         localStorage.getItem(`greensteps_draft_${variant}`);
+        const rawDraft = localStorage.getItem(`greensteps_user_draft_${variant}`) ||
+          localStorage.getItem(`greensteps_guest_draft_${variant}`) ||
+          localStorage.getItem(`greensteps_draft_${variant}`);
         if (rawDraft) {
           const parsed = JSON.parse(rawDraft);
           if (parsed) {
@@ -2052,7 +2052,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           this.openEditorWithItinerary(cloned);
           return;
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // 4. Load preset tours
@@ -2066,7 +2066,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           this.openEditorWithItinerary(cloned);
           return;
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // 4b. Deep scan all localStorage keys for any partial matches
@@ -2086,7 +2086,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           }
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // 5. If activeItinerary is already in place, do not show false alert
     if (this.activeItinerary) {
@@ -2483,11 +2483,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     }
     const text = `${item?.name || item?.title || ''} ${item?.category || ''} ${item?.type || ''}`.toLowerCase();
     const isCommercial = text.includes('hotel') || text.includes('khách sạn') || text.includes('homestay') ||
-                         text.includes('resort') || text.includes('villa') || text.includes('nhà nghỉ') ||
-                         text.includes('quán ăn') || text.includes('nhà hàng') || text.includes('cafe') ||
-                         text.includes('cà phê') || text.includes('quán nhậu') || text.includes('ẩm thực') ||
-                         text.includes('nước') || text.includes('công viên nước') || text.includes('khu du lịch') ||
-                         text.includes('vui chơi') || text.includes('vé');
+      text.includes('resort') || text.includes('villa') || text.includes('nhà nghỉ') ||
+      text.includes('quán ăn') || text.includes('nhà hàng') || text.includes('cafe') ||
+      text.includes('cà phê') || text.includes('quán nhậu') || text.includes('ẩm thực') ||
+      text.includes('nước') || text.includes('công viên nước') || text.includes('khu du lịch') ||
+      text.includes('vui chơi') || text.includes('vé');
     if (item?.cost === 0 || !isCommercial) {
       return '0₫ (Miễn phí)';
     }
@@ -4878,7 +4878,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.activeTimelineViewMode = mode;
     try {
       localStorage.setItem('greensteps_timeline_view_mode', mode);
-    } catch (e) {}
+    } catch (e) { }
     this.cdr.detectChanges();
     if (mode === 'pipeline') {
       setTimeout(() => {
@@ -4935,13 +4935,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     let inferredType = greenMatch?.type || details.type;
 
     if (rawTypes.some((t: string) => ['restaurant', 'food', 'cafe', 'bar', 'meal_takeaway', 'bakery', 'supermarket', 'grocery_or_supermarket', 'grocery_store', 'store'].includes(t)) ||
-        /quán|nhà hàng|cà phê|cafe|bún|phở|lẩu|cơm|bánh|ẩm thực|ăn uống|mini go|siêu thị|chợ/.test(lowerTitle)) {
+      /quán|nhà hàng|cà phê|cafe|bún|phở|lẩu|cơm|bánh|ẩm thực|ăn uống|mini go|siêu thị|chợ/.test(lowerTitle)) {
       inferredType = 'dining';
     } else if (rawTypes.some((t: string) => ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'guest_house'].includes(t)) ||
-               /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng/.test(lowerTitle)) {
+      /homestay|hotel|khách sạn|resort|nhà nghỉ|villa|nghỉ dưỡng/.test(lowerTitle)) {
       inferredType = 'lodging';
     } else if (rawTypes.some((t: string) => ['transit_station', 'bus_station', 'airport', 'taxi_stand'].includes(t)) ||
-               /xe|bến xe|sân bay|ga tàu|di chuyển/.test(lowerTitle)) {
+      /xe|bến xe|sân bay|ga tàu|di chuyển/.test(lowerTitle)) {
       inferredType = 'transport';
     } else if (!inferredType || inferredType === 'explore') {
       inferredType = 'attraction';
@@ -5756,7 +5756,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   private renderGpsPositionOnMap(originCoords: { lat: number; lng: number }, destCoords: { lat: number; lng: number }, fromIdx: number, toIdx: number) {
     if (this.isGoogleMaps && this.gmap && typeof google !== 'undefined' && google.maps) {
       if (this.gpsUserMarker) {
-        try { this.gpsUserMarker.setMap(null); } catch (e) {}
+        try { this.gpsUserMarker.setMap(null); } catch (e) { }
       }
       this.gpsUserMarker = new google.maps.Marker({
         position: originCoords,
@@ -5778,7 +5778,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.gmap.fitBounds(bounds, { top: 70, right: 400, bottom: 70, left: 70 });
     } else if (this.map && typeof L !== 'undefined') {
       if (this.gpsUserMarker) {
-        try { this.map.removeLayer(this.gpsUserMarker); } catch (e) {}
+        try { this.map.removeLayer(this.gpsUserMarker); } catch (e) { }
       }
       this.gpsUserMarker = L.circleMarker([originCoords.lat, originCoords.lng], {
         radius: 9,
@@ -6453,7 +6453,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       try {
         if (this.isGoogleMaps && this.gpsUserMarker.setMap) this.gpsUserMarker.setMap(null);
         else if (this.map && this.map.removeLayer) this.map.removeLayer(this.gpsUserMarker);
-      } catch (e) {}
+      } catch (e) { }
       this.gpsUserMarker = null;
     }
     if (this.activeLegLayer) {
@@ -6898,7 +6898,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (!img && target.id) {
       try {
         img = localStorage.getItem(`greensteps_cover_${target.id}`);
-      } catch {}
+      } catch { }
     }
     if (img && typeof img === 'string') {
       const trimmed = img.trim();
@@ -6979,7 +6979,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
           localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
           localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-        } catch (e) {}
+        } catch (e) { }
         this.cdr.detectChanges();
 
         const uploadRes = await this.apiService.uploadImageBase64(base64Data, 'post');
@@ -6990,7 +6990,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           localStorage.setItem(`greensteps_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
           localStorage.setItem(`greensteps_user_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
           localStorage.setItem(`greensteps_guest_draft_${this.activeItinerary.id}`, JSON.stringify(this.activeItinerary));
-        } catch (e) {}
+        } catch (e) { }
         if (this.savedItineraries && Array.isArray(this.savedItineraries)) {
           const found = this.savedItineraries.find(x => x.id === this.activeItinerary.id);
           if (found) {
@@ -7349,12 +7349,37 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // FAVORITE PLACE TOGGLE FROM GOOGLE MAPS PANEL
   // =========================================================================
   public isPlaceFavorited(place: any): boolean {
-    return this.isPlaceFavorite(place);
+    if (!place) return false;
+    const title = (place.title || place.name || '').toLowerCase();
+    return (this.favoritePlaces || []).some((f: any) => (f.name || '').toLowerCase() === title);
   }
 
-  public async toggleFavoritePlaceFromMap(place: any) {
+  public toggleFavoritePlaceFromMap(place: any) {
     if (!place) return;
-    await this.toggleFavoritePlace(place);
+    const title = place.title || place.name || '';
+    const existingIdx = (this.favoritePlaces || []).findIndex((f: any) => (f.name || '').toLowerCase() === title.toLowerCase());
+    if (existingIdx !== -1) {
+      this.favoritePlaces.splice(existingIdx, 1);
+      place.isSaved = false;
+      this.showAlert(`Đã bỏ "${title}" khỏi danh sách Yêu thích.`, 'info');
+    } else {
+      this.favoritePlaces.push({
+        name: title,
+        type: place.type || 'explore',
+        category: place.category || 'Địa điểm yêu thích',
+        cost: Number(place.cost) || 0,
+        carbon: Number(place.carbon) || 0.5,
+        lat: place.lat,
+        lng: place.lng,
+        img: place.img || this.getPlacePlaceholderImage(title)
+      });
+      place.isSaved = true;
+      this.showAlert(`Đã lưu "${title}" vào mục Yêu thích!`, 'success');
+    }
+    try {
+      localStorage.setItem('greensteps_fav_places', JSON.stringify(this.favoritePlaces));
+    } catch (e) { }
+    this.cdr.detectChanges();
   }
 
   // =========================================================================

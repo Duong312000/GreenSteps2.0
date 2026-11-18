@@ -7118,27 +7118,27 @@
 }
 
 .act-min-title {
-  font-size: 13.5px !important;
+  font-size: 12.5px !important;
   font-weight: 600 !important;
-  line-height: 1.4 !important;
+  line-height: 1.35 !important;
 }
 
 .act-min-rating-sub,
 .act-min-type-tag,
 .act-address-text,
 .travel-gap-text {
-  font-size: 11.5px !important;
+  font-size: 8px !important;
 }
 
 .cost-label,
 .timeline-native-time-input,
 .sidebar-cost-card .cost-row,
 .sidebar-panel .sidebar-menu-item {
-  font-size: 12px !important;
+  font-size: 8px !important;
 }
 
 .sugg-modern-name {
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   line-height: 1.3 !important;
 }
@@ -7397,59 +7397,88 @@
 }
 
 .gm-panel-hero {
-  height: 120px !important;
-  min-height: 120px !important;
-  max-height: 120px !important;
+  height: 110px !important;
+  min-height: 110px !important;
+  max-height: 110px !important;
   position: relative !important;
   overflow: hidden !important;
 }
 
 .gm-panel-hero-img {
   width: 100% !important;
-  height: 120px !important;
+  height: 110px !important;
   object-fit: cover !important;
 }
 
 .gm-panel-content {
-  padding: 10px 12px 16px !important;
+  padding: 8px 10px 14px !important;
   overflow-y: auto !important;
 }
 
+/* Titles and names kept legible */
 .gm-place-name {
   font-size: 13px !important;
   font-weight: 700 !important;
   color: #0f172a !important;
-  margin: 0 0 4px 0 !important;
+  margin: 0 0 3px 0 !important;
   line-height: 1.3 !important;
 }
 
+/* All other texts in place details reduced by half (~7.5px - 8.5px) */
+.gm-panel-badge {
+  font-size: 7.5px !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+}
+
+.gm-place-rating-line,
+.gm-place-cat-line,
+.gm-info-row span,
+.gm-about-text,
+.gm-review-text,
+.gm-review-author,
+.gm-review-date {
+  font-size: 8px !important;
+  line-height: 1.35 !important;
+}
+
 .gm-tab-btn {
-  font-size: 11px !important;
-  padding: 5px 8px !important;
+  font-size: 8.5px !important;
+  padding: 4px 6px !important;
 }
 
 .gm-round-action-btn {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 13px !important;
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 11px !important;
 }
 
 .gm-action-item span {
-  font-size: 10px !important;
+  font-size: 7.5px !important;
 }
 
-/* 2. Sidebar Cost Card: 100% Anti-Wrapping */
+/* 2. Sidebar Cost Card & Menu: Micro-typography (reduced by half) */
 .sidebar-panel {
   width: 275px !important;
 }
 
+.sidebar-panel .sidebar-menu-item,
+.sidebar-panel .sidebar-day-chip span,
+.sidebar-panel .sidebar-day-tab span,
+.sidebar-panel .guest-label,
+.sidebar-panel .guest-stepper span,
+.sidebar-btn-back,
+.sidebar-saving-indicator {
+  font-size: 8.5px !important;
+}
+
 .sidebar-metrics-modern {
-  padding: 8px 12px 8px 0 !important;
+  padding: 6px 10px 6px 0 !important;
 }
 
 .sidebar-cost-card {
-  padding: 8px 10px !important;
-  gap: 4px !important;
+  padding: 6px 8px !important;
+  gap: 3px !important;
 }
 
 .sidebar-cost-card .cost-row,
@@ -7471,89 +7500,126 @@
   white-space: nowrap !important;
 }
 
+/* Non-title rows halved in size to 8px */
 .sidebar-cost-card .cost-label {
-  font-size: 11px !important;
+  font-size: 8px !important;
   color: #64748B !important;
 }
 
 .sidebar-cost-card .cost-val {
-  font-size: 11px !important;
+  font-size: 8px !important;
   font-weight: 700 !important;
   color: #1E293B !important;
 }
 
+/* Total row kept distinct */
 .sidebar-cost-card .cost-total-label {
-  font-size: 11.5px !important;
+  font-size: 9.5px !important;
   font-weight: 700 !important;
   color: #166534 !important;
 }
 
 .sidebar-cost-card .cost-total-val {
-  font-size: 12.5px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
   color: #166534 !important;
 }
 
 .sidebar-eco-card .eco-title,
 .sidebar-eco-card .eco-val {
-  font-size: 11px !important;
+  font-size: 8px !important;
 }
 
-/* 3. Timeline Cards & Travel Transit: 100% Anti-Wrapping */
+/* 3. Timeline Activities: Title kept at 12.5px, all other text halved to 8px */
 .act-min-title {
-  font-size: 13px !important;
+  font-size: 12.5px !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
 }
 
-.act-min-media {
-  width: 54px !important;
-  height: 54px !important;
-  flex-shrink: 0 !important;
+.timeline-time-display,
+.timeline-native-time-input,
+.timeline-time-col {
+  font-size: 8px !important;
 }
 
-.act-min-media img {
-  width: 54px !important;
-  height: 54px !important;
-  object-fit: cover !important;
+.act-min-type-tag {
+  font-size: 7.5px !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
 }
 
-.act-min-actions {
-  display: flex !important;
-  align-items: center !important;
-  gap: 3px !important;
-  flex-shrink: 0 !important;
-}
-
-.act-icon-btn {
-  width: 20px !important;
-  height: 20px !important;
-  font-size: 10px !important;
-  border-radius: 4px !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+.act-min-rating-sub,
+.act-star-score,
+.act-reviews-count,
+.act-divider,
+.act-address-text {
+  font-size: 8px !important;
 }
 
 .act-meta-line {
   display: flex !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
-  gap: 5px !important;
-  font-size: 11px !important;
+  gap: 4px !important;
+  font-size: 8px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
 }
 
-.act-meta-cost,
-.act-meta-shared,
-.act-meta-eco,
-.act-meta-dot {
+.act-meta-cost {
+  font-size: 9px !important;
+  font-weight: 700 !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
 
+.act-meta-shared,
+.act-meta-eco,
+.act-meta-dot,
+.act-unknown-price-badge {
+  font-size: 8px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.act-note-box,
+.act-note-display,
+.act-note-editor input {
+  font-size: 8px !important;
+}
+
+.act-min-media {
+  width: 48px !important;
+  height: 48px !important;
+  flex-shrink: 0 !important;
+}
+
+.act-min-media img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: cover !important;
+}
+
+.act-min-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+.act-icon-btn {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 8.5px !important;
+  border-radius: 3px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 4. Travel Gap & Route Navigation: Halved to 8px */
 .travel-gap-item {
   white-space: nowrap !important;
 }
@@ -7562,14 +7628,49 @@
   white-space: nowrap !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 4px !important;
+  font-size: 8px !important;
 }
 
 .travel-gap-text,
 .travel-gap-cta,
-.travel-gap-booked-inline {
+.travel-gap-booked-inline,
+.leg-note-text,
+.leg-note-input-row input {
   white-space: nowrap !important;
-  font-size: 11px !important;
+  font-size: 8px !important;
+}
+
+/* 5. Directions Modal Panel (Right top floating): Halved secondary text */
+.gm-dir-title {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+}
+
+.gm-dir-mode-btn,
+.gm-dir-node-addr,
+.gm-dir-node-label,
+.gm-dir-node strong,
+.gm-booking-item-title,
+.gm-booking-item-specs,
+.gm-booking-item-price,
+.gm-dir-cta-btn {
+  font-size: 8px !important;
+}
+
+/* 6. Recommendations & Discover Section below timeline */
+.sugg-modern-name {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+}
+
+.sugg-modern-card .sugg-cat-badge,
+.sugg-modern-card .sugg-rating,
+.sugg-modern-card .sugg-meta-sub,
+.sugg-modern-card .sugg-price,
+.sugg-modern-card .sugg-eco-badge,
+.sugg-modern-card .sugg-add-btn {
+  font-size: 8px !important;
 }
 
 

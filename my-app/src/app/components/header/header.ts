@@ -95,28 +95,48 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private getNotificationDestination(notif: any): string | null {
     const rawLink = String(notif?.link || notif?.link_url || '').trim();
-    const bookingId = String(notif?.bookingId || notif?.booking_id || notif?.reference_id || '').trim();
+    const refId = String(notif?.reference_id || notif?.referenceId || notif?.bookingId || notif?.booking_id || '').trim();
     const normalizedText = this.normalizeNotificationText(`${notif?.title || ''} ${notif?.message || ''}`);
     const counterRequest = /quay|counter/i.test(normalizedText);
-    if (counterRequest && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+    if (counterRequest && refId) return `/booking/confirm?bookingId=${encodeURIComponent(refId)}`;
 
-    // 1. Explicit notification type handling (highest priority)
+    // 1. Direct specific deep link if already present in notification
+    if (rawLink) {
+      if (rawLink.includes('/schedule/') || rawLink.includes('/community?post=') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/')) {
+        return rawLink;
+      }
+    }
+
+    // 2. Specific Community post / comment notification
     if (notif?.type === 'community' || /\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
-      if (notif?.postId) return `/community?post=${encodeURIComponent(notif.postId)}`;
+      const postId = notif?.postId || refId;
+      if (postId) return `/community?post=${encodeURIComponent(postId)}`;
+      if (rawLink && rawLink.includes('post=')) return rawLink;
       return '/community';
     }
+
+    // 3. Specific Itinerary / Schedule editor notification
     if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+      const itiId = notif?.itineraryId || refId;
+      if (itiId) return `/schedule/${encodeURIComponent(itiId)}`;
+      const storedId = localStorage.getItem('greensteps_working_itinerary_id');
+      if (storedId) return `/schedule/${encodeURIComponent(storedId)}`;
       return '/profile?section=itineraries';
     }
+
+    // 4. Specific Booking / Ticket notification
     if (notif?.type === 'booking' || /\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
-      if (bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+      const bId = notif?.bookingId || notif?.booking_id || refId;
+      if (bId) return `/booking/confirm?bookingId=${encodeURIComponent(bId)}`;
       return '/profile?section=tickets';
     }
+
+    // 5. Wallet
     if (notif?.type === 'wallet' || /\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
       return '/profile?section=wallet';
     }
 
-    // 2. Fallback to raw link if provided
+    // 6. Fallback to raw link if provided
     if (rawLink) {
       try {
         const url = new URL(rawLink, window.location.origin);
@@ -147,12 +167,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
   public async loadRealNotifications(userId: string) {
     try {
       const list = await this.apiService.getNotifications(userId);
-      const serverNotifications = list.filter(n => !this.isStaleQrNotice(n)).map(n => ({
+      const serverNotifications = list.filter(n => !this.isStaleQrNotice(n)).map((n: any) => ({
         id: n.id,
         title: n.title,
         message: n.message,
-        link: n.link || n.link_url || (n.type === 'booking' ? `/booking/confirm?bookingId=${encodeURIComponent(n.bookingId || n.booking_id || n.reference_id || '')}` : null),
-        bookingId: n.bookingId || n.booking_id || n.reference_id,
+        link: n.link || n.link_url || null,
+        bookingId: n.bookingId || n.booking_id || (n.type === 'booking' ? n.reference_id : null),
+        reference_id: n.reference_id,
+        postId: n.postId || (n.type === 'community' ? n.reference_id : null),
+        itineraryId: n.itineraryId || (n.type === 'itinerary' ? n.reference_id : null),
         type: n.type,
         read: n.read,
         time: this.formatTimeAgo(n.createdAt)

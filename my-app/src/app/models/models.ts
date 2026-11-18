@@ -286,11 +286,13 @@ export interface Notification {
   title: string;
   message: string;
   link?: string | null;
-    link_url?: string | null;
-    bookingId?: string | null;
-    booking_id?: string | null;
-    reference_id?: string | null;
-  type: 'system' | 'community' | 'booking' | 'wallet';
+  link_url?: string | null;
+  bookingId?: string | null;
+  booking_id?: string | null;
+  reference_id?: string | null;
+  postId?: string | null;
+  itineraryId?: string | null;
+  type: 'system' | 'community' | 'booking' | 'wallet' | 'itinerary' | string;
   read: boolean;
   createdAt: string;
   updatedAt: string;

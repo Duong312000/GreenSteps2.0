@@ -359,12 +359,62 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   public async markProfileNotifRead(notif: any) {
-    if (notif.read) return;
-    const ok = await this.apiService.markNotificationRead(notif.id);
-    if (ok) {
-      notif.read = true;
-      this.cdr.detectChanges();
+    if (!notif.read) {
+      const ok = await this.apiService.markNotificationRead(notif.id);
+      if (ok) {
+        notif.read = true;
+        this.cdr.detectChanges();
+      }
     }
+    const destination = this.getNotificationDestination(notif);
+    if (destination) {
+      void this.router.navigateByUrl(destination);
+    }
+  }
+
+  private getNotificationDestination(notif: any): string | null {
+    const rawLink = String(notif?.link || notif?.link_url || '').trim();
+    const refId = String(notif?.reference_id || notif?.referenceId || notif?.bookingId || notif?.booking_id || '').trim();
+    const normalizedText = String(`${notif?.title || ''} ${notif?.message || ''}`).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    // 1. Direct specific deep link
+    if (rawLink) {
+      if (rawLink.includes('/schedule/') || rawLink.includes('/community?post=') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/')) {
+        return rawLink;
+      }
+    }
+
+    // 2. Specific Community post
+    if (notif?.type === 'community' || /\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
+      const postId = notif?.postId || refId;
+      if (postId) return `/community?post=${encodeURIComponent(postId)}`;
+      if (rawLink && rawLink.includes('post=')) return rawLink;
+      return '/community';
+    }
+
+    // 3. Specific Itinerary
+    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+      const itiId = notif?.itineraryId || refId;
+      if (itiId) return `/schedule/${encodeURIComponent(itiId)}`;
+      const storedId = localStorage.getItem('greensteps_working_itinerary_id');
+      if (storedId) return `/schedule/${encodeURIComponent(storedId)}`;
+      return '/profile?section=itineraries';
+    }
+
+    // 4. Specific Booking
+    if (notif?.type === 'booking' || /\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
+      const bId = notif?.bookingId || notif?.booking_id || refId;
+      if (bId) return `/booking/confirm?bookingId=${encodeURIComponent(bId)}`;
+      return '/profile?section=tickets';
+    }
+
+    // 5. Wallet
+    if (notif?.type === 'wallet' || /\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
+      return '/profile?section=wallet';
+    }
+
+    if (rawLink && rawLink.startsWith('/')) return rawLink;
+    return null;
   }
 
   public async clearAllProfileNotifications() {
