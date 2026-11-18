@@ -7321,37 +7321,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // FAVORITE PLACE TOGGLE FROM GOOGLE MAPS PANEL
   // =========================================================================
   public isPlaceFavorited(place: any): boolean {
-    if (!place) return false;
-    const title = (place.title || place.name || '').toLowerCase();
-    return (this.favoritePlaces || []).some((f: any) => (f.name || '').toLowerCase() === title);
+    return this.isPlaceFavorite(place);
   }
 
-  public toggleFavoritePlaceFromMap(place: any) {
+  public async toggleFavoritePlaceFromMap(place: any) {
     if (!place) return;
-    const title = place.title || place.name || '';
-    const existingIdx = (this.favoritePlaces || []).findIndex((f: any) => (f.name || '').toLowerCase() === title.toLowerCase());
-    if (existingIdx !== -1) {
-      this.favoritePlaces.splice(existingIdx, 1);
-      place.isSaved = false;
-      this.showAlert(`Đã bỏ "${title}" khỏi danh sách Yêu thích.`, 'info');
-    } else {
-      this.favoritePlaces.push({
-        name: title,
-        type: place.type || 'explore',
-        category: place.category || 'Địa điểm yêu thích',
-        cost: Number(place.cost) || 0,
-        carbon: Number(place.carbon) || 0.5,
-        lat: place.lat,
-        lng: place.lng,
-        img: place.img || this.getPlacePlaceholderImage(title)
-      });
-      place.isSaved = true;
-      this.showAlert(`Đã lưu "${title}" vào mục Yêu thích!`, 'success');
-    }
-    try {
-      localStorage.setItem('greensteps_fav_places', JSON.stringify(this.favoritePlaces));
-    } catch (e) {}
-    this.cdr.detectChanges();
+    await this.toggleFavoritePlace(place);
   }
 
   // =========================================================================

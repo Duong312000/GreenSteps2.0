@@ -16,7 +16,7 @@ export class FavoriteCollectionComponent implements OnInit,OnDestroy {
     this.subscriptions.add(this.favorites.items$.subscribe(items=>{this.items=items;this.page=1;this.cdr.markForCheck();}));
     this.subscriptions.add(this.favorites.loading$.subscribe(loading=>{this.loading=loading;this.cdr.markForCheck();}));
     this.subscriptions.add(this.favorites.error$.subscribe(error=>{this.error=error;this.cdr.markForCheck();}));
-    try{const stored=JSON.parse(localStorage.getItem('greensteps_favorite_places')||'[]');if(Array.isArray(stored))this.legacy=stored.filter(item=>item&&(item.name||item.title)).slice(0,200);}catch{}
+    this.loadLegacy();
     void this.favorites.refresh();
   }
   ngOnDestroy(){this.subscriptions.unsubscribe();}
@@ -28,6 +28,20 @@ export class FavoriteCollectionComponent implements OnInit,OnDestroy {
   count(category:string){return category==='all'?this.items.length:this.items.filter(item=>this.group(item)===category).length;}
   track(_index:number,item:FavoriteItem){return item.id;}
   fallback(event:Event){const img=event.target as HTMLImageElement;if(!img.src.endsWith('/image/service-photo-pending.svg'))img.src='/image/service-photo-pending.svg';}
+  private loadLegacy(){
+    const unique=new Map<string,any>();
+    for(const key of ['greensteps_favorite_places','greensteps_fav_places']){
+      try{
+        const stored=JSON.parse(localStorage.getItem(key)||'[]');
+        if(!Array.isArray(stored))continue;
+        for(const item of stored.filter(value=>value&&(value.name||value.title)).slice(0,200)){
+          const ref=this.favorites.placeRef(item);
+          unique.set(`${ref.type}:${ref.id}`,item);
+        }
+      }catch{}
+    }
+    this.legacy=[...unique.values()].slice(0,200);
+  }
   async importLegacy(){
     if(!this.favorites.signedIn){this.favorites.openLogin();return;}
     this.importing=true;this.importError='';
@@ -39,7 +53,7 @@ export class FavoriteCollectionComponent implements OnInit,OnDestroy {
         if(!await this.favorites.setSaved(ref.type,ref.id,true,ref.snapshot))throw new Error('Account changed');
       }
       if(account!==this.favorites.accountKey)throw new Error('Account changed');
-      localStorage.removeItem('greensteps_favorite_places');this.legacy=[];
+      localStorage.removeItem('greensteps_favorite_places');localStorage.removeItem('greensteps_fav_places');this.legacy=[];
     }catch(error){this.importError=this.favorites.message(error);}finally{this.importing=false;this.cdr.markForCheck();}
   }
 }
