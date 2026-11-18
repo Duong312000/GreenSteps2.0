@@ -83,7 +83,7 @@
   gap: 14px;
   align-items: stretch;
   position: sticky;
-  top: 96px;
+  top: 100px;
 }
 
 .gs-gallery-column { min-width: 0; }
@@ -225,6 +225,7 @@
 .gs-info-pane {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .gs-kicker-row {
@@ -1163,10 +1164,15 @@
 /* ==========================================
    RESPONSIVE (Mobile & Tablet)
    ========================================== */
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .gs-hero-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 36px;
+    overflow-x: clip;
+  }
+
+  .gs-gallery-layout {
+    position: static;
   }
 
   .gs-overview-cards-grid {
@@ -1175,6 +1181,31 @@
 
   .gs-policy-steps-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gs-gallery-column {
+    align-self: stretch;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .gs-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-height: 719px) and (min-height: 693px) {
+  .gs-gallery-layout {
+    top: 90px;
+  }
+}
+
+@media (max-height: 692px) {
+  .gs-gallery-layout {
+    position: static;
   }
 }
 
@@ -2181,6 +2212,7 @@
 /* The booking pane grows with its form instead of overflowing a fixed height. */
 :host .tour-hero-grid > .booking-card{height:auto!important;min-height:0!important;align-self:start;box-sizing:border-box}
 :host .booking-card .booking-form{padding:0!important;min-width:0;margin:0}
+
 :host .price-block.has-sale .detail-price-line > strong,
 :host .price-block.has-sale .price-sale-label,
 :host .sale-price{color:#d93622!important}
@@ -2309,3 +2341,19 @@
 :host .gs-location-hub :is(a,button):focus-visible{outline:3px solid #7aa47a;outline-offset:3px}
 @media(max-width:1000px){:host .gs-location-top{grid-template-columns:minmax(0,1fr)}:host .gs-location-map{min-height:280px}:host .gs-location-map iframe{height:280px;min-height:0}:host .gs-nearby-groups{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){:host .gs-location-hub{padding:20px 14px;border-radius:16px}:host .gs-location-heading{gap:10px}:host .gs-location-heading h2{font-size:22px}:host .gs-location-heading>span{width:38px;height:38px;flex-basis:38px;font-size:20px}:host .gs-location-heading p{font-size:12px}:host .gs-location-address{padding:20px}:host .gs-location-address h3{font-size:18px}:host .gs-nearby-heading h3{font-size:19px}:host .gs-nearby-place{gap:8px}:host .gs-nearby-place-icon{display:none}:host .gs-nearby-group>ul{padding:0 12px}:host .gs-nearby-place h5{font-size:12px}:host .gs-nearby-distance strong{font-size:17px}:host .gs-nearby-place>a{width:28px;height:28px;flex-basis:28px}:host .gs-location-sources>div{flex-direction:column;gap:8px}}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .gs-matrix-popover {
+    right: 0;
+    left: auto;
+    max-width: min(420px, calc(100vw - 32px));
+  }
+}
+
+@media (max-width: 768px) {
+  .gs-matrix-popover {
+    right: 0;
+    left: auto;
+    max-width: calc(100vw - 32px);
+  }
+}
