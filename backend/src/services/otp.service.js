@@ -96,7 +96,7 @@ function createResendTooSoonError(resendAvailableAt) {
   return error;
 }
 
-async function createAndSendOtp(user, purpose, transaction, { awaitDelivery = false } = {}) {
+async function createAndSendOtp(user, purpose, transaction, { awaitDelivery = purpose === 'RESET_PASSWORD' } = {}) {
   await assertMailDomainCanReceive(user.email);
 
   const latest = await AuthOtp.findOne({
