@@ -1068,9 +1068,9 @@
 }
 
 .sidebar-panel {
-  width: 165px;
-  min-width: 140px;
-  max-width: 320px;
+  width: 285px;
+  min-width: 200px;
+  max-width: 480px;
   flex-shrink: 0 !important;
   height: 100% !important;
   border-right: 1px solid var(--border-color) !important;
@@ -7118,23 +7118,23 @@
 }
 
 .act-min-title {
-  font-size: 12.5px !important;
+  font-size: 13.5px !important;
   font-weight: 600 !important;
-  line-height: 1.35 !important;
+  line-height: 1.4 !important;
 }
 
 .act-min-rating-sub,
 .act-min-type-tag,
 .act-address-text,
 .travel-gap-text {
-  font-size: 8px !important;
+  font-size: 11.5px !important;
 }
 
 .cost-label,
 .timeline-native-time-input,
 .sidebar-cost-card .cost-row,
 .sidebar-panel .sidebar-menu-item {
-  font-size: 8px !important;
+  font-size: 12px !important;
 }
 
 .sugg-modern-name {
@@ -7457,44 +7457,40 @@
   font-size: 7.5px !important;
 }
 
-/* 2. Sidebar Cost Card & Menu: Micro-typography & Compact Micro-Receipt (Proposal 1) */
+/* 2. Sidebar Panel: Expanded Comfortable Layout & Dynamic Width */
 .sidebar-panel {
-  width: 165px !important;
-  min-width: 140px !important;
-  max-width: 320px !important;
-  padding: 10px 4px 8px 8px !important;
   box-sizing: border-box !important;
 }
 
 .sidebar-panel .sidebar-header {
-  margin-bottom: 8px !important;
-  padding-bottom: 4px !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 6px !important;
 }
 
 .sidebar-btn-back,
 .sidebar-panel button {
-  font-size: 8.5px !important;
+  font-size: 12px !important;
 }
 
 .sidebar-panel .btn-ai-assistant {
-  height: 28px !important;
-  font-size: 9.5px !important;
-  padding: 4px 6px !important;
-  border-radius: 6px !important;
-  margin-bottom: 8px !important;
+  height: 38px !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
 }
 
 .sidebar-panel .sidebar-menu-item {
-  padding: 5px 6px !important;
-  font-size: 8.5px !important;
-  gap: 4px !important;
-  border-radius: 4px !important;
+  padding: 8px 10px !important;
+  font-size: 12.5px !important;
+  gap: 8px !important;
+  border-radius: 6px !important;
 }
 
 .sidebar-panel .sidebar-menu-item-preview {
-  font-size: 7.5px !important;
-  padding-left: 14px !important;
-  max-width: 120px !important;
+  font-size: 11px !important;
+  padding-left: 20px !important;
+  max-width: 200px !important;
 }
 
 .sidebar-panel .sidebar-day-chip span,
@@ -7502,11 +7498,11 @@
 .sidebar-panel .guest-label,
 .sidebar-panel .guest-stepper span,
 .sidebar-saving-indicator {
-  font-size: 8px !important;
+  font-size: 11.5px !important;
 }
 
 .sidebar-metrics-modern {
-  padding: 4px 4px 4px 0 !important;
+  padding: 8px 0 !important;
   margin: 0 !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -7515,10 +7511,10 @@
 .sidebar-cost-card {
   background: #F8FAFC !important;
   border: 1px solid #E2E8F0 !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   box-shadow: none !important;
-  padding: 5px 6px !important;
-  gap: 2.5px !important;
+  padding: 10px 12px !important;
+  gap: 6px !important;
   box-sizing: border-box !important;
 }
 
@@ -7528,8 +7524,8 @@
   justify-content: space-between !important;
   align-items: center !important;
   white-space: nowrap !important;
-  gap: 2px !important;
-  line-height: 1.25 !important;
+  gap: 6px !important;
+  line-height: 1.4 !important;
 }
 
 .sidebar-cost-card .cost-label,
@@ -7542,39 +7538,36 @@
   white-space: nowrap !important;
 }
 
-/* Micro-Receipt rows */
 .sidebar-cost-card .cost-label {
-  font-size: 7.5px !important;
+  font-size: 11.5px !important;
   color: #64748B !important;
 }
 
 .sidebar-cost-card .cost-val {
-  font-size: 7.5px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   color: #1E293B !important;
 }
 
-/* Total row kept distinct */
 .sidebar-cost-card .cost-total-label {
-  font-size: 8.5px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   color: #166534 !important;
 }
 
 .sidebar-cost-card .cost-total-val {
-  font-size: 9px !important;
+  font-size: 14px !important;
   font-weight: 800 !important;
   color: #166534 !important;
 }
 
-/* Eco widget (Proposal 1: Inline compact eco badge) */
 .sidebar-eco-card {
   background: #F0FDF4 !important;
   border: 1px solid #BBF7D0 !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   box-shadow: none !important;
-  padding: 4px 6px !important;
-  margin-top: 4px !important;
+  padding: 8px 12px !important;
+  margin-top: 8px !important;
   box-sizing: border-box !important;
 }
 
@@ -7582,162 +7575,125 @@
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  gap: 4px !important;
-  margin-bottom: 3px !important;
+  gap: 6px !important;
+  margin-bottom: 6px !important;
 }
 
 .sidebar-eco-card .eco-title {
-  font-size: 7.5px !important;
+  font-size: 11.5px !important;
   font-weight: 700 !important;
   color: #166534 !important;
 }
 
 .sidebar-eco-card .eco-val {
-  font-size: 8px !important;
+  font-size: 12px !important;
   font-weight: 800 !important;
   color: #166534 !important;
 }
 
 .sidebar-eco-card .eco-progress-track {
-  height: 3px !important;
+  height: 5px !important;
   background: #DCFCE7 !important;
-  border-radius: 2px !important;
+  border-radius: 3px !important;
   overflow: hidden !important;
   width: 100% !important;
-  margin-top: 1px !important;
+  margin-top: 2px !important;
 }
 
 .sidebar-eco-card .eco-progress-bar {
   height: 100% !important;
   background: #16A34A !important;
-  border-radius: 2px !important;
+  border-radius: 3px !important;
 }
 
-/* Checkout actions compact */
+/* Checkout actions */
 .checkout-actions {
-  padding: 4px 4px 2px 0 !important;
-  margin-top: 4px !important;
+  padding: 8px 0 4px 0 !important;
+  margin-top: 6px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
 .checkout-actions .btn-checkout-pay-modern {
-  height: 32px !important;
-  padding: 4px 6px !important;
-  font-size: 8.5px !important;
+  height: 42px !important;
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
   font-weight: 700 !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   width: 100% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 4px !important;
+  gap: 6px !important;
   white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
 }
 
 .checkout-actions .wallet-badge-pill {
-  font-size: 7.5px !important;
-  padding: 2px 4px !important;
-  margin-top: 3px !important;
-  text-align: center !important;
-  display: block !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+  margin-top: 6px !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
 }
 
-/* 3. Timeline Activities: Title kept at 12.5px, all other text halved to 8px */
+/* 3. Timeline Cards & Travel Transit: Restored Clean Typography */
 .act-min-title {
-  font-size: 12.5px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
 }
 
-.timeline-time-display,
-.timeline-native-time-input,
-.timeline-time-col {
-  font-size: 8px !important;
-}
-
-.act-min-type-tag {
-  font-size: 7.5px !important;
-  padding: 1px 4px !important;
-  border-radius: 3px !important;
-}
-
-.act-min-rating-sub,
-.act-star-score,
-.act-reviews-count,
-.act-divider,
-.act-address-text {
-  font-size: 8px !important;
-}
-
-.act-meta-line {
-  display: flex !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
-  gap: 4px !important;
-  font-size: 8px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-}
-
-.act-meta-cost {
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-}
-
-.act-meta-shared,
-.act-meta-eco,
-.act-meta-dot,
-.act-unknown-price-badge {
-  font-size: 8px !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-}
-
-.act-note-box,
-.act-note-display,
-.act-note-editor input {
-  font-size: 8px !important;
-}
-
 .act-min-media {
-  width: 48px !important;
-  height: 48px !important;
+  width: 54px !important;
+  height: 54px !important;
   flex-shrink: 0 !important;
 }
 
 .act-min-media img {
-  width: 48px !important;
-  height: 48px !important;
+  width: 54px !important;
+  height: 54px !important;
   object-fit: cover !important;
 }
 
 .act-min-actions {
   display: flex !important;
   align-items: center !important;
-  gap: 2px !important;
+  gap: 3px !important;
   flex-shrink: 0 !important;
 }
 
 .act-icon-btn {
-  width: 18px !important;
-  height: 18px !important;
-  font-size: 8.5px !important;
-  border-radius: 3px !important;
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
   padding: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-/* 4. Travel Gap & Route Navigation: Halved to 8px */
+.act-meta-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.act-meta-cost,
+.act-meta-shared,
+.act-meta-eco,
+.act-meta-dot {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
 .travel-gap-item {
   white-space: nowrap !important;
 }
@@ -7746,49 +7702,13 @@
   white-space: nowrap !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  font-size: 8px !important;
+  gap: 5px !important;
 }
 
 .travel-gap-text,
 .travel-gap-cta,
-.travel-gap-booked-inline,
-.leg-note-text,
-.leg-note-input-row input {
+.travel-gap-booked-inline {
   white-space: nowrap !important;
-  font-size: 8px !important;
+  font-size: 11px !important;
 }
-
-/* 5. Directions Modal Panel (Right top floating): Halved secondary text */
-.gm-dir-title {
-  font-size: 12.5px !important;
-  font-weight: 700 !important;
-}
-
-.gm-dir-mode-btn,
-.gm-dir-node-addr,
-.gm-dir-node-label,
-.gm-dir-node strong,
-.gm-booking-item-title,
-.gm-booking-item-specs,
-.gm-booking-item-price,
-.gm-dir-cta-btn {
-  font-size: 8px !important;
-}
-
-/* 6. Recommendations & Discover Section below timeline */
-.sugg-modern-name {
-  font-size: 11.5px !important;
-  font-weight: 600 !important;
-}
-
-.sugg-modern-card .sugg-cat-badge,
-.sugg-modern-card .sugg-rating,
-.sugg-modern-card .sugg-meta-sub,
-.sugg-modern-card .sugg-price,
-.sugg-modern-card .sugg-eco-badge,
-.sugg-modern-card .sugg-add-btn {
-  font-size: 8px !important;
-}
-
 
