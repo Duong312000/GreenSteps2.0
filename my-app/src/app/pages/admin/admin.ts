@@ -96,8 +96,14 @@ export class AdminComponent implements OnInit, OnDestroy {
   public async loadDashboardSummary() {
     this.dashboardSummaryState = 'loading';
     try {
-      const response = await this.apiService.getAdminDashboardSummary();
+      const [response, behavioral] = await Promise.all([
+        this.apiService.getAdminDashboardSummary(),
+        this.apiService.getAdminBehavioralAnalytics()
+      ]);
       if (this.destroyed) return;
+      if (behavioral?.success) {
+        this.platformBehavioralReport = behavioral;
+      }
       if (response?.success !== true || !response.data) throw new Error('Invalid dashboard summary response');
       this.dashboardSummary = response.data;
       this.dashboardSummaryState = 'ready';
@@ -106,6 +112,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
     if (!this.destroyed) this.cdr.detectChanges();
   }
+  public platformBehavioralReport: any = null;
 
   public openReportReview(report: any) {
     if (this.isPreviewMode) return;

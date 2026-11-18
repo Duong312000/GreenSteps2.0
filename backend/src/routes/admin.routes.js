@@ -4,8 +4,27 @@ const { GreenService, ScheduleSample, Schedule, PartnerCampaign, ServiceBooking,
 const { campaignState } = require('../services/campaign-state.service');
 const { validateFlashUpdate } = require('../services/admin-flash-sale.service');
 const dashboardController = require('../controllers/admin-dashboard.controller');
+const analyticsService = require('../services/analytics.service');
 
 router.get('/dashboard/summary', authMiddleware, checkRole(['admin']), dashboardController.getSummary);
+router.get('/analytics', authMiddleware, checkRole(['admin']), async (req, res, next) => {
+  try {
+    if (req.query.providerId) {
+      const report = await analyticsService.getProviderAnalytics({
+        requestUser: req.user,
+        queryProviderId: req.query.providerId,
+        fromDate: req.query.fromDate,
+        toDate: req.query.toDate
+      });
+      return res.json({ success: true, ...report });
+    }
+    const report = await analyticsService.getAdminAnalytics({
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate
+    });
+    return res.json({ success: true, ...report });
+  } catch (error) { next(error); }
+});
 
 // Read the same collections used by the customer and partner APIs.
 router.get('/catalog/:kind', authMiddleware, checkRole(['admin']), async (req, res, next) => {

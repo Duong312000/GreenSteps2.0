@@ -267,9 +267,8 @@
                      (click)="$event.stopPropagation()">
               <div class="payment-brand" [attr.aria-label]="method.label">
                 <span *ngIf="method.id === 'wallet'" class="brand-greensteps-lockup"><img src="image/greensteps_logo_header.png" alt=""><span><b>GreenSteps</b><small>WALLET</small></span></span>
-                <img *ngIf="method.id === 'bank'" class="brand-vietqr-image" src="image/vietqr-wordmark.png" alt="VietQR">
+                <img *ngIf="method.id === 'sepay' || method.id === 'bank'" class="brand-vietqr-image" src="image/vietqr-wordmark.png" alt="VietQR">
                 <img *ngIf="method.id === 'card'" class="brand-card-image" src="image/payment/card-brands.svg" alt="Visa, Mastercard, JCB">
-                <span *ngIf="method.id === 'sepay'" class="brand-wordmark" aria-label="SePay"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><b>SePay</b></span>
                 <span *ngIf="method.id === 'counter'" class="brand-wordmark brand-counter"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
               </div>
               <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -296,8 +295,8 @@
           </div>
 
           <div class="card-sandbox-notice" *ngIf="paymentMethod === 'sepay' && !isTransportBooking">
-            <span class="sandbox-badge">SEPAY</span>
-            <div><strong>Thanh toán trực tuyến bảo mật qua SePay</strong><span>Bạn sẽ được kết nối đến cổng SePay để quét mã QR chuyển khoản tự động.</span></div>
+            <span class="sandbox-badge">VIETQR 24/7</span>
+            <div><strong>Chuyển khoản ngân hàng qua mã VietQR</strong><span>Quét mã QR bằng ứng dụng ngân hàng bất kỳ để chuyển khoản tự động. Hệ thống sẽ tự động xác nhận đơn ngay khi tiền vào tài khoản.</span></div>
           </div>
 
           <div class="card-form" *ngIf="paymentMethod === 'card' && !isTransportBooking">
@@ -373,7 +372,7 @@
     <small class="terms-error" *ngIf="paymentError('acceptedTerms')">{{ paymentError('acceptedTerms') }}</small>
     <button type="button" class="booking-submit payment-final-submit payment-continue-mobile"
       [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
-      {{ payTiming === 'now' ? (paymentMethod === 'sepay' ? 'Thanh toán bằng SePay' : ('Thanh toán ' +
+      {{ payTiming === 'now' ? (paymentMethod === 'sepay' ? ('Chuyển khoản ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : ('Thanh toán ' +
       (depositAmount | number:'1.0-0':'vi-VN') + 'đ')) : 'Giữ chỗ và thanh toán tại quầy' }}
     </button>
   </article>
@@ -425,7 +424,7 @@
       </div>
       <button type="button" class="booking-submit payment-final-submit payment-continue-desktop"
         [disabled]="(payTiming === 'now' && !paymentReady) || !acceptedTerms" (click)="completeDeposit()">
-        <ng-container *ngIf="payTiming === 'now'">{{ paymentMethod === 'sepay' ? 'Thanh toán bằng SePay' : ('Thanh
+        <ng-container *ngIf="payTiming === 'now'">{{ paymentMethod === 'sepay' ? ('Chuyển khoản ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') : ('Thanh
           toán ' + (depositAmount | number:'1.0-0':'vi-VN') + 'đ') }}</ng-container>
         <ng-container *ngIf="payTiming === 'later'">Giữ chỗ và thanh toán tại quầy</ng-container>
       </button>

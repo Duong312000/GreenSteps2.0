@@ -58,7 +58,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.isTransportBooking) return this.paymentMethods;
     // Keep object identities stable: recreating NgModel radio controls on every
     // change detection pass schedules another model update and can loop.
-    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet', 'card', 'bank'].includes(method.id)).map(method => ({
+    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet', 'card', 'sepay'].includes(method.id)).map(method => ({
       ...method, desc: 'Xác nhận vé điện tử và giữ chỗ trực tiếp trên hệ thống GreenSteps.'
     }));
     return this.transportMethodsCache;
@@ -176,9 +176,8 @@ export class BookingComponent implements OnInit, OnDestroy {
   public readonly arrivalOptions = ['07:00 - 08:30 (Khởi hành sáng sớm)', '08:30 - 10:00 (Khung giờ tiêu chuẩn)', '12:00 - 14:00 (Nhận phòng buổi trưa)', '14:00 - 16:00 (Buổi chiều)', '18:00 - 20:00 (Buổi tối)', 'Linh hoạt theo điều phối viên'];
   public readonly paymentMethods = [
     { id: 'wallet' as PaymentMethod, label: 'Ví GreenSteps', desc: 'Thanh toán tức thì, hoàn tiền nhanh & tích điểm lá xanh.', icon: 'bi-wallet2' },
-    { id: 'bank' as PaymentMethod, label: 'Chuyển khoản ngân hàng (VietQR)', desc: 'Quét mã QR tự động điền số tiền và nội dung giữ chỗ.', icon: 'bi-qr-code-scan' },
+    { id: 'sepay' as PaymentMethod, label: 'Chuyển khoản ngân hàng (VietQR)', desc: 'Quét mã VietQR chuyển khoản nhanh 24/7, hệ thống tự động xác nhận ngay tức thì.', icon: 'bi-qr-code-scan' },
     { id: 'card' as PaymentMethod, label: 'Thẻ quốc tế (Visa / Mastercard / JCB)', desc: 'Bảo mật chuẩn mã hóa quốc tế, xác nhận giữ chỗ ngay.', icon: 'bi-credit-card' },
-    { id: 'sepay' as PaymentMethod, label: 'Cổng thanh toán trực tuyến SePay', desc: 'Quét mã QR chuyển khoản tự động qua SePay Gateway.', icon: 'bi-bank' },
     { id: 'counter' as PaymentMethod, label: 'Giữ chỗ & Thanh toán tại văn phòng', desc: 'Giữ chỗ trước, thanh toán trực tiếp tại quầy GreenSteps.', icon: 'bi-shop' }
   ];
   public readonly addOnOptions = [

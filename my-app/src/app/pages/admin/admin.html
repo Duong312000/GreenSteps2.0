@@ -165,6 +165,93 @@
                   <span class="empty-icon"><i class="bi bi-check2-circle"></i></span><div><strong>Không có yêu cầu đang chờ trong các nguồn đã kết nối</strong><p>Không áp dụng quy tắc giả lập cảnh báo giao dịch.</p></div>
                 </div>
               </section>
+
+              <section class="panel-card" *ngIf="platformBehavioralReport" style="margin-top: 20px; padding: 20px;">
+                <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
+                  <div>
+                    <h2 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600;">Phân tích hành vi & Thời gian tương tác toàn sàn</h2>
+                    <p style="margin: 0; font-size: 13px; color: #6b7280;">{{ platformBehavioralReport.summaryHeadline }}</p>
+                  </div>
+                  <span class="count-pill">{{ platformBehavioralReport.period?.fromDate }} → {{ platformBehavioralReport.period?.toDate }}</span>
+                </div>
+
+                <div class="metrics-grid" style="margin-bottom: 20px;">
+                  <article class="metric-card">
+                    <div class="metric-card-top"><span class="metric-label">Tổng lượt xem nội dung</span></div>
+                    <strong class="metric-value">{{ formatCount(platformBehavioralReport.totals?.views || 0) }}</strong>
+                    <div class="metric-foot"><span>Lượt mở xem chi tiết</span></div>
+                  </article>
+                  <article class="metric-card">
+                    <div class="metric-card-top"><span class="metric-label">Thời gian đọc thực tế TB</span></div>
+                    <strong class="metric-value">{{ platformBehavioralReport.totals?.avgActiveSeconds || 0 }} giây</strong>
+                    <div class="metric-foot"><span>Chỉ tính khi tab hiển thị & có thao tác</span></div>
+                  </article>
+                  <article class="metric-card">
+                    <div class="metric-card-top"><span class="metric-label">Tỷ lệ đọc hết trang</span></div>
+                    <strong class="metric-value">{{ platformBehavioralReport.totals?.scrollCompletionPct || 0 }}%</strong>
+                    <div class="metric-foot"><span>Cuộn từ 75% nội dung trở lên</span></div>
+                  </article>
+                  <article class="metric-card">
+                    <div class="metric-card-top"><span class="metric-label">Tỷ lệ bấm đặt chỗ</span></div>
+                    <strong class="metric-value">{{ platformBehavioralReport.totals?.bookClickRatePct || 0 }}%</strong>
+                    <div class="metric-foot"><span>{{ formatCount(platformBehavioralReport.totals?.bookClicks || 0) }} lượt bấm đặt</span></div>
+                  </article>
+                </div>
+
+                <div *ngIf="platformBehavioralReport.providerLeaderboard?.length" style="margin-bottom: 20px;">
+                  <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">Hiệu quả tương tác theo Nhà cung cấp (Toàn quyền Quản trị viên)</h3>
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Nhà cung cấp</th>
+                          <th>Lượt xem dịch vụ</th>
+                          <th>Thời gian đọc TB</th>
+                          <th>Lượt bấm đặt chỗ</th>
+                          <th>Tỷ lệ chuyển đổi bước đặt</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let p of platformBehavioralReport.providerLeaderboard">
+                          <td><strong>{{ p.providerName }}</strong></td>
+                          <td>{{ formatCount(p.views) }}</td>
+                          <td>{{ p.avgActiveSeconds }} giây</td>
+                          <td>{{ formatCount(p.bookClicks) }}</td>
+                          <td>{{ p.bookClickRatePct }}%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div *ngIf="platformBehavioralReport.topItems?.length">
+                  <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">Nội dung có mức độ quan tâm cao nhất</h3>
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tên dịch vụ / Lịch trình</th>
+                          <th>Điểm đến</th>
+                          <th>Lượt xem</th>
+                          <th>Thời gian đọc TB</th>
+                          <th>Tỷ lệ đọc kỹ</th>
+                          <th>Lượt bấm đặt</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let item of platformBehavioralReport.topItems">
+                          <td><strong>{{ item.name }}</strong></td>
+                          <td>{{ item.destination || 'Việt Nam' }}</td>
+                          <td>{{ formatCount(item.views) }}</td>
+                          <td>{{ item.avgActiveSeconds }} giây</td>
+                          <td>{{ item.scrollCompletionPct }}%</td>
+                          <td>{{ formatCount(item.bookClicks) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
             </section>
 
             <section class="community-moderation-workspace" *ngIf="activeTab === 'reports'">

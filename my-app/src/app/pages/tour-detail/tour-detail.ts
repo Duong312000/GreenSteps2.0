@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { TrackingService } from '../../services/tracking.service';
 import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup, ServiceNearbyPlace, TourPhotoCredit } from '../../models/models';
 import { ServiceDetailSeoService } from '../../services/service-detail-seo.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -18,6 +19,7 @@ import { flashSaleTotal } from '../../utils/flash-sale-price';
 })
 export class TourDetailComponent implements OnInit, OnDestroy {
   public activeTour: Tour | null = null;
+  public ecoAssessment: any = null;
   public slideImages: string[] = [];
   public activeSlideIndex: number = 0;
   public isPageLoading: boolean = true;
@@ -88,7 +90,13 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       travelmode: place.travelMode || 'driving' }).toString();
   }
   public travelModeLabel(mode?: string): string { return mode === 'walking' ? 'đi bộ' : mode === 'bicycling' ? 'đạp xe' : 'đi xe'; }
-  public get greenFeatures() { return this.activeTour?.greenFeatures || []; }
+  public get greenFeatures() {
+    if (this.activeTour?.greenFeatures?.length) return this.activeTour.greenFeatures;
+    if (this.ecoAssessment?.highlights?.length) {
+      return this.ecoAssessment.highlights.map((h: string) => ({ title: h, description: '' }));
+    }
+    return [];
+  }
   public get policyTimes(): { checkIn?: string; checkOut?: string } {
     const text = this.policyGroups.flatMap(group => group.lines).join(' ');
     return { checkIn: text.match(/nhận phòng\s*(?:từ|sau|lúc)?\s*(\d{1,2}[:h]\d{2})/i)?.[1]?.replace('h', ':'),
@@ -446,7 +454,8 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
-    private seo: ServiceDetailSeoService
+    private seo: ServiceDetailSeoService,
+    private trackingService: TrackingService
   ) {}
 
   async ngOnInit() {
@@ -509,10 +518,19 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       if (this.detailDisposed || requestSequence !== this.detailRequestSequence) return;
 
       this.activeTour = nextTour;
+      this.ecoAssessment = null;
       this.isServiceDetail = !!nextTour?.isService || isService;
       if (nextTour?.isService) this.seo.update(nextTour);
       else this.seo.clear();
       if (nextTour) {
+        const targetKind: 'tour' | 'service' = this.isServiceDetail ? 'service' : 'tour';
+        this.trackingService.trackTargetView(targetKind, nextTour.id);
+        void this.apiService.getEcoAssessment(targetKind, nextTour.id).then(assessment => {
+          if (!this.detailDisposed && requestSequence === this.detailRequestSequence && assessment) {
+            this.ecoAssessment = assessment;
+            this.cdr.detectChanges();
+          }
+        });
         this.setupSlides();
         void this.loadReviews(id, requestSequence).then(() => {
           if (!this.detailDisposed && requestSequence === this.detailRequestSequence) {
@@ -901,6 +919,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     };
 
     localStorage.setItem('greensteps_booking_context', JSON.stringify(bookingContext));
+    this.trackingService.trackAction('book_click');
     this.router.navigate(['/booking'], { queryParams: bookingContext });
   }
 

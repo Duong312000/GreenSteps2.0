@@ -28,6 +28,7 @@ export class PartnerDashboardComponent {
   public isLoading = true;
   public loadError = false;
   public analytics = dashboardAnalytics([], []);
+  public behavioralReport: any = null;
   public tooltip: string | null = null;
   private loadSequence = 0;
   private loadedProviderId: string | null = null;
@@ -105,6 +106,16 @@ export class PartnerDashboardComponent {
   get totalAllocation(): number {
     return this.filteredBookings.length;
   }
+  get totalCo2SavedKg(): number {
+    const items = this.behavioralReport?.items || [];
+    const sum = items.reduce((acc: number, item: any) => acc + Number(item?.co2SavedKg || 0), 0);
+    if (sum > 0) return Math.round(sum * 10) / 10;
+    return Math.round(this.services.reduce((acc, s) => acc + Number(s?.carbon || 0), 0) * 10) / 10;
+  }
+  get primaryEcoTierLabel(): string {
+    const first = this.behavioralReport?.items?.[0];
+    return first?.ecoTierLabel || (this.services.length ? 'Đạt chuẩn xanh' : 'Chưa có dịch vụ');
+  }
   get allocationChartBackground(): string {
     if (!this.totalAllocation) return 'conic-gradient(#e8efeb 0 100%)';
     const tour = (this.analytics.allocation.tour / this.totalAllocation) * 100;
@@ -173,15 +184,19 @@ export class PartnerDashboardComponent {
     const sequence = ++this.loadSequence;
     this.isLoading = true;
     this.loadError = false;
-    const [bookings, services, changeRequests] = await Promise.allSettled([
+    const [bookings, services, changeRequests, behavioral] = await Promise.allSettled([
       this.apiService.getBookings(providerId, undefined, true, 15000, true),
       this.apiService.getMyServices(providerId, true, 15000, true),
       this.apiService.getChangeRequests(providerId, undefined, true, 15000, true),
+      this.apiService.getPartnerBehavioralAnalytics(),
     ]);
     if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
     if (bookings.status === 'fulfilled') this.bookings = bookings.value;
     if (services.status === 'fulfilled') this.services = services.value;
     if (changeRequests.status === 'fulfilled') this.changeRequests = changeRequests.value;
+    if (behavioral.status === 'fulfilled' && behavioral.value?.success) {
+      this.behavioralReport = behavioral.value;
+    }
     // Only flag critical loadError if both primary endpoints failed completely
     this.loadError = bookings.status === 'rejected' && services.status === 'rejected';
     this.recalculate();

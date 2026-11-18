@@ -45,7 +45,7 @@
           </div>
           <div class="gs-post-byline">
             <strong>{{ post.author }}</strong>
-            <span><i class="bi bi-geo-alt-fill"></i> {{ post.location || post.dest || 'Việt Nam' }} <b>·</b> {{ getTimeLabel(post.time) }}</span>
+            <span><i class="bi bi-geo-alt-fill"></i> {{ post.location || post.dest || 'Việt Nam' }} <b>·</b> {{ getTimeLabel(post.time) }}<ng-container *ngIf="$any(post).recommendReason"> <b>·</b> {{ $any(post).recommendReason }}</ng-container></span>
           </div>
           <span class="gs-post-kind" *ngIf="post.postType === 'question'"><i class="bi bi-patch-question-fill"></i> Hỏi đáp</span>
           <span class="gs-post-kind gs-reel-kind" *ngIf="post.postType === 'reel'"><i class="bi bi-play-fill"></i> Thước phim</span>

@@ -287,71 +287,46 @@ exports.addService = async (req, res, next) => {
   }
 };
 
-// 4. Personalized Green Service Recommendations
+// 4. Personalized Green Service Recommendations (Behavioral + Eco-Score Hybrid)
 exports.getRecommendations = async (req, res, next) => {
   const { userId } = req.params;
   try {
-    // Check traveler interest destination
-    const user = await User.findByPk(userId);
-    let recommendedServices = [];
+    const recommendationService = require('../services/recommendation.service');
+    const anonId = req.query.aid || req.headers['x-visitor-id'] || null;
+    const limit = Math.min(12, Math.max(1, Number.parseInt(req.query.limit, 10) || 6));
+    const entries = await recommendationService.recommendServices({
+      userId: userId && userId !== 'guest' ? userId : (req.user?.id || null),
+      anonId,
+      limit
+    });
 
-    if (user && user.last_interest) {
-      recommendedServices = await GreenService.findAll({
-        where: { destination: { [Op.iLike]: `%${user.last_interest}%` } }
-      });
-    }
-
-    // Match traveler badges
-    if (recommendedServices.length === 0) {
-      const userBadges = await BadgeUser.findAll({ where: { user_id: userId } });
-      const badgeNames = userBadges.map(ub => ub.badge_name);
-
-      if (badgeNames.length > 0) {
-        const badgeServices = await BadgeService.findAll({
-          where: { badge_name: { [Op.in]: badgeNames } }
-        });
-        const serviceIds = [...new Set(badgeServices.map(bs => bs.service_id))];
-        if (serviceIds.length > 0) {
-          recommendedServices = await GreenService.findAll({
-            where: { id: { [Op.in]: serviceIds } }
-          });
-        }
-      }
-    }
-
-    // Fallback: top selling services
-    if (recommendedServices.length === 0) {
-      recommendedServices = await GreenService.findAll({
-        order: [['bookings_count', 'DESC']],
-        limit: 4
-      });
-    }
-
-    const formatted = [];
-    for (const s of recommendedServices.filter(item => !item.current_data?.catalogHidden)) {
-      const badgeServices = await BadgeService.findAll({ where: { service_id: s.id } });
-      const vender = await Vender.findByPk(s.vender_id);
+    const formatted = entries.map(({ service: s, badges, vender, eco, recommendReason }) => {
       const providerId = vender ? vender.user_id : 'UG26pro0001';
-      formatted.push({
+      return {
         id: s.id,
         provider_id: providerId,
         name: s.name_service,
         type: s.type,
         destination: s.destination,
         cost: s.cost,
-        carbon: s.carbon,
+        carbon: eco?.co2SavedKg || s.carbon,
         icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
         status: 'active',
         rating: s.rating,
         reviews_count: s.reviews_count,
         bookings_count: s.bookings_count,
         max_capacity: s.max_capacity || 10,
-        badges: badgeServices.map(bs => bs.badge_name),
+        badges,
         image_url: s.image_url || (s.current_data ? s.current_data.img : null),
         current_data: s.current_data || {},
+        recommendReason,
+        ecoTier: eco?.tier || 'standard',
+        ecoTierLabel: eco?.tierLabel || 'Đạt chuẩn xanh',
+        ecoImpactLine: eco?.impactLine || '',
+        ecoHighlights: eco?.highlights || [],
         ...catalogMetadata(s)
-      });
-    }
+      };
+    });
 
     res.json(formatted);
   } catch (error) {

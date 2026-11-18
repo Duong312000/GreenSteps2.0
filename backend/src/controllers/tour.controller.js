@@ -431,68 +431,23 @@ exports.getPresetTourById = async (req, res, next) => {
 exports.getRecommendations = async (req, res, next) => {
   const { userId } = req.params;
   try {
-    const user = await User.findByPk(userId);
-    let matchedTours = [];
-
-    const eagerInclude = [{ model: Schedule }];
-
-    // Priority 1: Check user last interest destination
-    if (user && user.last_interest) {
-      const matchedSchedules = await Schedule.findAll({
-        where: { destination: { [Op.iLike]: `%${user.last_interest}%` } },
-        attributes: ['id']
-      });
-      const scheduleIds = matchedSchedules.map(s => s.id);
-      if (scheduleIds.length > 0) {
-        matchedTours = await ScheduleSample.findAll({
-          where: { id: { [Op.in]: scheduleIds } },
-          include: eagerInclude
-        });
-      }
-    }
-
-    // Priority 2: Match user badges
-    if (matchedTours.length === 0) {
-      const userBadges = await BadgeUser.findAll({ where: { user_id: userId }, attributes: ['badge_name'] });
-      const badgeNames = userBadges.map(ub => ub.badge_name);
-      if (badgeNames.length > 0) {
-        const badgeSchedules = await BadgeSchedule.findAll({
-          where: { badge_name: { [Op.in]: badgeNames } },
-          attributes: ['schedule_id']
-        });
-        const tourIds = [...new Set(badgeSchedules.map(bs => bs.schedule_id))];
-        if (tourIds.length > 0) {
-          matchedTours = await ScheduleSample.findAll({
-            where: { id: { [Op.in]: tourIds } },
-            include: eagerInclude
-          });
-        }
-      }
-    }
-
-    // Fallback: highest rated tours
-    if (matchedTours.length === 0) {
-      matchedTours = await ScheduleSample.findAll({
-        order: [['rating', 'DESC']],
-        limit: 3,
-        include: eagerInclude
-      });
-    }
-
-    // Fetch all badges for matched tours in a single query
-    const tourIds = matchedTours.map(s => s.id);
-    const allBadges = tourIds.length > 0
-      ? await BadgeSchedule.findAll({ where: { schedule_id: { [Op.in]: tourIds } } })
-      : [];
-    const badgeMap = {};
-    allBadges.forEach(bs => {
-      if (!badgeMap[bs.schedule_id]) badgeMap[bs.schedule_id] = [];
-      badgeMap[bs.schedule_id].push(bs.badge_name);
+    const recommendationService = require('../services/recommendation.service');
+    const anonId = req.query.aid || req.headers['x-visitor-id'] || null;
+    const limit = Math.min(12, Math.max(1, Number.parseInt(req.query.limit, 10) || 6));
+    const entries = await recommendationService.recommendTours({
+      userId: userId && userId !== 'guest' ? userId : (req.user?.id || null),
+      anonId,
+      limit
     });
 
-    const tours = matchedTours
-      .filter(s => s.Schedule)
-      .map(s => formatTourResponse(s, s.Schedule, badgeMap[s.id] || []));
+    const tours = entries.map(({ sample, schedule, badges, eco, recommendReason }) => ({
+      ...formatTourResponse(sample, schedule, badges),
+      recommendReason,
+      ecoTier: eco?.tier || 'standard',
+      ecoTierLabel: eco?.tierLabel || 'Đạt chuẩn xanh',
+      ecoImpactLine: eco?.impactLine || '',
+      ecoHighlights: eco?.highlights || []
+    }));
 
     res.json(tours);
   } catch (error) {

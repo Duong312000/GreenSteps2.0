@@ -252,9 +252,8 @@
                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <h2>Trải nghiệm xanh</h2>
-            <p>Một lựa chọn có ý thức, từ những điều nhỏ trong chuyến đi.</p>
-            <span class="gs-green-origin"><i class="bi bi-info-circle" aria-hidden="true"></i> Theo thông tin cơ sở chia
-              sẻ</span>
+            <p>{{ ecoAssessment?.impactLine || 'Một lựa chọn có ý thức, từ những điều nhỏ trong chuyến đi.' }}</p>
+            <span class="gs-green-origin"><i class="bi bi-check2-circle" aria-hidden="true"></i> {{ ecoAssessment ? (ecoAssessment.tierLabel + ' • ' + ecoAssessment.verificationLabel) : 'Theo thông tin cơ sở chia sẻ' }}</span>
           </header>
           <div class="gs-green-content">
             <div class="gs-green-features" [class.single]="greenFeatures.length===1"

@@ -109,7 +109,17 @@ exports.getPosts = async (req, res, next) => {
     const rows = await CommunityPost.findAll({ where, include: [{ model: User, required: false }], order: [['createdAt', 'DESC']], limit, offset: page * limit });
     const userId = validUser(req);
     const savedIds = userId ? new Set((await SavedCommunityItem.findAll({ where: { user_id: userId, item_type: 'post' } })).map(item => item.item_id)) : new Set();
-    res.json(rows.map(row => formatPost(row, row.User, savedIds.has(row.id))));
+    let formatted = rows.map(row => formatPost(row, row.User, savedIds.has(row.id)));
+    if (!search && formatted.length > 1) {
+      const recommendationService = require('../services/recommendation.service');
+      const anonId = req.query.aid || req.headers['x-visitor-id'] || null;
+      formatted = await recommendationService.rankCommunityPosts({
+        posts: formatted,
+        userId,
+        anonId
+      });
+    }
+    res.json(formatted);
   } catch (error) { next(error); }
 };
 

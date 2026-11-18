@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
 import { LoginModalService } from './services/login-modal.service';
+import { TrackingService } from './services/tracking.service';
 
 @Component({
   selector: 'app-root',
@@ -28,11 +29,13 @@ export class App implements OnInit {
     private router: Router, 
     private authService: AuthService,
     private apiService: ApiService,
-    private loginModalService: LoginModalService
+    private loginModalService: LoginModalService,
+    private trackingService: TrackingService
   ) {}
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
+    this.trackingService.trackScreenView(this.router.url);
 
     // Prompt login modal on the very first visit in a browser session if guest
     try {
@@ -65,6 +68,7 @@ export class App implements OnInit {
       ) {
         if (event instanceof NavigationEnd) {
           this.updateAdminShell(event.urlAfterRedirects);
+          this.trackingService.trackScreenView(event.urlAfterRedirects);
         }
         // Small graceful delay to smoothly complete progress animation
         setTimeout(() => {

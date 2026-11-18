@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { LoginModalService } from '../../services/login-modal.service';
+import { TrackingService } from '../../services/tracking.service';
 import { CommunityPost, Itinerary, User } from '../../models/models';
 
 type CommunityTab = 'all' | 'reel' | 'question';
@@ -102,7 +103,8 @@ export class CommunityComponent implements OnInit {
     private readonly auth: AuthService,
     private readonly login: LoginModalService,
     private readonly cdr: ChangeDetectorRef,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private readonly tracking: TrackingService
   ) {}
 
   ngOnInit(): void {
@@ -172,6 +174,12 @@ export class CommunityComponent implements OnInit {
       if (sequence !== this.feedRequestSequence) return;
       this.posts = posts;
       this.hasMore = posts.length === 10;
+      if (this.query.trim().length >= 2) {
+        this.tracking.trackSearch('community', this.query.trim(), posts.length);
+      }
+      for (const p of posts.slice(0, 6)) {
+        if (p?.id) this.tracking.trackImpression('post', String(p.id));
+      }
       this.loading = false;
       this.cdr.markForCheck();
       try {

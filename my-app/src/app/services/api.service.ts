@@ -714,6 +714,10 @@ export class ApiService {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (type !== 'all') params.set('type', type);
       if (query.trim()) params.set('q', query.trim());
+      try {
+        const aid = typeof window !== 'undefined' ? localStorage.getItem('greensteps_anon_id') : null;
+        if (aid) params.set('aid', aid);
+      } catch {}
       const url = `${this.BACKEND_URL}/community/posts?${params}`;
       // The response contains user-specific isSaved state; never share it across sessions.
       const data = await this.getWithTimeout<CommunityPost[]>(url);
@@ -1242,8 +1246,15 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const res = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/recommendations/tours/${userId}`));
-      const data = (res || []).map(t => this.mapTourToFrontend(t));
+      const aid = typeof window !== 'undefined' ? localStorage.getItem('greensteps_anon_id') : null;
+      const qs = aid ? `?aid=${encodeURIComponent(aid)}` : '';
+      const res = await firstValueFrom(this.http.get<any[]>(`${this.BACKEND_URL}/recommendations/tours/${userId}${qs}`));
+      const data = (res || []).map(t => ({
+        ...this.mapTourToFrontend(t),
+        recommendReason: t.recommendReason || null,
+        ecoTierLabel: t.ecoTierLabel || null,
+        ecoImpactLine: t.ecoImpactLine || null
+      }));
       this.setCachedData(cacheKey, data);
       return data;
     } catch (e) {
@@ -1257,8 +1268,15 @@ export class ApiService {
     if (cached) return cached;
 
     try {
-      const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/recommendations/services/${userId}`));
-      const services = data.filter((row: any) => !row.current_data?.catalogHidden).map(row => this.normalizeCatalogService(row));
+      const aid = typeof window !== 'undefined' ? localStorage.getItem('greensteps_anon_id') : null;
+      const qs = aid ? `?aid=${encodeURIComponent(aid)}` : '';
+      const data = await firstValueFrom(this.http.get<Service[]>(`${this.BACKEND_URL}/recommendations/services/${userId}${qs}`));
+      const services = data.filter((row: any) => !row.current_data?.catalogHidden).map((row: any) => ({
+        ...this.normalizeCatalogService(row),
+        recommendReason: row.recommendReason || null,
+        ecoTierLabel: row.ecoTierLabel || null,
+        ecoImpactLine: row.ecoImpactLine || null
+      }));
       this.setCachedData(cacheKey, services);
       return services;
     } catch (e) {
@@ -1308,6 +1326,51 @@ export class ApiService {
       return await this.getWithTimeout<any>(`${this.BACKEND_URL}/partner/stats`, { withCredentials: true });
     } catch (e: any) {
       return { success: false, message: e?.error?.message || 'Lỗi tải báo cáo đối soát!' };
+    }
+  }
+
+  public async getPartnerBehavioralAnalytics(fromDate?: string, toDate?: string): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (fromDate) params.set('fromDate', fromDate);
+      if (toDate) params.set('toDate', toDate);
+      const qs = params.toString() ? `?${params}` : '';
+      return await this.getWithTimeout<any>(`${this.BACKEND_URL}/partner/analytics${qs}`, { withCredentials: true });
+    } catch {
+      return null;
+    }
+  }
+
+  public async getAdminBehavioralAnalytics(providerId?: string, fromDate?: string, toDate?: string): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (providerId) params.set('providerId', providerId);
+      if (fromDate) params.set('fromDate', fromDate);
+      if (toDate) params.set('toDate', toDate);
+      const qs = params.toString() ? `?${params}` : '';
+      return await this.getWithTimeout<any>(`${this.BACKEND_URL}/admin/analytics${qs}`, { withCredentials: true });
+    } catch {
+      return null;
+    }
+  }
+
+  public async getEcoAssessment(targetType: 'tour' | 'service', targetId: string, includeDetail = false): Promise<any> {
+    try {
+      const qs = includeDetail ? '?detail=1' : '';
+      const res = await this.getWithTimeout<any>(`${this.BACKEND_URL}/eco-score/${targetType}/${encodeURIComponent(targetId)}${qs}`, { withCredentials: true });
+      return res?.assessment || null;
+    } catch {
+      return null;
+    }
+  }
+
+  public async submitEcoAssessment(targetType: 'tour' | 'service', targetId: string, payload: { criteria: Record<string, boolean>; evidenceUrls?: string[]; evidenceNote?: string }): Promise<any> {
+    try {
+      return await firstValueFrom(
+        this.http.post<any>(`${this.BACKEND_URL}/eco-score/${targetType}/${encodeURIComponent(targetId)}/assessment`, payload, { withCredentials: true })
+      );
+    } catch (e: any) {
+      return { success: false, message: e?.error?.message || 'Không thể lưu hồ sơ tiêu chuẩn xanh.' };
     }
   }
 

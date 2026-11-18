@@ -275,6 +275,47 @@
     </div>
   </section>
 
+  <section class="dashboard-card" *ngIf="behavioralReport?.items?.length" aria-label="Hiệu quả tương tác từng dịch vụ">
+    <div class="card-heading with-action">
+      <div class="heading-title">
+        <app-partner-icon name="chart" />
+        <div>
+          <h2>Hiệu quả tương tác & Thời gian xem dịch vụ của bạn</h2>
+          <p>{{ behavioralReport.summaryHeadline }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Dịch vụ</th>
+            <th>Chuẩn xanh</th>
+            <th>Lượt xem</th>
+            <th>Thời gian đọc TB</th>
+            <th>Tỷ lệ đọc hết trang</th>
+            <th>Bấm đặt chỗ</th>
+            <th>Đề xuất tối ưu</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of behavioralReport.items">
+            <td>
+              <span class="service-name">{{ item.name }}</span>
+              <div style="font-size: 12px; color: #6b7280;">{{ item.destination }}</div>
+            </td>
+            <td>{{ item.ecoTierLabel }}</td>
+            <td>{{ formatNumber(item.views) }}</td>
+            <td>{{ item.avgActiveSeconds }} giây</td>
+            <td>{{ formatNumber(item.scrollCompletionPct) }}%</td>
+            <td>{{ formatNumber(item.bookClicks) }} ({{ formatNumber(item.bookClickRatePct) }}%)</td>
+            <td style="max-width: 280px; font-size: 13px; color: #374151;">{{ item.suggestion }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="secondary-grid" aria-label="Báo cáo bổ sung">
     <article class="dashboard-card">
       <div class="card-heading">
@@ -314,22 +355,36 @@
         <div>
           <dt>Tổng lượt xem dịch vụ</dt>
           <dd>
-            {{ analytics.views === null ? 'Chưa có dữ liệu' : formatNumber(analytics.views) }}
+            {{ behavioralReport?.totals ? formatNumber(behavioralReport.totals.views) : (analytics.views === null ? 'Chưa có dữ liệu' : formatNumber(analytics.views)) }}
           </dd>
         </div>
         <div>
-        <dt>Lượt đặt / lượt xem</dt>
+          <dt>Thời gian đọc trung bình</dt>
+          <dd>
+            {{ behavioralReport?.totals ? (behavioralReport.totals.avgActiveSeconds + ' giây') : 'Chưa có dữ liệu' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Tỷ lệ đọc hết mô tả</dt>
+          <dd>
+            {{ behavioralReport?.totals ? (formatNumber(behavioralReport.totals.scrollCompletionPct) + '%') : 'Chưa có dữ liệu' }}
+          </dd>
+        </div>
+        <div>
+        <dt>Tỷ lệ bấm đặt chỗ</dt>
           <dd>
             {{
-              analytics.conversionRate === null
-                ? 'Chưa có dữ liệu'
-                : formatNumber(analytics.conversionRate) + '%'
+              behavioralReport?.totals
+                ? formatNumber(behavioralReport.totals.bookClickRatePct) + '%'
+                : (analytics.conversionRate === null
+                  ? 'Chưa có dữ liệu'
+                  : formatNumber(analytics.conversionRate) + '%')
             }}
           </dd>
         </div>
       </dl>
       <p class="card-footnote">
-        Chưa có dữ liệu phân tích độ tuổi, nhóm khách và thiết bị truy cập.
+        Số liệu chỉ tính trên các dịch vụ do tài khoản của bạn đăng tải và thời gian khách thực sự mở trang.
       </p>
     </article>
     <article class="dashboard-card">
@@ -357,15 +412,15 @@
       <dl class="insight-list">
         <div>
           <dt>CO₂ giảm thiểu</dt>
-          <dd>Chưa có dữ liệu</dd>
+          <dd>{{ totalCo2SavedKg > 0 ? (formatNumber(totalCo2SavedKg) + ' kg CO₂ / khách') : 'Đang cập nhật' }}</dd>
         </div>
         <div>
-          <dt>Hiệu suất marketing</dt>
-          <dd>Chưa có dữ liệu</dd>
+          <dt>Chuẩn xanh dịch vụ</dt>
+          <dd>{{ primaryEcoTierLabel }}</dd>
         </div>
       </dl>
       <p class="card-footnote">
-        Báo cáo sẽ được bổ sung khi có số liệu phát thải đối chiếu và hiệu quả chiến dịch.
+        Mức giảm phát thải được đối chiếu tự động theo tiêu chuẩn sinh thái của các dịch vụ bạn đăng ký.
       </p>
       <a class="text-link" routerLink="/partner-ads"
         >Đến trang tiếp thị <app-partner-icon name="arrow"

@@ -50,6 +50,8 @@ router.use('/admin', adminUsersRoutes);
 router.use('/support', require('./support.routes'));
 router.use('/newsletter', require('./newsletter.routes'));
 router.use('/maps', require('./maps.routes'));
+router.use('/events', require('./events.routes'));
+router.use('/eco-score', require('./eco-score.routes'));
 router.get('/destinations', require('../controllers/tour.controller').getDestinations);
 router.get('/destinations/:slug', require('../controllers/tour.controller').getDestinationBySlug);
 
