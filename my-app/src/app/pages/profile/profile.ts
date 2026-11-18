@@ -8,6 +8,7 @@ import { LoginModalService } from '../../services/login-modal.service';
 import { User, WalletTransaction } from '../../models/models';
 import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
 import { DestinationWeather, WeatherService } from '../../services/weather.service';
+import { SecurityOverview, SecurityService, SecuritySession } from '../../services/security.service';
 
 type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'itineraries' | 'promotions' | 'settings' | 'map' | 'chatbot';
 
@@ -83,6 +84,30 @@ export class ProfileComponent implements OnInit, OnDestroy {
     address: '',
     role: 'traveler'
   };
+
+  public securityOverview: SecurityOverview | null = null;
+  public securityActivity: any[] = [];
+  public securityLoading = false;
+  public securityError = false;
+  public securityErrorMessage = 'Unable to load security data. Please retry.';
+  public securityReauthRequired = false;
+  public securityActionMessage = '';
+  public securityActionError = '';
+  public securityPreferenceSaving = false;
+  public securityDialog: 'password' | 'password-setup' | 'passkey-add' | 'email-change' | 'email-code' | '' = '';
+  public securityDialogName = '';
+  public securityDialogError = '';
+  public securityPasskeyId = '';
+  public securityCurrentPassword = '';
+  public securityNewPassword = '';
+  public securityConfirmPassword = '';
+  public securityEmailDraft = '';
+  public securityEmailCode = '';
+  public securityActivityPage = 1;
+  public securityActivityTotal = 0;
+  public get securityActivityPageCount(): number { return Math.max(1, Math.ceil(this.securityActivityTotal / 10)); }
+  private securityLoadForUser = '';
+  private securityLoadSequence = 0;
 
   public walletRegistered = false;
   public walletBalance = 0;
@@ -305,7 +330,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     private loginModalService: LoginModalService,
-    private weatherService: WeatherService
+    private weatherService: WeatherService,
+    private securityService: SecurityService
   ) {}
 
   ngOnInit() {
@@ -327,6 +353,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.applyProfileUser(user);
         this.loadWalletAndTransactions();
         this.loadProfileNotifications();
+        if (this.activeSection === 'security') {
+          void this.loadSecurityDashboard(true);
+        }
       }
       this.cdr.detectChanges();
     });
@@ -335,7 +364,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
       if (params['section']) {
         const sec = params['section'] as ProfileSection;
         if (['overview', 'personal', 'security', 'notifications', 'wallet', 'tickets', 'favorites', 'itineraries', 'promotions', 'settings', 'map', 'chatbot'].includes(sec)) {
+          const sectionChanged = this.activeSection !== sec;
           this.activeSection = sec;
+          if (sectionChanged && sec === 'security' && this.currentUser) {
+            void this.loadSecurityDashboard();
+          }
         }
       }
       if (params['sub'] === 'upcomingTrip') {
@@ -803,8 +836,234 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   public setActiveSection(section: ProfileSection) {
     this.activeSection = section;
+    if (section === 'security') void this.loadSecurityDashboard();
     void this.router.navigate(['/profile'], { queryParams: { section } });
   }
+
+  public async loadSecurityDashboard(force = false) {
+    const userId = String(this.currentUser?.id || this.currentUser?._id || '');
+    if (!userId) {
+      this.securityOverview = null;
+      this.securityActivity = [];
+      this.securityError = true;
+      this.securityLoading = false;
+      return;
+    }
+    if (!force && this.securityLoadForUser === userId && (this.securityLoading || this.securityOverview)) return;
+    const sequence = ++this.securityLoadSequence;
+    this.securityLoadForUser = userId;
+    this.securityLoading = true;
+    this.securityError = false;
+    this.securityReauthRequired = false;
+    this.securityActionError = '';
+    try {
+      const [overview, activity] = await Promise.all([this.securityService.getOverview(), this.securityService.getActivity(this.securityActivityPage, 10)]);
+      if (this.profileDestroyed || sequence !== this.securityLoadSequence || !this.isCurrentProfileUser(userId)) return;
+      this.securityOverview = overview;
+      this.securityActivity = activity.items || [];
+      this.securityActivityTotal = activity.total || 0;
+      this.securityError = false;
+    } catch (error: any) {
+      if (this.profileDestroyed || sequence !== this.securityLoadSequence || !this.isCurrentProfileUser(userId)) return;
+      this.securityOverview = null;
+      this.securityActivity = [];
+      this.securityError = true;
+      this.securityReauthRequired = error?.status === 401;
+      this.securityErrorMessage = this.securityReauthRequired
+        ? 'Your old session expired. Sign in again once to continue.'
+        : 'Security API is unavailable. Check the backend connection and retry.';
+      this.securityLoadForUser = '';
+    } finally {
+      if (sequence === this.securityLoadSequence) {
+        this.securityLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  public async revokeSecuritySession(session: SecuritySession) {
+    if (!session?.id) return;
+    this.securityActionMessage = '';
+    this.securityActionError = '';
+    try {
+      const result = await this.securityService.revokeSession(session.id);
+      if (result.currentSessionRevoked) {
+        this.authService.logout();
+        return;
+      }
+      this.securityActionMessage = 'Đã đăng xuất thiết bị.';
+      await this.loadSecurityDashboard(true);
+    } catch {
+      this.securityActionError = 'Không thể đăng xuất thiết bị. Vui lòng thử lại.';
+    }
+  }
+
+  public async revokeOtherSecuritySessions() {
+    this.securityActionMessage = '';
+    this.securityActionError = '';
+    try {
+      const count = await this.securityService.revokeOtherSessions();
+      this.securityActionMessage = count ? `Đã đăng xuất ${count} thiết bị khác.` : 'Không có thiết bị khác cần đăng xuất.';
+      await this.loadSecurityDashboard(true);
+    } catch {
+      this.securityActionError = 'Không thể đăng xuất các thiết bị khác. Vui lòng thử lại.';
+    }
+  }
+
+  public async revokeAllSecuritySessions() {
+    if (!window.confirm('Đăng xuất tài khoản khỏi tất cả thiết bị? Bạn sẽ cần đăng nhập lại.')) return;
+    try {
+      await this.securityService.revokeAllSessions();
+      this.authService.logout();
+      this.router.navigate(['/']);
+    } catch { this.securityActionError = 'Không thể thu hồi tất cả phiên đăng nhập.'; }
+  }
+
+  public async loadSecurityActivityPage(page: number) {
+    if (page < 1 || (this.securityActivityTotal && page > Math.ceil(this.securityActivityTotal / 10))) return;
+    this.securityActivityPage = page;
+    try {
+      const result = await this.securityService.getActivity(page, 10);
+      this.securityActivity = result.items || [];
+      this.securityActivityTotal = result.total || 0;
+    } catch { this.securityActionError = 'Không thể tải lịch sử đăng nhập.'; }
+  }
+
+  public async toggleSecurityEmailNotifications(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const nextValue = Boolean(input?.checked);
+    this.securityPreferenceSaving = true;
+    this.securityActionError = '';
+    try {
+      const enabled = await this.securityService.updateSecurityEmailNotifications(nextValue);
+      if (this.securityOverview) this.securityOverview.measures.securityEmailNotifications.enabled = enabled;
+    } catch {
+      if (input) input.checked = this.securityOverview?.measures.securityEmailNotifications.enabled === true;
+      this.securityActionError = 'Không thể cập nhật tùy chọn thông báo.';
+    } finally {
+      this.securityPreferenceSaving = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  public openPasswordChange() {
+    this.securityDialogError = '';
+    this.securityCurrentPassword = '';
+    this.securityNewPassword = '';
+    this.securityConfirmPassword = '';
+    this.securityDialog = 'password';
+  }
+
+  public openPasswordSetup() {
+    this.securityDialogError = '';
+    this.securityNewPassword = '';
+    this.securityConfirmPassword = '';
+    this.securityDialog = 'password-setup';
+  }
+
+  public openEmailChange() {
+    this.securityDialogError = '';
+    this.securityEmailDraft = this.currentUser?.email || '';
+    this.securityCurrentPassword = '';
+    this.securityDialog = 'email-change';
+  }
+
+  public openPasskeyRegistration() {
+    this.securityDialogError = '';
+    this.securityCurrentPassword = '';
+    this.securityDialogName = `${navigator.platform || 'Thiết bị'} - Passkey`;
+    this.securityDialog = 'passkey-add';
+  }
+
+  public async renameSecurityPasskey(passkey: { id: string; name: string }) {
+    const name = window.prompt('Tên thiết bị passkey', passkey.name);
+    if (name === null) return;
+    try {
+      await this.securityService.renamePasskey(passkey.id, name);
+      await this.loadSecurityDashboard(true);
+    } catch {
+      this.securityActionError = 'Không thể đổi tên passkey.';
+    }
+  }
+
+  public async removeSecurityPasskey(passkey: { id: string; name: string }) {
+    if (!window.confirm(`Xóa passkey “${passkey.name}”?`)) return;
+    try {
+      const isPasswordAccount = this.securityOverview?.measures.localPassword.configured === true;
+      const proofValue = isPasswordAccount ? window.prompt('Nhập mật khẩu hiện tại') : '';
+      if (proofValue === null) return;
+      await this.securityService.deletePasskey(passkey.id, isPasswordAccount ? { currentPassword: proofValue || '' } : {});
+      this.securityActionMessage = 'Đã xóa passkey.';
+      await this.loadSecurityDashboard(true);
+    } catch {
+      this.securityActionError = 'Không thể xóa passkey.';
+    }
+  }
+
+  public closeSecurityDialog() {
+    this.securityDialog = '';
+    this.securityDialogError = '';
+    this.securityCurrentPassword = '';
+    this.securityNewPassword = '';
+    this.securityConfirmPassword = '';
+    this.securityEmailCode = '';
+  }
+
+  public async submitSecurityDialog() {
+    this.securityDialogError = '';
+    try {
+      if (this.securityDialog === 'password') {
+        if (this.securityNewPassword !== this.securityConfirmPassword) throw new Error('Mật khẩu xác nhận không khớp.');
+        await this.securityService.changePassword(this.securityCurrentPassword, this.securityNewPassword);
+        this.closeSecurityDialog();
+        this.securityActionMessage = 'Đã đổi mật khẩu. Các phiên khác đã được đăng xuất.';
+        await this.loadSecurityDashboard(true);
+      } else if (this.securityDialog === 'password-setup') {
+        if (this.securityNewPassword !== this.securityConfirmPassword) throw new Error('Mật khẩu xác nhận không khớp.');
+        await this.securityService.setPassword(this.securityNewPassword, this.securityConfirmPassword);
+        this.closeSecurityDialog();
+        this.securityActionMessage = 'Đã thiết lập mật khẩu. Các phiên khác đã được đăng xuất.';
+        await this.loadSecurityDashboard(true);
+      } else if (this.securityDialog === 'email-change') {
+        await this.securityService.requestEmailChange(this.securityEmailDraft, this.securityCurrentPassword || undefined);
+        this.securityDialog = 'email-code';
+        this.securityDialogError = '';
+      } else if (this.securityDialog === 'email-code') {
+        const email = await this.securityService.confirmEmailChange(this.securityEmailCode);
+        if (this.currentUser) this.currentUser.email = email;
+        if (this.profileUser) this.profileUser.email = email;
+        this.closeSecurityDialog();
+        this.securityActionMessage = 'Email đã được xác minh và cập nhật.';
+        await this.loadSecurityDashboard(true);
+      } else if (this.securityDialog === 'passkey-add') {
+        const proof = this.securityOverview?.measures.localPassword.configured
+          ? { currentPassword: this.securityCurrentPassword }
+          : {};
+        await this.securityService.registerPasskey(this.securityDialogName, proof);
+        this.closeSecurityDialog();
+        this.securityActionMessage = 'Đã đăng ký passkey trên thiết bị này.';
+        await this.loadSecurityDashboard(true);
+      }
+    } catch (error: any) {
+      this.securityDialogError = error?.error?.message || 'Không thể hoàn tất thao tác. Vui lòng kiểm tra mã và thử lại.';
+    }
+  }
+
+  public securityActivityTitle(event: any): string {
+    const labels: Record<string, string> = {
+      login_success: 'Đăng nhập thành công', logout: 'Đăng xuất', session_revoked: 'Đã thu hồi phiên',
+      other_sessions_revoked: 'Đã đăng xuất thiết bị khác', password_changed: 'Đã đổi mật khẩu',
+      passkey_registered: 'Đã thêm Passkey', passkey_removed: 'Đã xóa Passkey'
+    };
+    return labels[event?.event_type] || 'Hoạt động bảo mật';
+  }
+
+  public formatSecurityTime(value: string | null | undefined): string {
+    if (!value) return 'Chưa có dữ liệu';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Chưa có dữ liệu' : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+  }
+
 
   public get currentTravelPreferenceStep(): TravelPreferenceQuestion {
     return this.travelPreferenceQuestions[this.currentPreferenceStepIndex];

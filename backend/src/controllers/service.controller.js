@@ -125,13 +125,6 @@ exports.invalidateServicesCache = (serviceId) => {
   servicesCache.expiresAt = 0;
 };
 
-setTimeout(() => {
-  fetchAllServicesFromDb().then(list => {
-    servicesCache.data = list;
-    servicesCache.expiresAt = Date.now() + SERVICES_TTL_MS;
-  }).catch(() => {});
-}, 800);
-
 // 1. Get All Green Services (SWR In-Memory Cache + Above-the-Fold Progressive Slice)
 exports.getServices = async (req, res, next) => {
   try {
@@ -289,7 +282,9 @@ exports.addService = async (req, res, next) => {
 
 // 4. Personalized Green Service Recommendations (Behavioral + Eco-Score Hybrid)
 exports.getRecommendations = async (req, res, next) => {
-  const { userId } = req.params;
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     const recommendationService = require('../services/recommendation.service');
     const anonId = req.query.aid || req.headers['x-visitor-id'] || null;

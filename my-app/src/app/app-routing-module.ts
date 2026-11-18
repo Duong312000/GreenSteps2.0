@@ -1,10 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
 import { PromotionsComponent } from './pages/promotions/promotions';
-import { TourDetailComponent } from './pages/tour-detail/tour-detail';
-import { CommunityComponent } from './pages/community/community';
 import { ScheduleEditorComponent } from './pages/schedule-editor/schedule-editor';
 import { PartnerDashboardComponent } from './pages/partner/partner-dashboard/partner-dashboard';
 import { PartnerServicesComponent } from './pages/partner/partner-services/partner-services';
@@ -24,12 +21,12 @@ import { adminGuard } from './guards/admin.guard';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
-import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
 import { NetworkErrorComponent } from './pages/network-error/network-error';
 import { foodAdminGuard } from './pages/local-food/food-admin.guard';
 
 const routes: Routes = [
   { path: 'about', loadComponent: () => import('./pages/about/about').then(m => m.AboutComponent) },
+  { path: 'reset-password', loadComponent: () => import('./pages/reset-password/reset-password').then(m => m.ResetPasswordComponent) },
   { path: 'sustainability', loadComponent: () => import('./pages/sustainability/sustainability').then(m => m.SustainabilityComponent) },
   { path: 'local-food', loadComponent: () => import('./pages/local-food/local-food').then(m => m.LocalFoodComponent) },
   { path: 'local-food/:id', loadComponent: () => import('./pages/local-food/food-detail').then(m => m.FoodDetailComponent) },
@@ -41,21 +38,21 @@ const routes: Routes = [
   { path:'transport-bookings/:id', loadComponent:()=>import('./pages/transport/transport-bookings').then(m=>m.TransportBookingPageComponent) },
   { path:'admin/transport', loadComponent:()=>import('./pages/transport/transport-admin').then(m=>m.TransportAdminComponent) },
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  { path: 'home', component: HomeComponent },
+  { path: 'home', loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
   { path: 'tours', component: ToursComponent },
   { path: 'destinations', redirectTo: 'home', pathMatch: 'full' },
   { path: 'destinations/:slug', redirectTo: 'home', pathMatch: 'full' },
   { path: 'promotions', redirectTo: 'promotions/for-you', pathMatch: 'full' },
   { path: 'promotions/:section', component: PromotionsComponent },
-  { path: 'tours/:id', component: TourDetailComponent },
-  { path: 'tour-detail/:id', component: TourDetailComponent },
-  { path: 'services/:type/:id', component: TourDetailComponent },
-  { path: 'services/:id', component: TourDetailComponent },
-  { path: 'service-detail/:id', component: TourDetailComponent },
+  { path: 'tours/:id', loadChildren: () => import('./pages/tour-detail/tour-detail.module').then(m => m.TourDetailModule) },
+  { path: 'tour-detail/:id', loadChildren: () => import('./pages/tour-detail/tour-detail.module').then(m => m.TourDetailModule) },
+  { path: 'services/:type/:id', loadChildren: () => import('./pages/tour-detail/tour-detail.module').then(m => m.TourDetailModule) },
+  { path: 'services/:id', loadChildren: () => import('./pages/tour-detail/tour-detail.module').then(m => m.TourDetailModule) },
+  { path: 'service-detail/:id', loadChildren: () => import('./pages/tour-detail/tour-detail.module').then(m => m.TourDetailModule) },
   { path: 'services', component: ServicesComponent },
   { path: 'how-it-works', component: HowItWorksComponent },
-  { path: 'cancellation-policy', component: CancellationPolicyComponent },
-  { path: 'transparency', component: CancellationPolicyComponent },
+  { path: 'cancellation-policy', loadChildren: () => import('./pages/cancellation-policy/cancellation-policy.module').then(m => m.CancellationPolicyModule) },
+  { path: 'transparency', loadChildren: () => import('./pages/cancellation-policy/cancellation-policy.module').then(m => m.CancellationPolicyModule) },
   { path: 'network-error', component: NetworkErrorComponent },
   { path: '500', component: ServerErrorComponent },
   { path: 'maintenance', component: MaintenanceComponent },
@@ -63,7 +60,7 @@ const routes: Routes = [
   { path: 'help-center/:slug', component: HelpCenterComponent },
   { path: 'contact', component: HelpCenterContactComponent },
   { path: 'profile', loadChildren: () => import('./pages/profile/profile.module').then(m => m.ProfileModule) },
-  { path: 'community', component: CommunityComponent },
+  { path: 'community', loadChildren: () => import('./pages/community/community.module').then(m => m.CommunityModule) },
   { path: 'schedule', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
   { path: 'schedule/:id', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
   { path: 'schedule-editor', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },

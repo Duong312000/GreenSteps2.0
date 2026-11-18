@@ -245,17 +245,12 @@ exports.invalidateTourCaches = () => {
 };
 
 // Warm up cache in background shortly after server starts
-setTimeout(() => {
-  fetchAllPresetToursFromDb().then(tours => {
-    presetToursCache.data = tours;
-    presetToursCache.expiresAt = Date.now() + PRESET_TOURS_TTL_MS;
-  }).catch(() => {});
-}, 500);
+
 
 // 1. Get All Preset Tours (SWR In-Memory Cache + Above-the-Fold Progressive Slice)
 exports.getPresetTours = async (req, res, next) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user?.id;
     if (!userId) {
       const now = Date.now();
       if (presetToursCache.data) {
@@ -429,7 +424,9 @@ exports.getPresetTourById = async (req, res, next) => {
 
 // 3. Get Personalized Tour Recommendations (Eager Loading)
 exports.getRecommendations = async (req, res, next) => {
-  const { userId } = req.params;
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     const recommendationService = require('../services/recommendation.service');
     const anonId = req.query.aid || req.headers['x-visitor-id'] || null;
@@ -462,9 +459,13 @@ exports.saveCustomItinerary = async (req, res, next) => {
 };
 
 async function persistCustomItinerary(req, res, next, payload, { aiGenerated = false } = {}) {
-  const { id, name, user_id, destination, days, totalCost, daysData, status, deposit_deadline, start_date, end_date, companion_email, imageUrl, image_url } = payload;
+  const { id, name, destination, days, totalCost, daysData, status, deposit_deadline, start_date, end_date, companion_email, imageUrl, image_url } = payload;
+  const user_id = req.user?.id;
+  if (!user_id) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
+    const existingOwnerRecord = id ? await ScheduleCustom.findByPk(id) : null;
+    if (existingOwnerRecord && String(existingOwnerRecord.user_id) !== String(user_id)) return res.status(403).json({ success: false, error: 'Forbidden' });
     // Sum carbon emissions from activities
     let computedCarbon = 0;
     if (daysData && daysData.length > 0) {
@@ -686,6 +687,8 @@ exports.createAiItinerary = async (req, res, next) => {
 // 5. Get All Custom Itineraries for a User (Eager Loading — single query)
 exports.getUserCustomItineraries = async (req, res, next) => {
   const { userId } = req.params;
+  if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (String(userId) !== String(req.user.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     const userSchedules = await UserSchedule.findAll({
       where: { user_id: userId }
@@ -733,11 +736,7 @@ exports.getUserCustomItineraries = async (req, res, next) => {
 exports.getCustomItineraryById = async (req, res, next) => {
   const { id } = req.params;
   try {
-    const cached = customItineraryCache.get(id);
-    if (cached && (Date.now() - cached.cachedAt < 2 * 60 * 1000)) {
-      return res.json(cached.data);
-    }
-
+    if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
     const cleanId = String(id).replace(/^iti_/, '');
     let c = await ScheduleCustom.findByPk(id, {
       include: [{
@@ -764,6 +763,7 @@ exports.getCustomItineraryById = async (req, res, next) => {
 
     const actualId = c ? c.id : id;
     const userSchedules = await UserSchedule.findAll({ where: { schedule_id: actualId } });
+    if (c && String(c.user_id) !== String(req.user.id) && !userSchedules.some(item => String(item.user_id) === String(req.user.id))) return res.status(403).json({ success: false, error: 'Forbidden' });
 
     if (!c || !c.Schedule) {
       // Fallback: if someone shared a preset/sample tour ID on /schedule/:id
@@ -835,8 +835,12 @@ exports.getCustomItineraryById = async (req, res, next) => {
 // 7. Delete Custom Itinerary
 exports.deleteCustomItinerary = async (req, res, next) => {
   const { id } = req.params;
+  if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
   customItineraryCache.delete(id);
   try {
+    const owned = await ScheduleCustom.findByPk(id);
+    if (!owned) return res.status(404).json({ success: false, error: 'Not found' });
+    if (String(owned.user_id) !== String(req.user.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
     await ScheduleActivity.destroy({ where: { schedule_id: id } });
     await UserSchedule.destroy({ where: { schedule_id: id } });
     await ScheduleCustom.destroy({ where: { id } });
@@ -1089,7 +1093,8 @@ exports.likeComment = async (req, res, next) => {
 
 exports.cloneItinerary = async (req, res, next) => {
   const { id } = req.params;
-  const newUserId = req.user ? req.user.id : (req.body.userId || req.body.user_id || '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d');
+  const newUserId = req.user?.id;
+  if (!newUserId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
     const base = await Schedule.findByPk(id);
@@ -1194,6 +1199,8 @@ exports.inviteCollaborator = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
+    if (String(c.user_id) !== String(req.user?.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
+
     const emailList = typeof emails === 'string'
       ? emails.split(',').map(e => e.trim()).filter(e => e.length > 0)
       : (Array.isArray(emails) ? emails : []);
@@ -1228,7 +1235,8 @@ exports.inviteCollaborator = async (req, res, next) => {
 // 9. Join Custom Itinerary (for invited friends)
 exports.joinItinerary = async (req, res, next) => {
   const { id } = req.params;
-  const { userId } = req.body;
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
     const cleanId = (id || '').replace('iti_', '');
@@ -1247,6 +1255,10 @@ exports.joinItinerary = async (req, res, next) => {
     if (!c) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
+
+    const joiningUser = await User.findByPk(userId);
+    const invitedEmails = String(c.companion_email || '').split(',').map(value => value.trim().toLowerCase());
+    if (String(c.user_id) !== String(userId) && !invitedEmails.includes(String(joiningUser?.email || '').toLowerCase())) return res.status(403).json({ success: false, error: 'Forbidden' });
 
     const actualScheduleId = c.id;
     await UserSchedule.findOrCreate({

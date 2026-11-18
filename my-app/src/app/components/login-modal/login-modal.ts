@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 type AuthMode = 'login' | 'register';
-type AuthStep = 'login' | 'registerVerify' | 'forgot' | 'forgotVerify' | 'reset' | 'resetDone';
+type AuthStep = 'login' | 'registerVerify' | 'forgot' | 'forgotSent' | 'forgotVerify' | 'reset' | 'resetDone';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\x21-\x7E]{8,72}$/;
 const PASSWORD_MESSAGE = 'Mật khẩu phải có 8-72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt; chỉ dùng ký tự Latin không dấu và không có khoảng trắng.';
@@ -211,7 +211,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.isSubmitting = true;
-    const res = await this.authService.requestForgotPasswordOtp(email);
+    const res = await this.authService.requestForgotPasswordLink(email);
     this.isSubmitting = false;
 
     if (res.success) {
@@ -219,7 +219,7 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
       this.resetOtpInputs();
       this.startCountdown(60);
       this.successMessage = res.message || 'Nếu email tồn tại trong hệ thống, mã xác thực đã được gửi.';
-      this.authStep = 'forgotVerify';
+      this.authStep = 'forgotSent';
       return;
     }
 

@@ -1,10 +1,14 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
-const { User } = require('../src/models');
+const { AuthSession, SecurityAuditEvent, User } = require('../src/models');
 const { authMiddleware, JWT_SECRET } = require('../src/middlewares/auth.middleware');
 const authController = require('../src/controllers/auth.controller');
 const bcrypt = require('bcrypt');
+
+// Controller tests use an isolated persistence boundary; registry behavior is covered in auth-session tests.
+AuthSession.create = async value => value;
+SecurityAuditEvent.create = async value => value;
 
 function response() {
   return { statusCode: 200, body: null, status(code) { this.statusCode = code; return this; }, json(value) { this.body = value; return this; } };
@@ -16,36 +20,42 @@ async function withPatched(target, key, value, run) {
 }
 
 test('authentication immediately rejects a token when its account has been suspended', async () => {
-  const token = jwt.sign({ id: 'user-1', role: 'traveler' }, JWT_SECRET);
+  const token = jwt.sign({ id: 'user-1', sid: 'sid-1', role: 'traveler' }, JWT_SECRET);
   const req = { headers: { authorization: `Bearer ${token}` } };
   const res = response(); let nextCalled = false;
-  await withPatched(User, 'findByPk', async () => ({ id: 'user-1', role: 'traveler', account_status: 'suspended' }), async () => {
-    await authMiddleware(req, res, () => { nextCalled = true; });
-  });
+  await withPatched(AuthSession, 'findByPk', async () => ({ id: 'sid-1', user_id: 'user-1', expires_at: new Date(Date.now() + 60_000), revoked_at: null, last_active_at: new Date() }), async () =>
+    withPatched(User, 'findByPk', async () => ({ id: 'user-1', role: 'traveler', account_status: 'suspended' }), async () => {
+      await authMiddleware(req, res, () => { nextCalled = true; });
+    })
+  );
   assert.equal(res.statusCode, 403);
   assert.equal(res.body.error, 'AccountDisabled');
   assert.equal(nextCalled, false);
 });
 
 test('authentication refreshes the role from MongoDB instead of trusting an old admin token', async () => {
-  const token = jwt.sign({ id: 'user-1', role: 'admin' }, JWT_SECRET);
+  const token = jwt.sign({ id: 'user-1', sid: 'sid-1', role: 'admin' }, JWT_SECRET);
   const req = { headers: { authorization: `Bearer ${token}` } };
   const res = response(); let nextCalled = false;
-  await withPatched(User, 'findByPk', async () => ({ id: 'user-1', username: 'mai', fullname: 'Mai', role: 'traveler', account_status: 'active' }), async () => {
-    await authMiddleware(req, res, () => { nextCalled = true; });
-  });
+  await withPatched(AuthSession, 'findByPk', async () => ({ id: 'sid-1', user_id: 'user-1', expires_at: new Date(Date.now() + 60_000), revoked_at: null, last_active_at: new Date() }), async () =>
+    withPatched(User, 'findByPk', async () => ({ id: 'user-1', username: 'mai', fullname: 'Mai', role: 'traveler', account_status: 'active' }), async () => {
+      await authMiddleware(req, res, () => { nextCalled = true; });
+    })
+  );
   assert.equal(nextCalled, true);
   assert.equal(req.user.role, 'traveler');
 });
 
 test('authentication projects only fields required for authorization and request context', async () => {
-  const token = jwt.sign({ id: 'user-1', role: 'admin' }, JWT_SECRET);
+  const token = jwt.sign({ id: 'user-1', sid: 'sid-1', role: 'admin' }, JWT_SECRET);
   const req = { headers: { authorization: `Bearer ${token}` } };
   const res = response(); let options;
-  await withPatched(User, 'findByPk', async (_id, queryOptions) => {
-    options = queryOptions;
-    return { id: 'user-1', username: 'mai', fullname: 'Mai', role: 'admin', account_status: 'active' };
-  }, async () => { await authMiddleware(req, res, () => {}); });
+  await withPatched(AuthSession, 'findByPk', async () => ({ id: 'sid-1', user_id: 'user-1', expires_at: new Date(Date.now() + 60_000), revoked_at: null, last_active_at: new Date() }), async () =>
+    withPatched(User, 'findByPk', async (_id, queryOptions) => {
+      options = queryOptions;
+      return { id: 'user-1', username: 'mai', fullname: 'Mai', role: 'admin', account_status: 'active' };
+    }, async () => { await authMiddleware(req, res, () => {}); })
+  );
   assert.deepEqual(options.attributes, ['id', 'username', 'fullname', 'role', 'account_status']);
 });
 

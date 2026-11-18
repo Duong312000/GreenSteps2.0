@@ -6,7 +6,7 @@ const { authMiddleware, checkRole } = require('../middlewares/auth.middleware');
 router.get('/', serviceController.getServices);
 router.get('/search', serviceController.searchServices);
 router.post('/cache-google-place', serviceController.cacheGooglePlace);
-router.get('/recommendations/:userId', serviceController.getRecommendations);
+router.get('/recommendations/:userId', authMiddleware, serviceController.getRecommendations);
 router.get('/provider/:providerId', authMiddleware, checkRole(['provider', 'admin']), serviceController.getProviderServices);
 router.post('/', authMiddleware, checkRole(['provider', 'admin']), serviceController.addService);
 router.put('/:id', authMiddleware, checkRole(['provider', 'admin']), serviceController.updateService);

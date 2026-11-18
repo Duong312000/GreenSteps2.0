@@ -11,7 +11,7 @@ exports.getSavedPromotions = async (req, res, next) => {
 
 exports.validateVoucher = async (req, res, next) => {
   const { code } = req.body;
-  const userId = req.user ? req.user.id : req.body.userId;
+  const userId = req.user?.id;
 
   try {
     const voucher = await Voucher.findOne({
@@ -46,7 +46,7 @@ exports.validateVoucher = async (req, res, next) => {
 
 exports.getMyVouchers = async (req, res, next) => {
   try {
-    const userId = req.user ? req.user.id : (req.query.userId || req.body.userId);
+    const userId = req.user?.id;
     const vouchers = await Voucher.findAll({
       where: { user_id: userId },
       order: [['createdAt', 'DESC']]

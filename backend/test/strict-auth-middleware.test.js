@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const { strictAuthMiddleware, JWT_SECRET } = require('../src/middlewares/auth.middleware');
-const { User } = require('../src/models');
+const { AuthSession, User } = require('../src/models');
 
 function response() {
   return { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
@@ -19,12 +19,14 @@ test('strict auth rejects legacy body userId fallback on catalog administration 
 test('strict auth loads role from the authenticated account and ignores token-provided role', async () => {
   const original = User.findByPk;
   User.findByPk = async () => ({ id: 'user-1', role: 'provider', account_status: 'active' });
-  const token = jwt.sign({ id: 'user-1', role: 'admin' }, JWT_SECRET);
+  const token = jwt.sign({ id: 'user-1', sid: 'sid-1', role: 'admin' }, JWT_SECRET);
   const req = { headers: { authorization: `Bearer ${token}` }, cookies: {}, body: { userId: 'other-user' } };
   let nextCalled = false;
+  const originalSession = AuthSession.findByPk;
+  AuthSession.findByPk = async () => ({ id: 'sid-1', user_id: 'user-1', expires_at: new Date(Date.now() + 60_000), revoked_at: null, last_active_at: new Date() });
   try {
     await strictAuthMiddleware(req, response(), () => { nextCalled = true; });
     assert.equal(nextCalled, true);
     assert.equal(req.user.role, 'provider');
-  } finally { User.findByPk = original; }
+  } finally { User.findByPk = original; AuthSession.findByPk = originalSession; }
 });

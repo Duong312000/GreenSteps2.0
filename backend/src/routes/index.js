@@ -26,6 +26,7 @@ router.use('/media', require('./media.routes'));
 router.use('/', nationalCatalogRoutes);
 router.use('/favorites', require('./favorites.routes'));
 router.use('/auth', authRoutes);
+router.use('/account/security', require('./account-security.routes'));
 router.use('/admin/settings', require('./admin-settings.routes'));
 router.use('/admin/catalog', require('./admin-national-catalog.routes'));
 router.use('/admin', require('./admin.routes'));

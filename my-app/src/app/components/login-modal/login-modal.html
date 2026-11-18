@@ -149,7 +149,7 @@
         </button>
         <div class="login-modal__intro compact">
           <h2>Quên mật khẩu</h2>
-          <p>Nhập email tài khoản để nhận mã xác thực đặt lại mật khẩu.</p>
+          <p>Nhập email tài khoản để nhận liên kết đặt lại mật khẩu.</p>
         </div>
 
         <form class="auth-form" (submit)="onForgotSubmit($event)">
@@ -161,8 +161,18 @@
             </label>
           </div>
           <p class="auth-alert error" *ngIf="errorMessage">{{ errorMessage }}</p>
-          <button type="submit" class="login-button" [disabled]="isSubmitting">{{ isSubmitting ? 'Đang gửi...' : 'Gửi mã xác thực' }}</button>
+          <button type="submit" class="login-button" [disabled]="isSubmitting">{{ isSubmitting ? 'Đang gửi...' : 'Gửi liên kết đặt lại' }}</button>
         </form>
+      </div>
+
+      <div *ngIf="authStep === 'forgotSent'" class="auth-panel centered">
+        <div class="login-modal__intro compact">
+          <h2>Kiểm tra hộp thư</h2>
+          <p>{{ successMessage }}</p>
+          <strong class="identifier">{{ verificationEmail }}</strong>
+          <p>Nếu email thuộc tài khoản GreenSteps, liên kết đặt lại mật khẩu sẽ có hiệu lực trong 10 phút.</p>
+        </div>
+        <button type="button" class="login-button" (click)="setStep('login')">Quay lại đăng nhập</button>
       </div>
 
       <div *ngIf="authStep === 'forgotVerify'" class="auth-panel centered">

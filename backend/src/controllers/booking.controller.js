@@ -1,3 +1,5 @@
+const { randomBytes } = require('node:crypto');
+const authTokenService = require('../services/auth-token.service');
 const loyalty = require('../services/wallet.service');
 const { providerForUser } = require('../services/provider-identity.service');
 const savedPromotions = require('../services/saved-promotions.service');
@@ -161,14 +163,15 @@ exports.createBooking = async (req, res, next) => {
     return res.status(400).json({ success: false, message: 'Phương thức thanh toán không được hỗ trợ.' });
   }
   let preloadedTour = null;
-  let userId = req.user ? req.user.id : req.body.customerId;
+  let userId = req.user?.id || null;
   const fullname = (req.user && req.user.fullname) ? req.user.fullname : (req.body.customerName || 'Khách hàng');
-  const email = customerEmail || (req.user ? req.user.email : null);
+  let email = customerEmail || null;
 
   let autoCreatedCredentials = null;
   let emailAlreadyExists = false;
 
   try {
+    if (!email && req.user?.id) email = (await User.findByPk(req.user.id))?.email || null;
     if (type === 'tour' || type === 'itinerary') {
       preloadedTour = await Schedule.findByPk(targetId);
       if (!preloadedTour) return res.status(404).json({ success: false, message: 'Tour không tồn tại.' });
@@ -183,8 +186,7 @@ exports.createBooking = async (req, res, next) => {
     if (!userId && email) {
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
-        userId = existingUser.id;
-        emailAlreadyExists = true;
+        return res.status(401).json({ success: false, code: 'LOGIN_REQUIRED', message: 'Email n?y ?? thu?c m?t t?i kho?n. Vui l?ng ??ng nh?p ?? ??t tour.' });
       } else {
         const newUserId = 'UG' + Math.floor(10000000 + Math.random() * 90000000);
         const generatedUsername = fullname
@@ -201,7 +203,7 @@ exports.createBooking = async (req, res, next) => {
           count++;
         }
 
-        const defaultPassword = finalUsername + '123';
+        const defaultPassword = randomBytes(18).toString('base64url');
         const bcrypt = require('bcrypt');
         const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
@@ -210,6 +212,9 @@ exports.createBooking = async (req, res, next) => {
           role: 'traveler',
           username: finalUsername,
           password_hash: passwordHash,
+          auth_methods: ['password'],
+          password_policy_checked_at: new Date(),
+          password_changed_at: new Date(),
           email: email,
           fullname: fullname,
           phone: customerPhone || null,
@@ -652,7 +657,7 @@ exports.createBooking = async (req, res, next) => {
         responsePayload.autoCreatedUser = {
           username: user.username,
           defaultPassword: autoCreatedCredentials.password,
-          token: localSignAuthToken(user),
+          token: await localSignAuthToken(user, req, res),
           user: {
             id: user.id,
             username: user.username,
@@ -673,7 +678,8 @@ exports.createBooking = async (req, res, next) => {
 
 exports.checkInEVoucher = async (req, res, next) => {
   const { evoucherCode } = req.body;
-  const providerId = req.user ? req.user.id : (req.body.providerId || null);
+  const providerId = req.user?.id;
+  if (!providerId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   const t = await store.transaction();
   try {
@@ -780,6 +786,8 @@ exports.requestRefund = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn đặt chỗ.' });
     }
 
+    if (booking.user_id !== req.user?.id && req.user?.role !== 'admin') return bookingAccessDenied(res);
+
     if (booking.status === 'refunded') {
       return res.status(400).json({ success: false, message: 'Đơn này đã được hoàn tiền trước đó.' });
     }
@@ -824,7 +832,8 @@ exports.requestRefund = async (req, res, next) => {
 
 exports.cancelBooking = async (req, res, next) => {
   const { bookingId } = req.body;
-  const userId = req.user ? req.user.id : req.body.userId;
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   const t = await store.transaction();
   try {
@@ -1143,6 +1152,7 @@ exports.simulateBookingPayment = async (req, res, next) => {
     let booking = await ServiceBooking.findByPk(id);
     if (!booking) booking = await TourBooking.findByPk(id);
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+    if (booking.user_id !== req.user?.id && req.user?.role !== 'admin') return bookingAccessDenied(res);
     if (booking.schedule_id) {
       const schedule = await Schedule.findByPk(booking.schedule_id);
       if (!schedule) return res.status(404).json({ success: false, message: 'Tour not found.' });
@@ -1399,15 +1409,10 @@ exports.getPendingBookings = async (req, res, next) => {
   }
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'greensteps_secret_key_123456';
-const jwt = require('jsonwebtoken');
-
-function localSignAuthToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, fullname: user.fullname },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+async function localSignAuthToken(user, req, res) {
+  const token = await authTokenService.issueAuthenticatedSession(user, req, 'password');
+  authTokenService.setAuthCookie(res, token);
+  return token;
 }
 
 exports.getBookingDetails = async (req, res, next) => {
@@ -1541,13 +1546,7 @@ exports.lookupBookingsByPhone = async (req, res, next) => {
   }
 
   try {
-    const whereClause = {};
-    if (phone) {
-      whereClause.customer_phone = phone.trim();
-    }
-    if (email) {
-      whereClause.customer_email = email.trim();
-    }
+    const whereClause = { user_id: req.user.id };
 
     const serviceBookings = await ServiceBooking.findAll({
       where: whereClause,

@@ -1,5 +1,9 @@
 const MAINTENANCE_HEADER = 'X-Maintenance-Mode';
 const jwt = require('jsonwebtoken');
+require('../config/env');
+const { JWT_SECRET } = require('./auth.middleware');
+const { User } = require('../models');
+const authSessionService = require('../services/auth-session.service');
 
 function readConfig() {
   return {
@@ -22,16 +26,20 @@ function isIpAllowed(req, config = readConfig()) {
   return candidates.some(ip => config.ipAllowlist.some(allowed => normalizeIp(allowed) === ip));
 }
 
-function isAdminAllowed(req, config = readConfig()) {
+async function isAdminAllowed(req, config = readConfig()) {
   if (!config.adminBypass) return false;
-  const authorization = req.headers.authorization || '';
+  const authorization = req.headers?.authorization || '';
   const token = authorization.startsWith('Bearer ')
     ? authorization.slice(7)
     : req.cookies?.token;
   if (!token) return false;
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'greensteps-super-secret-key-2026';
-    return jwt.verify(token, jwtSecret).role === 'admin';
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded.id || !decoded.sid) return false;
+    const session = await authSessionService.getActiveSession({ sessionId: decoded.sid, userId: decoded.id });
+    if (!session) return false;
+    const user = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'account_status'] });
+    return user?.role === 'admin' && (user.account_status || 'active') === 'active';
   } catch {
     return false;
   }
@@ -46,9 +54,9 @@ function isExemptPath(pathname, config = readConfig()) {
   return false;
 }
 
-function getMaintenanceStatus(req) {
+async function getMaintenanceStatus(req) {
   const config = readConfig();
-  const bypassed = isIpAllowed(req, config) || isAdminAllowed(req, config);
+  const bypassed = isIpAllowed(req, config) || await isAdminAllowed(req, config);
   return {
     maintenanceMode: config.enabled && !bypassed,
     startsAt: config.startsAt,
@@ -57,15 +65,15 @@ function getMaintenanceStatus(req) {
   };
 }
 
-function maintenanceStatusHandler(req, res) {
-  const status = getMaintenanceStatus(req);
+async function maintenanceStatusHandler(req, res) {
+  const status = await getMaintenanceStatus(req);
   if (status.maintenanceMode) res.set(MAINTENANCE_HEADER, 'true');
   return res.json(status);
 }
 
-function maintenanceMiddleware(req, res, next) {
+async function maintenanceMiddleware(req, res, next) {
   const config = readConfig();
-  if (!config.enabled || isExemptPath(req.path, config) || isIpAllowed(req, config) || isAdminAllowed(req, config)) return next();
+  if (!config.enabled || isExemptPath(req.path, config) || isIpAllowed(req, config) || await isAdminAllowed(req, config)) return next();
 
   res.set(MAINTENANCE_HEADER, 'true');
   res.set('Retry-After', String(config.retryAfterSeconds));
@@ -79,4 +87,4 @@ function maintenanceMiddleware(req, res, next) {
   });
 }
 
-module.exports = { maintenanceMiddleware, maintenanceStatusHandler, readConfig, getMaintenanceStatus };
+module.exports = { maintenanceMiddleware, maintenanceStatusHandler, readConfig, getMaintenanceStatus, isAdminAllowed };

@@ -45,6 +45,25 @@ function getTransporter() {
   return transporterInstance;
 }
 
+async function sendTransactionalEmail({ to, subject, text, html }) {
+  if (process.env.GMAIL_API_URL) {
+    const response = await fetch(process.env.GMAIL_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, text, html })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result?.success) {
+      const error = new Error(result?.error || 'Email delivery failed.');
+      error.code = 'EMAIL_DELIVERY_FAILED';
+      throw error;
+    }
+    return true;
+  }
+  await getTransporter().sendMail({ from: requireSmtpConfig().from, to, subject, text, html });
+  return true;
+}
+
 async function assertMailDomainCanReceive(email) {
   const domain = String(email || '').split('@')[1]?.toLowerCase();
   if (!domain) {
@@ -237,6 +256,50 @@ async function sendNewsletterWelcomeEmail({ to }) {
   }
 }
 
+async function sendSecurityAlertEmail({ to, eventType, browser = 'Trình duyệt không xác định', timestamp = new Date() }) {
+  const labels = {
+    login_success: 'đăng nhập thành công', login_failure: 'có lần đăng nhập thất bại', logout: 'đăng xuất',
+    session_revoked: 'đã thu hồi một phiên đăng nhập', other_sessions_revoked: 'đã đăng xuất các thiết bị khác',
+    password_changed: 'đã thay đổi mật khẩu', password_setup: 'đã thiết lập mật khẩu',
+    all_sessions_revoked: 'đã đăng xuất khỏi tất cả thiết bị',
+    passkey_registered: 'đã thêm passkey', passkey_removed: 'đã xóa passkey'
+  };
+  const action = labels[eventType];
+  if (!action || !to) return false;
+  const time = new Date(timestamp).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const safeBrowser = String(browser).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+  await sendTransactionalEmail({
+    to,
+    subject: 'Thông báo bảo mật tài khoản GreenSteps',
+    text: `Tài khoản GreenSteps của bạn ${action}. Thiết bị: ${browser}. Thời gian: ${time}. Nếu bạn không thực hiện thao tác này, hãy đăng nhập và thu hồi các phiên lạ.`,
+    html: `<p>Tài khoản GreenSteps của bạn <strong>${action}</strong>.</p><p>Thiết bị: ${safeBrowser}<br>Thời gian: ${time}</p><p>Nếu bạn không thực hiện thao tác này, hãy đăng nhập để đổi mật khẩu và thu hồi các phiên lạ.</p>`
+  });
+  return true;
+}
+
+async function sendPasswordResetEmail({ to, resetUrl }) {
+  if (!to || !resetUrl) throw new TypeError('to and resetUrl are required.');
+  const safeUrl = String(resetUrl).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+  await sendTransactionalEmail({
+    to,
+    subject: 'Đặt lại mật khẩu GreenSteps',
+    text: `Mở liên kết này để đặt lại mật khẩu GreenSteps (liên kết hết hạn sau 10 phút): ${resetUrl}\nNếu bạn không yêu cầu, hãy bỏ qua email này.`,
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#12372d;max-width:560px;margin:0 auto;padding:28px;border:1px solid #e2e8f0;border-radius:14px;"><h1 style="font-size:22px;">Đặt lại mật khẩu</h1><p>Liên kết chỉ dùng một lần và hết hạn sau 10 phút.</p><p><a href="${safeUrl}" style="display:inline-block;background:#087a55;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;">Đặt lại mật khẩu</a></p><p>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</p></div>`
+  });
+  return true;
+}
+
+async function sendEmailChangeVerification({ to, code }) {
+  if (!to || !/^\d{6}$/.test(String(code))) throw new TypeError('to and a six digit code are required.');
+  await sendTransactionalEmail({
+    to,
+    subject: 'Xác minh email GreenSteps Travel',
+    text: `Mã xác minh email GreenSteps của bạn là ${code}. Mã có hiệu lực trong 10 phút.`,
+    html: `<p>Mã xác minh email GreenSteps của bạn là <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu thay đổi email, hãy bỏ qua thư này.</p>`
+  });
+  return true;
+}
+
 async function sendBookingConfirmationEmail({ to, bookingId, tourName, bookingDate, guests, depositAmount, paymentMethod, lookupUrl, credentials }) {
   if (process.env.NODE_ENV === 'test') return false;
   const subject = `Xác nhận thông tin giữ chỗ GreenSteps - ${bookingId}`;
@@ -322,4 +385,4 @@ async function sendBookingConfirmationEmail({ to, bookingId, tourName, bookingDa
   }
 }
 
-module.exports = { assertMailDomainCanReceive, sendOtpEmail, sendItineraryInviteEmail, sendNewsletterWelcomeEmail, sendBookingConfirmationEmail };
+module.exports = { assertMailDomainCanReceive, sendOtpEmail, sendItineraryInviteEmail, sendNewsletterWelcomeEmail, sendSecurityAlertEmail, sendPasswordResetEmail, sendEmailChangeVerification, sendBookingConfirmationEmail };

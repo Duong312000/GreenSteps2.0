@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const tourController = require('../controllers/tour.controller');
-const { softAuth } = require('../middlewares/auth.middleware');
+const { softAuth, authMiddleware } = require('../middlewares/auth.middleware');
 
-router.get('/user/:userId', softAuth, tourController.getUserCustomItineraries);
-router.get('/:id', softAuth, tourController.getCustomItineraryById);
-router.post('/', softAuth, tourController.saveCustomItinerary);
-router.post('/:id/clone', softAuth, tourController.cloneItinerary);
-router.delete('/:id', softAuth, tourController.deleteCustomItinerary);
-router.post('/:id/invite', softAuth, tourController.inviteCollaborator);
-router.post('/:id/join', softAuth, tourController.joinItinerary);
+router.get('/user/:userId', authMiddleware, tourController.getUserCustomItineraries);
+router.get('/:id', authMiddleware, tourController.getCustomItineraryById);
+router.post('/', authMiddleware, tourController.saveCustomItinerary);
+router.post('/:id/clone', authMiddleware, tourController.cloneItinerary);
+router.delete('/:id', authMiddleware, tourController.deleteCustomItinerary);
+router.post('/:id/invite', authMiddleware, tourController.inviteCollaborator);
+router.post('/:id/join', authMiddleware, tourController.joinItinerary);
 
 module.exports = router;

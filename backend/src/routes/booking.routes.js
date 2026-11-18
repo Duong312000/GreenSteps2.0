@@ -7,12 +7,12 @@ router.post('/', softAuth, bookingController.createBooking);
 router.post('/quote', softAuth, bookingController.quoteBooking);
 router.post('/checkin', authMiddleware, checkRole(['admin', 'provider']), bookingController.checkInEVoucher);
 
-router.post('/cancel', softAuth, bookingController.cancelBooking);
-router.post('/request-refund', softAuth, bookingController.requestRefund);
+router.post('/cancel', authMiddleware, bookingController.cancelBooking);
+router.post('/request-refund', authMiddleware, bookingController.requestRefund);
 router.get('/', authMiddleware, bookingController.getBookings);
 router.get('/pending', authMiddleware, checkRole(['admin']), bookingController.getPendingBookings);
-router.get('/lookup/phone', softAuth, bookingController.lookupBookingsByPhone);
-router.post('/:id/simulate-payment', softAuth, bookingController.simulateBookingPayment);
+router.get('/lookup/phone', authMiddleware, bookingController.lookupBookingsByPhone);
+router.post('/:id/simulate-payment', authMiddleware, bookingController.simulateBookingPayment);
 router.get('/:id', authMiddleware, bookingController.getBookingDetails);
 router.post('/:id/approve', authMiddleware, checkRole(['admin', 'provider']), bookingController.approveBooking);
 router.post('/:id/reject', authMiddleware, checkRole(['admin', 'provider']), bookingController.rejectBooking);

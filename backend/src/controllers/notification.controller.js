@@ -2,6 +2,8 @@ const { Notification } = require('../models/index');
 
 exports.getNotifications = async (req, res, next) => {
   const { userId } = req.params;
+  if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (String(userId) !== String(req.user.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     const list = await Notification.findAll({
       where: { user_id: userId },
@@ -33,7 +35,7 @@ exports.markNotificationRead = async (req, res, next) => {
     if (!notif) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thông báo!' });
     }
-    if (req.user && notif.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (!req.user?.id || (String(notif.user_id) !== String(req.user.id) && req.user.role !== 'admin')) {
       return res.status(403).json({ success: false, message: 'Bạn không có quyền cập nhật thông báo này.' });
     }
     notif.read = true;
@@ -49,7 +51,7 @@ exports.deleteNotification = async (req, res, next) => {
   try {
     const notif = await Notification.findByPk(id);
     if (!notif) return res.status(404).json({ success: false, message: 'Notification not found.' });
-    if (req.user && notif.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (!req.user?.id || (String(notif.user_id) !== String(req.user.id) && req.user.role !== 'admin')) {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
     await notif.destroy();
@@ -61,6 +63,8 @@ exports.deleteNotification = async (req, res, next) => {
 
 exports.markAllNotificationsRead = async (req, res, next) => {
   const { userId } = req.params;
+  if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (String(userId) !== String(req.user.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     await Notification.update({ read: true }, { where: { user_id: userId } });
     res.json({ success: true, message: 'Đã đánh dấu đọc tất cả thông báo!' });
@@ -71,6 +75,8 @@ exports.markAllNotificationsRead = async (req, res, next) => {
 
 exports.clearNotifications = async (req, res, next) => {
   const { userId } = req.params;
+  if (!req.user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  if (String(userId) !== String(req.user.id)) return res.status(403).json({ success: false, error: 'Forbidden' });
   try {
     await Notification.destroy({ where: { user_id: userId } });
     res.json({ success: true, message: 'Đã xóa tất cả thông báo!' });

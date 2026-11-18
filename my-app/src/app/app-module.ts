@@ -17,12 +17,9 @@ import { PartnerIconComponent } from './components/partner-layout/partner-icon';
 import { FooterComponent } from './components/footer/footer';
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator';
 import { LoginModalComponent } from './components/login-modal/login-modal';
-import { HomeComponent } from './pages/home/home';
 import { ToursComponent } from './pages/tours/tours';
 import { PromotionsComponent } from './pages/promotions/promotions';
-import { TourDetailComponent } from './pages/tour-detail/tour-detail';
 import { ServicesComponent } from './pages/services/services';
-import { CommunityComponent } from './pages/community/community';
 import { AdminUsersComponent } from './pages/admin/admin-users';
 import { AccountDetailModalComponent } from './pages/admin/account-detail-modal.component';
 import { AdminTableComponent } from './pages/admin/admin-table.component';
@@ -35,7 +32,6 @@ import { serverErrorInterceptor } from './services/server-error.interceptor';
 import { HelpCenterComponent } from './pages/help-center/help-center';
 import { HelpCenterContactComponent } from './pages/help-center/contact';
 import { HowItWorksComponent } from './pages/how-it-works/how-it-works';
-import { CancellationPolicyComponent } from './pages/cancellation-policy/cancellation-policy';
 import { NetworkErrorComponent } from './pages/network-error/network-error';
 import { OnboardingTourComponent } from './components/onboarding-tour/onboarding-tour.component';
 import { LocalFoodComponent } from './pages/local-food/local-food';
@@ -66,18 +62,14 @@ const authInterceptor: HttpInterceptorFn = (req, next) => {
     HeaderComponent,
     FooterComponent,
     LoginModalComponent,
-    HomeComponent,
     ToursComponent,
     PromotionsComponent,
-    TourDetailComponent,
     ServicesComponent,
-    CommunityComponent,
     ServerErrorComponent,
     MaintenanceComponent,
     HelpCenterComponent,
     HelpCenterContactComponent,
     HowItWorksComponent,
-    CancellationPolicyComponent,
     NetworkErrorComponent,
     BookingLookupComponent,
   ],

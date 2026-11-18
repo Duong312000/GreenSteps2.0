@@ -225,6 +225,10 @@ export class AuthService {
     return this.postAuth('/forgot-password/request-otp', { email }, 'Không thể gửi mã xác thực.');
   }
 
+  public async requestForgotPasswordLink(email: string): Promise<AuthResult> {
+    return this.postAuth('/forgot-password/request-link', { email }, 'Không thể gửi liên kết đặt lại mật khẩu.');
+  }
+
   public async verifyForgotPasswordOtp(email: string, otp: string): Promise<AuthResult> {
     return this.postAuth('/forgot-password/verify-otp', { email, otp }, 'Xác thực OTP thất bại.');
   }

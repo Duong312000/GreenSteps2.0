@@ -309,6 +309,36 @@ async function createResetToken(user, otpRecord) {
   return resetToken;
 }
 
+async function createPasswordResetLink(user) {
+  const latest = await AuthOtp.findOne({
+    where: { user_id: user.id, purpose: 'RESET_PASSWORD', consumed_at: null },
+    order: [['created_at', 'DESC']]
+  });
+  if (latest?.resend_available_at && new Date(latest.resend_available_at) > new Date()) {
+    throw createResendTooSoonError(new Date(latest.resend_available_at));
+  }
+
+  await consumeActiveOtps(user.id, 'RESET_PASSWORD');
+  const resetJti = crypto.randomUUID();
+  const expiresAt = futureDate(RESET_TOKEN_MINUTES * 60 * 1000);
+  const token = jwt.sign(
+    { id: user.id, email: user.email, purpose: 'RESET_PASSWORD', jti: resetJti },
+    JWT_SECRET,
+    { expiresIn: `${RESET_TOKEN_MINUTES}m` }
+  );
+  const record = await AuthOtp.create({
+    user_id: user.id,
+    purpose: 'RESET_PASSWORD',
+    otp_hash: hashOtp(generateOtp()),
+    expires_at: expiresAt,
+    resend_available_at: futureDate(RESEND_SECONDS * 1000),
+    reset_token_hash: hashResetJti(resetJti),
+    reset_token_expires_at: expiresAt,
+    reset_token_consumed_at: null
+  });
+  return { token, record };
+}
+
 async function consumeResetToken(resetToken) {
   let decoded;
   try {
@@ -367,6 +397,7 @@ module.exports = {
   resendPendingRegistrationOtp,
   verifyPendingRegistrationOtp,
   verifyOtp,
+  createPasswordResetLink,
   createResetToken,
   consumeResetToken
 };

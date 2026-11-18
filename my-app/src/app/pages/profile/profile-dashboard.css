@@ -8635,3 +8635,100 @@
   background:transparent!important;
 }
 
+
+
+.security-email-toggle input[type="checkbox"] {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #9aaea5;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+.security-email-toggle input[type="checkbox"]:checked { background: #087a55; }
+.security-email-toggle input[type="checkbox"]:after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s ease;
+}
+.security-email-toggle input[type="checkbox"]:checked:after { transform: translateX(20px); }
+.security-email-toggle input[type="checkbox"]:disabled { cursor: wait; opacity: .6; }
+.security-load-state,
+.security-empty-state,
+.security-error-state,
+.security-success-state {
+  margin: 14px 0;
+  padding: 14px 18px;
+  border: 1px solid #dcece5;
+  border-radius: 14px;
+  background: #fff;
+  color: #47645a;
+}
+.security-error-state { border-color: #f6c7cc; background: #fff7f8; color: #a3243b; }
+.security-success-state { border-color: #bce5d1; background: #effaf4; color: #087a55; }
+.security-error-state button { margin-left: 12px; }
+.profile-dashboard,
+.profile-dashboard.profile-dashboard--overview{
+  --header:0px;
+  --side:0px;
+  display:block!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;
+  padding-top:0!important;
+}
+.profile-dashboard .profile-dashboard__content{
+  grid-column:1!important;
+  width:100%!important;
+}
+.profile-dashboard,
+.profile-dashboard .profile-dashboard__content,
+.overview-dashboard,
+.overview-dashboard .overview-page{
+  background:transparent!important;
+}
+
+.security-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(3 31 24 / 58%);
+}
+
+.security-dialog {
+  position: relative;
+  width: min(100%, 520px);
+  max-height: min(85vh, 720px);
+  overflow: auto;
+  padding: 30px;
+  border: 1px solid #d9e9e1;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 22%);
+}
+
+.security-dialog h2 { margin: 0 35px 12px 0; color: #153f31; font-size: 1.35rem; }
+.security-dialog p { color: #65766e; line-height: 1.55; }
+.security-dialog label { display: grid; gap: 8px; margin: 16px 0; color: #304d41; font-weight: 650; }
+.security-dialog input { width: 100%; min-height: 46px; padding: 10px 13px; border: 1px solid #cbded5; border-radius: 10px; }
+.security-dialog-close { position: absolute; top: 14px; right: 16px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #eff6f2; color: #195641; font-size: 24px; cursor: pointer; }
+.security-secret, .recovery-codes { display: block; margin: 14px 0; padding: 14px; border-radius: 10px; background: #f0f7f3; color: #075b43; overflow-wrap: anywhere; }
+.security-dialog .security-primary-btn, .security-dialog .security-danger-btn { width: 100%; justify-content: center; margin-top: 12px; }
+.security-passkey-list { margin-top: 18px; border-top: 1px solid #e5eee9; padding-top: 14px; }
+.security-passkey-list h3 { margin: 0 0 10px; font-size: 1rem; }
+.security-passkey-list > div { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #edf2ef; }
+.security-passkey-list > div span { display: grid; flex: 1; gap: 3px; }
+.security-passkey-list small { color: #75847c; }
+.security-passkey-list button { border: 1px solid #d5e5dd; border-radius: 8px; padding: 7px 10px; color: #075b43; background: white; cursor: pointer; }

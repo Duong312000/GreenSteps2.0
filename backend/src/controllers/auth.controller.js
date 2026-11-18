@@ -1,11 +1,15 @@
-const { verifyFacebookAccessToken } = require('../services/facebook-auth.service');
-const { verifyGoogleAccessToken } = require('../services/google-auth.service');
+const facebookAuthService = require('../services/facebook-auth.service');
+const googleAuthService = require('../services/google-auth.service');
 const { randomBytes } = require('node:crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('../db/mongo-store');
 const { User, AuthOtp, PendingRegistration } = require('../models/index');
 const { JWT_SECRET } = require('../middlewares/auth.middleware');
+const authSessionService = require('../services/auth-session.service');
+const { recordSecurityEvent } = require('../services/security-audit.service');
+const authTokenService = require('../services/auth-token.service');
+const passkeyService = require('../services/passkey.service');
 const {
   PASSWORD_MESSAGE,
   normalizeEmail,
@@ -20,9 +24,15 @@ const {
   resendPendingRegistrationOtp,
   verifyPendingRegistrationOtp,
   verifyOtp,
+  createPasswordResetLink,
   createResetToken,
   consumeResetToken
 } = require('../services/otp.service');
+
+const PRIVATE_USER_FIELDS = [
+  'password_hash', 'totp_enabled_at', 'totp_secret_encrypted',
+  'totp_last_verified_step', 'recovery_code_hashes'
+];
 
 function publicUser(user) {
   return {
@@ -46,30 +56,12 @@ function createUserId() {
   return 'UG' + Math.floor(10000000 + Math.random() * 90000000);
 }
 
-async function signAuthToken(user) {
-  const accountStatus = user.account_status || 'active';
-  if (accountStatus !== 'active') {
-    const error = new Error(accountStatus === 'suspended' ? 'Tài khoản đang tạm khóa.' : 'Tài khoản đã bị vô hiệu hóa.');
-    error.statusCode = 403;
-    error.code = 'ACCOUNT_DISABLED';
-    throw error;
-  }
-  user.last_login_at = new Date();
-  await user.save();
-  return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, fullname: user.fullname },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+async function signAuthToken(user, req, method) {
+  return authTokenService.issueAuthenticatedSession(user, req, method);
 }
 
 function setAuthCookie(res, token) {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  authTokenService.setAuthCookie(res, token);
 }
 
 async function findUserByIdentifier(identifier) {
@@ -182,6 +174,9 @@ exports.verifyRegisterOtp = async (req, res, next) => {
         role: 'traveler',
         username: pending.username,
         password_hash: pending.password_hash,
+        auth_methods: ['password'],
+        password_policy_checked_at: new Date(),
+        password_changed_at: new Date(),
         email: pending.email,
         fullname: pending.username,
         phone: null,
@@ -197,7 +192,7 @@ exports.verifyRegisterOtp = async (req, res, next) => {
       return createdUser;
     });
 
-    const token = await signAuthToken(createdAccount);
+    const token = await signAuthToken(createdAccount, req, 'password');
     setAuthCookie(res, token);
 
     return res.json({
@@ -242,7 +237,10 @@ exports.login = async (req, res, next) => {
     if (!user) return res.status(401).json({ success: false, message: 'Email/tên đăng nhập hoặc mật khẩu không chính xác!' });
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) return res.status(401).json({ success: false, message: 'Email/tên đăng nhập hoặc mật khẩu không chính xác!' });
+    if (!isMatch) {
+      recordSecurityEvent({ userId: user.id, type: 'login_failure', result: 'failure', request: req }).catch(() => {});
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+    }
 
     const accountStatus = user.account_status || 'active';
     if (accountStatus !== 'active') {
@@ -258,7 +256,7 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const token = await signAuthToken(user);
+    const token = await signAuthToken(user, req, 'password');
     setAuthCookie(res, token);
 
     res.json({
@@ -297,6 +295,32 @@ exports.requestForgotPasswordOtp = async (req, res, next) => {
   }
 };
 
+exports.requestPasswordResetLink = async (req, res, next) => {
+  const genericResponse = { success: true, message: 'Nếu email tồn tại, liên kết đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.' };
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!isValidEmail(email)) return res.status(400).json({ success: false, message: 'Email không hợp lệ.' });
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.json(genericResponse);
+
+    const reset = await createPasswordResetLink(user);
+    const resetUrl = new URL('/reset-password', process.env.CLIENT_URL || 'http://localhost:4200');
+    resetUrl.searchParams.set('token', reset.token);
+    try {
+      await require('../services/email.service').sendPasswordResetEmail({ to: user.email, resetUrl: resetUrl.toString() });
+    } catch (error) {
+      reset.record.reset_token_consumed_at = new Date();
+      reset.record.consumed_at = new Date();
+      await reset.record.save().catch(() => {});
+      console.warn('Password reset link delivery failed:', error?.code || error?.name || 'unknown');
+    }
+    return res.json(genericResponse);
+  } catch (error) {
+    if (error.code === 'OTP_RESEND_TOO_SOON') return res.json(genericResponse);
+    return next(error);
+  }
+};
+
 exports.verifyForgotPasswordOtp = async (req, res, next) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -321,7 +345,12 @@ exports.resetForgotPassword = async (req, res, next) => {
 
     const user = await consumeResetToken(resetToken);
     user.password_hash = await bcrypt.hash(newPassword, 10);
+    user.auth_methods = [...new Set([...(Array.isArray(user.auth_methods) ? user.auth_methods : []), 'password'])];
+    user.password_changed_at = new Date();
+    user.password_policy_checked_at = new Date();
     await user.save();
+    const revokedCount = await authSessionService.revokeAllSessions({ userId: user.id, reason: 'password_reset' });
+    await recordSecurityEvent({ userId: user.id, type: 'password_reset', result: 'success', request: req, metadata: { sessionsRevoked: revokedCount } }).catch(() => {});
 
     res.json({ success: true, message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.' });
   } catch (error) {
@@ -331,8 +360,10 @@ exports.resetForgotPassword = async (req, res, next) => {
 
 exports.getProfile = async (req, res, next) => {
   try {
-    const userId = req.user ? req.user.id : req.params.userId;
-    const user = await User.findByPk(userId, { attributes: { exclude: ['password_hash'] } });
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Vui l?ng ??ng nh?p.' });
+    if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, message: 'B?n kh?ng c? quy?n xem t?i kho?n n?y.' });
+    const user = await User.findByPk(userId, { attributes: { exclude: PRIVATE_USER_FIELDS } });
     if (!user) return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin tài khoản!' });
     res.json({ success: true, user });
   } catch (error) {
@@ -359,7 +390,9 @@ function promptTerminalApproval(message) {
 exports.updateProfile = async (req, res, next) => {
   try {
     const { fullname, phone, dob, gender, address, job, role, company_name, companyName, avatarUrl, avatar_url } = req.body;
-    const userId = req.user ? req.user.id : req.params.userId;
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Vui l?ng ??ng nh?p.' });
+    if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, message: 'B?n kh?ng c? quy?n ch?nh s?a t?i kho?n n?y.' });
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản!' });
 
@@ -417,7 +450,7 @@ exports.updateProfile = async (req, res, next) => {
       avatarUrl: avatarUrl !== undefined ? avatarUrl : (avatar_url !== undefined ? avatar_url : user.avatarUrl)
     }, { where: { id: userId } });
 
-    const updatedUser = await User.findByPk(userId, { attributes: { exclude: ['password_hash'] } });
+    const updatedUser = await User.findByPk(userId, { attributes: { exclude: PRIVATE_USER_FIELDS } });
     if (pendingApproval) {
       res.json({
         success: true,
@@ -442,11 +475,18 @@ exports.changePassword = async (req, res, next) => {
     }
 
     const user = await User.findByPk(userId);
-    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!user) return res.status(404).json({ success: false, message: 'Kh?ng t?m th?y t?i kho?n.' });
+    const methods = Array.isArray(user.auth_methods) ? user.auth_methods : [];
+    if (!methods.includes('password')) return res.status(409).json({ success: false, code: 'PASSWORD_SETUP_REQUIRES_VERIFICATION', message: 'T?i kho?n ??ng nh?p qua nh? cung c?p c?n x?c minh email tr??c khi ??t m?t kh?u.' });
+    const isMatch = await bcrypt.compare(String(oldPassword || ''), user.password_hash);
     if (!isMatch) return res.status(400).json({ success: false, message: 'Mật khẩu cũ không chính xác!' });
 
     user.password_hash = await bcrypt.hash(newPassword, 10);
+    user.password_changed_at = new Date();
+    user.password_policy_checked_at = new Date();
     await user.save();
+    const revokedCount = await authSessionService.revokeOtherSessions({ userId, currentSessionId: req.authSession?.id, reason: 'password_changed' });
+    await recordSecurityEvent({ userId, sessionId: req.authSession?.id, type: 'password_changed', result: 'success', request: req, metadata: { otherSessionsRevoked: revokedCount } }).catch(() => {});
     res.json({ success: true, message: 'Đổi mật khẩu thành công!' });
   } catch (error) {
     next(error);
@@ -456,7 +496,8 @@ exports.changePassword = async (req, res, next) => {
 exports.trackInterest = async (req, res, next) => {
   try {
     const { destination } = req.body;
-    const userId = req.user ? req.user.id : (req.body.userId || req.body.customerId);
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
     if (!destination) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp điểm đến quan tâm!' });
     await User.update({ last_interest: destination }, { where: { id: userId } });
     res.json({ success: true, message: 'Ghi nhận địa điểm quan tâm thành công.' });
@@ -465,8 +506,13 @@ exports.trackInterest = async (req, res, next) => {
   }
 };
 
-exports.logout = (req, res, next) => {
+exports.logout = async (req, res, next) => {
   try {
+    const session = req.authSession;
+    if (session) {
+      const revoked = await authSessionService.revokeSession({ sessionId: session.id, userId: req.user.id, reason: 'logout' });
+      if (revoked) await recordSecurityEvent({ userId: req.user.id, sessionId: session.id, type: 'logout', result: 'success', request: req }).catch(() => {});
+    }
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -479,9 +525,27 @@ exports.logout = (req, res, next) => {
   }
 };
 
+exports.getPasskeyAuthenticationOptions = async (req, res, next) => {
+  try {
+    const result = await passkeyService.beginAuthentication();
+    return res.json({ success: true, ...result });
+  } catch (error) { return next(error); }
+};
+
+exports.verifyPasskeyAuthentication = async (req, res, next) => {
+  try {
+    const result = await passkeyService.finishAuthentication({ challengeId: req.body?.challengeId, response: req.body?.response });
+    if (!result.ok) return res.status(401).json({ success: false, message: 'Không thể xác thực passkey.' });
+    const token = await signAuthToken(result.user, req, 'passkey');
+    setAuthCookie(res, token);
+    await recordSecurityEvent({ userId: result.user.id, type: 'passkey_login', result: 'success', request: req }).catch(() => {});
+    return res.json({ success: true, token, user: publicUser(result.user) });
+  } catch (error) { return next(error); }
+};
+
 exports.googleLogin = async (req, res, next) => {
   try {
-    const { email, fullname, avatarUrl } = await verifyGoogleAccessToken(req.body.accessToken);
+    const { email, fullname, avatarUrl } = await googleAuthService.verifyGoogleAccessToken(req.body.accessToken);
     const normalizedEmail = normalizeEmail(email);
     let user = await User.findOne({ where: { email: normalizedEmail } });
     if (!user) {
@@ -519,7 +583,7 @@ exports.googleLogin = async (req, res, next) => {
       });
     }
 
-    const token = await signAuthToken(user);
+    const token = await signAuthToken(user, req, 'google');
     setAuthCookie(res, token);
 
     res.json({
@@ -535,7 +599,7 @@ exports.googleLogin = async (req, res, next) => {
 
 exports.facebookLogin = async (req, res, next) => {
   try {
-    const { email, fullname, avatarUrl, facebookId } = await verifyFacebookAccessToken(req.body.accessToken);
+    const { email, fullname, avatarUrl, facebookId } = await facebookAuthService.verifyFacebookAccessToken(req.body.accessToken);
     const normalizedEmail = normalizeEmail(email);
     let user = await User.findOne({ where: { facebook_id: facebookId } });
     if (!user) {
@@ -588,7 +652,7 @@ exports.facebookLogin = async (req, res, next) => {
       });
     }
 
-    const token = await signAuthToken(user);
+    const token = await signAuthToken(user, req, 'facebook');
     setAuthCookie(res, token);
 
     res.json({
@@ -724,7 +788,7 @@ exports.verifyCheckoutOtp = async (req, res, next) => {
       await latest.save();
 
       // Log the existing user in!
-      const token = await signAuthToken(existingUser);
+      const token = await signAuthToken(existingUser, req, 'email_otp');
       setAuthCookie(res, token);
 
       return res.json({
@@ -777,7 +841,7 @@ exports.verifyCheckoutOtp = async (req, res, next) => {
         is_verified: true
       });
 
-      const token = await signAuthToken(user);
+      const token = await signAuthToken(user, req, 'email_otp');
       setAuthCookie(res, token);
 
       return res.json({

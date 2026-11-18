@@ -3,25 +3,30 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const { softAuth, authMiddleware } = require('../middlewares/auth.middleware');
+const { createLoginRateLimiter } = require('../middlewares/security.middleware');
+const loginRateLimiter = createLoginRateLimiter();
 
 router.post('/register', authController.register);
 router.post('/register/verify-otp', authController.verifyRegisterOtp);
 router.post('/register/resend-otp', authController.resendRegisterOtp);
-router.post('/login', authController.login);
+router.post('/login', loginRateLimiter, authController.login);
+router.post('/passkeys/authenticate/options', loginRateLimiter, authController.getPasskeyAuthenticationOptions);
+router.post('/passkeys/authenticate/verify', loginRateLimiter, authController.verifyPasskeyAuthentication);
 router.get('/google/config', (req, res) => res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' }));
 router.get('/facebook/config', (req, res) => res.json(facebookConfig()));
-router.post('/facebook-login', authController.facebookLogin);
-router.post('/google-login', authController.googleLogin);
-router.post('/request-checkout-otp', authController.requestCheckoutOtp);
-router.post('/verify-checkout-otp', authController.verifyCheckoutOtp);
-router.post('/logout', authController.logout);
+router.post('/facebook-login', loginRateLimiter, authController.facebookLogin);
+router.post('/google-login', loginRateLimiter, authController.googleLogin);
+router.post('/request-checkout-otp', loginRateLimiter, authController.requestCheckoutOtp);
+router.post('/verify-checkout-otp', loginRateLimiter, authController.verifyCheckoutOtp);
+router.post('/logout', authMiddleware, authController.logout);
 router.post('/forgot-password/request-otp', authController.requestForgotPasswordOtp);
+router.post('/forgot-password/request-link', loginRateLimiter, authController.requestPasswordResetLink);
 router.post('/forgot-password/verify-otp', authController.verifyForgotPasswordOtp);
 router.post('/forgot-password/reset', authController.resetForgotPassword);
 router.get('/profile', authMiddleware, authController.getProfile);
 router.put('/profile', authMiddleware, authController.updateProfile);
 router.put('/change-password', authMiddleware, authController.changePassword);
-router.post('/track-interest', softAuth, authController.trackInterest);
+router.post('/track-interest', authMiddleware, authController.trackInterest);
 
 // Legacy routes compatibility
 router.get('/profile/:userId', authMiddleware, authController.getProfile);

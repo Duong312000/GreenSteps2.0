@@ -19,7 +19,7 @@ const cleanHashtags = value => {
 };
 
 const safeMediaUrl = value => typeof value === 'string' && (value.startsWith('/uploads/') || value.startsWith('image/') || value.startsWith('data:image/') || /^https?:\/\//i.test(value));
-const validUser = req => req.user?.id || req.body?.authorId || req.cookies?.userId;
+const validUser = req => req.user?.id || null;
 const userAvatar = user => user?.avatarUrl || user?.fullname?.slice(0, 1)?.toUpperCase() || 'G';
 
 function isoWeek(value = new Date()) {

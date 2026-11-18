@@ -8,7 +8,8 @@ const {
 
 exports.getWallet = async (req, res, next) => {
   try {
-    const userId = req.user ? req.user.id : (req.params.userId || req.body.userId);
+    const userId = req.user?.id;
+    if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, message: 'Access denied.' });
     const wallet = await Wallet.findOne({ where: { user_id: userId } });
     if (!wallet) {
       return res.status(404).json({ success: false, message: 'Ví không tồn tại!' });
@@ -42,7 +43,8 @@ exports.getTransactionStatus = async (req, res, next) => {
 
 exports.getTransactions = async (req, res, next) => {
   try {
-    const userId = req.user ? req.user.id : req.params.userId;
+    const userId = req.user?.id;
+    if (req.params.userId && String(req.params.userId) !== String(userId)) return res.status(403).json({ success: false, message: 'Access denied.' });
     const wallet = await Wallet.findOne({ where: { user_id: userId } });
     if (!wallet) {
       return res.status(404).json({ success: false, message: 'Ví không tồn tại!' });

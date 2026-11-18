@@ -8,6 +8,15 @@ const User = store.define('User', {
   role: { type: FieldTypes.ENUM('traveler', 'provider', 'admin'), defaultValue: 'traveler', allowNull: false },
   username: { type: FieldTypes.STRING, unique: true, allowNull: false },
   password_hash: { type: FieldTypes.STRING, allowNull: false },
+  auth_methods: { type: FieldTypes.JSONB, defaultValue: [] },
+  password_policy_checked_at: { type: FieldTypes.DATE },
+  password_changed_at: { type: FieldTypes.DATE },
+  totp_enabled_at: { type: FieldTypes.DATE },
+  totp_secret_encrypted: { type: FieldTypes.TEXT },
+  totp_last_verified_step: { type: FieldTypes.INTEGER },
+  recovery_code_hashes: { type: FieldTypes.JSONB, defaultValue: [] },
+  security_email_notifications: { type: FieldTypes.BOOLEAN },
+  recovery_phone_verified_at: { type: FieldTypes.DATE },
   fullname: { type: FieldTypes.STRING, allowNull: true },
   email: { type: FieldTypes.STRING, unique: true, allowNull: false },
   phone: { type: FieldTypes.STRING },
@@ -74,6 +83,86 @@ const PendingRegistration = store.define('PendingRegistration', {
   underscored: true,
   timestamps: true
 });
+
+const AuthSession = store.define('AuthSession', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  expires_at: { type: FieldTypes.DATE, allowNull: false },
+  last_active_at: { type: FieldTypes.DATE, allowNull: false },
+  revoked_at: { type: FieldTypes.DATE },
+  user_agent: { type: FieldTypes.TEXT },
+  browser: { type: FieldTypes.STRING },
+  platform: { type: FieldTypes.STRING },
+  ip_address: { type: FieldTypes.STRING },
+  revoke_reason: { type: FieldTypes.STRING }
+}, { tableName: 'auth_sessions', underscored: true, indexes: [
+  { key: { user_id: 1, revoked_at: 1, created_at: -1 }, options: { name: 'auth_sessions_user_active_created' } },
+  { key: { expires_at: 1 }, options: { name: 'auth_sessions_expires', expireAfterSeconds: 0 } }
+] });
+
+const SecurityAuditEvent = store.define('SecurityAuditEvent', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  session_id: { type: FieldTypes.STRING },
+  event_type: { type: FieldTypes.STRING, allowNull: false },
+  result: { type: FieldTypes.ENUM('success', 'failure', 'denied'), allowNull: false },
+  ip_address: { type: FieldTypes.STRING },
+  user_agent: { type: FieldTypes.TEXT },
+  metadata: { type: FieldTypes.JSONB }
+}, { tableName: 'security_audit_events', underscored: true, indexes: [
+  { key: { user_id: 1, created_at: -1 }, options: { name: 'security_audit_user_created' } }
+] });
+
+const AuthMfaChallenge = store.define('AuthMfaChallenge', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  auth_method: { type: FieldTypes.STRING, allowNull: false },
+  expires_at: { type: FieldTypes.DATE, allowNull: false },
+  attempt_count: { type: FieldTypes.INTEGER, defaultValue: 0, allowNull: false },
+  consumed_at: { type: FieldTypes.DATE }
+}, { tableName: 'auth_mfa_challenges', underscored: true, timestamps: true, indexes: [
+  { key: { user_id: 1, expires_at: 1 }, options: { name: 'auth_mfa_challenges_user_expiry' } },
+  { key: { expires_at: 1 }, options: { name: 'auth_mfa_challenges_expiry', expireAfterSeconds: 0 } }
+] });
+
+const AuthPasskey = store.define('AuthPasskey', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  credential_id: { type: FieldTypes.TEXT, allowNull: false },
+  public_key: { type: FieldTypes.TEXT, allowNull: false },
+  counter: { type: FieldTypes.INTEGER, defaultValue: 0, allowNull: false },
+  transports: { type: FieldTypes.JSONB, defaultValue: [] },
+  name: { type: FieldTypes.STRING, allowNull: false },
+  last_used_at: { type: FieldTypes.DATE }
+}, { tableName: 'auth_passkeys', underscored: true, timestamps: true, indexes: [
+  { key: { credential_id: 1 }, options: { name: 'auth_passkeys_credential_id', unique: true } },
+  { key: { user_id: 1, created_at: -1 }, options: { name: 'auth_passkeys_user_created' } }
+] });
+
+const EmailChangeVerification = store.define('EmailChangeVerification', {
+  id: { type: FieldTypes.UUID, defaultValue: FieldTypes.UUIDV4, primaryKey: true },
+  user_id: { type: FieldTypes.STRING, allowNull: false },
+  pending_email: { type: FieldTypes.STRING, allowNull: false },
+  code_hash: { type: FieldTypes.STRING, allowNull: false },
+  expires_at: { type: FieldTypes.DATE, allowNull: false },
+  consumed_at: { type: FieldTypes.DATE },
+  attempt_count: { type: FieldTypes.INTEGER, defaultValue: 0, allowNull: false },
+  resend_available_at: { type: FieldTypes.DATE, allowNull: false }
+}, { tableName: 'email_change_verifications', underscored: true, timestamps: true, indexes: [
+  { key: { user_id: 1, created_at: -1 }, options: { name: 'email_change_user_created' } },
+  { key: { expires_at: 1 }, options: { name: 'email_change_expiry', expireAfterSeconds: 0 } }
+] });
+
+const AuthWebAuthnChallenge = store.define('AuthWebAuthnChallenge', {
+  id: { type: FieldTypes.STRING, primaryKey: true },
+  user_id: { type: FieldTypes.STRING },
+  purpose: { type: FieldTypes.ENUM('registration', 'authentication'), allowNull: false },
+  challenge: { type: FieldTypes.STRING, allowNull: false },
+  expires_at: { type: FieldTypes.DATE, allowNull: false },
+  consumed_at: { type: FieldTypes.DATE }
+}, { tableName: 'auth_webauthn_challenges', underscored: true, timestamps: true, indexes: [
+  { key: { expires_at: 1 }, options: { name: 'auth_webauthn_challenges_expiry', expireAfterSeconds: 0 } }
+] });
 
 // 2. Badge Model
 const Badge = store.define('Badge', {
@@ -976,6 +1065,12 @@ module.exports = {
   AdminAuditLog,
   AuthOtp,
   PendingRegistration,
+  AuthSession,
+  SecurityAuditEvent,
+  AuthMfaChallenge,
+  AuthPasskey,
+  EmailChangeVerification,
+  AuthWebAuthnChallenge,
   Badge,
   BadgeUser,
   Wallet,
