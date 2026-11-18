@@ -7,6 +7,7 @@ type ProfileSection =
   | 'overview'
   | 'tickets'
   | 'favorites'
+  | 'itineraries'
   | 'map'
   | 'chatbot'
   | 'personal'
@@ -35,7 +36,7 @@ export class ProfileNavigationComponent {
   public readonly groups: ProfileNavigationItem[][] = [
     [{ icon: 'bi-house-door', label: 'Tổng quan', section: 'overview' }],
     [
-      { icon: 'bi-calendar2-week', label: 'Lịch trình của tôi', route: '/schedule' },
+      { icon: 'bi-calendar2-week', label: 'Lịch trình của tôi', section: 'itineraries' },
       { icon: 'bi-credit-card', label: 'Vé & thanh toán', section: 'tickets' },
       { icon: 'bi-heart', label: 'Địa điểm yêu thích', section: 'favorites' }
     ],

@@ -623,7 +623,9 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
         user_id: user_id,
         title: 'Hành trình mới',
         message: `Lịch trình tự thiết kế đi ${destination || 'điểm đến mới'} đã được khởi tạo thành công!`,
-        type: 'system',
+        type: 'itinerary',
+        link: '/profile?section=itineraries',
+        reference_id: id,
         read: false
       });
     }

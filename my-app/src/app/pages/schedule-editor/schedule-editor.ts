@@ -241,7 +241,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   // Resizer Panel properties
   public sidebarWidth: number = 250;
   public mapWidthPct: number = 42;
-  private isResizing: boolean = false;
+  public isResizing: boolean = false;
   private resizeType: 'left' | 'right' = 'left';
 
   // Bottom Sheet Details properties
@@ -494,9 +494,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.loadItineraryToEditor(id);
         localStorage.setItem('greensteps_working_itinerary_id', id);
       } else {
-        this.isListMode = true;
-        this.activeItinerary = null;
-        this.loadSavedItinerariesList();
+        this.router.navigate(['/profile'], { queryParams: { section: 'itineraries' } });
+        return;
       }
     });
   }
@@ -1313,7 +1312,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public goBackToList() {
     localStorage.removeItem('greensteps_working_itinerary_id');
-    this.router.navigate(['/schedule']);
+    this.router.navigate(['/profile'], { queryParams: { section: 'itineraries' } });
   }
 
   private mapDestToSlug(destName: string): string {
@@ -3300,6 +3299,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const mapOptions = {
         center: center,
         zoom: 14,
+        gestureHandling: 'cooperative',
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         mapTypeControl: true,
         mapTypeControlOptions: {
@@ -7528,12 +7528,6 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         if (pct >= 22 && pct <= 62) {
           this.mapWidthPct = pct;
           this.cdr.detectChanges();
-          if (this.map && typeof this.map.invalidateSize === 'function') {
-            this.map.invalidateSize();
-          }
-          if (this.isGoogleMaps && this.gmap && typeof google !== 'undefined') {
-            google.maps.event.trigger(this.gmap, 'resize');
-          }
         }
       }
     };
@@ -7542,8 +7536,18 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.isResizing = false;
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.userSelect = '';
+      if (this.isGoogleMaps && this.gmap && typeof google !== 'undefined') {
+        const center = this.gmap.getCenter();
+        google.maps.event.trigger(this.gmap, 'resize');
+        if (center) this.gmap.setCenter(center);
+      } else if (this.map && typeof this.map.invalidateSize === 'function') {
+        this.map.invalidateSize();
+      }
+      this.cdr.detectChanges();
     };
 
+    document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }

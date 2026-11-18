@@ -117,12 +117,41 @@ export class HeaderComponent implements OnInit, OnDestroy {
         if (rawLink.startsWith('/')) return rawLink;
       }
     }
-    // Fallback based on notification type and content keywords
-    if (notif?.type === 'booking' && bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
-    if (/lich trinh|hanh trinh|schedule|planner/i.test(normalizedText)) return '/profile?section=itineraries';
-    if (/dat ve|don hang|ve|booking/i.test(normalizedText)) return '/profile?section=tickets';
-    if (/vi|wallet|tien|nạp|rut/i.test(normalizedText)) return '/profile?section=wallet';
-    if (/binh luan|danh gia|review|comment/i.test(normalizedText)) return '/community';
+
+    // 1. Explicit notification type handling
+    if (notif?.type === 'community') {
+      if (notif?.postId) return `/community?post=${encodeURIComponent(notif.postId)}`;
+      return '/community';
+    }
+    if (notif?.type === 'booking') {
+      if (bookingId) return `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`;
+      return '/profile?section=tickets';
+    }
+    if (notif?.type === 'wallet') {
+      return '/profile?section=wallet';
+    }
+    if (notif?.type === 'itinerary') {
+      return '/profile?section=itineraries';
+    }
+
+    // 2. Strict keyword matching in priority order
+    // Community keywords: cong dong, bai viet, binh luan, thao luan, hoi dap, phan hoi, vmt, comment
+    if (/\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
+      return '/community';
+    }
+    // Itinerary / Schedule keywords: lich trinh, hanh trinh, chuyen di, tu thiet ke, khoi tao thanh cong, planner, schedule
+    if (/\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+      return '/profile?section=itineraries';
+    }
+    // Booking / Ticket keywords: dat ve, don hang, ma don, ve may bay, ve xe, dat tour, dat phong, booking
+    if (/\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
+      return '/profile?section=tickets';
+    }
+    // Wallet keywords: MUST have strict boundary and phrase (NEVER bare 'vi'!)
+    if (/\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
+      return '/profile?section=wallet';
+    }
+
     return null;
   }
 

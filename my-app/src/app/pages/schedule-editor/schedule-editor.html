@@ -849,7 +849,8 @@
     <aside class="right-map-panel"
            [style.width.%]="mapWidthPct"
            [style.flex]="'0 0 ' + mapWidthPct + '%'"
-           [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections">
+           [class.has-active-panel]="!!activeGooglePlacePanel || !!activeLegDirections"
+           [style.pointer-events]="isResizing ? 'none' : 'auto'">
         <!-- =========================================================================
              OFFICIAL GOOGLE MAPS PLACE DETAILS SIDE PANEL (Matches Google Maps 100%)
              Only appears when activated; completely hidden when closed!

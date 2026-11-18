@@ -1082,9 +1082,9 @@
 }
 
 .editor-main-panel {
-  flex: 0 0 calc(40vw - 250px) !important;
-  min-width: 320px !important;
-  max-width: 440px !important;
+  flex: 1 1 0% !important;
+  min-width: 380px !important;
+  max-width: none !important;
   height: 100% !important;
   overflow-y: auto !important;
   background-color: #FFFFFF !important;
@@ -1127,23 +1127,41 @@
 
 
 /* ==========================================================================
-   OFFICIAL GOOGLE MAPS PLACE DETAILS SLIDE PANEL (Matches Reference 100%)
+   OFFICIAL GOOGLE MAPS PLACE DETAILS SLIDE PANEL (Compact Floating Card)
    ========================================================================== */
 .gm-full-place-panel {
   position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 320px !important;
-  max-width: 100% !important;
-  height: 100% !important;
+  top: 14px !important;
+  right: 14px !important;
+  left: auto !important;
+  width: 330px !important;
+  max-width: calc(100vw - 28px) !important;
+  height: auto !important;
+  max-height: min(480px, calc(100% - 28px)) !important;
   z-index: 1050 !important;
   background: #ffffff !important;
-  box-shadow: 4px 0 28px rgba(15, 23, 42, 0.22) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 36px -4px rgba(25, 37, 32, 0.18), 0 4px 14px rgba(25, 37, 32, 0.08) !important;
+  border: 1px solid #E2E8E4 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   pointer-events: auto !important;
-  animation: gmPanelSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: gmDirSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.gm-panel-hero {
+  height: 110px !important;
+  min-height: 110px !important;
+  max-height: 110px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.gm-panel-hero-img {
+  width: 100% !important;
+  height: 110px !important;
+  object-fit: cover !important;
 }
 
 @keyframes gmPanelSlide {
@@ -1218,7 +1236,7 @@
 .gm-panel-hero {
   position: relative !important;
   width: 100% !important;
-  height: 200px !important;
+  height: 110px !important;
   background: #0f172a !important;
   overflow: hidden !important;
 }
@@ -1231,28 +1249,28 @@
 
 .gm-panel-badge {
   position: absolute !important;
-  bottom: 12px !important;
-  left: 14px !important;
+  bottom: 8px !important;
+  left: 10px !important;
   background: rgba(15, 23, 42, 0.8) !important;
   backdrop-filter: blur(6px) !important;
   color: #ffffff !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
-  padding: 4px 10px !important;
-  border-radius: 6px !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
 }
 
 .gm-panel-content {
-  padding: 16px 18px 32px !important;
+  padding: 10px 12px 16px !important;
 }
 
 .gm-place-name {
-  font-size: 20px !important;
-  font-weight: 800 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
   color: #0f172a !important;
-  margin: 0 0 6px 0 !important;
+  margin: 0 0 4px 0 !important;
   line-height: 1.3 !important;
 }
 
@@ -1313,10 +1331,10 @@
 .gm-tab-btn {
   background: none !important;
   border: none !important;
-  font-size: 13.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: #64748b !important;
-  padding: 8px 12px !important;
+  padding: 5px 8px !important;
   cursor: pointer !important;
   border-bottom: 2px solid transparent !important;
   transition: all 0.2s ease !important;
@@ -1336,21 +1354,22 @@
   display: flex !important;
   align-items: center !important;
   justify-content: space-around !important;
-  gap: 6px !important;
-  margin: 14px 0 18px !important;
-  padding: 4px 0 !important;
+  gap: 4px !important;
+  margin: 8px 0 10px !important;
+  padding: 2px 0 !important;
 }
 
 .gm-action-item {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 3px !important;
+  font-size: 10px !important;
 }
 
 .gm-round-action-btn {
-  width: 44px !important;
-  height: 44px !important;
+  width: 32px !important;
+  height: 32px !important;
   border-radius: 50% !important;
   border: 1px solid #cbd5e1 !important;
   background: #ffffff !important;
@@ -1358,7 +1377,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 17px !important;
+  font-size: 13px !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
@@ -1729,22 +1748,23 @@
    OFFICIAL GOOGLE MAPS LEG DIRECTIONS PANEL & TURN-BY-TURN NAVIGATION
    ========================================================================== */
 .gm-directions-panel {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 320px;
-  max-width: calc(100vw - 28px);
-  max-height: calc(100% - 28px);
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px -4px rgba(25, 37, 32, 0.18), 0 4px 14px rgba(25, 37, 32, 0.08);
-  border: 1px solid #E2E8E4;
-  z-index: 1050;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 330px !important;
+  max-width: calc(100vw - 28px) !important;
+  height: auto !important;
+  max-height: min(480px, calc(100% - 28px)) !important;
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 36px -4px rgba(25, 37, 32, 0.18), 0 4px 14px rgba(25, 37, 32, 0.08) !important;
+  border: 1px solid #E2E8E4 !important;
+  z-index: 1050 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
   pointer-events: auto !important;
-  animation: gmDirSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: gmDirSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 @keyframes gmDirSlideIn {
@@ -6464,11 +6484,11 @@
 .gm-book-vehicle-list {
   flex: 1;
   overflow-y: auto;
-  max-height: 250px;
-  padding: 10px 12px;
+  max-height: 155px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background: #f8faf8;
 }
 
@@ -6476,8 +6496,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 6px 10px;
   background: #ffffff;
   border: 1px solid #e2e8e4;
   border-radius: 8px;
@@ -7080,46 +7100,81 @@
   cursor: grabbing !important;
 }
 
-/* Strict Typography Compaction Rules (Max 13px ceiling) */
-.sidebar-panel h2,
-.sidebar-panel h3,
-.editor-main-panel h3,
-.editor-main-panel .cover-title,
+/* =========================================================================
+   RESTORED SCHEDULE & SIDEBAR READABILITY (Clean, Roomy, Professional)
+   ========================================================================= */
+.editor-main-panel .cover-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+
 .editor-main-panel #activeDayTitle,
-.gm-dir-title,
-.gm-place-title {
-  font-size: 13px !important;
+.editor-main-panel h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+.sidebar-panel h2,
+.sidebar-panel h3 {
+  font-size: 14px !important;
   font-weight: 700 !important;
 }
 
 .act-min-title {
-  font-size: 12px !important;
+  font-size: 13.5px !important;
   font-weight: 600 !important;
-  line-height: 1.35 !important;
+  line-height: 1.4 !important;
 }
 
 .act-min-rating-sub,
 .act-min-type-tag,
 .act-address-text,
-.travel-gap-text,
-.cost-label,
-.sugg-modern-cat-tag,
-.sugg-modern-carbon-chip,
-.sugg-modern-pill-badge,
-.sugg-modern-price {
-  font-size: 10px !important;
+.travel-gap-text {
+  font-size: 11.5px !important;
 }
 
+.cost-label,
 .timeline-native-time-input,
 .sidebar-cost-card .cost-row,
 .sidebar-panel .sidebar-menu-item {
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .sugg-modern-name {
-  font-size: 11.5px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
   line-height: 1.3 !important;
+}
+
+/* =========================================================================
+   COMPACT FLOATING POPOUT PANELS ONLY (Directions & Place Details)
+   Max title 13px, max height ~480px, strictly non-dominating on map
+   ========================================================================= */
+.gm-dir-title,
+.gm-place-name,
+.gm-psh-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+.gm-dir-mode-btn,
+.gm-panel-tab-btn,
+.gm-action-btn,
+.gm-del-btn,
+.gm-place-rating-line,
+.gm-place-cat-line {
+  font-size: 11px !important;
+}
+
+.gm-dir-node strong {
+  font-size: 11.5px !important;
+}
+
+.gm-dir-node-addr,
+.gm-dir-node-label {
+  font-size: 10px !important;
 }
 
 .drag-placeholder-slot {

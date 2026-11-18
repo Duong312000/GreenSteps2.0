@@ -295,7 +295,16 @@ exports.addPostComment = async (req, res, next) => {
     await post.save();
     const user = await User.findByPk(userId);
     if (post.user_id && post.user_id !== userId) {
-      await Notification.create({ id: `notif_${randomUUID()}`, user_id: post.user_id, title: post.post_type === 'question' ? 'Câu hỏi có câu trả lời' : 'Bình luận mới', message: `${user?.fullname || 'Một thành viên'} đã phản hồi bài viết của bạn.`, type: 'community', read: false });
+      await Notification.create({
+        id: `notif_${randomUUID()}`,
+        user_id: post.user_id,
+        title: post.post_type === 'question' ? 'Câu hỏi có câu trả lời' : 'Bình luận mới',
+        message: `${user?.fullname || 'Một thành viên'} đã phản hồi bài viết của bạn.`,
+        type: 'community',
+        link: `/community?post=${post.id}`,
+        reference_id: post.id,
+        read: false
+      });
     }
     res.status(201).json({ success: true, comment: formatComment(comment, user) });
   } catch (error) { next(error); }
