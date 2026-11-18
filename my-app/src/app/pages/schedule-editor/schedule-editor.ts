@@ -1366,6 +1366,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           const title = act.title || act.name || "Hoạt động";
           let type = act.type || 'attraction';
           const isShared = act.is_shared !== undefined ? (act.is_shared === true || act.isShared === true) : this.checkIfSharedByDefault(title, type);
+          const isPartner = act.is_partner !== undefined ? act.is_partner : (act.isPartner !== undefined ? act.isPartner : false);
           return {
             id: act.id || ('act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
             time: this.normalizeTimeTo24h(act.time || "08:00"),
@@ -1378,6 +1379,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             is_shared: isShared,
             lat: lat,
             lng: lng,
+            img: act.img || (act.photos && act.photos[0]) || null,
+            photos: act.photos || (act.img ? [act.img] : []),
+            address: act.address || null,
+            is_partner: isPartner,
+            isPartner: isPartner,
+            rating: act.rating || null,
+            reviews: act.reviews || null,
             hasTimeConflict: !!act.hasTimeConflict,
             conflictReason: act.conflictReason || ''
           };
@@ -1451,6 +1459,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         }
 
         const isShared = act.is_shared !== undefined ? (act.is_shared === true || act.isShared === true) : this.checkIfSharedByDefault(title, type);
+        const isPartner = act.is_partner !== undefined ? act.is_partner : (act.isPartner !== undefined ? act.isPartner : false);
         activities.push({
           id: act.id || ('act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
           time: this.normalizeTimeTo24h(act.time || "08:00"),
@@ -1460,7 +1469,16 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
           carbon: act.carbon || 0,
           is_shared: isShared,
           lat: lat,
-          lng: lng
+          lng: lng,
+          img: act.img || (act.photos && act.photos[0]) || null,
+          photos: act.photos || (act.img ? [act.img] : []),
+          address: act.address || null,
+          is_partner: isPartner,
+          isPartner: isPartner,
+          priceUnknown: !!act.priceUnknown,
+          note: act.note || '',
+          rating: act.rating || null,
+          reviews: act.reviews || null
         });
       });
 
@@ -1516,16 +1534,26 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         else if (act.type === "dining") icon = "bi-cup-hot-fill";
         else if (act.type === "transport") icon = "bi-scooter";
 
+        const isPartner = act.is_partner !== undefined ? act.is_partner : (act.isPartner !== undefined ? act.isPartner : false);
         dayActivities.push({
           id: act.id || ("act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7)),
           time: act.time,
-          name: act.title,
+          name: act.title || act.name,
           cost: act.cost,
           carbon: act.carbon,
           icon: icon,
           type: act.type,
           lat: act.lat,
-          lng: act.lng
+          lng: act.lng,
+          img: act.img || (act.photos && act.photos[0]) || null,
+          photos: act.photos || (act.img ? [act.img] : []),
+          address: act.address || null,
+          is_partner: isPartner,
+          isPartner: isPartner,
+          note: act.note || null,
+          rating: act.rating || null,
+          reviews: act.reviews || null,
+          priceUnknown: !!act.priceUnknown
         });
       });
       daysData.push(dayActivities);
@@ -6457,8 +6485,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public getPlaceAddress(title: string): string {
-    if (!title) return 'Hội An, Quảng Nam';
+    const dest = this.activeItinerary?.destLabel || this.activeItinerary?.destination || '';
+    const destLower = dest.toLowerCase();
+    if (!title) return dest || 'Việt Nam';
     const t = title.toLowerCase();
+
     if (t.includes('rừng dừa') || t.includes('bảy mẫu') || t.includes('coconut') || t.includes('thuyền thúng')) {
       return 'Thôn Vạn Lăng, Xã Cẩm Thanh, TP. Hội An';
     }
@@ -6468,13 +6499,37 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (t.includes('phố cổ') || t.includes('chùa cầu')) {
       return 'Phường Minh An, TP. Hội An';
     }
-    if (t.includes('homestay') || t.includes('khách sạn')) {
-      return 'Cẩm Phô, TP. Hội An';
-    }
     if (t.includes('hồ xuân hương') || t.includes('lâm viên')) {
       return 'Phường 10, TP. Đà Lạt, Lâm Đồng';
     }
-    return (this.activeItinerary?.destLabel || this.activeItinerary?.destination || 'Hội An');
+    if (t.includes('gành đá đĩa') || t.includes('ghềnh đá đĩa')) {
+      return 'Xã An Ninh Đông, Huyện Tuy An, Phú Yên';
+    }
+    if (t.includes('bãi xép')) {
+      return 'Xã An Chấn, Huyện Tuy An, Phú Yên';
+    }
+    if (t.includes('mũi điện') || t.includes('bãi môn')) {
+      return 'Xã Hòa Tâm, Thị xã Đông Hòa, Phú Yên';
+    }
+    if (t.includes('vũng rô')) {
+      return 'Xã Hòa Xuân Nam, Thị xã Đông Hòa, Phú Yên';
+    }
+    if (t.includes('tháp nhạn') || t.includes('nghinh phong')) {
+      return 'TP. Tuy Hòa, Phú Yên';
+    }
+    if (destLower.includes('phú yên')) {
+      return 'Tuy An, Phú Yên';
+    }
+    if (destLower.includes('đà lạt')) {
+      return 'TP. Đà Lạt, Lâm Đồng';
+    }
+    if (destLower.includes('hội an')) {
+      return 'TP. Hội An, Quảng Nam';
+    }
+    if (destLower.includes('đà nẵng')) {
+      return 'TP. Đà Nẵng';
+    }
+    return dest || 'Việt Nam';
   }
 
   public getActivityDetailedDesc(act: any): string {
@@ -7516,10 +7571,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     if (lower.includes('linh phước') || lower.includes('ve chai')) return 'image/greensteps/da-lat/da-lat-chua-linh-phuoc-01.jpg';
     if (lower.includes('vườn hoa')) return 'image/greensteps/da-lat/da-lat-vuon-hoa-01.jpg';
 
-    if (lower.includes('gành đá đĩa') || lower.includes('ghềnh đá đĩa')) return 'image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg';
-    if (lower.includes('bãi xép') || lower.includes('hoa vàng')) return 'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg';
-    if (lower.includes('tháp nhạn')) return 'image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg';
-    if (lower.includes('vũng rô')) return 'image/greensteps/phu-yen/phu-yen-vung-ro-01.jpg';
+    if (lower.includes('gành đá đĩa') || lower.includes('ghềnh đá đĩa')) return 'image/greensteps/phu-yen/phu-yen-bai-da-ven-bien-01.jpg';
+    if (lower.includes('bãi xép') || lower.includes('hoa vàng')) return 'image/greensteps/phu-yen/phu-yen-bai-xep-checkin-01.jpg';
+    if (lower.includes('tháp nhạn') || lower.includes('nghinh phong')) return 'image/greensteps/phu-yen/phu-yen-thap-nghinh-phong-01.jpg';
+    if (lower.includes('vũng rô') || lower.includes('làng chài') || lower.includes('homestay')) return 'image/greensteps/phu-yen/phu-yen-lang-chai-vung-ro-01.jpg';
+    if (lower.includes('mũi điện') || lower.includes('bãi môn')) return 'image/greensteps/phu-yen/phu-yen-mui-dien-bai-mon-01.jpg';
 
     // 2. Hash-based deterministic index to ensure diversity within category
     const hash = n.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) & 0x7fffffff, 0);
@@ -7572,14 +7628,14 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     // Phú Yên pool
     if (targetDest.includes('phú yên') || targetDest.includes('phu yen') || targetDest.includes('tuy hòa')) {
       if (isStay) {
-        return 'image/greensteps/phu-yen/phu-yen-m-cliff-resort-01.jpg';
+        return 'image/greensteps/phu-yen/phu-yen-lang-chai-vung-ro-01.jpg';
       }
       const phuyenPool = [
-        'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg',
-        'image/greensteps/phu-yen/phu-yen-thap-nhan-01.jpg',
-        'image/greensteps/phu-yen/phu-yen-ghenh-da-dia-01.jpg',
-        'image/greensteps/phu-yen/phu-yen-vung-ro-01.jpg',
-        'image/greensteps/phu-yen/phu-yen-hon-yen-01.jpg'
+        'image/greensteps/phu-yen/phu-yen-bai-xep-checkin-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-thap-nghinh-phong-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-bai-da-ven-bien-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-lang-chai-vung-ro-01.jpg',
+        'image/greensteps/phu-yen/phu-yen-mui-dien-bai-mon-01.jpg'
       ];
       return phuyenPool[hash % phuyenPool.length];
     }
@@ -7626,7 +7682,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const generalPool = [
       'image/greensteps/da-lat/da-lat-ho-xuan-huong-01.jpg',
       'image/greensteps/da-nang-hoi-an/da-nang-cau-vang-ba-na-hills-01.jpg',
-      'image/greensteps/phu-yen/phu-yen-bai-xep-01.jpg',
+      'image/greensteps/phu-yen/phu-yen-bai-xep-checkin-01.jpg',
       'image/greensteps/da-lat/da-lat-quang-truong-lam-vien-01.jpg',
       'image/greensteps/da-nang-hoi-an/hoi-an-chua-cau-01.jpg'
     ];
@@ -7697,7 +7753,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         const rp = realPlaces[0];
         this.ngZone.run(() => {
           if (this.activeGooglePlacePanel) {
-            this.activeGooglePlacePanel.title = rp.title || title;
+            // Keep curated activity title intact; do NOT overwrite with arbitrary nearby store results!
+            if (!this.activeGooglePlacePanel.title) {
+              this.activeGooglePlacePanel.title = rp.title || title;
+            }
             this.activeGooglePlacePanel.place_id = rp.id;
             this.activeGooglePlacePanel.rating = rp.rating || 4.8;
             this.activeGooglePlacePanel.reviews = rp.reviewsCount || 0;
@@ -7707,7 +7766,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
             this.activeGooglePlacePanel.website = rp.website || '';
             this.activeGooglePlacePanel.hours = rp.hours || 'Đang mở cửa';
             this.activeGooglePlacePanel.weekdayText = rp.weekdayText || [];
-            if (rp.photos && rp.photos.length > 0) {
+            if (rp.photos && rp.photos.length > 0 && !item.img) {
               this.activeGooglePlacePanel.photos = rp.photos;
               this.activeGooglePlacePanel.img = rp.photos[0];
             }
@@ -7731,6 +7790,10 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     } catch (e) {
       console.warn('Real Google Place fetch error:', e);
     }
+  }
+
+  public trackByActId(index: number, act: any): string {
+    return act?.id || (act?.title ? `${act.title}_${index}` : `act_${index}`);
   }
 
 

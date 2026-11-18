@@ -80,7 +80,8 @@
 .gs-comment-form, .gs-reply-form { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
 .gs-comment-form input, .gs-reply-form input { flex: 1; min-width: 0; height: 38px; padding: 0 13px; border: 1px solid #e5ebe7; border-radius: 22px; outline-color: #58a77a; background: #f8faf8; font: inherit; font-size: 12px; }
 .gs-comment-form > button, .gs-reply-form > button { width: 36px; height: 36px; border: 0; border-radius: 50%; color: #278550; background: #eef7f1; cursor: pointer; }
-.gs-community-aside { position: sticky; top: 92px; display: grid; gap: 16px; }
+.gs-community-aside { position: sticky; top: 92px; display: grid; gap: 16px; max-height: calc(100vh - 110px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.gs-community-aside::-webkit-scrollbar { display: none; }
 .gs-aside-card { padding: 17px; }
 .gs-aside-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #edf1ee; }
 .gs-aside-head h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: #2c4537; font-size: 15px; }

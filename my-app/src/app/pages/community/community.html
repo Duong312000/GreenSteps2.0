@@ -101,7 +101,10 @@
           <div class="gs-feed-loading gs-comments-loading" *ngIf="commentsLoading.has(post.id)"><span class="gs-spinner"></span> Đang tải...</div>
           <ng-container *ngIf="!commentsLoading.has(post.id)">
             <div class="gs-comment" *ngFor="let comment of comments[post.id] || []">
-              <div class="gs-avatar gs-avatar-small"><span>{{ firstLetter(comment.user?.fullname) }}</span></div>
+              <div class="gs-avatar gs-avatar-small">
+                <img *ngIf="avatarIsUrl(comment.user?.avatar)" [src]="mediaUrl(comment.user?.avatar)" alt="">
+                <span *ngIf="!avatarIsUrl(comment.user?.avatar)">{{ firstLetter(comment.user?.fullname) }}</span>
+              </div>
               <div class="gs-comment-content"><strong>{{ comment.user?.fullname }}</strong><p>{{ comment.text }}</p>
                 <div class="gs-comment-controls">
                   <button type="button" *ngIf="post.postType === 'question'" [class.active]="comment.isHelpful" (click)="markHelpful(comment, post.id)"><i class="bi bi-check2-circle"></i> Hữu ích · {{ comment.helpfulCount || 0 }}</button>
@@ -109,10 +112,27 @@
                   <button type="button" *ngIf="comment.user?.id !== userId" (click)="openReport('comment', comment.id)"><i class="bi bi-flag"></i> Báo cáo</button>
                 </div>
                 <form class="gs-reply-form" *ngIf="replyTo[comment.id]" (submit)="submitComment(post, comment.id); $event.preventDefault()"><input [(ngModel)]="replyDrafts[comment.id]" name="reply-{{comment.id}}" placeholder="Viết câu trả lời..." maxlength="2000"><button type="submit" aria-label="Gửi trả lời"><i class="bi bi-send-fill"></i></button></form>
-                <div class="gs-reply" *ngFor="let reply of comment.replies"><strong>{{ reply.user?.fullname }}</strong><p>{{ reply.text }}</p><button class="gs-report-reply" type="button" *ngIf="reply.user?.id !== userId" (click)="openReport('comment', reply.id)">Báo cáo</button></div>
+                <div class="gs-reply" *ngFor="let reply of comment.replies">
+                  <div class="gs-avatar gs-avatar-small" style="width:24px;height:24px;flex-basis:24px;font-size:10px;">
+                    <img *ngIf="avatarIsUrl(reply.user?.avatar)" [src]="mediaUrl(reply.user?.avatar)" alt="">
+                    <span *ngIf="!avatarIsUrl(reply.user?.avatar)">{{ firstLetter(reply.user?.fullname) }}</span>
+                  </div>
+                  <div>
+                    <strong>{{ reply.user?.fullname }}</strong>
+                    <p>{{ reply.text }}</p>
+                    <button class="gs-report-reply" type="button" *ngIf="reply.user?.id !== userId" (click)="openReport('comment', reply.id)">Báo cáo</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <form class="gs-comment-form" (submit)="submitComment(post); $event.preventDefault()"><div class="gs-avatar gs-avatar-small"><span>{{ firstLetter(currentUser?.fullname || 'G') }}</span></div><input [(ngModel)]="commentDrafts[post.id]" name="comment-{{post.id}}" [placeholder]="post.postType === 'question' ? 'Chia sẻ câu trả lời hữu ích...' : 'Viết bình luận...'" maxlength="2000"><button type="submit" aria-label="Gửi bình luận"><i class="bi bi-send-fill"></i></button></form>
+            <form class="gs-comment-form" (submit)="submitComment(post); $event.preventDefault()">
+              <div class="gs-avatar gs-avatar-small">
+                <img *ngIf="currentUser && avatarIsUrl(currentUser.avatarUrl || '')" [src]="mediaUrl(currentUser.avatarUrl)" alt="">
+                <span *ngIf="!currentUser || !avatarIsUrl(currentUser.avatarUrl || '')">{{ firstLetter(currentUser?.fullname || 'G') }}</span>
+              </div>
+              <input [(ngModel)]="commentDrafts[post.id]" name="comment-{{post.id}}" [placeholder]="post.postType === 'question' ? 'Chia sẻ câu trả lời hữu ích...' : 'Viết bình luận...'" maxlength="2000">
+              <button type="submit" aria-label="Gửi bình luận"><i class="bi bi-send-fill"></i></button>
+            </form>
           </ng-container>
         </section>
       </article>
@@ -154,7 +174,13 @@
   <section class="gs-composer-modal" role="dialog" aria-modal="true" aria-labelledby="gs-composer-title" (click)="$event.stopPropagation()">
     <header class="gs-modal-head"><h2 id="gs-composer-title">{{ editTarget ? 'Chỉnh sửa bài viết' : composerType === 'question' ? 'Đặt câu hỏi du lịch' : composerType === 'reel' ? 'Đăng thước phim' : 'Chia sẻ với cộng đồng' }}</h2><button type="button" (click)="closeComposer()" aria-label="Đóng"><i class="bi bi-x-lg"></i></button></header>
     <form (submit)="submitPost($event)">
-      <div class="gs-modal-author"><div class="gs-avatar"><span>{{ firstLetter(currentUser?.fullname || '') }}</span></div><div><strong>{{ currentUser?.fullname }}</strong><small>{{ composerType === 'question' ? 'Câu hỏi công khai' : 'Chia sẻ công khai' }}</small></div></div>
+      <div class="gs-modal-author">
+        <div class="gs-avatar">
+          <img *ngIf="currentUser && avatarIsUrl(currentUser.avatarUrl || '')" [src]="mediaUrl(currentUser.avatarUrl)" alt="">
+          <span *ngIf="!currentUser || !avatarIsUrl(currentUser.avatarUrl || '')">{{ firstLetter(currentUser?.fullname || '') }}</span>
+        </div>
+        <div><strong>{{ currentUser?.fullname }}</strong><small>{{ composerType === 'question' ? 'Câu hỏi công khai' : 'Chia sẻ công khai' }}</small></div>
+      </div>
       <textarea [(ngModel)]="draftText" name="draftText" maxlength="5000" [placeholder]="composerType === 'question' ? 'Bạn muốn hỏi cộng đồng điều gì?' : composerType === 'reel' ? 'Kể ngắn về video du lịch của bạn...' : 'Chia sẻ trải nghiệm chuyến đi của bạn...'" required></textarea>
       <div class="gs-form-row"><label><i class="bi bi-geo-alt-fill"></i><input [(ngModel)]="draftLocation" name="location" placeholder="Check-in địa điểm" maxlength="160"></label><label><i class="bi bi-hash"></i><input [(ngModel)]="draftHashtags" name="hashtags" placeholder="#SongXanh #CheckinXanh"></label></div>
       <label class="gs-itinerary-select" *ngIf="composerType !== 'question'">Gắn lịch trình cá nhân

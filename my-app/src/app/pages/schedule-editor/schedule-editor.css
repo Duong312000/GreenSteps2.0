@@ -722,24 +722,24 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
 }
 
-/* Flex Body layout */
+/* Flex Body layout - Compact & Ergonomic */
 .act-min-body {
   display: flex;
-  gap: 14px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   align-items: flex-start;
 }
 
-/* 1. Thumbnail Image on the left */
+/* 1. Thumbnail Image on the left - Compact */
 .act-min-media {
   position: relative;
-  width: 76px;
-  height: 76px;
-  border-radius: 10px;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
   background-color: #F1F5F9;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .act-min-img {
@@ -750,22 +750,22 @@
 }
 
 .activity-card-minimal:hover .act-min-img {
-  transform: scale(1.06);
+  transform: scale(1.04);
 }
 
 .act-min-type-tag {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
-  right: 4px;
+  bottom: 3px;
+  left: 3px;
+  right: 3px;
   background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(4px);
   color: #ffffff;
-  font-size: 8.5px;
-  font-weight: 700;
+  font-size: 8px;
+  font-weight: 600;
   text-align: center;
-  padding: 1.5px 3px;
-  border-radius: 4px;
+  padding: 1px 2px;
+  border-radius: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -777,7 +777,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 /* Top Row: Title & Action Controls */
@@ -785,7 +785,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .act-min-title-wrap {
@@ -795,10 +795,10 @@
 
 .act-min-title {
   margin: 0;
-  font-size: 14.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: #0F172A;
-  line-height: 1.35;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3302,76 +3302,97 @@
   color: #5E2626 !important;
 }
 
-/* Inline Illogical Time Conflict Alert (On the conflicting activity itself - Ultra low saturation) */
-.act-inline-conflict-alert {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
-  margin: 6px 0 8px 0 !important;
-  padding: 6px 10px !important;
-  background-color: #FBF7F7 !important; /* Low-saturation calm muted blush */
-  border: 1px solid #E8D5D5 !important; /* Soft muted dusty border */
-  border-radius: 8px !important;
-  box-shadow: none !important;
-}
-
-.act-conflict-left {
-  display: flex !important;
-  align-items: flex-start !important;
-  gap: 8px !important;
-  flex: 1 !important;
-  min-width: 0 !important;
-}
-
-.act-conflict-icon {
-  color: #9E4D4D !important; /* Desaturated muted brick */
-  font-size: 13px !important;
-  flex-shrink: 0 !important;
-  margin-top: 1px !important;
-}
-
-.act-conflict-texts {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1px !important;
-  font-size: 11px !important;
-  line-height: 1.35 !important;
-}
-
-.act-conflict-tag {
-  font-weight: 700 !important;
-  color: #783636 !important; /* Muted deep wine/brick */
-  font-size: 11px !important;
-}
-
-.act-conflict-msg {
-  color: #6E4343 !important; /* Gentle dark gray-red */
-  word-break: break-word !important;
-  font-size: 11px !important;
-}
-
-.btn-fix-single-act {
+/* Ergonomic Hover Warning Popover for Illogical Time Conflict */
+.time-conflict-hover-wrap {
+  position: relative !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  background: #F4E8E8 !important; /* Low-saturation subtle pill */
-  color: #783636 !important;
-  border: 1px solid #D8C0C0 !important;
-  border-radius: 6px !important;
-  padding: 4px 9px !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
+  margin-left: 4px !important;
   cursor: pointer !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-  transition: all 0.15s ease !important;
+  vertical-align: middle !important;
 }
 
-.btn-fix-single-act:hover {
-  background: #EAD8D8 !important;
-  color: #5E2626 !important;
-  border-color: #C8ACAC !important;
+.time-conflict-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background-color: #FEF3C7 !important;
+  color: #B45309 !important;
+  font-size: 10px !important;
+  border: 1px solid #FCD34D !important;
+  animation: pulseConflict 2s infinite ease-in-out !important;
+  transition: all 0.2s ease !important;
+}
+
+.time-conflict-chip:hover {
+  background-color: #FDE68A !important;
+  transform: scale(1.1) !important;
+}
+
+.time-conflict-popover {
+  display: none !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 100 !important;
+  width: 250px !important;
+  background: #ffffff !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.08) !important;
+  pointer-events: auto !important;
+  text-align: left !important;
+  margin-top: 4px !important;
+}
+
+.time-conflict-hover-wrap:hover .time-conflict-popover,
+.time-conflict-hover-wrap:focus-within .time-conflict-popover {
+  display: block !important;
+}
+
+.conflict-popover-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #92400E !important;
+  margin-bottom: 3px !important;
+}
+
+.conflict-popover-msg {
+  font-size: 10.5px !important;
+  color: #475569 !important;
+  line-height: 1.35 !important;
+  margin-bottom: 6px !important;
+}
+
+.btn-conflict-quick-fix {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: #0E9F6E !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 3px 8px !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.btn-conflict-quick-fix:hover {
+  background: #057A55 !important;
+}
+
+@keyframes pulseConflict {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.96); }
 }
 
 /* ==========================================================================

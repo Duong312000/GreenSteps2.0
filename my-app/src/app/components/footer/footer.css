@@ -3,6 +3,8 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  border-radius: 0 !important;
+  background-color: #073D2B !important;
 }
 
 .gs-footer a,
@@ -15,26 +17,84 @@
   text-decoration: none;
 }
 
+.gs-footer-inner,
+.gs-footer-grid,
+.gs-footer-brand,
+.gs-footer-col,
+.gs-footer-newsletter {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.gs-footer-col a {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
 @media (max-width: 768px) {
+  .gs-footer {
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .gs-footer-inner {
-    padding-top: 2rem;
-    padding-bottom: 2.5rem;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 2rem 1.25rem 2.5rem !important;
+  }
+
+  .gs-footer-brand,
+  .gs-footer-col,
+  .gs-footer-newsletter {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .gs-footer-col ul {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .gs-footer-col li {
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .gs-footer-col a {
+    display: inline-block !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 2px 0 !important;
+    font-size: 13px !important;
+    color: rgba(255, 255, 255, 0.75) !important;
   }
 
   .gs-footer-brand {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 1.25rem;
-    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding-bottom: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
   }
 
   .gs-footer-newsletter {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 1.25rem;
-    margin-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding-top: 1.25rem !important;
+    margin-top: 0.5rem !important;
   }
 
   .gs-footer-bottom {
-    margin-top: 1.75rem;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    margin-top: 1.75rem !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
 }

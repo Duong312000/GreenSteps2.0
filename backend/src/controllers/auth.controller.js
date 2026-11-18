@@ -37,6 +37,7 @@ function publicUser(user) {
     address: user.address,
     company_name: user.company_name,
     avatarUrl: user.avatarUrl,
+    avatar: user.avatarUrl,
     is_verified: user.is_verified
   };
 }

@@ -134,9 +134,16 @@ exports.addPost = async (req, res, next) => {
     let custom = null;
     if (itineraryId) {
       const { ScheduleCustom, Schedule, UserSchedule } = require('../models');
-      custom = await ScheduleCustom.findByPk(itineraryId);
-      const link = await UserSchedule.findOne({ where: { schedule_id: itineraryId, user_id: userId } });
-      try { itinerary = (await Schedule.findByPk(itineraryId)) || custom; } catch(e) {}
+      const cleanItiId = itineraryId.replace(/^iti_/, '');
+      custom = await ScheduleCustom.findByPk(itineraryId) ||
+               await ScheduleCustom.findByPk(`iti_${cleanItiId}`) ||
+               await ScheduleCustom.findByPk(cleanItiId);
+      try {
+        itinerary = (await Schedule.findByPk(itineraryId)) ||
+                    (await Schedule.findByPk(`iti_${cleanItiId}`)) ||
+                    (await Schedule.findByPk(cleanItiId)) ||
+                    custom;
+      } catch(e) {}
     }
     let challenge = null;
     if (req.body.challengeId) {
@@ -153,7 +160,9 @@ exports.addPost = async (req, res, next) => {
     const post = await CommunityPost.create({
       id, user_id: userId || 'anonymous', post_type: type, rating: Math.max(1, Math.min(5, Number(req.body.rating) || 5)), text,
       tour_name: itinerary?.tour_name || custom?.name || custom?.tour_name || String(req.body.tripName || '').slice(0, 160),
-      destination: itinerary?.destination || custom?.destination || location, location, days: itinerary?.days || custom?.days || Math.max(0, Number(req.body.days) || 0),
+      destination: itinerary?.destination || custom?.destination || req.body.dest || location || 'Việt Nam',
+      location: location || itinerary?.destination || custom?.destination || 'Việt Nam',
+      days: itinerary?.days || custom?.days || (Array.isArray(custom?.daysData) ? custom.daysData.length : 0) || Math.max(1, Number(req.body.days) || 1),
       hashtags, image_urls: images, image_url: images[0] || null, video_url: videoUrl || null,
       itinerary_id: itineraryId || null, challenge_id: challenge?.id || null,
       likes_count: 0, comments_count: 0, shares_count: 0,

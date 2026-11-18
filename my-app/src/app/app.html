@@ -1,9 +1,3 @@
-<!-- Ultra-sleek Luxury Top Navigation Progress Bar -->
-<div class="route-progress-bar-container" *ngIf="isNavigating" aria-hidden="true">
-  <div class="route-progress-bar-glow"></div>
-  <div class="route-progress-bar-peg"></div>
-</div>
-
 <app-header *ngIf="!isAdminRoute && !isStandalonePolicyRoute && !isStandaloneMaintenanceRoute"></app-header>
 <div class="profile-route-shell" *ngIf="isProfileMenuRoute">
   <app-profile-navigation></app-profile-navigation>

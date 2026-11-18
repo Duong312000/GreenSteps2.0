@@ -378,7 +378,7 @@ exports.postServiceReview = async (req, res, next) => {
           parentCommentId: reply.parent_comment_id,
           text: reply.text,
           createdAt: reply.createdAt,
-          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role } : null
+          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role, avatar: replyUser.avatarUrl || replyUser.fullname?.charAt(0) || 'U', avatarUrl: replyUser.avatarUrl || '' } : { fullname: 'Người dùng ẩn danh', avatar: 'U', avatarUrl: '' }
         }
       });
     }
@@ -435,7 +435,7 @@ exports.getServiceReviews = async (req, res, next) => {
           parentCommentId: c.id,
           text: child.text,
           createdAt: child.createdAt,
-          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role, avatar: replyUser.avatarUrl || replyUser.fullname?.charAt(0) || 'U' } : { fullname: 'NgÆ°á»i dÃ¹ng áº©n danh', avatar: 'U' }
+          user: replyUser ? { id: replyUser.id, fullname: replyUser.fullname, role: replyUser.role, avatar: replyUser.avatarUrl || replyUser.fullname?.charAt(0) || 'U', avatarUrl: replyUser.avatarUrl || '' } : { fullname: 'Người dùng ẩn danh', avatar: 'U', avatarUrl: '' }
         });
       }
       reviews.push({
@@ -445,8 +445,10 @@ exports.getServiceReviews = async (req, res, next) => {
         user: user ? {
           id: user.id,
           fullname: user.fullname,
-          role: user.role
-        } : { fullname: 'Người dùng ẩn danh' },
+          role: user.role,
+          avatar: user.avatarUrl || user.fullname?.charAt(0) || 'U',
+          avatarUrl: user.avatarUrl || ''
+        } : { fullname: 'Người dùng ẩn danh', avatar: 'U', avatarUrl: '' },
         rating: c.rating,
         text: c.text,
         createdAt: c.createdAt,

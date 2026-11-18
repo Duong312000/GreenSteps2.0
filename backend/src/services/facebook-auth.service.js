@@ -1,7 +1,8 @@
 const { createHmac } = require('node:crypto');
 function facebookConfig() {
-  const { FACEBOOK_APP_ID: appId, FACEBOOK_APP_SECRET: secret, FACEBOOK_GRAPH_VERSION: version } = process.env;
-  return { appId: appId || '', version: version || '', enabled: !!(appId && secret && /^v[0-9]+\.0$/.test(version || '')) };
+  const { FACEBOOK_APP_ID: appId, FACEBOOK_APP_SECRET: secret, FACEBOOK_GRAPH_VERSION: rawVersion } = process.env;
+  const version = (rawVersion && /^v[0-9]+\.0$/.test(rawVersion) && parseInt(rawVersion.slice(1)) <= 22) ? rawVersion : 'v21.0';
+  return { appId: appId || '', version, enabled: !!(appId && secret) };
 }
 const failure = (message, statusCode) => Object.assign(new Error(message), { statusCode });
 async function verifyFacebookAccessToken(accessToken) {

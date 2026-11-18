@@ -376,9 +376,9 @@
                             [style.margin-left.px]="-10" [style.z-index]="9 - idx"
                             style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ffffff; background: #e6ede9; overflow: hidden; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2); flex-shrink: 0;"
                             [title]="(col.isOwner ? '👑 Chủ lịch trình: ' : 'Đồng hành: ') + (col.fullname || col.username)">
-                            <img *ngIf="col.avatarUrl" [src]="col.avatarUrl"
+                            <img *ngIf="col.avatarUrl || col.avatar" [src]="col.avatarUrl || col.avatar"
                                 style="width: 100%; height: 100%; object-fit: cover;">
-                            <div *ngIf="!col.avatarUrl"
+                            <div *ngIf="!col.avatarUrl && !col.avatar"
                                 style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #174c39; text-transform: uppercase;">
                                 {{ (col.fullname || col.username || '?').charAt(0) }}
                             </div>
@@ -478,7 +478,7 @@
                     động.</p>
             </div>
 
-            <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index">
+            <ng-container *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index; trackBy: trackByActId">
                 <!-- Drag-and-Drop Placeholder Slot BEFORE target card -->
                 <div class="drag-placeholder-slot"
                     *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx"
@@ -521,9 +521,21 @@
                                    [class.time-conflict-input]="act.hasTimeConflict"
                                    [title]="act.hasTimeConflict ? act.conflictReason : 'Nhấp để chỉnh giờ'"
                                    class="timeline-native-time-input">
-                            <span class="time-conflict-chip" *ngIf="act.hasTimeConflict" [title]="act.conflictReason">
-                                <i class="bi bi-exclamation-triangle-fill"></i>
-                            </span>
+                            <div class="time-conflict-hover-wrap" *ngIf="act.hasTimeConflict" (click)="$event.stopPropagation()">
+                                <span class="time-conflict-chip" title="Mốc giờ chưa hợp lý · Rê chuột xem chi tiết">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </span>
+                                <div class="time-conflict-popover">
+                                    <div class="conflict-popover-title">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <span>Giờ chưa hợp lý</span>
+                                    </div>
+                                    <div class="conflict-popover-msg">{{ act.conflictReason }}</div>
+                                    <button type="button" class="btn-conflict-quick-fix" (click)="fixSingleActivityTime(idx, $event)" title="Tự động căn chỉnh lại giờ điểm này">
+                                        <i class="bi bi-magic"></i> Căn chỉnh lại giờ
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="node-icon-bullet" style="margin-top: 4px;">
                             <i class="bi"
@@ -592,19 +604,7 @@
                                     </button>
                                 </div>
 
-                                <!-- Inline Illogical Time Conflict Alert -->
-                                <div class="act-inline-conflict-alert" *ngIf="act.hasTimeConflict" (click)="$event.stopPropagation()">
-                                    <div class="act-conflict-left">
-                                        <i class="bi bi-exclamation-triangle-fill act-conflict-icon"></i>
-                                        <div class="act-conflict-texts">
-                                            <span class="act-conflict-tag">Giờ chưa hợp lý:</span>
-                                            <span class="act-conflict-msg">{{ act.conflictReason }}</span>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn-fix-single-act" (click)="fixSingleActivityTime(idx, $event)" title="Tự động căn chỉnh lại giờ điểm này">
-                                        <i class="bi bi-magic"></i> Căn chỉnh lại giờ
-                                    </button>
-                                </div>
+
 
                                 <!-- Bottom Row: Price (with click-to-edit) + Shared/Personal + Carbon -->
                                 <div class="act-min-bottom" (click)="$event.stopPropagation()">

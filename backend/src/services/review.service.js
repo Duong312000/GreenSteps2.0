@@ -7,7 +7,9 @@ const {
   GreenService,
   ScheduleSample,
   CPGS,
-  CPSS
+  CPSS,
+  User,
+  Notification
 } = require('../models');
 
 function reviewError(message, statusCode) {
@@ -118,7 +120,7 @@ async function createReply({ type, targetId, parentCommentId, userId, text }) {
   if (targetId && parent[targetField] && parent[targetField] !== targetId) {
     throw reviewError('Bình luận không thuộc mục này.', 400);
   }
-  return CommentPost.create({
+  const reply = await CommentPost.create({
     id: `reply_${randomUUID()}`,
     user_id: userId,
     rating: null,
@@ -126,6 +128,28 @@ async function createReply({ type, targetId, parentCommentId, userId, text }) {
     parent_comment_id: parentCommentId,
     [targetField]: parent[targetField] || targetId
   });
+
+  if (parent.user_id && parent.user_id !== userId) {
+    try {
+      const replier = await User.findByPk(userId);
+      const replierName = replier ? (replier.fullname || replier.name || 'Một người dùng') : 'Một người dùng';
+      const cleanTargetId = targetId || parent[targetField];
+      const link = type === 'tour' ? `/tour-detail/${cleanTargetId}#reviews-section` : `/service-detail/${cleanTargetId}#reviews-section`;
+      await Notification.create({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        user_id: parent.user_id,
+        title: 'Phản hồi bình luận mới',
+        message: `${replierName} đã trả lời bình luận của bạn: "${text.trim().substring(0, 75)}${text.trim().length > 75 ? '...' : ''}"`,
+        link,
+        type: 'community',
+        read: false
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send reply notification:', notifErr.message);
+    }
+  }
+
+  return reply;
 }
 
 module.exports = { createBookingReview, createReply };

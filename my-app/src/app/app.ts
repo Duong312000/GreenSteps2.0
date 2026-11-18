@@ -4,6 +4,7 @@ import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Rout
 import { filter } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
+import { LoginModalService } from './services/login-modal.service';
 
 @Component({
   selector: 'app-root',
@@ -26,11 +27,26 @@ export class App implements OnInit {
     private route: ActivatedRoute, 
     private router: Router, 
     private authService: AuthService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private loginModalService: LoginModalService
   ) {}
 
   ngOnInit() {
     this.updateAdminShell(this.router.url);
+
+    // Prompt login modal on the very first visit in a browser session if guest
+    try {
+      const hasToken = !!localStorage.getItem('greensteps_token');
+      const alreadyPrompted = sessionStorage.getItem('gs_session_login_shown') === '1';
+      if (!hasToken && !alreadyPrompted) {
+        sessionStorage.setItem('gs_session_login_shown', '1');
+        setTimeout(() => {
+          if (!this.authService.getCurrentUser() && !localStorage.getItem('greensteps_token')) {
+            this.loginModalService.open();
+          }
+        }, 900);
+      }
+    } catch {}
 
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {

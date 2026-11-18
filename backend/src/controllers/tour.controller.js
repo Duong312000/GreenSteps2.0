@@ -119,7 +119,7 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
     ? vouchers
     : (Array.isArray(schedule?.vouchers) && schedule.vouchers.length > 0)
       ? schedule.vouchers
-      : DEFAULT_VOUCHERS;
+      : [];
 
   const effectiveGuarantees = (Array.isArray(schedule?.guarantees) && schedule.guarantees.length > 0)
     ? schedule.guarantees
@@ -386,21 +386,24 @@ exports.getPresetTourById = async (req, res, next) => {
     const badgeSchedules = await BadgeSchedule.findAll({ where: { schedule_id: id } });
     const badges = badgeSchedules.map(bs => bs.badge_name);
 
-    // Fetch active vouchers dynamically from MongoDB Atlas
+    // Fetch active vouchers dynamically from MongoDB Atlas (partner campaigns & vouchers)
     let vouchers = [];
     try {
       await store.authenticate();
       if (store.db) {
-        const rawVouchers = await store.db.collection('vouchers').find({ status: 'active' }).limit(4).toArray();
-        vouchers = rawVouchers.map(v => ({
-          code: v.code,
-          title: v.title || (v.discount_type === 'percent' ? `Giảm ${v.discount_value}%` : `Giảm ${v.discount_value / 1000}k`),
-          discount_type: v.discount_type,
-          discount_value: v.discount_value,
-          min_order_value: v.min_order_value || 0,
-          max_discount: v.max_discount || 0,
-          expires_at: v.expires_at,
-          description: v.description || `Mã ưu đãi ${v.code} áp dụng cho tour du lịch xanh.`
+        const rawCampaigns = await store.db.collection('app_partnercampaigns').find({
+          type: 'voucher',
+          status: 'active'
+        }).limit(6).toArray();
+        vouchers = rawCampaigns.filter(c => c.code).map(c => ({
+          code: c.code,
+          title: c.name || (c.discount_type === 'percent' ? `Giảm ${c.discount_value}%` : `Giảm ${(c.discount_value || 0).toLocaleString('vi-VN')}đ`),
+          discount_type: c.discount_type || 'percent',
+          discount_value: c.discount_value || 10,
+          min_order_value: c.min_order_value || 0,
+          max_discount: c.max_discount || 0,
+          expires_at: c.end_date || c.expires_at,
+          description: c.description || `Mã ưu đãi ${c.code} áp dụng cho trải nghiệm du lịch xanh.`
         }));
       }
     } catch (ve) {
@@ -980,17 +983,19 @@ exports.postTourReview = async (req, res, next) => {
   try {
     if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
     if (parentCommentId) {
-      if (req.user.role === 'provider'
-          && !await providerOwnsReviewTarget(userId, parentCommentId, tourId)) {
-        return res.status(403).json({ success: false, message: 'Đánh giá này không thuộc tour của tài khoản nhà cung cấp.' });
-      }
       const comment = await createReply({ type: 'tour', targetId: tourId, parentCommentId, userId, text });
       const user = await User.findByPk(userId);
       return res.status(201).json({
         success: true,
         comment: {
           id: comment.id,
-          user: user ? { id: user.id, fullname: user.fullname, role: user.role } : null,
+          user: user ? {
+            id: user.id,
+            fullname: user.fullname,
+            role: user.role,
+            avatar: user.avatarUrl || user.avatar || (user.fullname || 'U').charAt(0).toUpperCase(),
+            avatarUrl: user.avatarUrl || ''
+          } : null,
           rating: null,
           text: comment.text,
           parentCommentId: comment.parent_comment_id,
@@ -1018,7 +1023,8 @@ exports.postTourReview = async (req, res, next) => {
         id: user.id,
         fullname: user.fullname,
         role: user.role,
-        avatar: user.avatarUrl || (user.fullname || 'U').charAt(0).toUpperCase()
+        avatar: user.avatarUrl || (user.fullname || 'U').charAt(0).toUpperCase(),
+        avatarUrl: user.avatarUrl || ''
       } : null,
       parentCommentId: null,
       likesCount: 0,
@@ -1069,8 +1075,9 @@ exports.getTourReviews = async (req, res, next) => {
           id: user.id,
           fullname: user.fullname,
           role: user.role,
-          avatar: user.avatarUrl || user.fullname?.charAt(0).toUpperCase() || 'U'
-        } : { fullname: 'Người dùng ẩn danh', avatar: 'U' },
+          avatar: user.avatarUrl || user.fullname?.charAt(0).toUpperCase() || 'U',
+          avatarUrl: user.avatarUrl || ''
+        } : { fullname: 'Người dùng ẩn danh', avatar: 'U', avatarUrl: '' },
         rating: c.rating,
         text: c.text,
         parentCommentId: c.parent_comment_id,
@@ -1267,8 +1274,14 @@ exports.joinItinerary = async (req, res, next) => {
     });
     if (!c) c = await ScheduleCustom.findByPk(`iti_${cleanId}`, { include: [{ model: Schedule }] });
     if (!c) c = await ScheduleCustom.findByPk(cleanId, { include: [{ model: Schedule }] });
+    if (!c) {
+      const s = await Schedule.findByPk(id) || await Schedule.findByPk(`iti_${cleanId}`) || await Schedule.findByPk(cleanId);
+      if (s) {
+        c = { id: s.id, user_id: s.user_id || userId, Schedule: s, name: s.tour_name };
+      }
+    }
 
-    if (!c || !c.Schedule) {
+    if (!c) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy lịch trình!' });
     }
 
@@ -1297,7 +1310,7 @@ exports.joinItinerary = async (req, res, next) => {
         id: `notif_${Date.now()}_join_${Math.random().toString(36).substring(2, 7)}`,
         user_id: c.user_id,
         title: 'Đồng hành mới',
-        message: `${joinedUser.fullname || joinedUser.username} đã chấp nhận lời mời và tham gia lập lịch trình "${c.Schedule.tour_name}" cùng bạn!`,
+        message: `${joinedUser.fullname || joinedUser.username} đã chấp nhận lời mời và tham gia lập lịch trình "${c.Schedule?.tour_name || c.name || 'Lịch trình tự thiết kế'}" cùng bạn!`,
         type: 'community',
         read: false
       });

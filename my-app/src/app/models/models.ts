@@ -12,6 +12,7 @@ export interface User {
   companyName?: string;
   company_name?: string;
   avatarUrl?: string;
+  avatar?: string;
   is_verified?: boolean;
 }
 

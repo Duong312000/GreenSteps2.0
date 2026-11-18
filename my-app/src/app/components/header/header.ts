@@ -25,6 +25,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private searchRequestSequence = 0;
   private searchFocusTimer?: number;
   public isNavbarSearchOpen = false;
+  private notifPollingTimer?: any;
   public navbarSearchQuery = '';
   public navbarSearchSuggestions: Array<{ id: string; label: string; detail: string; kind: 'tour' | 'service'; route: string; }> = [];
   public isNavbarSearchLoading = false;
@@ -281,6 +282,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
       }
     });
 
+    // Silent background notification polling (updates without reloading the page)
+    this.notifPollingTimer = setInterval(() => {
+      if (this.currentUser && document.visibilityState === 'visible') {
+        void this.loadRealNotifications(this.currentUser.id || this.currentUser._id || '');
+      }
+    }, 20000);
+
     this.currentPath = this.router.url;
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -340,6 +348,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.notifPollingTimer) clearInterval(this.notifPollingTimer);
     document.body.style.overflow = '';
     this.loginModalSubscription?.unsubscribe();
     this.clearProfileCloseTimer();

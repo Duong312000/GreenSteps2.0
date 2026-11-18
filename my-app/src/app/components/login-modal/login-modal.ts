@@ -127,6 +127,8 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
       this.requestClose();
       if (res.user.role === 'admin') {
         this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/']);
       }
       return;
     }
@@ -405,7 +407,11 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isSubmitting = false;
     if (res.success && res.user) {
       this.requestClose();
-      if (res.user.role === 'admin') this.router.navigate(['/admin']);
+      if (res.user.role === 'admin') {
+        this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/']);
+      }
     } else {
       this.errorMessage = res.message || 'Đăng nhập Google thất bại.';
       this.cdr.detectChanges();
@@ -448,7 +454,11 @@ export class LoginModalComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isSubmitting = false;
     if (res.success && res.user) {
       this.requestClose();
-      if (res.user.role === 'admin') this.router.navigate(['/admin']);
+      if (res.user.role === 'admin') {
+        this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/']);
+      }
     } else {
       this.errorMessage = res.message || 'Đăng nhập Facebook thất bại.';
       this.cdr.detectChanges();

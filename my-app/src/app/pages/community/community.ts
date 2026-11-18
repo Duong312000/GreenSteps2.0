@@ -454,6 +454,16 @@ export class CommunityComponent implements OnInit {
   }
 
   firstLetter(value: string): string { return value?.trim().charAt(0).toUpperCase() || 'G'; }
-  avatarIsUrl(value: string): boolean { return !!value && (value.startsWith('http') || value.startsWith('/uploads/')); }
+  avatarIsUrl(value: string): boolean {
+    if (!value || typeof value !== 'string') return false;
+    const clean = value.trim();
+    return clean.startsWith('http') ||
+           clean.startsWith('data:image/') ||
+           clean.startsWith('image/') ||
+           clean.startsWith('/image/') ||
+           clean.startsWith('/uploads/') ||
+           clean.startsWith('assets/') ||
+           clean.startsWith('/');
+  }
   mediaUrl(value: string | null | undefined): string { return this.api.resolveCommunityMediaUrl(value); }
 }

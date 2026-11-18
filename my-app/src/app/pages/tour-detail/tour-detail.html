@@ -699,10 +699,14 @@
                                     </select>
                                 </label>
                             </div>
-                            <div class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
+                            <div *ngIf="!hasUserRated" class="star-rating-selector" style="display: flex; gap: 6px; font-size: 20px; color: #f5b400; cursor: pointer;">
                                 <i *ngFor="let star of [1,2,3,4,5]"
                                    [class]="newReviewRating >= star ? 'bi bi-star-fill' : 'bi bi-star'"
-                                   (click)="newReviewRating = star"></i>
+                                   (click)="setNewReviewRating(star)"
+                                   [title]="'Chấm ' + star + ' sao'"></i>
+                            </div>
+                            <div *ngIf="hasUserRated" style="font-size: 13px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="bi bi-check-circle-fill"></i> Bạn đã đánh giá trải nghiệm này (có thể để lại bình luận bổ sung bên dưới)
                             </div>
                         </div>
                         <div class="comment-input-container" style="display: flex; gap: 12px; align-items: flex-end;">
@@ -712,7 +716,7 @@
                             <button type="button"
                                     (click)="submitRootReview()" [disabled]="isSubmittingReview"
                                     style="background-color: var(--g, #174c39); color: white; border: none; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                                Gửi đánh giá
+                                {{ hasUserRated ? 'Gửi bình luận' : 'Gửi đánh giá' }}
                             </button>
                         </div>
                     </div>
@@ -750,8 +754,8 @@
                         <!-- Dynamic Loop -->
                         <article class="guest-review-card" *ngFor="let comment of filteredReviews" style="margin-bottom: 24px;">
                             <div class="review-avatar">
-                                <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(comment.user?.avatar)" [src]="comment.user.avatar" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
-                                <span *ngIf="!isAvatarUrl(comment.user?.avatar)">{{ getFirstLetter(comment.user?.fullname) }}</span>
+                                <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(comment.user?.avatarUrl || comment.user?.avatar)" [src]="comment.user?.avatarUrl || comment.user?.avatar" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <span *ngIf="!isAvatarUrl(comment.user?.avatarUrl || comment.user?.avatar)">{{ getFirstLetter(comment.user?.fullname) }}</span>
                             </div>
                             <div class="review-card-body">
                                 <div class="review-card-head">
@@ -788,8 +792,8 @@
                                 <div class="replies-list" *ngIf="comment.replies && comment.replies.length > 0" style="margin-left: 20px; border-left: 2px solid #edf2ee; padding-left: 16px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
                                     <div class="reply-item-row" *ngFor="let reply of comment.replies" style="display: flex; gap: 12px; align-items: flex-start;">
                                         <div class="reply-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: #eef7f1; color: var(--g); display: grid; place-items: center; font-size: 12px; font-weight: 800; overflow: hidden; flex-shrink: 0;">
-                                            <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(reply.user?.avatar)" [src]="reply.user.avatar" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
-                                            <span *ngIf="!isAvatarUrl(reply.user?.avatar)">{{ getFirstLetter(reply.user?.fullname) }}</span>
+                                            <img (error)="imageFallback($event)" *ngIf="isAvatarUrl(reply.user?.avatarUrl || reply.user?.avatar)" [src]="reply.user?.avatarUrl || reply.user?.avatar" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
+                                            <span *ngIf="!isAvatarUrl(reply.user?.avatarUrl || reply.user?.avatar)">{{ getFirstLetter(reply.user?.fullname) }}</span>
                                         </div>
                                         <div class="reply-block-wrapper" style="flex: 1;">
                                             <div class="reply-content-card" style="background: #f7faf8; padding: 10px 14px; border-radius: 12px;">
@@ -1714,8 +1718,8 @@
 
               <div class="gs-rc-user-row">
                 <div class="gs-rc-avatar">
-                  <img *ngIf="isAvatarUrl(rev.user?.avatar)" [src]="rev.user?.avatar" [alt]="rev.user?.fullname">
-                  <span *ngIf="!isAvatarUrl(rev.user?.avatar)">{{ getFirstLetter(rev.user?.fullname || rev.userName) }}</span>
+                  <img *ngIf="isAvatarUrl(rev.user?.avatarUrl || rev.user?.avatar)" [src]="rev.user?.avatarUrl || rev.user?.avatar" [alt]="rev.user?.fullname">
+                  <span *ngIf="!isAvatarUrl(rev.user?.avatarUrl || rev.user?.avatar)">{{ getFirstLetter(rev.user?.fullname || rev.userName) }}</span>
                 </div>
                 <div class="gs-rc-user-info">
                   <strong class="gs-rc-username">{{ rev.user?.fullname || rev.userName || 'Khách hàng GreenSteps' }}</strong>

@@ -650,11 +650,14 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     this.activeInfoTab = 'reviews';
     this.cdr.detectChanges();
     setTimeout(() => {
-      const el = document.getElementById('reviews-section');
+      const el = document.getElementById('reviews-section') ||
+                 document.getElementById('detail-reviews') ||
+                 document.getElementById('reviews') ||
+                 document.getElementById('tab-reviews');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 50);
+    }, 80);
   }
 
 
@@ -1117,8 +1120,16 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public isAvatarUrl(avatar?: string): boolean {
-    if (!avatar) return false;
-    return avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('image/');
+    if (!avatar || typeof avatar !== 'string') return false;
+    const clean = avatar.trim();
+    return clean.startsWith('http://') ||
+           clean.startsWith('https://') ||
+           clean.startsWith('data:image/') ||
+           clean.startsWith('image/') ||
+           clean.startsWith('/image/') ||
+           clean.startsWith('/uploads/') ||
+           clean.startsWith('assets/') ||
+           clean.startsWith('/');
   }
 
   public getFirstLetter(name?: string): string {

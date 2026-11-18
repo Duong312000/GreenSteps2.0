@@ -140,8 +140,8 @@ async function createAndSendOtp(user, purpose, transaction, { awaitDelivery = pu
       throw error;
     }
   }
-  void sendOtpEmailInBackground({ to: user.email, otp, purpose });
-  return { queued: true, delivered: null };
+  await sendOtpEmailInBackground({ to: user.email, otp, purpose });
+  return { queued: true, delivered: true };
 }
 
 async function createAndSendPendingRegistrationOtp({ username, email, passwordHash }, transaction) {
@@ -173,8 +173,8 @@ async function createAndSendPendingRegistrationOtp({ username, email, passwordHa
     resend_available_at: futureDate(RESEND_SECONDS * 1000)
   }, { transaction });
 
-  void sendOtpEmailInBackground({ to: email, otp, purpose: 'REGISTER' });
-  return { queued: true };
+  await sendOtpEmailInBackground({ to: email, otp, purpose: 'REGISTER' });
+  return { queued: true, delivered: true };
 }
 
 async function resendPendingRegistrationOtp(email) {
