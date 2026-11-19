@@ -3996,8 +3996,12 @@
 }
 
 /* 2. Drag & Drop Child Protection & Precision Drop Indicators */
-.timeline-list-container.dragging-active .timeline-item * {
+.timeline-list-container.dragging-active .timeline-item:not(.is-drag-source) * {
   pointer-events: none !important;
+}
+
+.timeline-list-container.dragging-active .drag-handle-grip {
+  pointer-events: auto !important;
 }
 
 .pipeline-track.dragging-active .pipeline-node-card * {

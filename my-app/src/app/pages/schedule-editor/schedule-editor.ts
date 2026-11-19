@@ -541,8 +541,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const mode = queryParams.get('mode') || this.route.snapshot.queryParamMap.get('mode');
       const destParam = queryParams.get('destination') || queryParams.get('dest') || this.route.snapshot.queryParamMap.get('destination') || this.route.snapshot.queryParamMap.get('dest');
 
-      // If user specifically requests a new itinerary creation or navigates to /schedule without a specific ID
-      if (id === 'new' || action === 'new' || mode === 'new' || (!pathId && !queryId)) {
+      // If user specifically requests a new itinerary creation
+      if (id === 'new' || action === 'new' || mode === 'new') {
         this.isListMode = false;
         this.isLoadingEditor = false;
         let dest = 'Đà Lạt';
@@ -566,7 +566,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
       if (!id) {
         const storedId = localStorage.getItem('greensteps_working_itinerary_id');
-        if (storedId && storedId !== 'undefined' && storedId !== 'null') {
+        if (storedId && storedId !== 'undefined' && storedId !== 'null' && storedId !== 'new') {
           id = storedId;
         }
       }
@@ -579,9 +579,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.loadItineraryToEditor(id);
         localStorage.setItem('greensteps_working_itinerary_id', id);
       } else {
-        // Safe graceful fallback: open create new modal so user can start a fresh trip
-        this.isLoadingEditor = false;
-        this.openCreateNewModal();
+        // Safe graceful fallback: load active draft or default tour without redirect loop
+        this.loadItineraryToEditor('SCH01');
       }
     });
   }
@@ -4869,6 +4868,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       event.preventDefault();
       return;
     }
+    const target = event.target as HTMLElement;
+    if (target && target.closest('input, button, select, textarea, .act-icon-btn, .time-input-wrap, .btn-conflict-quick-fix')) {
+      event.preventDefault();
+      return;
+    }
     this.isDraggingCard = true;
     this.dragSrcIdx = idx;
     this.canDragItem = true;
@@ -4876,9 +4880,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', idx.toString());
     }
-    const target = event.currentTarget as HTMLElement;
-    if (target) {
-      target.classList.add('dragging-item');
+    const currentTarget = event.currentTarget as HTMLElement;
+    if (currentTarget) {
+      currentTarget.classList.add('dragging-item');
     }
   }
 

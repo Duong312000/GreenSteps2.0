@@ -502,12 +502,9 @@
 
             <ng-container
                 *ngFor="let act of activeItinerary.days[activeDayIdx]?.activities; let idx = index; trackBy: trackByActId">
-                <!-- Drop indicator line BEFORE target card -->
-                <div class="timeline-drop-line"
-                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'before' && dragSrcIdx !== idx">
-                </div>
-
                 <div class="timeline-item"
+                    [draggable]="!isItineraryLocked()"
+                    (dragstart)="onDragStart($event, idx)" (dragend)="onDragEnd($event)"
                     [class.dimmed-when-routing]="activeLegDirections && (idx !== activeLegDirections.fromIdx && idx !== activeLegDirections.toIdx)"
                     [class.highlighted-when-routing]="activeLegDirections && (idx === activeLegDirections.fromIdx || idx === activeLegDirections.toIdx)"
                     [class.is-drag-source]="dragSrcIdx === idx"
@@ -518,8 +515,7 @@
                     (mouseenter)="highlightMapPin(idx, true)" (mouseleave)="highlightMapPin(idx, false)">
 
                     <!-- Ergonomic Grip Handle (Linear/Notion/Wanderlog Standard) -->
-                    <div class="drag-handle-grip" *ngIf="!isItineraryLocked()" [draggable]="true"
-                        (dragstart)="onDragStart($event, idx)" (dragend)="onDragEnd($event)"
+                    <div class="drag-handle-grip" *ngIf="!isItineraryLocked()"
                         title="Kéo thả để sắp xếp lại thứ tự">
                         <i class="bi bi-grip-vertical"></i>
                     </div>
@@ -685,11 +681,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Drop indicator line AFTER target card -->
-                <div class="timeline-drop-line"
-                    *ngIf="isDraggingCard && dragTargetIdx === idx && dragDropPosition === 'after' && dragSrcIdx !== idx">
                 </div>
 
                 <!-- Organic Travel Transit note in Timeline -->
