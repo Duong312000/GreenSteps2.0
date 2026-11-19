@@ -275,17 +275,17 @@
     </div>
   </section>
 
-  <section class="dashboard-card" *ngIf="behavioralReport" aria-label="Hiệu quả tương tác từng dịch vụ">
+  <section class="dashboard-card" aria-label="Hiệu quả tương tác từng dịch vụ">
     <div class="card-heading with-action">
       <div class="heading-title">
         <app-partner-icon name="chart" />
         <div>
           <h2>Hiệu quả tương tác & Thời gian xem dịch vụ của bạn</h2>
-          <p>{{ behavioralReport.summaryHeadline || 'Theo dõi hành vi người dùng, thời gian đọc thực tế và tỷ lệ cuộn trang trên từng dịch vụ của bạn' }}</p>
+          <p>{{ behavioralReport?.summaryHeadline || 'Theo dõi hành vi người dùng, thời gian đọc thực tế và tỷ lệ cuộn trang trên từng dịch vụ của bạn' }}</p>
         </div>
       </div>
     </div>
-    <div class="table-scroll" *ngIf="behavioralReport.items?.length">
+    <div class="table-scroll">
       <table>
         <thead>
           <tr>
@@ -299,7 +299,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of behavioralReport.items">
+          <tr *ngFor="let item of behavioralReport?.items">
             <td>
               <span class="service-name">{{ item.name }}</span>
               <div style="font-size: 12px; color: #6b7280;">{{ item.destination }}</div>
@@ -311,11 +311,13 @@
             <td>{{ formatNumber(item.bookClicks) }} ({{ formatNumber(item.bookClickRatePct) }}%)</td>
             <td style="max-width: 280px; font-size: 13px; color: #374151;">{{ item.suggestion }}</td>
           </tr>
+          <tr *ngIf="!behavioralReport?.items?.length">
+            <td colspan="7" style="padding: 36px 16px; text-align: center; color: #6b7280; font-size: 13.5px;">
+              {{ isLoading ? 'Đang tải dữ liệu tương tác dịch vụ...' : 'Chưa có lượt tương tác nào được ghi nhận cho các dịch vụ của bạn trong khoảng thời gian này. Dữ liệu sẽ tự động cập nhật khi khách hàng truy cập xem chi tiết dịch vụ.' }}
+            </td>
+          </tr>
         </tbody>
       </table>
-    </div>
-    <div *ngIf="!behavioralReport.items?.length" style="padding: 28px 16px; text-align: center; color: #6b7280; font-size: 13.5px;">
-      Chưa có lượt tương tác nào được ghi nhận cho các dịch vụ của bạn trong khoảng thời gian này. Dữ liệu sẽ tự động cập nhật khi khách hàng truy cập xem chi tiết dịch vụ.
     </div>
   </section>
 
