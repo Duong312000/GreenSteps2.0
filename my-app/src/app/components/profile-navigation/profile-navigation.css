@@ -40,6 +40,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   width: 100%;
   min-width: 0;
   min-height: 32px;
@@ -66,10 +67,6 @@
 }
 
 .profile-navigation__item > i {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
   display: none;
   width: 14px;
   height: 14px;
@@ -101,10 +98,6 @@
 }
 
 .profile-navigation__item small {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
