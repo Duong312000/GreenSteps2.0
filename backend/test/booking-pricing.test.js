@@ -21,6 +21,23 @@ test('server default quote keeps SePay deposit pricing aligned with the 30% chec
   }
 });
 
+test('SePay uses the displayed deposit when stored policy excludes the tour type', async () => {
+  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk, settings: BookingSetting.findByPk };
+  try {
+    Schedule.findByPk = async id => ({ id });
+    ScheduleSample.findByPk = async () => ({ cost: 1_580_000 });
+    BookingSetting.findByPk = async () => ({ deposit_percent: 30, collect_deposit_for: ['service'] });
+    const quote = await calculatePricing({ type: 'tour', targetId: 'tour-policy', guestCount: 1, paymentMethod: 'sepay' });
+    assert.equal(quote.total, 1_580_000);
+    assert.equal(quote.deposit, 474_000);
+    assert.equal(quote.amountDueNow, quote.deposit);
+  } finally {
+    Schedule.findByPk = originals.schedule;
+    ScheduleSample.findByPk = originals.sample;
+    BookingSetting.findByPk = originals.settings;
+  }
+});
+
 test('startup seeds missing default booking add-ons without overwriting admin edits', async () => {
   const originalFindOrCreate = BookingAddon.findOrCreate;
   const calls = [];

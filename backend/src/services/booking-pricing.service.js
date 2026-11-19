@@ -90,10 +90,11 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   const serviceFee = Number(settings.service_fee_vnd || 0) * (settings.service_fee_per_guest ? guests : 1);
   const total = subtotal - discount + serviceFee;
   const shouldCollectDeposit = !settings.collect_deposit_for?.length || settings.collect_deposit_for.includes(type);
+  const shouldChargeDeposit = shouldCollectDeposit || paymentMethod === 'sepay';
   const depositPercent = Number(settings.deposit_percent || 30);
-  const deposit = shouldCollectDeposit ? Math.round(total * depositPercent / 100) : 0;
+  const deposit = shouldChargeDeposit ? Math.round(total * depositPercent / 100) : 0;
   const remaining = total - deposit;
-  const amountDueNow = deposit > 0 && (!paymentMethod || shouldCollectDeposit) ? deposit : total;
+  const amountDueNow = deposit > 0 && (!paymentMethod || shouldChargeDeposit) ? deposit : total;
   for (const [label, amount] of Object.entries({ subtotal, discount, serviceFee, addonsTotal, total, deposit, remaining, amountDueNow })) integerVnd(amount, label);
   return {
     type, targetId, currency: 'VND', policyVersion: 1, guestCount: guests, paymentMethod: paymentMethod || null,
