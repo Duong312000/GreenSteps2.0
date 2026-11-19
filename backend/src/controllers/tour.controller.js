@@ -517,9 +517,12 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
       ScheduleCustom.findByPk(id)
     ]);
 
-    const catalogStatus = !existingSample && (existingCustom || !existingSchedule)
+    const isItinerary = String(id).startsWith('iti_');
+    const catalogStatus = isItinerary
       ? 'personal'
-      : existingSchedule?.catalog_status;
+      : (!existingSample && (existingCustom || !existingSchedule)
+        ? 'personal'
+        : existingSchedule?.catalog_status);
 
     await Schedule.upsert({
       id: id,

@@ -177,6 +177,21 @@ async function crawlAndPersistServices({ destination, serviceType = 'stay', maxR
       status: 'active',
       views_count: Math.floor(Math.random() * 200) + 30,
       vender_id: 'vender_google_places',
+      is_partner: false,
+      source: 'google_maps',
+      catalog_status: 'reference',
+      category_id: type === 'stay' ? 'cat_luu-tru-291692cdf056' : (type === 'transport' ? 'cat_di-chuyen-716246d6801e' : (type === 'food' ? 'cat_an-uong-e2fb5615982c' : 'cat_kham-pha-ee8893ffad2f')),
+      location: {
+        lat: place.location?.latitude || 0,
+        lng: place.location?.longitude || 0
+      },
+      address: {
+        full: place.formattedAddress || destination
+      },
+      media: {
+        cover: coverPhotoUrl,
+        gallery: [coverPhotoUrl, ...galleryUrls]
+      },
       coverMediaVerified: true,
       current_data: {
         address: place.formattedAddress || destination,
