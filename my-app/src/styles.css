@@ -4,6 +4,7 @@
            1. DESIGN TOKENS & CSS VARIABLES (LIGHT/DARK THEMES)
            ========================================================================== */
         :root {
+            --app-header-height: 76px;
             --font-main: 'Be Vietnam Pro', 'Geist', 'Inter', sans-serif;
             --ui-primary: #047857;
             --ui-primary-hover: #065f46;

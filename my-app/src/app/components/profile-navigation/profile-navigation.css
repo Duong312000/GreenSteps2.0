@@ -1,6 +1,6 @@
 :host {
   position: sticky;
-  top: 88px;
+  top: var(--app-header-height, 76px);
   z-index: 20;
   display: block;
   align-self: start;
@@ -9,7 +9,7 @@
 
 .profile-navigation__sidebar {
   width: 176px;
-  height: calc(100vh - 88px);
+  height: calc(100vh - var(--app-header-height, 76px));
   min-height: 430px;
   padding: 12px 14px;
   overflow-y: auto;

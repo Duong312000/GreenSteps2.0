@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +18,7 @@ declare const L: any; // Leaflet mapped globally via index.html script tag
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
-export class HeaderComponent implements OnInit, OnDestroy {
+export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('navbarSearchPanel') private navbarSearchPanel?: ElementRef<HTMLElement>;
   private readonly searchTerms$ = new Subject<string>();
   private readonly destroyed$ = new Subject<void>();
@@ -248,9 +248,30 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private profileCloseTimer?: number;
   private updateScrollState() {
     const nextIsScrolled = window.scrollY > 0;
-    if (this.isScrolled === nextIsScrolled) return;
+    if (this.isScrolled !== nextIsScrolled) {
+      this.isScrolled = nextIsScrolled;
+    }
+    this.syncHeaderHeight();
+  }
 
-    this.isScrolled = nextIsScrolled;
+  public ngAfterViewInit(): void {
+    this.syncHeaderHeight();
+  }
+
+  @HostListener('window:resize')
+  public onWindowResize(): void {
+    this.syncHeaderHeight();
+  }
+
+  private syncHeaderHeight(): void {
+    if (typeof window === 'undefined') return;
+    const headerEl = this.hostRef?.nativeElement?.querySelector('header');
+    if (headerEl) {
+      const h = headerEl.getBoundingClientRect().height;
+      if (h > 0) {
+        document.documentElement.style.setProperty('--app-header-height', `${Math.round(h)}px`);
+      }
+    }
   }
 
   @HostListener('window:scroll')
@@ -287,7 +308,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private router: Router,
     private apiService: ApiService,
-    private loginModalService: LoginModalService
+    private loginModalService: LoginModalService,
+    private hostRef: ElementRef
   ) { }
 
   public toggleMobileMenu() {
