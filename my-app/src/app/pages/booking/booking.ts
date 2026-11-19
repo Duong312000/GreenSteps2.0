@@ -205,6 +205,13 @@ export class BookingComponent implements OnInit, OnDestroy {
       if (event instanceof NavigationEnd) {
         this.syncStepFromUrl();
         if (this.isCompleteStep) void this.loadConfirmationBooking();
+        if (this.isPaymentStep && !this.currentBookingId) {
+          this.isPageLoading = true;
+          void this.loadSepayPricing().finally(() => {
+            this.isPageLoading = false;
+            this.cdr.detectChanges();
+          });
+        }
         this.cdr.detectChanges();
       }
     });
@@ -1443,7 +1450,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get basePrice() {
     if (this.isTransportBooking) return Number(this.transportBooking?.total_price || 0);
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.subtotal || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.subtotal || 0);
     if (this.selectedLodgingRoom) {
       return Number(this.selectedLodgingRoom.price_per_night || 0) * this.bookingContext.roomCount * this.nights;
     }
@@ -1460,7 +1467,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get discountAmount() {
     if (this.isTransportBooking) return 0;
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.discount || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.discount || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       return Number(this.itineraryPricingSnapshot.discount) || 0;
     }
@@ -1477,7 +1484,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get vatAmount(): number {
     if (this.isTransportBooking) return 0;
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.vat || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.vat || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       return Number(this.itineraryPricingSnapshot.vat) || 0;
     }
@@ -1486,18 +1493,18 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get serviceFee() {
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.serviceFee || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.serviceFee || 0);
     return 0;
   }
 
   public get totalAmount() {
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.total || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.total || 0);
     return this.basePrice - this.discountAmount + this.vatAmount + this.serviceFee + this.addOnsTotal;
   }
 
   public get depositAmount() {
     if (this.isTransportBooking) return this.basePrice;
-    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.amountDueNow || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.amountDueNow || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       if (this.itineraryPricingSnapshot.deposit !== undefined && this.itineraryPricingSnapshot.deposit !== null) {
         return Number(this.itineraryPricingSnapshot.deposit);

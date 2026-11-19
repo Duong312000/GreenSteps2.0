@@ -80,13 +80,40 @@ describe('Transport in the existing service checkout', () => {
     const auth = { currentUser$: new BehaviorSubject(null), getCurrentUser: () => null };
     const c = new BookingComponent(route as any, router as any, api as any, auth as any,
       { open: vi.fn() } as any, { markForCheck: vi.fn(), detectChanges: vi.fn() } as any, {} as any);
-    c.paymentMethod = 'sepay';
-
     await c.ngOnInit();
 
     expect(api.getBookingQuote).toHaveBeenCalledWith(expect.objectContaining({
       type: 'tour', targetId: 'SCHDL005', guests: 2, paymentMethod: 'sepay'
     }));
+    expect(c.totalAmount).toBe(1580000);
+    expect(c.depositAmount).toBe(474000);
+    c.ngOnDestroy();
+  });
+  it('refreshes pricing when checkout navigates to payment and keeps it stable when VietQR is selected', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    const params = convertToParamMap({ tourId: 'SCHDL005', guestCount: '2' });
+    const route = { snapshot: { queryParamMap: params }, queryParamMap: new BehaviorSubject(params) };
+    const events = new Subject<any>();
+    const router = { url: '/booking?tourId=SCHDL005', events, navigate: vi.fn().mockResolvedValue(true) };
+    const pricing = { subtotal: 1580000, discount: 0, vat: 0, serviceFee: 0, total: 1580000, depositPercent: 30, amountDueNow: 474000 };
+    const api = {
+      getWalletInfo: vi.fn().mockResolvedValue({ registered: false, balance: 0 }),
+      getItinerary: vi.fn().mockResolvedValue(null),
+      getPresetTour: vi.fn().mockResolvedValue({ id: 'SCHDL005', cost: 310000, title: 'Đà Lạt chill' }),
+      getBookingQuote: vi.fn().mockResolvedValue({ success: true, pricing })
+    };
+    const auth = { currentUser$: new BehaviorSubject(null), getCurrentUser: () => null };
+    const c = new BookingComponent(route as any, router as any, api as any, auth as any,
+      { open: vi.fn() } as any, { markForCheck: vi.fn(), detectChanges: vi.fn() } as any, {} as any);
+
+    await c.ngOnInit();
+    router.url = '/booking/payment?tourId=SCHDL005';
+    events.next(new NavigationEnd(1, router.url, router.url));
+    await vi.waitFor(() => expect(api.getBookingQuote).toHaveBeenCalledTimes(1));
+
+    expect(c.totalAmount).toBe(1580000);
+    expect(c.depositAmount).toBe(474000);
+    c.paymentMethod = 'sepay';
     expect(c.totalAmount).toBe(1580000);
     expect(c.depositAmount).toBe(474000);
     c.ngOnDestroy();
