@@ -184,7 +184,7 @@
         </div>
         <a routerLink="/partner-bookings">Xem tất cả <app-partner-icon name="arrow" /></a>
       </div>
-      <div class="table-scroll" *ngIf="analytics.recent.length; else emptyBookings">
+      <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -213,15 +213,14 @@
               </td>
               <td class="money-cell">{{ formatNumber(booking.value) }}đ</td>
             </tr>
+            <tr *ngIf="!analytics.recent.length">
+              <td colspan="6" style="padding: 36px 16px; text-align: center; color: #6b7280; font-size: 13.5px;">
+                {{ loadError ? 'Danh sách booking chưa tải được. Hãy thử tải lại.' : 'Chưa có dữ liệu đơn đặt trong khoảng thời gian này.' }}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <ng-template #emptyBookings
-        ><div class="empty-state" *ngIf="!loadError">
-          <app-partner-icon name="calendar" />
-          <p>Chưa có dữ liệu đơn đặt trong khoảng thời gian này.</p>
-        </div><div class="empty-state" *ngIf="loadError"><p>Danh sách booking chưa tải được. Hãy thử tải lại.</p></div></ng-template
-      >
     </article>
     <article class="dashboard-card tasks-card">
       <div class="card-heading">
