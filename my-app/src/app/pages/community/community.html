@@ -45,7 +45,7 @@
           </div>
           <div class="gs-post-byline">
             <strong>{{ post.author }}</strong>
-            <span><i class="bi bi-geo-alt-fill"></i> {{ post.location || post.dest || 'Việt Nam' }} <b>·</b> {{ getTimeLabel(post.time) }}<ng-container *ngIf="$any(post).recommendReason"> <b>·</b> {{ $any(post).recommendReason }}</ng-container></span>
+            <span><i class="bi bi-geo-alt-fill"></i> {{ post.location || post.dest || 'Việt Nam' }} <b>·</b> {{ getTimeLabel(post.time || $any(post).createdAt) }}<ng-container *ngIf="$any(post).recommendReason"> <b>·</b> {{ $any(post).recommendReason }}</ng-container></span>
           </div>
           <span class="gs-post-kind" *ngIf="post.postType === 'question'"><i class="bi bi-patch-question-fill"></i> Hỏi đáp</span>
           <span class="gs-post-kind gs-reel-kind" *ngIf="post.postType === 'reel'"><i class="bi bi-play-fill"></i> Thước phim</span>
@@ -68,7 +68,7 @@
           <span class="gs-itinerary-icon" *ngIf="!post.image"><i class="bi bi-map-fill"></i></span>
           <span class="gs-itinerary-text">
             <strong>{{ post.tripName || post.dest || 'Lịch trình du lịch xanh' }}</strong>
-            <small><i class="bi bi-clock"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small>
+            <small><i class="bi bi-calendar-event"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small>
           </span>
           <div class="flex items-center gap-2 flex-wrap">
             <button type="button" class="gs-outline-button" *ngIf="post.allowClone !== false" (click)="saveItinerary(post, $event)">

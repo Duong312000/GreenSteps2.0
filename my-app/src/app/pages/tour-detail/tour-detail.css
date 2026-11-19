@@ -2357,3 +2357,13 @@
     max-width: calc(100vw - 32px);
   }
 }
+
+.comment-highlight-pulse {
+  animation: gsCommentHighlight 2.8s ease-out;
+  border-radius: 12px;
+}
+@keyframes gsCommentHighlight {
+  0% { background-color: rgba(34, 197, 94, 0.28); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.5); }
+  60% { background-color: rgba(34, 197, 94, 0.15); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3); }
+  100% { background-color: transparent; box-shadow: none; }
+}

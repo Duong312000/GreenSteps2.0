@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Service } from '../../models/models';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-services',
@@ -98,7 +99,8 @@ export class ServicesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private route: ActivatedRoute,
     public router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toastService: ToastService
   ) { }
 
   async ngOnInit() {
@@ -118,12 +120,13 @@ export class ServicesComponent implements OnInit, OnDestroy {
     });
     this.route.queryParams.subscribe(params => {
       this.serviceType = params['type'] || 'stay';
-      if (this.serviceType === 'food' || this.serviceType === 'dining') { this.serviceType = 'food'; this.isPageLoading = false; this.cdr.detectChanges(); return; }
+      if (this.serviceType === 'dining') this.serviceType = 'food';
       if (this.serviceType === 'transport') { this.router.navigate(['/transport']); return; }
       this.searchQuery = params['search'] || '';
       this.filterDest = params['dest'] || 'all';
       this.filterPrice = params['price'] || 'all';
       this.filterRating = params['rating'] || 'all';
+      this.selectedEcoBadge = params['badge'] || 'all';
       this.sortOrder = params['sort'] || 'popular';
       this.onlyPartner = params['partnerOnly'] === 'true';
       this.currentPage = Math.max(1, Number(params['page']) || 1);
@@ -147,6 +150,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
       type: this.serviceType,
       q: this.searchQuery.trim() || undefined,
       dest: this.filterDest !== 'all' ? this.filterDest : undefined,
+      badge: this.selectedEcoBadge !== 'all' ? this.selectedEcoBadge : undefined,
       page: this.currentPage, pageSize: this.pageSize,
       sort: this.sortOrder === 'cost_asc' || this.sortOrder === 'cost_desc' ? 'cost'
         : this.sortOrder === 'rating' ? 'rating' : this.sortOrder === 'popular' ? 'bookings_count' : 'name_service',
@@ -239,6 +243,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
         dest: this.filterDest !== 'all' ? this.filterDest : null,
         price: this.filterPrice !== 'all' ? this.filterPrice : null,
         rating: this.filterRating !== 'all' ? this.filterRating : null,
+        badge: this.selectedEcoBadge !== 'all' ? this.selectedEcoBadge : null,
         partnerOnly: this.onlyPartner ? 'true' : null,
         sort: this.sortOrder !== 'popular' ? this.sortOrder : null,
         page: null
@@ -296,7 +301,7 @@ export class ServicesComponent implements OnInit, OnDestroy {
       const res = await fetch(url);
       const data = await res.json();
       if (res.status === 429) {
-        alert(data?.message || 'Bạn đã đạt giới hạn tra cứu trong phiên. Vui lòng thử lại sau ít phút.');
+        this.toastService.warning(data?.message || 'Bạn đã đạt giới hạn tra cứu trong phiên. Vui lòng thử lại sau ít phút.');
       } else if (data?.success) {
         await this.loadServicesFromServer();
       }

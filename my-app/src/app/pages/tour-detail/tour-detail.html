@@ -2088,7 +2088,8 @@
 
             <!-- Reviews & Comments List -->
             <div class="gs-reviews-grid" *ngIf="filteredReviews.length > 0">
-              <div class="gs-review-card" *ngFor="let rev of filteredReviews">
+              <div class="gs-review-card" *ngFor="let rev of filteredReviews" [id]="'review-' + rev.id">
+                <span [id]="'comment-' + rev.id" class="sr-only"></span>
                 <div class="gs-rc-header">
                   <div class="gs-rc-stars" *ngIf="rev.rating; else commentTag">
                     <i class="bi bi-star-fill" *ngFor="let i of [1,2,3,4,5]" [class.empty]="i > rev.rating"></i>
@@ -2130,7 +2131,7 @@
                 </div>
 
                 <div class="gs-rc-replies" *ngIf="rev.replies?.length">
-                  <div class="gs-rc-reply" *ngFor="let rep of rev.replies">
+                  <div class="gs-rc-reply" *ngFor="let rep of rev.replies" [id]="'comment-' + rep.id">
                     <strong>{{ rep.user?.fullname || 'Người dùng' }}</strong>
                     <span class="gs-rc-provider" *ngIf="rep.user?.role === 'provider'">Nhà cung cấp</span>
                     <span class="gs-rc-date">· {{ rep.createdAt | date:'dd/MM/yyyy' }}</span>

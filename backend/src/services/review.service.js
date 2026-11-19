@@ -134,14 +134,17 @@ async function createReply({ type, targetId, parentCommentId, userId, text }) {
       const replier = await User.findByPk(userId);
       const replierName = replier ? (replier.fullname || replier.name || 'Một người dùng') : 'Một người dùng';
       const cleanTargetId = targetId || parent[targetField];
-      const link = type === 'tour' ? `/tour-detail/${cleanTargetId}#reviews-section` : `/service-detail/${cleanTargetId}#reviews-section`;
+      const link = type === 'tour'
+        ? `/tour-detail/${cleanTargetId}?review=${reply.id}#reviews-section`
+        : `/service-detail/${cleanTargetId}?review=${reply.id}#reviews-section`;
       await Notification.create({
         id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         user_id: parent.user_id,
         title: 'Phản hồi bình luận mới',
         message: `${replierName} đã trả lời bình luận của bạn: "${text.trim().substring(0, 75)}${text.trim().length > 75 ? '...' : ''}"`,
         link,
-        type: 'community',
+        reference_id: cleanTargetId,
+        type: type === 'tour' ? 'tour' : 'service',
         read: false
       });
     } catch (notifErr) {

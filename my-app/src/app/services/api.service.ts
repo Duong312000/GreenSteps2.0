@@ -1993,7 +1993,28 @@ export class ApiService {
           ]
         ],
         isService: true,
-        rooms: Array.isArray(s.current_data?.rooms) ? s.current_data.rooms : [],
+        rooms: (Array.isArray(s.current_data?.rooms) && s.current_data.rooms.length > 0)
+          ? s.current_data.rooms
+          : (serviceType === 'stay' || serviceType === 'lodging')
+            ? [
+                {
+                  id: `room_${s.id}_std`,
+                  name: 'Phòng Deluxe Sinh Thái (Eco Deluxe)',
+                  price_per_night: resolvedCost,
+                  capacity: 2,
+                  available_rooms: 5,
+                  amenities: ['Wi-Fi miễn phí', 'Máy lạnh tiết kiệm điện', 'Vật dụng thân thiện môi trường', 'Bình nước thủy tinh tái sử dụng']
+                },
+                {
+                  id: `room_${s.id}_prem`,
+                  name: 'Phòng Suite Hướng Xanh (Green Suite)',
+                  price_per_night: Math.round(resolvedCost * 1.35),
+                  capacity: 3,
+                  available_rooms: 3,
+                  amenities: ['Ban công hướng vườn', 'Bồn tắm thư giãn', 'Bữa sáng hữu cơ', 'Trà thảo mộc bản địa']
+                }
+              ]
+            : [],
         amenityGroups: Array.isArray(s.current_data?.amenityGroups) ? s.current_data.amenityGroups : [],
         popularAmenities: Array.isArray(s.current_data?.popularAmenities) ? s.current_data.popularAmenities : [],
         policyGroups: Array.isArray(s.current_data?.policyGroups) ? s.current_data.policyGroups : [],

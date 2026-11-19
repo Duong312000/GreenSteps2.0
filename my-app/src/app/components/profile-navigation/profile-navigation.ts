@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 type ProfileSection =
   | 'overview'
@@ -55,7 +56,11 @@ export class ProfileNavigationComponent {
     ]
   ];
 
-  constructor(private router: Router, private authService: AuthService) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private toastService: ToastService
+  ) {}
 
   public isActive(item: ProfileNavigationItem): boolean {
     const url = this.router.url;
@@ -73,7 +78,7 @@ export class ProfileNavigationComponent {
   public navigate(item: ProfileNavigationItem): void {
     if (item.action === 'logout') {
       this.authService.logout();
-      alert('Đã đăng xuất tài khoản!');
+      this.toastService.success('Đã đăng xuất tài khoản thành công!');
       void this.router.navigate(['/']);
       return;
     }

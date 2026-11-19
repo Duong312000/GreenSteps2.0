@@ -58,6 +58,9 @@ async function searchServices({ models, query = {}, clientIp = 'anonymous' }) {
   const type = (query.type || '').trim();
   const minPrice = query.minPrice ? Number(query.minPrice) : null;
   const maxPrice = query.maxPrice ? Number(query.maxPrice) : null;
+  const minRating = query.minRating ? Number(query.minRating) : null;
+  const partnerOnly = query.partnerOnly === 'true';
+  const badge = (query.badge || '').trim();
   const crawlMore = query.crawlMore === 'true' || query.crawlNext === 'true';
 
   const now = Date.now();
@@ -82,10 +85,22 @@ async function searchServices({ models, query = {}, clientIp = 'anonymous' }) {
 
   const filterFn = (items) => items.filter(s => {
     if (keyword && !String(s.name || '').toLowerCase().includes(keyword) && !String(s.destination || '').toLowerCase().includes(keyword)) return false;
-    if (dest && dest !== 'all' && dest !== 'tất cả' && !String(s.destination || '').toLowerCase().includes(dest)) return false;
+    if (dest && dest !== 'all' && dest !== 'tất cả') {
+      const dNorm = dest.replace(/[\u2013\u2014]/g, '-').trim().toLowerCase();
+      const sDest = String(s.destination || '').replace(/[\u2013\u2014]/g, '-').trim().toLowerCase();
+      if (!sDest.includes(dNorm) && !dNorm.includes(sDest)) return false;
+    }
     if (type && type !== 'all' && s.type !== type) return false;
     if (minPrice != null && (s.cost == null || s.cost < minPrice)) return false;
     if (maxPrice != null && (s.cost == null || s.cost > maxPrice)) return false;
+    if (minRating != null && (s.rating == null || s.rating < minRating)) return false;
+    if (partnerOnly && s.is_partner !== true) return false;
+    if (badge && badge !== 'all') {
+      const bNorm = badge.toLowerCase();
+      const matchBadge = (Array.isArray(s.badges) && s.badges.some(b => String(b).toLowerCase().includes(bNorm))) ||
+                         (Array.isArray(s.current_data?.greenFeatures) && s.current_data.greenFeatures.some(gf => String(gf.title || gf).toLowerCase().includes(bNorm)));
+      if (!matchBadge) return false;
+    }
     return true;
   });
 

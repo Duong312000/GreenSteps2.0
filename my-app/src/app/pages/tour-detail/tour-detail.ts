@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { TrackingService } from '../../services/tracking.service';
 import { Tour, Itinerary, ServiceRoom, ServiceAmenity, ServicePolicyGroup, ServiceNearbyGroup, ServiceNearbyPlace, TourPhotoCredit } from '../../models/models';
 import { ServiceDetailSeoService } from '../../services/service-detail-seo.service';
+import { ToastService } from '../../services/toast.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { bookingDate } from '../../utils/booking-date';
 import { flashSaleTotal } from '../../utils/flash-sale-price';
@@ -466,7 +467,8 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
     private seo: ServiceDetailSeoService,
-    private trackingService: TrackingService
+    private trackingService: TrackingService,
+    private toastService: ToastService
   ) {}
 
   async ngOnInit() {
@@ -482,6 +484,25 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
     const liked = JSON.parse(localStorage.getItem('greensteps_liked_reviews') || '[]');
     this.likedReviewsSet = new Set<string>(liked);
+
+    this.route.queryParamMap.subscribe(params => {
+      const reviewId = params.get('review') || params.get('comment');
+      if (reviewId) {
+        this.activeInfoTab = 'reviews';
+        this.scrollToTargetReview(reviewId);
+      }
+    });
+
+    this.route.fragment.subscribe(fragment => {
+      if (fragment === 'reviews-section' || fragment === 'reviews') {
+        this.activeInfoTab = 'reviews';
+        this.scrollToReviews();
+      } else if (fragment?.startsWith('comment-') || fragment?.startsWith('review-')) {
+        const id = fragment.replace(/^(comment-|review-)/, '');
+        this.activeInfoTab = 'reviews';
+        this.scrollToTargetReview(id);
+      }
+    });
 
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
@@ -689,6 +710,26 @@ export class TourDetailComponent implements OnInit, OnDestroy {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 80);
+  }
+
+  public scrollToTargetReview(reviewId: string) {
+    this.activeInfoTab = 'reviews';
+    this.cdr.detectChanges();
+    const tryScroll = (attemptsLeft: number) => {
+      const el = document.getElementById('comment-' + reviewId) ||
+                 document.getElementById('review-' + reviewId) ||
+                 document.getElementById(reviewId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('comment-highlight-pulse');
+        setTimeout(() => el.classList.remove('comment-highlight-pulse'), 3000);
+      } else if (attemptsLeft > 0) {
+        setTimeout(() => tryScroll(attemptsLeft - 1), 250);
+      } else {
+        this.scrollToReviews();
+      }
+    };
+    setTimeout(() => tryScroll(6), 200);
   }
 
 
@@ -1117,7 +1158,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (!text || !text.trim()) return;
 
     if (!this.currentUser) {
-      alert('Vui lòng đăng nhập để gửi phản hồi!');
+      this.toastService.warning('Vui lòng đăng nhập để gửi phản hồi!');
       return;
     }
 
@@ -1132,18 +1173,19 @@ export class TourDetailComponent implements OnInit, OnDestroy {
         res = await this.apiService.postTourReview({ tourId, text, parentCommentId });
       }
     } catch (error: any) {
-      alert(error?.error?.message || 'Gửi phản hồi thất bại!');
+      this.toastService.error(error?.error?.message || 'Gửi phản hồi thất bại!');
       return;
     }
 
     if (res && res.success) {
       this.replyInputs[parentCommentId] = '';
       this.activeReplyTarget[parentCommentId] = false;
+      this.toastService.success('Đã gửi phản hồi thành công!');
       if (this.activeTour) {
         await this.loadReviews(this.activeTour.id);
       }
     } else {
-      alert('Gửi phản hồi thất bại!');
+      this.toastService.error('Gửi phản hồi thất bại!');
     }
   }
 
@@ -1151,7 +1193,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (this.isSubmittingReview || !this.newReviewText || !this.newReviewText.trim()) return;
 
     if (!this.currentUser) {
-      alert('Vui lòng đăng nhập để gửi đánh giá!');
+      this.toastService.warning('Vui lòng đăng nhập để gửi đánh giá!');
       return;
     }
 
@@ -1177,7 +1219,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
         });
       }
     } catch (error: any) {
-      alert(error?.error?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
+      this.toastService.error(error?.error?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
       this.isSubmittingReview = false;
       return;
     }
@@ -1186,6 +1228,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     if (res && res.success) {
       this.newReviewText = '';
       this.newReviewRating = 5;
+      this.toastService.success('Đã gửi đánh giá thành công!');
       if (this.activeTour) {
         await this.loadReviews(this.activeTour.id);
         await this.loadReviewEligibility();
@@ -1197,7 +1240,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
         }
       }
     } else {
-      alert('Gửi đánh giá thất bại!');
+      this.toastService.error('Gửi đánh giá thất bại!');
     }
   }
 

@@ -115,9 +115,11 @@ async function searchTours({ models, query = {} }) {
   }
 
   if (style && style !== 'all') {
+    const sNorm = style.trim().toLowerCase();
     tours = tours.filter(t => {
-      if (t.type === style) return true;
-      if (Array.isArray(t.tags) && t.tags.includes(style)) return true;
+      if (String(t.type || '').toLowerCase().includes(sNorm)) return true;
+      if (String(t.style || '').toLowerCase().includes(sNorm)) return true;
+      if (Array.isArray(t.tags) && t.tags.some(tag => String(tag).toLowerCase().includes(sNorm))) return true;
       return false;
     });
   }

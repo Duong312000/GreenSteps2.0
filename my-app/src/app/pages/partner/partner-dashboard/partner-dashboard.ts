@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { LoginModalService } from '../../../services/login-modal.service';
+import { ToastService } from '../../../services/toast.service';
 import { User, Booking, Service } from '../../../models/models';
 import {
   bookingDate,
@@ -49,6 +50,7 @@ export class PartnerDashboardComponent {
     private authService: AuthService,
     public cdr: ChangeDetectorRef,
     private loginModalService: LoginModalService,
+    private toastService: ToastService,
   ) {
     this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       this.currentUser = user;
@@ -209,9 +211,11 @@ export class PartnerDashboardComponent {
     if (confirm('Bạn có chắc chắn muốn phê duyệt đặt cọc đơn hàng này?')) {
       const success = await this.apiService.approveBooking(id);
       if (success) {
-        alert('Phê duyệt đặt cọc thành công!');
+        this.toastService.success('Phê duyệt đặt cọc thành công!');
         await this.loadDashboardData();
-      } else alert('Có lỗi xảy ra khi phê duyệt đơn hàng.');
+      } else {
+        this.toastService.error('Có lỗi xảy ra khi phê duyệt đơn hàng.');
+      }
       this.cdr.detectChanges();
     }
   }
@@ -219,9 +223,11 @@ export class PartnerDashboardComponent {
     if (confirm('Bạn có chắc chắn muốn hủy/từ chối đơn hàng này?')) {
       const success = await this.apiService.rejectBooking(id);
       if (success) {
-        alert('Đã từ chối đơn hàng thành công!');
+        this.toastService.success('Đã từ chối đơn hàng thành công!');
         await this.loadDashboardData();
-      } else alert('Có lỗi xảy ra khi từ chối đơn hàng.');
+      } else {
+        this.toastService.error('Có lỗi xảy ra khi từ chối đơn hàng.');
+      }
       this.cdr.detectChanges();
     }
   }

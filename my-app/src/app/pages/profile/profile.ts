@@ -9,6 +9,7 @@ import { User, WalletTransaction } from '../../models/models';
 import { profileCarbonSummary, ProfileCarbonSummary } from './profile-carbon.analytics';
 import { DestinationWeather, WeatherService } from '../../services/weather.service';
 import { SecurityOverview, SecurityService, SecuritySession } from '../../services/security.service';
+import { ToastService } from '../../services/toast.service';
 
 type ProfileSection = 'overview' | 'personal' | 'security' | 'notifications' | 'wallet' | 'tickets' | 'favorites' | 'itineraries' | 'promotions' | 'settings' | 'map' | 'chatbot';
 
@@ -331,7 +332,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private loginModalService: LoginModalService,
     private weatherService: WeatherService,
-    private securityService: SecurityService
+    private securityService: SecurityService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit() {
@@ -1188,7 +1190,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     const userId = this.currentUser.id || this.currentUser._id || '';
 
     if (!this.depositAmount || this.depositAmount < 20000) {
-      alert('Vui lòng nhập số tiền nạp tối thiểu là 20.000đ!');
+      this.toastService.warning('Vui lòng nhập số tiền nạp tối thiểu là 20.000đ!');
       return;
     }
 
@@ -1206,7 +1208,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.depositAmount = null;
       this.loadWalletAndTransactions();
     } else {
-      alert(res.message || 'Nạp tiền thất bại. Vui lòng thử lại!');
+      this.toastService.error(res.message || 'Nạp tiền thất bại. Vui lòng thử lại!');
     }
   }
 
@@ -1228,13 +1230,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (!this.currentUser) return;
     const userId = this.currentUser.id || this.currentUser._id || '';
     const newRole = await this.authService.toggleRole(userId);
-    alert(`Đã chuyển đổi vai trò thành công! Vai trò hiện tại: ${newRole === 'provider' ? 'Nhà cung cấp' : 'Khách du lịch'}`);
+    this.toastService.success(`Đã chuyển đổi vai trò thành công! Vai trò hiện tại: ${newRole === 'provider' ? 'Nhà cung cấp' : 'Khách du lịch'}`);
     this.router.navigate([newRole === 'provider' ? '/partner-dashboard' : '/']);
   }
 
   public handleLogout() {
     this.authService.logout();
-    alert('Đã đăng xuất tài khoản!');
+    this.toastService.success('Đã đăng xuất tài khoản thành công!');
     this.router.navigate(['/']);
   }
 

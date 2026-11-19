@@ -9,6 +9,7 @@ import { Subscription, Subject, from, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil } from 'rxjs/operators';
 import { LoginModalComponent } from '../login-modal/login-modal';
 import { LoginModalService } from '../../services/login-modal.service';
+import { ToastService } from '../../services/toast.service';
 
 declare const L: any; // Leaflet mapped globally via index.html script tag
 
@@ -102,21 +103,29 @@ export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // 1. Direct specific deep link if already present in notification
     if (rawLink) {
-      if (rawLink.includes('/schedule/') || rawLink.includes('/community?post=') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/')) {
+      if (rawLink.includes('/schedule/') || rawLink.includes('/community') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/') || rawLink.includes('/booking/confirm')) {
         return rawLink;
       }
     }
 
-    // 2. Specific Community post / comment notification
-    if (notif?.type === 'community' || /\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
+    // 2. Specific Tour / Service comment/review notification
+    if (notif?.type === 'tour' || (/\b(?:tour|chuyen di net-zero)\b/i.test(normalizedText) && /\b(?:danh gia|binh luan|nhan xet|phan hoi)\b/i.test(normalizedText))) {
+      if (refId) return `/tour-detail/${encodeURIComponent(refId)}#reviews-section`;
+    }
+    if (notif?.type === 'service' || (/\b(?:dich vu|homestay|khach san|nha hang)\b/i.test(normalizedText) && /\b(?:danh gia|binh luan|nhan xet|phan hoi)\b/i.test(normalizedText))) {
+      if (refId) return `/service-detail/${encodeURIComponent(refId)}#reviews-section`;
+    }
+
+    // 3. Specific Community post / comment notification
+    if (notif?.type === 'community' && !/\b(?:dong hanh|tham gia|lich trinh|chuyen di)\b/i.test(normalizedText)) {
       const postId = notif?.postId || refId;
       if (postId) return `/community?post=${encodeURIComponent(postId)}`;
       if (rawLink && rawLink.includes('post=')) return rawLink;
       return '/community';
     }
 
-    // 3. Specific Itinerary / Schedule editor notification
-    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+    // 4. Specific Itinerary / Schedule editor / Collaboration notification
+    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule|dong hanh|tham gia|sao chep)\b/i.test(normalizedText)) {
       const itiId = notif?.itineraryId || refId;
       if (itiId) return `/schedule/${encodeURIComponent(itiId)}`;
       const storedId = localStorage.getItem('greensteps_working_itinerary_id');
@@ -124,14 +133,14 @@ export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
       return '/profile?section=itineraries';
     }
 
-    // 4. Specific Booking / Ticket notification
+    // 5. Specific Booking / Ticket notification
     if (notif?.type === 'booking' || /\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
       const bId = notif?.bookingId || notif?.booking_id || refId;
       if (bId) return `/booking/confirm?bookingId=${encodeURIComponent(bId)}`;
       return '/profile?section=tickets';
     }
 
-    // 5. Wallet
+    // 6. Wallet
     if (notif?.type === 'wallet' || /\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
       return '/profile?section=wallet';
     }
@@ -309,7 +318,8 @@ export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
     private router: Router,
     private apiService: ApiService,
     private loginModalService: LoginModalService,
-    private hostRef: ElementRef
+    private hostRef: ElementRef,
+    private toastService: ToastService
   ) { }
 
   public toggleMobileMenu() {
@@ -531,7 +541,7 @@ export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   public showGreenHandbookAlert() {
-    alert('Tính năng Cẩm Nang Xanh đang phát triển!');
+    this.toastService.info('Tính năng Cẩm Nang Xanh đang phát triển!');
   }
 
   public isAiPlannerActive(): boolean {
@@ -716,7 +726,7 @@ export class HeaderComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public handleLogout() {
     this.authService.logout();
-    alert('Đã đăng xuất tài khoản!');
+    this.toastService.success('Đã đăng xuất tài khoản thành công!');
     this.router.navigate(['/']);
   }
   public updateNavigation() {

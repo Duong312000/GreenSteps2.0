@@ -429,7 +429,7 @@ export class CommunityComponent implements OnInit {
     await this.loadComments(postId);
     this.cdr.markForCheck();
 
-    setTimeout(() => {
+    const tryScrollToTarget = (attemptsLeft: number) => {
       if (commentId) {
         const el = document.getElementById('comment-' + commentId);
         if (el) {
@@ -439,9 +439,14 @@ export class CommunityComponent implements OnInit {
           return;
         }
       }
-      const postEl = document.getElementById('post-' + postId);
-      postEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 400);
+      if (attemptsLeft > 0 && commentId) {
+        setTimeout(() => tryScrollToTarget(attemptsLeft - 1), 200);
+      } else {
+        const postEl = document.getElementById('post-' + postId);
+        postEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    setTimeout(() => tryScrollToTarget(6), 250);
   }
 
   async toggleComments(post: CommunityPost): Promise<void> {
@@ -495,14 +500,21 @@ export class CommunityComponent implements OnInit {
     this.changeTab('all');
   }
 
-  getTimeLabel(value: string): string {
+  getTimeLabel(value: string | Date | undefined): string {
+    if (!value) return 'Gần đây';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
-    const minutes = Math.max(1, Math.floor((Date.now() - date.getTime()) / 60000));
+    if (Number.isNaN(date.getTime())) return 'Gần đây';
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0 || diffMs < 60000) return 'Vừa xong';
+    const minutes = Math.floor(diffMs / 60000);
     if (minutes < 60) return `${minutes} phút trước`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} giờ trước`;
-    return `${Math.floor(hours / 24)} ngày trước`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Hôm qua';
+    if (days < 7) return `${days} ngày trước`;
+    if (days < 30) return `${Math.floor(days / 7)} tuần trước`;
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   firstLetter(value: string): string { return value?.trim().charAt(0).toUpperCase() || 'G'; }

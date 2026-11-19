@@ -144,11 +144,12 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
     excluded: Array.isArray(schedule?.excluded) ? schedule.excluded : [],
     policy: effectivePolicy,
     guarantees: effectiveGuarantees,
-    style: schedule?.style,
-    group_size: isEditorial ? undefined : schedule?.group_size,
-    fitness_level: schedule?.fitness_level,
-    maxCapacity: isEditorial ? undefined : schedule?.max_capacity,
-    max_capacity: isEditorial ? undefined : schedule?.max_capacity,
+    style: schedule?.style || 'Gia đình / Eco Travel',
+    type: schedule?.type || (schedule?.style && schedule.style.includes('Nghỉ dưỡng') ? 'Nghỉ dưỡng' : schedule?.style && schedule.style.includes('Gia đình') ? 'Gia đình' : schedule?.style && schedule.style.includes('Tiết kiệm') ? 'Tiết kiệm' : 'Trải nghiệm'),
+    group_size: schedule?.group_size || 'Nhóm nhỏ thân mật (4-10 khách)',
+    fitness_level: schedule?.fitness_level || 'Nhẹ nhàng',
+    maxCapacity: schedule?.max_capacity || 10,
+    max_capacity: schedule?.max_capacity || 10,
     catalog_status: schedule?.catalog_status || 'active',
     is_demo: isEditorial,
     bookingEnabled: !isEditorial && resolvedCost !== undefined,
@@ -540,7 +541,9 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
           user_id: user_id,
           title: 'Đặt cọc thành công',
           message: `Bạn đã hoàn tất đặt cọc cho chuyến đi ${destination || 'của bạn'}. Lịch trình hiện tại đã được khóa.`,
-          type: 'wallet',
+          type: 'itinerary',
+          link: `/schedule/${id}`,
+          reference_id: id,
           read: false
         });
       } else if (status === 'cancelled') {
@@ -549,7 +552,9 @@ async function persistCustomItinerary(req, res, next, payload, { aiGenerated = f
           user_id: user_id,
           title: 'Đã hủy đặt cọc',
           message: `Lịch trình chuyến đi ${destination || 'của bạn'} đã được hủy thành công. Số tiền cọc đã được hoàn trả về ví của bạn.`,
-          type: 'wallet',
+          type: 'itinerary',
+          link: `/schedule/${id}`,
+          reference_id: id,
           read: false
         });
       }
@@ -1142,7 +1147,9 @@ exports.cloneItinerary = async (req, res, next) => {
       user_id: newUserId,
       title: 'Sao chép thành công',
       message: `Đã tham khảo & sao chép lịch trình "${base.tour_name}" thành công!`,
-      type: 'system',
+      type: 'itinerary',
+      link: `/schedule/${newId}`,
+      reference_id: newId,
       read: false
     });
 
@@ -1154,7 +1161,9 @@ exports.cloneItinerary = async (req, res, next) => {
         user_id: custom.user_id,
         title: 'Lịch trình được tham khảo',
         message: `${clonerName} đã tham khảo & sao chép lịch trình "${base.tour_name}" của bạn!`,
-        type: 'community',
+        type: 'itinerary',
+        link: `/schedule/${base.id}`,
+        reference_id: base.id,
         read: false
       });
     }
@@ -1265,7 +1274,9 @@ exports.joinItinerary = async (req, res, next) => {
         user_id: c.user_id,
         title: 'Đồng hành mới',
         message: `${joinedUser.fullname || joinedUser.username} đã chấp nhận lời mời và tham gia lập lịch trình "${c.Schedule?.tour_name || c.name || 'Lịch trình tự thiết kế'}" cùng bạn!`,
-        type: 'community',
+        type: 'itinerary',
+        link: `/schedule/${actualScheduleId}`,
+        reference_id: actualScheduleId,
         read: false
       });
     }

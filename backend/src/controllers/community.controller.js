@@ -51,7 +51,7 @@ function formatPost(row, user, isSaved = false) {
     authorId: row.user_id,
     author: user?.fullname || user?.username || 'Thành viên GreenSteps',
     avatar: userAvatar(user),
-    time: row.createdAt,
+    time: row.createdAt || row.created_at || new Date().toISOString(),
     postType: row.post_type || 'post',
     text: row.text || '',
     tripName: row.tour_name || '',
