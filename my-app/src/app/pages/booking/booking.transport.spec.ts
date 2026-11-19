@@ -58,11 +58,27 @@ describe('Transport in the existing service checkout', () => {
     expect(c.confirmationTitle).toBe('Đã hoàn tất thanh toán nội bộ');
     expect(api.request).toHaveBeenCalledTimes(1);c.ngOnDestroy();
   });
-  it('preserves the existing tour pricing path', () => {
+  it('does not invent a discount, tax, or service fee while the server quote is loading', () => {
     const {c}=create(false);c.activeTour={cost:1000000} as any;c.bookingContext.guestCount=2;
-    expect(c.basePrice).toBe(2000000);expect(c.discountAmount).toBe(160000);
-    expect(c.serviceFee).toBe(120000);expect(c.depositAmount).toBe(588000);
+    expect(c.basePrice).toBe(2000000);expect(c.discountAmount).toBe(0);
+    expect(c.vatAmount).toBe(0);expect(c.serviceFee).toBe(0);expect(c.totalAmount).toBe(2000000);
+    expect(c.depositAmount).toBe(600000);
     expect(c.checkoutPaymentMethods.some(method => method.id === 'sepay')).toBe(true);
+  });
+  it('does not seed hotel or room IDs into a tour checkout by default', () => {
+    const {c}=create(false);
+    expect(c.bookingContext.roomId).toBe('');
+    expect('hotelId' in c.bookingContext).toBe(false);
+  });
+  it('discards legacy hotel IDs restored from the previous checkout context', () => {
+    const {c}=create(false);
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ hotelId: 'hotel_da_lat', hotel_id: 'hotel_da_lat', tourId: 'SCHDL005', roomId: '' }) });
+    try {
+      (c as any).loadContext();
+      expect('hotelId' in c.bookingContext).toBe(false);
+      expect('hotel_id' in c.bookingContext).toBe(false);
+      expect(c.bookingContext.tourId).toBe('SCHDL005');
+    } finally { vi.unstubAllGlobals(); }
   });
   it('loads the current server quote before showing a cached tour price at checkout', async () => {
     vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
@@ -107,9 +123,12 @@ describe('Transport in the existing service checkout', () => {
       { open: vi.fn() } as any, { markForCheck: vi.fn(), detectChanges: vi.fn() } as any, {} as any);
 
     await c.ngOnInit();
+    expect(api.getBookingQuote).toHaveBeenCalledTimes(1);
+    expect(c.totalAmount).toBe(1580000);
+    expect(c.depositAmount).toBe(474000);
     router.url = '/booking/payment?tourId=SCHDL005';
     events.next(new NavigationEnd(1, router.url, router.url));
-    await vi.waitFor(() => expect(api.getBookingQuote).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(api.getBookingQuote).toHaveBeenCalledTimes(2));
 
     expect(c.totalAmount).toBe(1580000);
     expect(c.depositAmount).toBe(474000);

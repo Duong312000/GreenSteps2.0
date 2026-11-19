@@ -31,7 +31,6 @@ interface OtherGuest {
 }
 
 interface BookingContext {
-  hotelId: string;
   roomId: string;
   tourId?: string;
   serviceId?: string;
@@ -58,7 +57,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!this.isTransportBooking) return this.paymentMethods;
     // Keep object identities stable: recreating NgModel radio controls on every
     // change detection pass schedules another model update and can loop.
-    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet', 'card', 'sepay'].includes(method.id)).map(method => ({
+    if (!this.transportMethodsCache) this.transportMethodsCache = this.paymentMethods.filter(method => ['wallet', 'card'].includes(method.id)).map(method => ({
       ...method, desc: 'Xác nhận vé điện tử và giữ chỗ trực tiếp trên hệ thống GreenSteps.'
     }));
     return this.transportMethodsCache;
@@ -122,8 +121,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   public itineraryPricingSnapshot: any = null;
 
   public bookingContext: BookingContext = {
-    hotelId: 'hotel_dahlia_dalat',
-    roomId: 'premium_double_window',
+    roomId: '',
     tourId: '',
     checkIn: bookingDate(),
     checkOut: bookingDate(3),
@@ -253,7 +251,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
     await this.loadActiveTour();
     if (this.usesServiceQuote && !this.isCompleteStep) await this.loadRoomPricing();
-    if (this.isPaymentStep && !this.currentBookingId) await this.loadSepayPricing();
+    if (!this.isCompleteStep && !this.currentBookingId) await this.loadSepayPricing();
     if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
       await this.resumePendingPayment();
     }
@@ -297,7 +295,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       if (version !== this.transportLoadVersion) return;
       const b = result.data;
       this.transportBooking = b;
-      this.bookingContext = { hotelId: '', roomId: '', checkIn: b.service_start, checkOut: b.rental_end || b.service_end || b.service_start, guestCount: b.passenger_count || 1, roomCount: 1 };
+      this.bookingContext = { roomId: '', checkIn: b.service_start, checkOut: b.rental_end || b.service_end || b.service_start, guestCount: b.passenger_count || 1, roomCount: 1 };
       this.paymentStatus = b.payment_status === 'SIMULATED_PAID' ? 'paid' : ['CANCELLED', 'FAILED'].includes(b.booking_status) ? 'failed' : 'pending';
       this.confirmationBooking = {
         ...b, id: b._id, status: b.booking_status.toLowerCase(), evoucher_code: b.booking_code,
@@ -1462,7 +1460,7 @@ export class BookingComponent implements OnInit, OnDestroy {
         return (this.itineraryPerPersonCost * Math.max(this.bookingContext.guestCount, 1)) + this.itineraryFlatCost;
       }
     }
-    return Math.max(this.activeTour?.cost || 1890000, 0) * Math.max(this.bookingContext.guestCount, 1);
+    return Math.max(Number(this.activeTour?.cost) || 0, 0) * Math.max(this.bookingContext.guestCount, 1);
   }
 
   public get discountAmount() {
@@ -1478,7 +1476,6 @@ export class BookingComponent implements OnInit, OnDestroy {
       return this.basePrice - flashSaleTotal(room ? Number(room.price_per_night || 0) : this.activeTour.cost, units, this.activeTour.flashSale, stockUnits);
     }
     if (this.selectedLodgingRoom) return Math.floor(this.basePrice * Number(this.lodgingPricing?.discountPercent || 0) / 100);
-    if (this.voucherCode || this.basePrice >= 1000000) return 50000;
     return 0;
   }
 
@@ -1488,13 +1485,16 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       return Number(this.itineraryPricingSnapshot.vat) || 0;
     }
-    const taxableBase = Math.max(0, this.basePrice - this.discountAmount);
-    return Math.round(taxableBase * 0.08);
+    return 0;
   }
 
   public get serviceFee() {
     if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.serviceFee || 0);
     return 0;
+  }
+
+  public get voucherDiscount() {
+    return Number(this.sepayPricingSnapshot?.voucherDiscount || 0);
   }
 
   public get totalAmount() {
@@ -1729,7 +1729,10 @@ export class BookingComponent implements OnInit, OnDestroy {
   private loadContext() {
     const storedContext = localStorage.getItem('greensteps_booking_context');
     if (storedContext) {
-      this.bookingContext = { ...this.bookingContext, ...JSON.parse(storedContext) };
+      const context = JSON.parse(storedContext);
+      delete context.hotelId;
+      delete context.hotel_id;
+      this.bookingContext = { ...this.bookingContext, ...context };
     }
 
     const query = this.route.snapshot.queryParamMap;
@@ -1805,7 +1808,6 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
   private saveDraft() {
     const draft = {
-      hotelId: this.bookingContext.hotelId,
       roomId: this.bookingContext.roomId,
       serviceId: this.bookingContext.serviceId,
       flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id,
@@ -1836,6 +1838,8 @@ export class BookingComponent implements OnInit, OnDestroy {
   private restoreDraft(draft: any) {
     const safeDraft = { ...draft };
     delete safeDraft.cardForm;
+    delete safeDraft.hotelId;
+    delete safeDraft.hotel_id;
     if (draft.cardForm) localStorage.setItem('greensteps_booking_draft', JSON.stringify(safeDraft));
     this.guestInfo = { ...this.guestInfo, ...(draft.userInfo || {}) };
     this.bookingFor = draft.bookingFor || 'self';

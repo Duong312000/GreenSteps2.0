@@ -23,6 +23,7 @@ test('tour list and detail formatting returns photo credits without invented dem
   assert.equal(result.votes_count, undefined);
   assert.equal(result.carbon, undefined);
   assert.equal(result.maxCapacity, undefined);
+  assert.deepEqual(result.tags, []);
   assert.deepEqual(result.gallery, [photo.path]);
   assert.deepEqual(result.photoMetadata, [photo]);
   assert.equal(result.responsibleTravel, 'Respect local communities.');

@@ -6,8 +6,8 @@ import { bookingDate } from '../../utils/booking-date';
 describe('tour booking dates and prices', () => {
   afterEach(() => vi.useRealTimers());
 
-  function create() {
-    return new TourDetailComponent({} as any, { navigate: vi.fn() } as any, {} as any, {} as any, {} as any, {} as any, { clear: vi.fn(), update: vi.fn() } as any);
+  function create(api: any = {}) {
+    return new TourDetailComponent({} as any, { navigate: vi.fn() } as any, api, {} as any, { detectChanges: vi.fn() } as any, {} as any, { clear: vi.fn(), update: vi.fn() } as any, { trackAction: vi.fn() } as any);
   }
 
   it('defaults to today and advances the earliest departure when the day changes', () => {
@@ -35,6 +35,29 @@ describe('tour booking dates and prices', () => {
     expect(component.totalPrice).toBe(2500000);
     component.bookingAdults = 1;
     expect(component.totalPrice).toBe(1500000);
+  });
+
+  it('shows the backend quote and requests a fresh quote for the selected guest count', async () => {
+    const getBookingQuote = vi.fn().mockResolvedValue({ success: true, pricing: { total: 1_580_000 } });
+    const component = create({ getBookingQuote });
+    component.activeTour = { id: 'SCHDL005', cost: 310000 } as any;
+    component.bookingAdults = 2;
+
+    await component.refreshBookingQuote();
+
+    expect(getBookingQuote).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'tour', targetId: 'SCHDL005', guests: 2, paymentMethod: 'sepay'
+    }));
+    expect(component.totalPrice).toBe(1_580_000);
+  });
+
+  it('does not invent a crossed-out price or coupon when the catalog has none', () => {
+    const component = create();
+    component.activeTour = { id: 'SCHDL005', cost: 790000 } as any;
+    expect(component.displayOldCost).toBe(0);
+    expect(component.tourVouchers).toEqual([]);
+    expect(component.tourGuarantees).toEqual([]);
+    expect(component.tourPolicies).toEqual([]);
   });
 
   it('uses the same Flash Sale unit price for guests and room nights', () => {
@@ -114,7 +137,7 @@ describe('tour booking dates and prices', () => {
   });
 
   it('opens the internal checkout for a bike rental without a lodging room', async () => {
-    const component = create();
+    const component = create({ getBookingQuote: vi.fn().mockResolvedValue({ success: true, pricing: { total: 100000 } }) });
     component.activeTour = { id: 'srv_demo_detail_hoian_cycle', isService: true,
       type: 'Phương tiện', cost: 50000, days: 1, bookingEnabled: true } as any;
     const setItem = vi.fn();
@@ -124,9 +147,18 @@ describe('tour booking dates and prices', () => {
       const context = JSON.parse(setItem.mock.calls[0][1]);
       expect(context.serviceId).toBe('srv_demo_detail_hoian_cycle');
       expect(context.roomId).toBe('');
+      expect(context.hotelId).toBeUndefined();
       expect((component as any).router.navigate).toHaveBeenCalledWith(['/booking'], { queryParams: expect.objectContaining({
         serviceId: 'srv_demo_detail_hoian_cycle', roomId: '', guestCount: 2,
       }) });
     } finally { vi.unstubAllGlobals(); }
+  });
+
+  it('does not start checkout when the backend cannot confirm a price', async () => {
+    const component = create({ getBookingQuote: vi.fn().mockRejectedValue(new Error('offline')) });
+    component.activeTour = { id: 'SCHDL005', isService: false, cost: 310000, days: 1, bookingEnabled: true } as any;
+    await component.submitBooking({ preventDefault() {} } as Event);
+    expect(component.bookingError).toContain('xác nhận giá');
+    expect((component as any).router.navigate).not.toHaveBeenCalled();
   });
 });

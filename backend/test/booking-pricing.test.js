@@ -1,8 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { BookingAddon, BookingSetting, Schedule, ScheduleSample } = require('../src/models');
+const { BookingAddon, BookingSetting, Schedule, ScheduleSample, ScheduleActivity } = require('../src/models');
 const { Op } = require('../src/db/mongo-store');
-const { calculatePricing, ensureDefaultBookingAddons } = require('../src/services/booking-pricing.service');
+const { calculatePricing, ensureDefaultBookingAddons, validateBookingDate } = require('../src/services/booking-pricing.service');
 
 test('server default quote keeps SePay deposit pricing aligned with the 30% checkout amount', async () => {
   const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk, settings: BookingSetting.findByPk };
@@ -131,4 +131,66 @@ test('pricing rounds percentage amounts to integer VND and ignores untrusted cli
     ScheduleSample.findByPk = originals.sample;
     BookingSetting.findByPk = originals.settings;
   }
+});
+
+test('custom itinerary pricing loads service types so shared lodging and transport are not multiplied by guests', async () => {
+  const originals = {
+    schedule: Schedule.findByPk,
+    sample: ScheduleSample.findByPk,
+    activities: ScheduleActivity.findAll,
+    settings: BookingSetting.findByPk
+  };
+  let activityQuery;
+  try {
+    Schedule.findByPk = async id => ({ id, catalog_status: 'personal' });
+    ScheduleSample.findByPk = async () => null;
+    ScheduleActivity.findAll = async options => {
+      activityQuery = options;
+      return [
+        { cost: 100_000, is_shared: false, type: 'attraction' },
+        { cost: 200_000, is_shared: true, type: 'lodging' },
+        { cost: 50_000, is_shared: true, type: 'transport' }
+      ];
+    };
+    BookingSetting.findByPk = async () => ({ deposit_percent: 30, collect_deposit_for: [] });
+
+    const quote = await calculatePricing({ type: 'itinerary', targetId: 'iti-1', guestCount: 2, paymentMethod: 'sepay' });
+    assert.equal(quote.tourSubtotal, 450_000);
+    assert.equal(quote.deposit, 135_000);
+    assert.equal(activityQuery.include[0].model, require('../src/models').GreenService);
+    assert.equal(activityQuery.include[0].required, false);
+  } finally {
+    Schedule.findByPk = originals.schedule;
+    ScheduleSample.findByPk = originals.sample;
+    ScheduleActivity.findAll = originals.activities;
+    BookingSetting.findByPk = originals.settings;
+  }
+});
+
+test('custom itinerary quote rejects activities without an explicit VND price', async () => {
+  const originals = {
+    schedule: Schedule.findByPk,
+    sample: ScheduleSample.findByPk,
+    activities: ScheduleActivity.findAll
+  };
+  try {
+    Schedule.findByPk = async id => ({ id, catalog_status: 'personal' });
+    ScheduleSample.findByPk = async () => null;
+    ScheduleActivity.findAll = async () => [{ is_shared: false, type: 'attraction' }];
+
+    await assert.rejects(
+      calculatePricing({ type: 'itinerary', targetId: 'iti-missing-price', guestCount: 1 }),
+      /is missing/
+    );
+  } finally {
+    Schedule.findByPk = originals.schedule;
+    ScheduleSample.findByPk = originals.sample;
+    ScheduleActivity.findAll = originals.activities;
+  }
+});
+
+test('booking date validation rejects malformed and past departure dates', () => {
+  assert.throws(() => validateBookingDate('2026-02-31'), /date is invalid/);
+  assert.throws(() => validateBookingDate('2000-01-01'), /date has passed/);
+  assert.doesNotThrow(() => validateBookingDate('2099-01-10'));
 });

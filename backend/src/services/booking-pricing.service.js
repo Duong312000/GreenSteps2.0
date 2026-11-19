@@ -11,9 +11,18 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 function invalidPricing(message) { return Object.assign(new Error(message), { statusCode: 400 }); }
 function integerVnd(value, label) {
+  if (value === null || value === undefined || value === '') throw invalidPricing(label + ' is missing.');
   const amount = Number(value);
   if (!Number.isSafeInteger(amount) || amount < 0) throw invalidPricing(label + ' ph?i l? s? nguy?n VND h?p l?.');
   return amount;
+}
+function validateBookingDate(value) {
+  if (value === undefined || value === null || value === '') return;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw invalidPricing('Booking date is invalid.');
+  const timestamp = Date.parse(`${value}T00:00:00Z`);
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) throw invalidPricing('Booking date is invalid.');
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  if (value < today) throw invalidPricing('Departure date has passed.');
 }
 
 function createBookingPricingService({ BookingSettingModel = BookingSetting } = {}) {
@@ -31,6 +40,7 @@ async function ensureDefaultBookingAddons({ BookingAddonModel = BookingAddon } =
 }
 
 async function calculatePricing({ type, targetId, guestCount, addonIds = [], paymentMethod = 'bank_transfer', roomId, roomCount, bookingDate, checkOutDate, flashSaleId } = {}) {
+  validateBookingDate(bookingDate);
   const guests = Number(guestCount);
   if (!['tour', 'service', 'itinerary'].includes(type) || typeof targetId !== 'string' || !targetId.trim()) throw invalidPricing('Tour/d?ch v? c?n ??t kh?ng h?p l?.');
   if (!Number.isSafeInteger(guests) || guests < 1 || guests > 100) throw invalidPricing('S? kh?ch ph?i l? s? nguy?n t? 1 ??n 100.');
@@ -43,8 +53,8 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     const service = await GreenService.findByPk(targetId);
     if (!service) throw Object.assign(new Error('D?ch v? kh?ng t?n t?i.'), { statusCode: 404 });
     require('./catalog-presentation.service').assertCatalogBookable(service);
-    unitTourPrice = integerVnd(service.cost, 'Gi? d?ch v?');
     if (roomId) {
+      unitTourPrice = 0;
       const stay = await lodgingPrice(service, { roomId, roomCount, bookingDate, checkOutDate, guests });
       tourSubtotal = stay.total;
       flashSale = await require('./flash-sale-pricing.service').flashSaleFor(service, {
@@ -52,6 +62,7 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
       });
       unitTourPrice = null;
     } else {
+      unitTourPrice = integerVnd(service.cost, 'Gi? d?ch v?');
       flashSale = await require('./flash-sale-pricing.service').flashSaleFor(service, { campaignId: flashSaleId, units: guests, stockUnits: guests });
     }
   } else {
@@ -65,11 +76,14 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     if (sample) {
       unitTourPrice = integerVnd(sample.cost, 'Gi? tour');
     } else {
-      const activities = await ScheduleActivity.findAll({ where: { schedule_id: targetId } });
+      const activities = await ScheduleActivity.findAll({
+        where: { schedule_id: targetId },
+        include: [{ model: GreenService, attributes: ['type'], required: false }]
+      });
       let perGuest = 0;
       let shared = 0;
       for (const activity of activities) {
-        const amount = integerVnd(activity.cost || 0, 'Gi? ho?t ??ng');
+        const amount = integerVnd(activity.cost, 'Gi? ho?t ??ng');
         if (activity.is_shared || activity.type === 'lodging') shared += amount;
         else perGuest += amount;
       }
@@ -104,4 +118,4 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   };
 }
 
-module.exports = { createBookingPricingService, calculatePricing, ensureDefaultBookingAddons, DEFAULT_SETTINGS };
+module.exports = { createBookingPricingService, calculatePricing, ensureDefaultBookingAddons, validateBookingDate, DEFAULT_SETTINGS };

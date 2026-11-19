@@ -4,6 +4,7 @@ const loyalty = require('../services/wallet.service');
 const { providerForUser } = require('../services/provider-identity.service');
 const savedPromotions = require('../services/saved-promotions.service');
 const { consumeFlashSale } = require('../services/flash-sale-pricing.service');
+const { validateBookingDate } = require('../services/booking-pricing.service');
 async function consumeBookingVoucher(userId, code, context, transaction) {
   if (await savedPromotions.consumeSavedPromotion(userId, code, context)) return;
   const [used] = await require('../models').Voucher.update({ status: 'used' }, {
@@ -24,7 +25,6 @@ const {
   Schedule,
   ScheduleSample,
   ScheduleCustom,
-  ScheduleActivity,
   Vender,
   Provider,
   Voucher,
@@ -183,6 +183,8 @@ exports.createBooking = async (req, res, next) => {
     }
     if ((paymentMethod === 'wallet' || voucherCode) && !req.user) return res.status(401).json({ success: false, message: 'Vui lòng đăng nhập để dùng ví hoặc ưu đãi.' });
     if (!Number.isSafeInteger(guests) || guests < 1) throw loyalty.error('Số khách không hợp lệ.');
+    if (!bookingDate) throw loyalty.error('Booking date is required.');
+    validateBookingDate(bookingDate);
     if (!userId && email) {
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
@@ -290,11 +292,11 @@ exports.createBooking = async (req, res, next) => {
         if (['stay', 'lodging'].includes(service.type) && service.current_data?.rooms?.length) {
           throw loyalty.error('Vui lòng chọn phòng trước khi đặt dịch vụ lưu trú.');
         }
-        totalValue = service.cost * guests;
         const quote = await require('../services/booking-pricing.service').calculatePricing({
-          type, targetId, guestCount: guests, paymentMethod, flashSaleId, addonIds,
+          type, targetId, guestCount: guests, bookingDate, checkOutDate, paymentMethod, flashSaleId, addonIds,
         });
-        if (paymentMethod === 'sepay' || quote.flashSale) { lodgingSnapshot = quote; totalValue = quote.amountDueNow; }
+        lodgingSnapshot = quote;
+        totalValue = quote.amountDueNow;
       }
       tourNameOrServiceName = service.name_service;
       bookingId = 'BKS-' + Date.now();
@@ -304,33 +306,29 @@ exports.createBooking = async (req, res, next) => {
         return res.status(404).json({ success: false, message: 'Lịch trình hoặc Tour không tồn tại!' });
       }
 
-      const sampleTour = await ScheduleSample.findOne({ where: { id: targetId } });
-      const sepayQuote = paymentMethod === 'sepay'
-        ? await require('../services/booking-pricing.service').calculatePricing({
-          type, targetId, guestCount: guests, addonIds, paymentMethod, flashSaleId,
-        })
-        : null;
-      if (sepayQuote) {
-        lodgingSnapshot = sepayQuote;
-        totalValue = sepayQuote.amountDueNow;
-      } else if (sampleTour) {
-        totalValue = sampleTour.cost * guests;
-      } else {
-        // It's a custom itinerary! Fetch costs of activities
-        const activities = await ScheduleActivity.findAll({ where: { schedule_id: targetId } });
-        let perPersonCost = 0;
-        let flatCost = 0;
-        activities.forEach(act => {
-          if (act.cost) {
-            if (act.is_shared || act.type === 'lodging') {
-              flatCost += act.cost;
-            } else {
-              perPersonCost += act.cost;
+      if (type === 'tour') {
+        const sampleTour = await ScheduleSample.findByPk(targetId);
+        if (sampleTour?.max_capacity > 0) {
+          const bookedGuests = await TourBooking.sum('guests', {
+            where: {
+              schedule_id: targetId,
+              booking_date: bookingDate,
+              status: { [Op.in]: ['pending', 'deposit', 'completed'] }
             }
+          }) || 0;
+          if (sampleTour.max_capacity - bookedGuests < guests) {
+            return res.status(400).json({
+              success: false,
+              message: `Only ${sampleTour.max_capacity - bookedGuests} places remain for ${bookingDate}.`
+            });
           }
-        });
-        totalValue = (perPersonCost * guests) + flatCost;
+        }
       }
+      const quote = await require('../services/booking-pricing.service').calculatePricing({
+        type, targetId, guestCount: guests, addonIds, paymentMethod, flashSaleId, bookingDate, checkOutDate,
+      });
+      lodgingSnapshot = quote;
+      totalValue = quote.amountDueNow;
       tourNameOrServiceName = baseTour.tour_name || 'Lịch trình tự chọn';
       bookingId = 'BKT-' + Date.now();
     } else {
@@ -354,6 +352,15 @@ exports.createBooking = async (req, res, next) => {
     }
 
     if (voucherCode && !discount) throw loyalty.error('Ưu đãi không hợp lệ hoặc đã sử dụng.');
+
+    if (lodgingSnapshot) {
+      lodgingSnapshot = {
+        ...lodgingSnapshot,
+        voucherDiscount: discount,
+        amountDueNow: totalValue,
+        remaining: Math.max(0, Number(lodgingSnapshot.total || 0) - totalValue)
+      };
+    }
 
     // 3. Process Payment based on paymentMethod
     if (paymentMethod === 'wallet') {

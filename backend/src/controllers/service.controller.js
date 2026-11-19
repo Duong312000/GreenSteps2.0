@@ -155,7 +155,7 @@ exports.getServices = async (req, res, next) => {
 // 2. Get My Services (for provider dashboard)
 exports.getProviderServices = async (req, res, next) => {
   const { providerId } = req.params;
-  const compact = req.query.compact === '1';
+  const compact = req.query?.compact === '1';
   if (req.user?.role !== 'admin' && req.user?.id !== providerId) {
     return res.status(403).json({ success: false, message: 'Access denied.' });
   }

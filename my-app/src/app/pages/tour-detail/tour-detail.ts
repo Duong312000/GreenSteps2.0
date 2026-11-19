@@ -168,6 +168,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     this.selectedRoomId = room.id;
     this.roomQuantities[room.id] ||= 1;
     this.bookingError = '';
+    void this.refreshBookingQuote();
   }
   public async bookRoom(room: ServiceRoom, event: Event) {
     this.selectRoom(room);
@@ -193,6 +194,10 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
   // Booking details
   public bookingDate: string = bookingDate();
+  public bookingPricingSnapshot: any = null;
+  public bookingPriceLoading = false;
+  public bookingPriceError = false;
+  private bookingPriceRequest = 0;
   public get minBookingDate(): string { return bookingDate(); }
   public validateBookingDate() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(this.bookingDate) || this.bookingDate < this.minBookingDate) this.bookingDate = this.minBookingDate;
@@ -284,6 +289,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourHighlights(): string[] {
+    if (!Array.isArray(this.activeTour?.highlights) || this.activeTour.highlights.length === 0) return [];
     if (this.activeTour?.highlights && Array.isArray(this.activeTour.highlights) && this.activeTour.highlights.length > 0) {
       return this.activeTour.highlights;
     }
@@ -297,6 +303,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourIncluded(): string[] {
+    if (!Array.isArray(this.activeTour?.included) || this.activeTour.included.length === 0) return [];
     if (this.activeTour?.included && Array.isArray(this.activeTour.included) && this.activeTour.included.length > 0) {
       return this.activeTour.included;
     }
@@ -310,6 +317,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourExcluded(): string[] {
+    if (!Array.isArray(this.activeTour?.excluded) || this.activeTour.excluded.length === 0) return [];
     if (this.activeTour?.excluded && Array.isArray(this.activeTour.excluded) && this.activeTour.excluded.length > 0) {
       return this.activeTour.excluded;
     }
@@ -322,6 +330,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourGuarantees(): any[] {
+    if (!Array.isArray(this.activeTour?.guarantees) || this.activeTour.guarantees.length === 0) return [];
     const raw = (this.activeTour?.guarantees && Array.isArray(this.activeTour.guarantees) && this.activeTour.guarantees.length > 0)
       ? this.activeTour.guarantees
       : ['Giữ chỗ 7 ngày', 'Đổi ngày miễn phí', 'Hoàn tiền 100% nếu hủy trước 48h', 'Cam kết giảm phát thải'];
@@ -334,6 +343,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourVouchers(): any[] {
+    if (!Array.isArray(this.activeTour?.vouchers) || this.activeTour.vouchers.length === 0) return [];
     const raw = (this.activeTour?.vouchers && Array.isArray(this.activeTour.vouchers) && this.activeTour.vouchers.length > 0)
       ? this.activeTour.vouchers
       : [
@@ -354,6 +364,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourPolicies(): Array<{ step?: string; title: string; desc: string }> {
+    if (!Array.isArray(this.activeTour?.policy) || this.activeTour.policy.length === 0) return [];
     if (this.activeTour?.policy && Array.isArray(this.activeTour.policy) && this.activeTour.policy.length > 0) {
       return this.activeTour.policy.map((p: any, idx: number) => {
         if (typeof p === 'string') {
@@ -382,15 +393,15 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   }
 
   public get tourStyle(): string {
-    return this.activeTour?.style || (this.activeTour?.is_demo ? 'Chưa phân loại' : this.activeTour?.isService ? this.detailKindLabel : 'Gia đình / Eco Travel');
+    return this.activeTour?.style || 'Chưa phân loại';
   }
 
   public get tourGroupSize(): string {
-    return this.activeTour?.group_size || (this.activeTour?.is_demo ? 'Chưa xác nhận' : 'Nhóm nhỏ thân mật');
+    return this.activeTour?.group_size || 'Chưa xác nhận';
   }
 
   public get tourFitnessLevel(): string {
-    return this.activeTour?.fitness_level || (this.activeTour?.is_demo ? 'Chưa xác nhận' : 'Nhẹ nhàng');
+    return this.activeTour?.fitness_level || 'Chưa xác nhận';
   }
 
   public itineraryPhotoFor(activity: { name?: string } | undefined): TourPhotoCredit | undefined {
@@ -518,11 +529,13 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       if (this.detailDisposed || requestSequence !== this.detailRequestSequence) return;
 
       this.activeTour = nextTour;
+      this.bookingPricingSnapshot = null;
       this.ecoAssessment = null;
       this.isServiceDetail = !!nextTour?.isService || isService;
       if (nextTour?.isService) this.seo.update(nextTour);
       else this.seo.clear();
       if (nextTour) {
+        await this.refreshBookingQuote();
         const targetKind: 'tour' | 'service' = this.isServiceDetail ? 'service' : 'tour';
         this.trackingService.trackTargetView(targetKind, nextTour.id);
         void this.apiService.getEcoAssessment(targetKind, nextTour.id).then(assessment => {
@@ -702,6 +715,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
   public get totalPrice(): number {
     if (!this.activeTour) return 0;
+    if (this.bookingPricingSnapshot && (!this.isLodging || this.selectedRoom)) return Number(this.bookingPricingSnapshot.total || 0);
     if (this.isLodging) return this.selectedRoom
       ? this.roomSalePrice(this.selectedRoom) * (this.roomQuantities[this.selectedRoom.id] || 1) * this.stayNights : 0;
     return flashSaleTotal(this.activeTour.cost, this.totalGuests, this.activeTour.flashSale);
@@ -735,6 +749,46 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     return Number(this.bookingAdults) + Number(this.bookingChildren);
   }
 
+  public async refreshBookingQuote(): Promise<void> {
+    const tour = this.activeTour;
+    if (!tour?.id) return;
+    const requestId = ++this.bookingPriceRequest;
+    this.bookingPriceLoading = true;
+    this.bookingPriceError = false;
+    try {
+      const isService = Boolean(tour.isService);
+      const type = isService ? 'service' : tour.id.startsWith('iti_') ? 'itinerary' : 'tour';
+      const quote = await this.apiService.getBookingQuote({
+        type,
+        targetId: tour.id,
+        guests: this.totalGuests,
+        addonIds: [],
+        paymentMethod: 'sepay',
+        roomId: this.isLodging ? this.selectedRoomId : undefined,
+        roomCount: this.isLodging ? (this.roomQuantities[this.selectedRoomId] || 1) : undefined,
+        bookingDate: this.bookingDate,
+        checkOutDate: this.isLodging ? this.checkOutDate : undefined,
+        flashSaleId: tour.flashSale?.id
+      });
+      if (requestId === this.bookingPriceRequest && quote?.success && quote.pricing) {
+        this.bookingPricingSnapshot = quote.pricing;
+        if (Number.isSafeInteger(Number(quote.pricing.unitTourPrice)) && Number(quote.pricing.unitTourPrice) >= 0) {
+          tour.cost = Number(quote.pricing.unitTourPrice);
+        }
+      }
+    } catch {
+      if (requestId === this.bookingPriceRequest) {
+        this.bookingPricingSnapshot = null;
+        this.bookingPriceError = true;
+      }
+    } finally {
+      if (requestId === this.bookingPriceRequest) {
+        this.bookingPriceLoading = false;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
   public get adultOptions(): number[] {
     const limit = this.activeTour?.maxCapacity || 10;
     return Array.from({ length: limit }, (_, i) => i + 1);
@@ -748,7 +802,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
   public get displayOldCost(): number {
     if (!this.activeTour) return 0;
     if (this.activeTour.flashSale) return this.activeTour.cost;
-    return this.activeTour.oldCost || this.activeTour.old_cost || Math.round(this.activeTour.cost * 1.12);
+    return Number(this.activeTour.oldCost || this.activeTour.old_cost || 0);
   }
 
   public get displayNights(): number {
@@ -906,8 +960,17 @@ export class TourDetailComponent implements OnInit, OnDestroy {
     checkOutDate.setDate(checkOutDate.getDate() + Math.max(this.activeTour.days - 1, 1));
     const checkOut = this.isLodging ? this.checkOutDate : bookingDate(0, checkOutDate);
 
+    if (this.bookingPriceLoading) {
+      this.bookingError = 'Đang cập nhật báo giá. Vui lòng đợi rồi thử lại.';
+      return;
+    }
+    if (!this.bookingPricingSnapshot) await this.refreshBookingQuote();
+    if (!this.bookingPricingSnapshot) {
+      this.bookingError = 'Chưa thể xác nhận giá từ hệ thống. Vui lòng thử lại sau.';
+      return;
+    }
+
     const bookingContext = {
-      hotelId: `hotel_${this.activeTour.destination || 'greensteps'}`.toLowerCase().replace(/\s+/g, '_'),
       roomId: this.isLodging ? this.selectedRoomId : '',
       tourId: this.activeTour.isService ? undefined : this.activeTour.id,
       serviceId: this.activeTour.isService ? this.activeTour.id : undefined,

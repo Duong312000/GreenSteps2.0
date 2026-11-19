@@ -49,8 +49,8 @@ function formatActivitiesIntoDays(schedule, activities) {
         time: act.time,
         title: act.activity_name || act.name || act.title || '[Địa điểm tự do]',
         name: act.activity_name || act.name || act.title || '[Địa điểm tự do]',
-        cost: act.cost !== undefined ? Number(act.cost) : (act.activity_cost !== undefined ? Number(act.activity_cost) : 0),
-        carbon: act.carbon !== undefined ? Number(act.carbon) : 0.8,
+        cost: act.cost !== undefined ? Number(act.cost) : (act.activity_cost !== undefined ? Number(act.activity_cost) : undefined),
+        carbon: act.carbon !== undefined ? Number(act.carbon) : undefined,
         icon: act.icon || (act.type === 'lodging' ? 'bi-house-door-fill' : (act.type === 'dining' ? 'bi-cup-hot-fill' : (act.type === 'transport' ? 'bi-scooter' : 'bi-tree-fill'))),
         type: act.type || 'attraction',
         img: act.img || act.image || act.photo || null,
@@ -65,58 +65,40 @@ function formatActivitiesIntoDays(schedule, activities) {
   return data;
 }
 
-const DEFAULT_GUARANTEES = [
-  { icon: 'bi-calendar-check-fill', title: 'Giữ chỗ 7 ngày', desc: 'Bảo lưu vị trí không mất phí trong 7 ngày đầu.' },
-  { icon: 'bi-arrow-repeat', title: 'Đổi ngày miễn phí', desc: 'Hỗ trợ thay đổi ngày khởi hành trước 48h.' },
-  { icon: 'bi-shield-fill-check', title: 'Hoàn cọc 90%', desc: 'Chính sách hoàn cọc minh bạch nếu thông báo trước 7 ngày.' },
-  { icon: 'bi-bank2', title: 'Ký quỹ Escrow', desc: 'Khoản thanh toán được phong tỏa an toàn qua hệ thống GreenSteps.' }
-];
-
-const DEFAULT_POLICY = [
-  { title: 'Chính sách đặt cọc', content: 'Đặt cọc 30% giá trị tour để bảo lưu chỗ. Phần còn lại thanh toán khi khởi hành.' },
-  { title: 'Chính sách hủy và hoàn tiền', content: 'Hủy trước 7 ngày: hoàn 90% cọc; Hủy từ 3-6 ngày: hoàn 50% cọc; Hủy trong 48h: không hoàn cọc.' },
-  { title: 'Chính sách dời ngày', content: 'Miễn phí dời ngày 01 lần nếu thông báo trước ít nhất 48 giờ làm việc.' }
-];
-
-const DEFAULT_VOUCHERS = [
-  { code: 'NETZERO50', title: 'Giảm 50k', discount_type: 'fixed', discount_value: 50000, description: 'Giảm 50.000đ cho đơn đặt tour xanh đầu tiên.' },
-  { code: 'ECOTRAVEL', title: 'Giảm 100k', discount_type: 'fixed', discount_value: 100000, min_order_value: 2000000, description: 'Ưu đãi cho đơn tour từ 2 triệu đồng.' },
-  { code: 'GREENSTEPS', title: 'Giảm 5%', discount_type: 'percent', discount_value: 5, description: 'Ưu đãi du lịch sinh thái bảo vệ môi trường.' }
-];
-
 // Helper: Format a ScheduleSample+Schedule row into a rich tour response object
 function formatTourResponse(sample, schedule, badges, activities, vouchers) {
-  const resolvedCost = Number.isFinite(Number(sample?.cost)) && sample.cost > 0
+  const isEditorial = ['demo', 'editorial'].includes(String(schedule?.catalog_status || '').toLowerCase());
+  const resolvedCost = !isEditorial && sample?.cost !== '' && Number.isSafeInteger(Number(sample?.cost)) && sample?.cost !== null && sample?.cost !== undefined && sample.cost >= 0
     ? Number(sample.cost)
-    : Number.isFinite(Number(schedule?.price)) && schedule.price > 0
+    : !isEditorial && schedule?.price !== '' && Number.isSafeInteger(Number(schedule?.price)) && schedule?.price !== null && schedule?.price !== undefined && schedule.price >= 0
       ? Number(schedule.price)
-      : Number.isFinite(Number(schedule?.cost)) && schedule.cost > 0
+      : !isEditorial && schedule?.cost !== '' && Number.isSafeInteger(Number(schedule?.cost)) && schedule?.cost !== null && schedule?.cost !== undefined && schedule.cost >= 0
         ? Number(schedule.cost)
-        : 1890000;
+        : undefined;
 
-  const resolvedOldCost = Number.isFinite(Number(sample?.old_cost)) && sample.old_cost > 0
+  const resolvedOldCost = !isEditorial && Number.isFinite(Number(sample?.old_cost)) && sample.old_cost > 0
     ? Number(sample.old_cost)
-    : Number.isFinite(Number(schedule?.old_price)) && schedule.old_price > 0
+    : !isEditorial && Number.isFinite(Number(schedule?.old_price)) && schedule.old_price > 0
       ? Number(schedule.old_price)
-      : Math.round(resolvedCost * 1.15);
+      : undefined;
 
   const resolvedCarbon = Number.isFinite(Number(schedule?.carbon)) && schedule.carbon > 0
     ? Number(schedule.carbon)
     : Number.isFinite(Number(sample?.carbon)) && sample.carbon > 0
       ? Number(sample.carbon)
-      : 3.7;
+      : undefined;
 
-  const resolvedRating = Number.isFinite(Number(sample?.rating)) && sample.rating > 0
+  const resolvedRating = !isEditorial && Number.isFinite(Number(sample?.rating)) && sample.rating > 0
     ? Number(sample.rating)
-    : Number.isFinite(Number(schedule?.rating)) && schedule.rating > 0
+    : !isEditorial && Number.isFinite(Number(schedule?.rating)) && schedule.rating > 0
       ? Number(schedule.rating)
-      : 4.8;
+      : undefined;
 
-  const resolvedVotes = Number.isFinite(Number(sample?.votes_count)) && sample.votes_count > 0
+  const resolvedVotes = !isEditorial && Number.isFinite(Number(sample?.votes_count)) && sample.votes_count > 0
     ? Number(sample.votes_count)
-    : Number.isFinite(Number(schedule?.votes_count)) && schedule.votes_count > 0
+    : !isEditorial && Number.isFinite(Number(schedule?.votes_count)) && schedule.votes_count > 0
       ? Number(schedule.votes_count)
-      : 15;
+      : undefined;
 
   const effectiveVouchers = (Array.isArray(vouchers) && vouchers.length > 0)
     ? vouchers
@@ -126,11 +108,11 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
 
   const effectiveGuarantees = (Array.isArray(schedule?.guarantees) && schedule.guarantees.length > 0)
     ? schedule.guarantees
-    : DEFAULT_GUARANTEES;
+    : [];
 
   const effectivePolicy = (Array.isArray(schedule?.policy) && schedule.policy.length > 0)
     ? schedule.policy
-    : DEFAULT_POLICY;
+    : [];
 
   return {
     id: sample?.id || schedule?.id,
@@ -146,7 +128,7 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
     description: schedule?.tour_description || schedule?.description || 'Trải nghiệm du lịch sinh thái bản địa, bền vững và thân thiện với môi trường.',
     rating: resolvedRating,
     votes_count: resolvedVotes,
-    tags: (Array.isArray(badges) && badges.length > 0) ? badges : ['Eco Tour', 'Bản địa', 'Xanh'],
+    tags: Array.isArray(badges) ? badges : [],
     gallery: (Array.isArray(schedule?.gallery) && schedule.gallery.length > 0)
       ? schedule.gallery
       : (schedule?.image_url ? [schedule.image_url] : []),
@@ -154,29 +136,23 @@ function formatTourResponse(sample, schedule, badges, activities, vouchers) {
     responsibleTravel: schedule?.responsible_travel || '',
     practicalNotes: schedule?.practical_notes || '',
     editorialItineraryNotice: schedule?.editorial_itinerary_notice || '',
-    highlights: (Array.isArray(schedule?.highlights) && schedule.highlights.length > 0)
-      ? schedule.highlights
-      : ['Không phát thải rác nhựa', 'Hỗ trợ kinh tế cộng đồng địa phương', 'Trải nghiệm văn hóa bản sắc'],
+    highlights: Array.isArray(schedule?.highlights) ? schedule.highlights : [],
     styleExplanation: schedule?.style_explanation || '',
     fitnessIsEstimate: schedule?.fitness_is_estimate === true,
     fitnessExplanation: schedule?.fitness_explanation || '',
-    included: (Array.isArray(schedule?.included) && schedule.included.length > 0)
-      ? schedule.included
-      : ['Hướng dẫn viên bản địa', 'Bảo hiểm du lịch', 'Nước uống & bữa ăn theo lịch trình'],
-    excluded: (Array.isArray(schedule?.excluded) && schedule.excluded.length > 0)
-      ? schedule.excluded
-      : ['Chi tiêu cá nhân ngoài chương trình'],
+    included: Array.isArray(schedule?.included) ? schedule.included : [],
+    excluded: Array.isArray(schedule?.excluded) ? schedule.excluded : [],
     policy: effectivePolicy,
     guarantees: effectiveGuarantees,
-    style: schedule?.style || 'Gia đình / Eco Travel',
-    group_size: schedule?.group_size || 'Nhóm nhỏ thân mật (4-10 khách)',
-    fitness_level: schedule?.fitness_level || 'Nhẹ nhàng',
-    maxCapacity: schedule?.max_capacity || 10,
-    max_capacity: schedule?.max_capacity || 10,
+    style: schedule?.style,
+    group_size: isEditorial ? undefined : schedule?.group_size,
+    fitness_level: schedule?.fitness_level,
+    maxCapacity: isEditorial ? undefined : schedule?.max_capacity,
+    max_capacity: isEditorial ? undefined : schedule?.max_capacity,
     catalog_status: schedule?.catalog_status || 'active',
-    is_demo: false,
-    bookingEnabled: true,
-    priceStatus: 'verified',
+    is_demo: isEditorial,
+    bookingEnabled: !isEditorial && resolvedCost !== undefined,
+    priceStatus: sample?.priceStatus || (resolvedCost !== undefined ? 'verified' : 'unconfirmed'),
     vouchers: effectiveVouchers,
     data: activities ? formatActivitiesIntoDays(schedule, activities) : undefined
   };
@@ -341,28 +317,28 @@ exports.getPresetTourById = async (req, res, next) => {
         const { GreenService } = require('../models/index');
         const srv = await GreenService.findByPk(id);
         if (srv) {
-          const srvCost = Number(srv.cost) || 1200000;
+          const srvCost = srv.cost === null || srv.cost === undefined ? undefined : Number(srv.cost);
           return res.json({
             id: srv.id,
             title: srv.name || srv.name_service || 'Dịch vụ sinh thái GreenSteps',
             destination: srv.destination || 'Việt Nam',
             days: 1,
             cost: srvCost,
-            oldCost: srv.oldCost ? Number(srv.oldCost) : Math.round(srvCost * 1.15),
-            carbon: srv.carbon ? Number(srv.carbon) : 1.5,
+            oldCost: srv.oldCost === null || srv.oldCost === undefined ? srv.current_data?.oldCost : Number(srv.oldCost),
+            carbon: Number(srv.carbon) > 0 ? Number(srv.carbon) : undefined,
             image: srv.image_url,
             gallery: (srv.current_data?.gallery && srv.current_data.gallery.length) ? srv.current_data.gallery : (srv.image_url ? [srv.image_url] : []),
             description: srv.current_data?.shortDesc || srv.current_data?.description || srv.description || 'Dịch vụ sinh thái đạt chuẩn GreenSteps.',
-            rating: srv.rating || 4.8,
-            votes_count: srv.reviews_count || 12,
-            tags: [srv.type === 'food' ? 'Ăn uống' : srv.type === 'stay' ? 'Lưu trú' : srv.type === 'transport' ? 'Di chuyển' : 'Trải nghiệm', ...(srv.badges || [])],
-            highlights: ['Chứng nhận Net-Zero', 'Hỗ trợ kinh tế bản địa', 'Bảo hiểm dịch vụ đầy đủ'],
-            guarantees: DEFAULT_GUARANTEES,
-            policy: DEFAULT_POLICY,
-            vouchers: DEFAULT_VOUCHERS,
+            rating: Number(srv.rating) > 0 ? Number(srv.rating) : undefined,
+            votes_count: Number(srv.reviews_count) > 0 ? Number(srv.reviews_count) : undefined,
+            tags: Array.isArray(srv.badges) ? srv.badges : [],
+            highlights: Array.isArray(srv.current_data?.highlights) ? srv.current_data.highlights : [],
+            guarantees: srv.current_data?.guarantees || [],
+            policy: srv.current_data?.policy || [],
+            vouchers: srv.current_data?.vouchers || [],
             is_demo: false,
-            bookingEnabled: true,
-            priceStatus: 'verified',
+            bookingEnabled: srv.current_data?.bookingEnabled !== false && (Number.isSafeInteger(srvCost) || (Array.isArray(srv.current_data?.rooms) && srv.current_data.rooms.length > 0)),
+            priceStatus: srv.priceStatus || (Number.isSafeInteger(srvCost) ? 'verified' : 'unconfirmed'),
             isService: true
           });
         }
@@ -375,7 +351,7 @@ exports.getPresetTourById = async (req, res, next) => {
           editorial,
           [],
           editorial.ScheduleActivities || [],
-          DEFAULT_VOUCHERS
+          []
         ));
       }
       return res.status(404).json({ success: false, message: 'Không tìm thấy tour du lịch này!' });
@@ -950,6 +926,9 @@ exports.postTourReview = async (req, res, next) => {
   try {
     if (!userId) return res.status(401).json({ success: false, message: 'Đăng nhập để gửi đánh giá.' });
     if (parentCommentId) {
+      if (req.user?.role === 'provider' && !await providerOwnsReviewTarget(userId, parentCommentId, tourId)) {
+        return res.status(403).json({ success: false, message: 'Tour does not belong to this provider.' });
+      }
       const comment = await createReply({ type: 'tour', targetId: tourId, parentCommentId, userId, text });
       const user = await User.findByPk(userId);
       return res.status(201).json({

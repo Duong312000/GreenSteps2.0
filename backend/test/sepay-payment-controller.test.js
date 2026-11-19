@@ -63,3 +63,54 @@ test('SePay IPN stores the exact confirmed amount on the booking', async () => {
     else process.env.SEPAY_IPN_SECRET = original.secret;
   }
 });
+
+test('SePay IPN rejects an invalid secret before looking up an order', async () => {
+  const originalSecret = process.env.SEPAY_IPN_SECRET;
+  const originalFindOne = models.SepayPaymentAttempt.findOne;
+  let statusCode;
+  let response;
+  process.env.SEPAY_IPN_SECRET = 'test-secret';
+  models.SepayPaymentAttempt.findOne = async () => { throw new Error('must not query an unauthenticated IPN'); };
+  try {
+    await controller.ipn({ body: {}, get: () => 'wrong-secret' }, {
+      status(code) { statusCode = code; return this; },
+      json(value) { response = value; return this; }
+    }, error => { throw error; });
+    assert.equal(statusCode, 401);
+    assert.equal(response.success, false);
+  } finally {
+    models.SepayPaymentAttempt.findOne = originalFindOne;
+    if (originalSecret === undefined) delete process.env.SEPAY_IPN_SECRET;
+    else process.env.SEPAY_IPN_SECRET = originalSecret;
+  }
+});
+
+test('SePay IPN rejects mismatched paid amounts without settling the booking', async () => {
+  const originalSecret = process.env.SEPAY_IPN_SECRET;
+  const originalFindOne = models.SepayPaymentAttempt.findOne;
+  const attempt = { id: 'attempt-amount', booking_id: 'booking-amount', order_invoice_number: 'invoice-amount', amount: 200, status: 'pending' };
+  let statusCode;
+  let response;
+  process.env.SEPAY_IPN_SECRET = 'test-secret';
+  models.SepayPaymentAttempt.findOne = async () => attempt;
+  try {
+    await controller.ipn({
+      body: {
+        notification_type: 'ORDER_PAID',
+        order: { order_invoice_number: 'invoice-amount', order_amount: '201', order_currency: 'VND', order_status: 'CAPTURED' },
+        transaction: { transaction_id: 'txn-amount', transaction_amount: '201', transaction_currency: 'VND', transaction_status: 'APPROVED' }
+      },
+      get: () => 'test-secret'
+    }, {
+      status(code) { statusCode = code; return this; },
+      json(value) { response = value; return this; }
+    }, error => { throw error; });
+    assert.equal(statusCode, 400);
+    assert.equal(response.success, false);
+    assert.equal(attempt.status, 'pending');
+  } finally {
+    models.SepayPaymentAttempt.findOne = originalFindOne;
+    if (originalSecret === undefined) delete process.env.SEPAY_IPN_SECRET;
+    else process.env.SEPAY_IPN_SECRET = originalSecret;
+  }
+});

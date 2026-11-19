@@ -145,25 +145,25 @@
           <label class="form-field" for="bookingDate">
             <span>{{ isLodging ? 'Ngày nhận phòng' : 'Ngày khởi hành' }}</span>
             <input type="date" id="bookingDate" [(ngModel)]="bookingDate" [min]="minBookingDate"
-              (change)="validateStayDates()" name="bookingDate" required>
+              (change)="validateStayDates(); refreshBookingQuote()" name="bookingDate" required>
           </label>
 
           <label class="form-field" for="checkOutDate" *ngIf="isLodging"><span>Ngày trả phòng</span><input
               id="checkOutDate" type="date" name="checkOutDate" [(ngModel)]="checkOutDate" [min]="minCheckOutDate"
-              (change)="validateStayDates()"></label>
+              (change)="validateStayDates(); refreshBookingQuote()"></label>
           <p *ngIf="isLodging && selectedRoom" class="selected-room-label"><i class="bi bi-house-door"></i> {{
             selectedRoom.name }}</p>
           <div class="guest-grid">
             <label class="form-field" for="bookingAdults">
               <span>Người lớn</span>
-              <select id="bookingAdults" [(ngModel)]="bookingAdults" name="bookingAdults">
+              <select id="bookingAdults" [(ngModel)]="bookingAdults" (ngModelChange)="refreshBookingQuote()" name="bookingAdults">
                 <option *ngFor="let opt of adultOptions" [ngValue]="opt">{{ opt }}</option>
               </select>
             </label>
 
             <label class="form-field" for="bookingChildren">
               <span>Trẻ em</span>
-              <select id="bookingChildren" [(ngModel)]="bookingChildren" name="bookingChildren">
+              <select id="bookingChildren" [(ngModel)]="bookingChildren" (ngModelChange)="refreshBookingQuote()" name="bookingChildren">
                 <option *ngFor="let opt of childrenOptions" [ngValue]="opt">{{ opt }}</option>
               </select>
             </label>
@@ -1279,6 +1279,8 @@
         <span>{{ isLodging ? (selectedRoom ? stayNights + ' đêm · ' + (roomQuantities[selectedRoom.id] || 1) + ' phòng'
           : 'Chọn phòng để xem tổng tiền') : 'Tổng tiền · ' + totalGuests + ' khách' }}</span>
         <strong aria-live="polite">{{ totalPrice | number:'1.0-0':'vi-VN' }}đ</strong>
+        <small *ngIf="bookingPriceLoading" aria-live="polite">Đang cập nhật báo giá từ máy chủ…</small>
+        <small *ngIf="bookingPriceError">Chưa xác nhận được giá; hãy thử lại trước khi đặt.</small>
       </div>
       <button type="button" (click)="submitBooking($event)">{{ detailBookingLabel }}</button>
     </div>
@@ -1505,6 +1507,8 @@
             <span class="gs-price-note">
               {{ activeTour.isService ? 'Theo đơn vị dịch vụ' : 'Tổng tiền cho ' + totalGuests + ' khách' }}
             </span>
+            <small *ngIf="bookingPriceLoading" aria-live="polite">Đang cập nhật báo giá từ máy chủ…</small>
+            <small *ngIf="bookingPriceError">Chưa xác nhận được giá; hãy thử lại trước khi đặt.</small>
           </div>
 
           <!-- Short Description -->
@@ -1691,7 +1695,7 @@
               <div class="gs-input-box">
                 <i class="bi bi-calendar3"></i>
                 <input type="date" id="gs-book-date" [(ngModel)]="bookingDate" [min]="minBookingDate"
-                  (change)="validateBookingDate()" name="bookingDate" required>
+                  (change)="validateBookingDate(); refreshBookingQuote()" name="bookingDate" required>
               </div>
             </div>
 
@@ -1701,7 +1705,7 @@
                 <label class="gs-label" for="gs-adults">Người lớn</label>
                 <div class="gs-input-box">
                   <i class="bi bi-person"></i>
-                  <select id="gs-adults" [(ngModel)]="bookingAdults" name="bookingAdults">
+                  <select id="gs-adults" [(ngModel)]="bookingAdults" (ngModelChange)="refreshBookingQuote()" name="bookingAdults">
                     <option *ngFor="let opt of adultOptions" [ngValue]="opt">{{ opt }} khách</option>
                   </select>
                 </div>
@@ -1711,7 +1715,7 @@
                 <label class="gs-label" for="gs-children">Trẻ em</label>
                 <div class="gs-input-box">
                   <i class="bi bi-person-down"></i>
-                  <select id="gs-children" [(ngModel)]="bookingChildren" name="bookingChildren">
+                  <select id="gs-children" [(ngModel)]="bookingChildren" (ngModelChange)="refreshBookingQuote()" name="bookingChildren">
                     <option *ngFor="let opt of childrenOptions" [ngValue]="opt">{{ opt }} trẻ</option>
                   </select>
                 </div>

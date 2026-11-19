@@ -409,6 +409,7 @@
         <p *ngIf="discountAmount > 0"><span>{{ activeTour?.flashSale ? 'Flash Sale' : 'Ưu đãi voucher' }}</span><b>-{{ discountAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
         <p *ngIf="vatAmount > 0"><span>Thuế VAT (8%)</span><b>+{{ vatAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
         <p><span>Tổng chi phí</span><b>{{ totalAmount | number:'1.0-0':'vi-VN' }}đ</b></p>
+        <p *ngIf="voucherDiscount > 0"><span>Voucher trừ vào đợt 1</span><b>-{{ voucherDiscount | number:'1.0-0':'vi-VN' }}đ</b></p>
         <div class="choice-total">
           <span>{{ isTransportBooking ? 'Tổng tiền thanh toán' : 'Đặt cọc đợt 1 (30%)' }}</span>
           <strong>{{ depositAmount | number:'1.0-0':'vi-VN' }}đ</strong>
@@ -699,6 +700,10 @@
             <div class="price-row" *ngIf="addOnsTotal > 0">
               <span>Dịch vụ bổ sung ({{ addOns.length }})</span>
               <span>+{{ addOnsTotal | number:'1.0-0':'vi-VN' }}đ</span>
+            </div>
+            <div class="price-row" *ngIf="voucherDiscount > 0">
+              <span>Voucher trừ vào đợt 1</span>
+              <span>-{{ voucherDiscount | number:'1.0-0':'vi-VN' }}đ</span>
             </div>
             <div class="price-row total-row">
               <span>Tổng chi phí chuyến đi</span>
