@@ -63,6 +63,7 @@
           </div>
         </div>
 
+        <!-- Itinerary Chip -->
         <div class="gs-itinerary-chip" *ngIf="post.itinerary_id">
           <img *ngIf="post.image" [src]="mediaUrl(post.image)" alt="Cover" class="w-12 h-12 rounded-xl object-cover border border-emerald-100 flex-shrink-0" />
           <span class="gs-itinerary-icon" *ngIf="!post.image"><i class="bi bi-map-fill"></i></span>
@@ -71,12 +72,30 @@
             <small><i class="bi bi-calendar-event"></i> {{ post.days }} ngày <span *ngIf="post.dest"> · {{ post.dest }}</span></small>
           </span>
           <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" class="gs-outline-button" *ngIf="post.allowClone !== false" (click)="saveItinerary(post, $event)">
+            <a *ngIf="post.authorId === userId" [routerLink]="['/schedule', post.itinerary_id]" class="gs-outline-button bg-emerald-700 text-white border-0 hover:bg-emerald-800 font-bold inline-flex items-center gap-1.5">
+              <i class="bi bi-pencil-square"></i> Quản lý & chỉnh sửa
+            </a>
+            <button type="button" class="gs-outline-button" *ngIf="post.authorId !== userId && post.allowClone !== false" (click)="saveItinerary(post, $event)">
               <i class="bi bi-copy"></i> Sao chép lịch trình
             </button>
             <button type="button" class="gs-outline-button bg-emerald-600 text-white border-0 hover:bg-emerald-700 font-bold" *ngIf="post.allowCollab" (click)="joinCollaborativeItinerary(post, $event)">
               <i class="bi bi-people-fill"></i> Tham gia chỉnh sửa & thanh toán
             </button>
+          </div>
+        </div>
+
+        <!-- Shared Service Chip -->
+        <div class="gs-itinerary-chip gs-service-chip" *ngIf="!post.itinerary_id && (post.serviceId || $any(post).current_data?.serviceId)">
+          <img *ngIf="post.image" [src]="mediaUrl(post.image)" alt="Cover" class="w-12 h-12 rounded-xl object-cover border border-emerald-100 flex-shrink-0" />
+          <span class="gs-itinerary-icon" *ngIf="!post.image"><i class="bi bi-shop"></i></span>
+          <span class="gs-itinerary-text">
+            <strong>{{ post.tripName || post.dest || 'Dịch vụ sinh thái GreenSteps' }}</strong>
+            <small><i class="bi bi-geo-alt-fill"></i> {{ post.dest || post.location || 'Điểm đến xanh' }}</small>
+          </span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <a [routerLink]="['/tour-detail', post.serviceId || $any(post).current_data?.serviceId]" class="gs-outline-button bg-emerald-600 text-white border-0 hover:bg-emerald-700 font-bold inline-flex items-center gap-1.5">
+              <i class="bi bi-bag-check-fill"></i> Xem dịch vụ & Đặt chỗ
+            </a>
           </div>
         </div>
 

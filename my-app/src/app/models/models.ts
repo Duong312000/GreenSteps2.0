@@ -275,6 +275,7 @@ export interface CommunityPost {
   challengeId?: string | null;
   authorId?: string;
   itinerary_id?: string;
+  serviceId?: string | null;
   allowClone?: boolean;
   allowCollab?: boolean;
   current_data?: any;

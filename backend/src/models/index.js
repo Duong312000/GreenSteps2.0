@@ -840,8 +840,9 @@ const Notification = store.define('Notification', {
   title: { type: FieldTypes.STRING, allowNull: false },
   message: { type: FieldTypes.TEXT, allowNull: false },
   link: { type: FieldTypes.STRING, allowNull: true },
+  reference_id: { type: FieldTypes.STRING, allowNull: true },
   type: {
-    type: FieldTypes.ENUM('system', 'community', 'booking', 'wallet'),
+    type: FieldTypes.ENUM('system', 'community', 'booking', 'wallet', 'itinerary', 'tour', 'service'),
     defaultValue: 'system',
     allowNull: false
   },

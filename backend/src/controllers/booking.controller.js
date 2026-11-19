@@ -451,6 +451,8 @@ exports.createBooking = async (req, res, next) => {
             title: 'Đang chờ duyệt giao dịch',
             message: `Giao dịch thanh toán bằng ví cho đơn ${bookingId} đang chờ quản trị viên phê duyệt.`,
             type: 'booking',
+            link: `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`,
+            reference_id: bookingId,
             read: false
           }, { transaction: t });
         }
@@ -601,6 +603,8 @@ exports.createBooking = async (req, res, next) => {
             title: 'Đang chờ duyệt giao dịch',
             message: `Giao dịch chuyển khoản đặt cọc cho đơn ${bookingId} đang chờ quản trị viên phê duyệt.`,
             type: 'booking',
+            link: `/booking/confirm?bookingId=${encodeURIComponent(bookingId)}`,
+            reference_id: bookingId,
             read: false
           }, { transaction: t });
         }
@@ -1275,6 +1279,8 @@ exports.approveBooking = async (req, res, next) => {
         title: 'Giao dịch thành công',
         message: `Giao dịch chuyển khoản đặt cọc cho đơn ${id} đã được phê duyệt thành công!`,
         type: 'booking',
+        link: `/booking/confirm?bookingId=${encodeURIComponent(id)}`,
+        reference_id: id,
         read: false
       });
     }

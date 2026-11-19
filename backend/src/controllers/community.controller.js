@@ -68,6 +68,7 @@ function formatPost(row, user, isSaved = false) {
     videoUrl: row.video_url || '',
     hashtags: row.hashtags || [],
     itinerary_id: row.itinerary_id || null,
+    serviceId: currentData.serviceId || null,
     allowClone: currentData.allow_clone !== undefined ? !!currentData.allow_clone : true,
     allowCollab: !!currentData.allow_collab,
     challengeId: row.challenge_id || null,
@@ -188,7 +189,8 @@ exports.addPost = async (req, res, next) => {
       likes_count: 0, comments_count: 0, shares_count: 0,
       current_data: {
         allow_clone: allowClone,
-        allow_collab: allowCollab
+        allow_collab: allowCollab,
+        serviceId: req.body.serviceId || req.body.current_data?.serviceId || null
       }
     });
     if (challenge) await awardChallenge(challenge, userId, id);
@@ -256,6 +258,19 @@ async function changeLikes(req, res, next, delta) {
     normalizeLegacyPost(post);
     post.likes_count = Math.max(0, (post.likes_count || 0) + delta);
     await post.save();
+    if (delta > 0 && post.user_id && post.user_id !== req.user?.id) {
+      const liker = await User.findByPk(req.user.id).catch(() => null);
+      await Notification.create({
+        id: `notif_${randomUUID()}`,
+        user_id: post.user_id,
+        title: 'Lượt thích mới',
+        message: `${liker?.fullname || liker?.username || 'Một thành viên'} đã thích bài viết của bạn!`,
+        type: 'community',
+        link: `/community?post=${post.id}`,
+        reference_id: post.id,
+        read: false
+      }).catch(() => {});
+    }
     res.json({ success: true, likes: post.likes_count });
   } catch (error) { next(error); }
 }

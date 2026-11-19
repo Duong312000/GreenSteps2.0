@@ -11,7 +11,22 @@ exports.getNotifications = async (req, res, next) => {
     });
     const mapped = list.map(item => {
       const row = item.toJSON();
-      return { ...row, link: row.link || row.link_url || null, createdAt: row.createdAt || row.created_at };
+      let link = row.link || row.link_url || null;
+      let referenceId = row.reference_id || row.referenceId || null;
+      const msg = row.message || '';
+      if (!link) {
+        const bktMatch = msg.match(/BKT-[0-9A-Za-z_-]+/i);
+        if (bktMatch) {
+          link = `/booking/confirm?bookingId=${bktMatch[0]}`;
+          referenceId = bktMatch[0];
+        }
+      }
+      return {
+        ...row,
+        link,
+        reference_id: referenceId,
+        createdAt: row.createdAt || row.created_at
+      };
     });
     const staleQrNotices = mapped.filter(item => {
       const text = `${item.title || ''} ${item.message || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

@@ -144,6 +144,7 @@ export class PartnerServicesComponent implements OnInit {
         comments: 0,
         image: this.sharingService.image_url || 'image/Viet Nam.png',
         itineraryId: null,
+        serviceId: this.sharingService.id,
         current_data: { serviceId: this.sharingService.id }
       };
 

@@ -261,6 +261,7 @@ exports.addService = async (req, res, next) => {
       await BadgeService.create({ badge_name: b, service_id: service.id });
     }
     servicesCache.expiresAt = 0;
+    removeServiceFromSearchCache(service.id);
 
     res.json({
       id: service.id,
@@ -494,6 +495,7 @@ exports.updateService = async (req, res, next) => {
 
     await service.save();
     servicesCache.expiresAt = 0;
+    removeServiceFromSearchCache(service.id);
 
     res.json({ success: true, service });
   } catch (error) {

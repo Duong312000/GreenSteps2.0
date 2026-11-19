@@ -411,24 +411,34 @@ export class ProfileComponent implements OnInit, OnDestroy {
     const rawLink = String(notif?.link || notif?.link_url || '').trim();
     const refId = String(notif?.reference_id || notif?.referenceId || notif?.bookingId || notif?.booking_id || '').trim();
     const normalizedText = String(`${notif?.title || ''} ${notif?.message || ''}`).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const counterRequest = /quay|counter/i.test(normalizedText);
+    if (counterRequest && refId) return `/booking/confirm?bookingId=${encodeURIComponent(refId)}`;
 
-    // 1. Direct specific deep link
+    // 1. Direct specific deep link if already present in notification
     if (rawLink) {
-      if (rawLink.includes('/schedule/') || rawLink.includes('/community?post=') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/')) {
+      if (rawLink.includes('/schedule/') || rawLink.includes('/community') || rawLink.includes('/tour-detail/') || rawLink.includes('/service-detail/') || rawLink.includes('/booking/confirm')) {
         return rawLink;
       }
     }
 
-    // 2. Specific Community post
-    if (notif?.type === 'community' || /\b(?:cong dong|bai viet|binh luan|thao luan|hoi dap|phan hoi|vmt|comment|cau tra loi|tra loi)\b/i.test(normalizedText)) {
+    // 2. Specific Tour / Service comment/review notification
+    if (notif?.type === 'tour' || (/\b(?:tour|chuyen di net-zero)\b/i.test(normalizedText) && /\b(?:danh gia|binh luan|nhan xet|phan hoi)\b/i.test(normalizedText))) {
+      if (refId) return `/tour-detail/${encodeURIComponent(refId)}#reviews-section`;
+    }
+    if (notif?.type === 'service' || (/\b(?:dich vu|homestay|khach san|nha hang)\b/i.test(normalizedText) && /\b(?:danh gia|binh luan|nhan xet|phan hoi)\b/i.test(normalizedText))) {
+      if (refId) return `/service-detail/${encodeURIComponent(refId)}#reviews-section`;
+    }
+
+    // 3. Specific Community post / comment notification
+    if (notif?.type === 'community' && !/\b(?:dong hanh|tham gia|lich trinh|chuyen di)\b/i.test(normalizedText)) {
       const postId = notif?.postId || refId;
       if (postId) return `/community?post=${encodeURIComponent(postId)}`;
       if (rawLink && rawLink.includes('post=')) return rawLink;
       return '/community';
     }
 
-    // 3. Specific Itinerary
-    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule)\b/i.test(normalizedText)) {
+    // 4. Specific Itinerary / Schedule editor / Collaboration notification
+    if (notif?.type === 'itinerary' || /\b(?:lich trinh|hanh trinh|chuyen di|tu thiet ke|khoi tao thanh cong|planner|schedule|dong hanh|tham gia|sao chep)\b/i.test(normalizedText)) {
       const itiId = notif?.itineraryId || refId;
       if (itiId) return `/schedule/${encodeURIComponent(itiId)}`;
       const storedId = localStorage.getItem('greensteps_working_itinerary_id');
@@ -436,14 +446,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
       return '/profile?section=itineraries';
     }
 
-    // 4. Specific Booking
+    // 5. Specific Booking / Ticket notification
     if (notif?.type === 'booking' || /\b(?:dat ve|don hang|ma don|ve may bay|ve xe|dat tour|dat phong|booking|ticket)\b/i.test(normalizedText)) {
       const bId = notif?.bookingId || notif?.booking_id || refId;
       if (bId) return `/booking/confirm?bookingId=${encodeURIComponent(bId)}`;
       return '/profile?section=tickets';
     }
 
-    // 5. Wallet
+    // 6. Wallet
     if (notif?.type === 'wallet' || /\b(?:vi green|green wallet|so du vi|nap tien|rut tien|hoan tien ve vi|hoan tien|tien coc|vi dien tu)\b/i.test(normalizedText)) {
       return '/profile?section=wallet';
     }
