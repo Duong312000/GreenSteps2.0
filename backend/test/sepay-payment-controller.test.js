@@ -114,3 +114,87 @@ test('SePay IPN rejects mismatched paid amounts without settling the booking', a
     else process.env.SEPAY_IPN_SECRET = originalSecret;
   }
 });
+
+test('SePay status reconciles a captured provider order when the browser returns before IPN', async () => {
+  const original = {
+    attemptFindOne: models.SepayPaymentAttempt.findOne,
+    attemptFindByPk: models.SepayPaymentAttempt.findByPk,
+    serviceFindByPk: models.ServiceBooking.findByPk,
+    tourFindByPk: models.TourBooking.findByPk,
+    transaction: models.store.transaction,
+    notificationCreate: models.Notification.create,
+    retrieveOrder: require('../src/services/sepay-payment.service').retrieveOrder
+  };
+  const attempt = { id: 'attempt-return', booking_id: 'booking-return', order_invoice_number: 'invoice-return', amount: 200, status: 'pending', async save() {} };
+  const booking = {
+    id: 'booking-return', user_id: 'traveler-return', payment_method: 'sepay', status: 'pending', payment_status: 'pending',
+    async save() { this.saved = true; }
+  };
+  let response;
+  models.SepayPaymentAttempt.findOne = async options => options.where.booking_id
+    ? attempt : options.where.transaction_id ? null : attempt;
+  models.SepayPaymentAttempt.findByPk = async () => attempt;
+  models.ServiceBooking.findByPk = async () => booking;
+  models.TourBooking.findByPk = async () => null;
+  models.store.transaction = async callback => callback({});
+  models.Notification.create = async () => {};
+  require('../src/services/sepay-payment.service').retrieveOrder = async invoice => ({
+    order_invoice_number: invoice,
+    order_status: 'CAPTURED',
+    order_amount: '200.00',
+    order_currency: 'VND',
+    transactions: [{ id: 'provider-txn-return', transaction_type: 'PAYMENT', transaction_status: 'APPROVED', transaction_amount: '200.00', transaction_currency: 'VND' }]
+  });
+
+  try {
+    await controller.status({ params: { bookingId: booking.id }, user: { id: booking.user_id }, headers: {} }, {
+      json(value) { response = value; return this; },
+      status(code) { this.statusCode = code; return this; }
+    }, error => { throw error; });
+
+    assert.equal(response.booking.payment_status, 'deposit_paid');
+    assert.equal(response.booking.paid_amount, 200);
+    assert.equal(response.payment.status, 'succeeded');
+    assert.equal(booking.saved, true);
+  } finally {
+    models.SepayPaymentAttempt.findOne = original.attemptFindOne;
+    models.SepayPaymentAttempt.findByPk = original.attemptFindByPk;
+    models.ServiceBooking.findByPk = original.serviceFindByPk;
+    models.TourBooking.findByPk = original.tourFindByPk;
+    models.store.transaction = original.transaction;
+    models.Notification.create = original.notificationCreate;
+    require('../src/services/sepay-payment.service').retrieveOrder = original.retrieveOrder;
+  }
+});
+
+test('SePay status leaves a captured provider order pending when its amount differs', async () => {
+  const original = {
+    attemptFindOne: models.SepayPaymentAttempt.findOne,
+    serviceFindByPk: models.ServiceBooking.findByPk,
+    tourFindByPk: models.TourBooking.findByPk,
+    retrieveOrder: require('../src/services/sepay-payment.service').retrieveOrder
+  };
+  const attempt = { id: 'attempt-mismatch', booking_id: 'booking-mismatch', order_invoice_number: 'invoice-mismatch', amount: 200, status: 'pending' };
+  const booking = { id: 'booking-mismatch', user_id: 'traveler-mismatch', payment_method: 'sepay', status: 'pending', payment_status: 'pending' };
+  let response;
+  models.SepayPaymentAttempt.findOne = async () => attempt;
+  models.ServiceBooking.findByPk = async () => booking;
+  models.TourBooking.findByPk = async () => null;
+  require('../src/services/sepay-payment.service').retrieveOrder = async invoice => ({
+    order_invoice_number: invoice, order_status: 'CAPTURED', order_amount: '201.00', order_currency: 'VND',
+    transactions: [{ id: 'provider-txn-mismatch', transaction_status: 'APPROVED', transaction_amount: '201.00', transaction_currency: 'VND' }]
+  });
+
+  try {
+    await controller.status({ params: { bookingId: booking.id }, user: { id: booking.user_id }, headers: {} }, {
+      json(value) { response = value; return this; }
+    }, error => { throw error; });
+    assert.equal(response.booking.payment_status, 'pending');
+    assert.equal(response.booking.paid_amount, 0);
+  } finally {
+    models.SepayPaymentAttempt.findOne = original.attemptFindOne;
+    models.ServiceBooking.findByPk = original.serviceFindByPk;
+    models.TourBooking.findByPk = original.tourFindByPk;
+    require('../src/services/sepay-payment.service').retrieveOrder = original.retrieveOrder;
+  }
+});

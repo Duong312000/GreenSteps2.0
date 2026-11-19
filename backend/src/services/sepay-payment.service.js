@@ -41,6 +41,18 @@ function amountToMinorUnits(value) {
   return Number(match[1]) * 100 + Number((match[2] || '').padEnd(2, '0'));
 }
 
+async function retrieveOrder(invoice, env = process.env) {
+  const readiness = getReadiness(env);
+  if (!readiness.configured) throw Object.assign(new Error('SePay is not configured.'), { statusCode: 503, missing: readiness.missing });
+  const client = new SePayPgClient({
+    env: readiness.environment,
+    merchant_id: env.SEPAY_MERCHANT_ID.trim(),
+    secret_key: env.SEPAY_MERCHANT_SECRET.trim()
+  });
+  const response = await client.order.retrieve(String(invoice));
+  return response?.data?.data || response?.data || null;
+}
+
 function createCheckout({ bookingId, invoice, amount, description, customerId, env = process.env }) {
   const readiness = getReadiness(env);
   if (!readiness.configured) throw Object.assign(new Error('SePay sandbox chưa được cấu hình đầy đủ.'), { statusCode: 503, missing: readiness.missing });
@@ -83,5 +95,5 @@ function createCheckout({ bookingId, invoice, amount, description, customerId, e
 
 module.exports = {
   MIN_AMOUNT, MAX_AMOUNT, getReadiness, isValidAmount, createGuestCapability,
-  matchesGuestCapability, safeSecretEqual, amountToMinorUnits, createCheckout
+  matchesGuestCapability, safeSecretEqual, amountToMinorUnits, createCheckout, retrieveOrder
 };

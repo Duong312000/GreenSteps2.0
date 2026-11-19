@@ -137,6 +137,40 @@ describe('Transport in the existing service checkout', () => {
     expect(c.depositAmount).toBe(474000);
     c.ngOnDestroy();
   });
+  it('refreshes the server quote and price breakdown when an add-on is selected', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    const params = convertToParamMap({ tourId: 'SCHDL005', guestCount: '2' });
+    const route = { snapshot: { queryParamMap: params }, queryParamMap: new BehaviorSubject(params) };
+    const events = new Subject<any>();
+    const router = { url: '/booking/payment?tourId=SCHDL005', events, navigate: vi.fn().mockResolvedValue(true) };
+    const api = {
+      getWalletInfo: vi.fn().mockResolvedValue({ registered: false, balance: 0 }),
+      getItinerary: vi.fn().mockResolvedValue(null),
+      getPresetTour: vi.fn().mockResolvedValue({ id: 'SCHDL005', cost: 790000, title: 'Tour' }),
+      getBookingQuote: vi.fn().mockImplementation(({ addonIds = [] }) => {
+        const addonsTotal = addonIds.includes('airport') ? 280000 : 0;
+        return Promise.resolve({ success: true, pricing: {
+          tourSubtotal: 1580000, addonsTotal, subtotal: 1580000 + addonsTotal,
+          discount: 0, vat: 0, serviceFee: 0, total: 1580000 + addonsTotal,
+          depositPercent: 30, amountDueNow: Math.round((1580000 + addonsTotal) * 0.3),
+          addons: addonsTotal ? [{ id: 'airport', total: addonsTotal }] : []
+        } });
+      })
+    };
+    const auth = { currentUser$: new BehaviorSubject(null), getCurrentUser: () => null };
+    const c = new BookingComponent(route as any, router as any, api as any, auth as any,
+      { open: vi.fn() } as any, { markForCheck: vi.fn(), detectChanges: vi.fn() } as any, {} as any);
+
+    await c.ngOnInit();
+    c.toggleAddOn('airport', true);
+    await vi.waitFor(() => expect(c.totalAmount).toBe(1860000));
+
+    expect(api.getBookingQuote).toHaveBeenLastCalledWith(expect.objectContaining({ addonIds: ['airport'] }));
+    expect(c.basePrice).toBe(1580000);
+    expect(c.addOnsTotal).toBe(280000);
+    expect(c.depositAmount).toBe(558000);
+    c.ngOnDestroy();
+  });
   it('treats a settled SePay attempt as paid and displays its actual settled amount', () => {
     const {c}=create(false);
     c.confirmationBooking={payment_method:'sepay',status:'pending',payment_status:'pending',value:1580000,

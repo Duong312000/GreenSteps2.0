@@ -203,8 +203,8 @@
               <i class="bi bi-shield-check"></i>
               <span>Hoàn cọc 100% trước <strong>{{ cancellationDate }}</strong> · Không phụ phí ẩn</span>
             </div>
-            <button type="submit" class="booking-submit">
-              <span>Tiếp tục đến bước thanh toán</span>
+            <button type="submit" class="booking-submit" [disabled]="isPricingUpdating || !sepayPricingSnapshot">
+              <span>{{ isPricingUpdating ? 'Đang cập nhật báo giá…' : 'Tiếp tục đến bước thanh toán' }}</span>
               <i class="bi bi-arrow-right"></i>
             </button>
           </div>

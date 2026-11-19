@@ -100,6 +100,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   // VietQR & Loading properties
   public isPageLoading = true;
   public isBookingLoading = false;
+  public isPricingUpdating = false;
 
   public isQrModalOpen = false;
   public isCardModalOpen = false;
@@ -453,6 +454,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     } else if (!checked) {
       this.addOns = this.addOns.filter(item => item !== id);
     }
+    if (!this.isTransportBooking) void this.loadSepayPricing();
   }
 
   public hasAddOn(id: string) {
@@ -1350,9 +1352,13 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public lodgingPricing: any = null;
   public sepayPricingSnapshot: any = null;
+  private pricingQuoteRequestVersion = 0;
   private async loadSepayPricing(): Promise<void> {
     const targetId = this.bookingContext.serviceId || this.bookingContext.tourId || this.activeTour?.id;
     if (!targetId) return;
+    const requestVersion = ++this.pricingQuoteRequestVersion;
+    this.isPricingUpdating = true;
+    this.cdr.detectChanges();
 
     const isService = Boolean(this.bookingContext.serviceId) || Boolean((this.activeTour as any)?.isService)
       || /^srv[_-]/i.test(targetId);
@@ -1371,10 +1377,18 @@ export class BookingComponent implements OnInit, OnDestroy {
         flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id
       });
       if (!quote?.success || !quote.pricing) throw new Error('Chưa nhận được giá từ máy chủ.');
+      if (requestVersion !== this.pricingQuoteRequestVersion) return;
       this.sepayPricingSnapshot = quote.pricing;
       this.cdr.detectChanges();
     } catch (error: any) {
+      if (requestVersion !== this.pricingQuoteRequestVersion) return;
+      this.sepayPricingSnapshot = null;
       this.showAlert('Chưa thể xác nhận giá', error?.error?.message || error?.message || 'Vui lòng tải lại trang đặt chỗ để nhận giá mới.', 'error');
+    } finally {
+      if (requestVersion === this.pricingQuoteRequestVersion) {
+        this.isPricingUpdating = false;
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -1448,7 +1462,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get basePrice() {
     if (this.isTransportBooking) return Number(this.transportBooking?.total_price || 0);
-    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.subtotal || 0);
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.tourSubtotal ?? (Number(this.sepayPricingSnapshot.subtotal || 0) - Number(this.sepayPricingSnapshot.addonsTotal || 0)));
     if (this.selectedLodgingRoom) {
       return Number(this.selectedLodgingRoom.price_per_night || 0) * this.bookingContext.roomCount * this.nights;
     }
@@ -1520,6 +1534,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get addOnsTotal() {
     if (this.isTransportBooking) return 0;
+    if (this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.addonsTotal || 0);
     return this.addOnOptions
       .filter(option => this.addOns.includes(option.id))
       .reduce((sum, option) => sum + option.price, 0);

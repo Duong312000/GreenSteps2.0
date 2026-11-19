@@ -20,6 +20,83 @@ function isAwaitingPayment(booking) {
     && (!booking.payment_deadline || new Date(booking.payment_deadline) > new Date());
 }
 
+const providerOrderChecks = new Map();
+const PROVIDER_ORDER_CHECK_INTERVAL_MS = 5000;
+
+async function reconcileCapturedProviderOrder(booking, attempt) {
+  if (!attempt || attempt.status !== 'pending' || !isAwaitingPayment(booking)) return;
+  const invoice = String(attempt.order_invoice_number || '');
+  if (!invoice) return;
+  const now = Date.now();
+  if (now - (providerOrderChecks.get(invoice) || 0) < PROVIDER_ORDER_CHECK_INTERVAL_MS) return;
+  providerOrderChecks.set(invoice, now);
+  if (providerOrderChecks.size > 5000) {
+    for (const [key, checkedAt] of providerOrderChecks) {
+      if (now - checkedAt > PROVIDER_ORDER_CHECK_INTERVAL_MS * 4) providerOrderChecks.delete(key);
+    }
+  }
+
+  let order;
+  try { order = await sepay.retrieveOrder(invoice); }
+  catch { return; } // IPN remains the primary path when the provider API is unavailable.
+
+  if (String(order?.order_invoice_number || '') !== invoice
+    || String(order?.order_status || '').toUpperCase() !== 'CAPTURED'
+    || String(order?.order_currency || '').toUpperCase() !== 'VND'
+    || sepay.amountToMinorUnits(order?.order_amount) !== Number(attempt.amount) * 100) return;
+
+  const transaction = (Array.isArray(order.transactions) ? order.transactions : []).find(row =>
+    String(row.transaction_type || 'PAYMENT').toUpperCase() === 'PAYMENT'
+    && String(row.transaction_status || '').toUpperCase() === 'APPROVED'
+    && String(row.transaction_currency || '').toUpperCase() === 'VND'
+    && sepay.amountToMinorUnits(row.transaction_amount) === Number(attempt.amount) * 100
+    && (row.transaction_id || row.id));
+  const transactionId = String(transaction?.transaction_id || transaction?.id || '');
+  if (!transactionId) return;
+
+  const reusedTransaction = await SepayPaymentAttempt.findOne({ where: { transaction_id: transactionId } });
+  if (reusedTransaction && String(reusedTransaction.id) !== String(attempt.id)) return;
+
+  await store.transaction(async session => {
+    const currentAttempt = await SepayPaymentAttempt.findByPk(attempt.id, { transaction: session });
+    const currentBooking = await findBooking(attempt.booking_id, session);
+    if (!currentAttempt || !currentBooking || currentAttempt.status === 'succeeded') return;
+    if (!isAwaitingPayment(currentBooking)) {
+      currentAttempt.status = 'reconciliation_required';
+      currentAttempt.reconciliation_required = true;
+      currentAttempt.transaction_id = transactionId;
+      currentAttempt.notification_type = 'ORDER_PAID';
+      await currentAttempt.save({ transaction: session });
+      return;
+    }
+
+    currentAttempt.status = 'succeeded';
+    currentAttempt.transaction_id = transactionId;
+    currentAttempt.notification_type = 'ORDER_PAID';
+    await currentAttempt.save({ transaction: session });
+    currentBooking.payment_status = 'deposit_paid';
+    currentBooking.status = 'deposit';
+    currentBooking.booking_status = 'deposit';
+    currentBooking.payment_amount = Number(currentAttempt.amount);
+    currentBooking.paid_at = new Date();
+    currentBooking.payment_deadline = null;
+    await currentBooking.save({ transaction: session });
+    Object.assign(booking, currentBooking.toJSON ? currentBooking.toJSON() : currentBooking);
+    Object.assign(attempt, currentAttempt.toJSON ? currentAttempt.toJSON() : currentAttempt);
+
+    if (currentBooking.user_id) {
+      await Notification.create({
+        id: `notif_${crypto.randomUUID()}`,
+        user_id: currentBooking.user_id,
+        title: 'Thanh toán đã được xác nhận',
+        message: `SePay đã xác nhận thanh toán cho đơn ${currentBooking.id}.`,
+        type: 'booking',
+        read: false
+      }, { transaction: session });
+    }
+  });
+}
+
 exports.config = (_req, res) => res.json(sepay.getReadiness());
 
 exports.create = async (req, res, next) => {
@@ -74,6 +151,7 @@ exports.status = async (req, res, next) => {
     if (!booking || booking.payment_method !== 'sepay') return res.status(404).json({ success: false, message: 'Không tìm thấy đơn đặt chỗ SePay.' });
     if (!canAccessBooking(req, booking)) return res.status(403).json({ success: false, message: 'Bạn không có quyền xem đơn này.' });
     const attempt = await SepayPaymentAttempt.findOne({ where: { booking_id: booking.id }, order: [['createdAt', 'DESC']] });
+    await reconcileCapturedProviderOrder(booking, attempt);
     return res.json({
       success: true,
       booking: {
