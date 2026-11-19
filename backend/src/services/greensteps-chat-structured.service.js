@@ -244,6 +244,7 @@ function isExplicitItineraryRequest(message) {
 
 function itineraryContextHistory(input) {
   const history = Array.isArray(input?.history) ? input.history : [];
+  if (!history.length) return [];
   if (isExplicitItineraryRequest(input?.message)) {
     if (queryFromRequest({ message: input.message }).destination) return [];
     return history.slice(-6);
@@ -252,12 +253,12 @@ function itineraryContextHistory(input) {
   let requestIndex = -1;
   for (let index = history.length - 1; index >= 0; index--) {
     const item = history[index];
-    if (item?.role === 'user' && isExplicitItineraryRequest(item.content)) {
+    if (item?.role === 'user' && (isExplicitItineraryRequest(item.content) || queryFromRequest({ message: item.content }).destination)) {
       requestIndex = index;
       break;
     }
   }
-  return requestIndex < 0 ? [] : history.slice(requestIndex);
+  return requestIndex < 0 ? history.slice(-6) : history.slice(requestIndex);
 }
 
 function itineraryUserMessages(input) {
@@ -296,9 +297,23 @@ function isItineraryRequest(input) {
   if (isExplicitItineraryRequest(input.message)) return true;
   const value = normalize(input.message);
   if (explicitMessageIntent(input.message) === 'tour_search') return false;
+
+  // Conversational follow-up: user asking bot to create/plan for them
+  // e.g. "bạn tạo giúp tôi được không?", "tạo giúp mình với", "lên giúp tôi", "tạo hộ tôi đi"
+  const asksBotToCreate = /\b(?:tao giup|tao ho|lam giup|lam ho|len giup|len ho|soan giup|soan ho|ban tao|ban lam|ban len|tao cho|lam cho|len cho|giup tao|giup minh tao|giup toi tao|nho ban|co the tao|ban giup tao|giup minh len|giup toi len|tao giup toi|tao ho toi|tao ho minh)\b/.test(value)
+    || (/\b(?:tao|lap|len|lam|soan)\b/.test(value) && /\b(?:giup|ho|duoc khong|nhe|nha|dum|cho toi|cho minh)\b/.test(value));
+  if (asksBotToCreate) return true;
+
   const suppliesDuration = /\b\d{1,2}\s*(?:ngay|day|dem|night)\b/.test(value);
   const updatesCurrentPlan = /\b(?:doi sang|sua thanh|chuyen sang|thay bang|doi diem den|cap nhat lich trinh)\b/.test(value);
-  return latestConversationIntent(input) === 'itinerary'
+  const lastAssistant = [...(input.history || [])].reverse().find(item => item?.role === 'assistant');
+  const assistantOfferedSelfPlan = /tu tao lich trinh|chua tim thay tour|chua co tour|chua tim thay|ban co muon minh tao giup/i.test(normalize(lastAssistant?.content));
+
+  if (assistantOfferedSelfPlan && (asksBotToCreate || /\b(?:tao|lap|len|co|ok|duoc|nhat tri|giup toi|giup minh)\b/.test(value))) {
+    return true;
+  }
+
+  return (latestConversationIntent(input) === 'itinerary' || assistantOfferedSelfPlan)
     && Boolean(pendingItineraryQuestion(input) || suppliesDuration || updatesCurrentPlan);
 }
 

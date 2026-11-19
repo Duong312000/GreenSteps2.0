@@ -165,13 +165,15 @@ function tourDiscoveryReply(message, catalog) {
     ? `Mình tìm thấy ${rows.length}${catalog.truncatedTours ? '+' : ''} tour trong danh mục GreenSteps tại ${label(place)}:\n${selected.map(row => `- ${label(row.title || row.name)} (mã ${label(row.id)})${row.days ? ` — ${row.days} ngày` : ''}: ${finitePrice(row.cost) ? money(row.cost) : 'chưa có giá'}.`).join('\n')}${suffix}`
     : catalog.truncatedTours
       ? `Trang danh mục hiện tại chưa có tour phù hợp tại ${label(place)}; danh sách chưa được truy vấn hết.`
-      : `Mình chưa tìm thấy tour tại ${label(place)} trong danh mục GreenSteps hiện có.`;
+      : `GreenSteps hiện chưa có tour trọn gói của đối tác tại ${label(place)}. Nhưng đừng lo, mình có thể gợi ý các điểm đến xanh và tạo ngay cho bạn một khung lịch trình tự túc tại ${label(place)}! Bạn có muốn mình tạo giúp không?`;
   return {
     intent: rows.length ? 'tours' : catalog.truncatedTours ? 'partial_no_match' : 'tours',
     type: 'tour_recommendations', reply, tours: selected, itinerary: null,
     totalTours: rows.length, hasMoreTours: Boolean(catalog.truncatedTours),
     catalogAvailable: true,
-    suggestedQuestions: [`Tự tạo lịch trình tại ${place}`, 'Tìm tour ở điểm đến khác', 'Xem dịch vụ tại điểm đến này']
+    suggestedQuestions: rows.length
+      ? [`Tự tạo lịch trình tại ${place}`, 'Tìm tour ở điểm đến khác', 'Xem dịch vụ tại điểm đến này']
+      : [`Tạo giúp tôi lịch trình ${place}`, `Tự tạo lịch trình tại ${place}`, 'Khám phá điểm đến khác']
   };
 }
 function listReply(rows, kind, catalog) {
