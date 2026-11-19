@@ -179,6 +179,17 @@ Danh sách biến môi trường tham khảo nằm trong [`backend/.env.example`
 - **Repository:** [Duong312000/GreenSteps2.0](https://github.com/Duong312000/GreenSteps2.0)
 - **Website demo:** [greensteps-livid.vercel.app/home](https://greensteps-livid.vercel.app/home)
 
+### Tài khoản dùng thử
+
+Để thuận tiện cho việc trải nghiệm các chức năng theo từng vai trò, nhóm cung cấp các tài khoản **chỉ dùng cho môi trường demo**:
+
+| Vai trò | Tên đăng nhập | Mật khẩu |
+|---|---|---|
+| Nhà cung cấp | `Duong` | `123456` |
+| Quản trị viên (Admin) | `Kien` | `123456` |
+
+> **Lưu ý:** Các tài khoản này chỉ dành cho mục đích trình diễn và kiểm thử đồ án; không sử dụng trên môi trường production hoặc cho dữ liệu thật. Nếu website demo kết nối với dữ liệu hoặc quyền quản trị thực tế, không nên công khai mật khẩu trong README.
+
 ### Giao diện khách hàng
 
 Một số hình ảnh giao diện danh sách tour của dự án:
