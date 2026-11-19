@@ -6,7 +6,7 @@ const { lodgingPrice } = require('./lodging-pricing.service');
 
 const DEFAULT_SETTINGS = Object.freeze({
   id: 'booking_pricing', discount_percent: 0, service_fee_vnd: 0,
-  service_fee_per_guest: false, deposit_percent: 0, collect_deposit_for: Object.freeze([]), version: 1
+  service_fee_per_guest: false, deposit_percent: 30, collect_deposit_for: Object.freeze([]), version: 1
 });
 
 function invalidPricing(message) { return Object.assign(new Error(message), { statusCode: 400 }); }
@@ -58,7 +58,6 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     const schedule = await Schedule.findByPk(targetId);
     if (!schedule) throw Object.assign(new Error('Kh?ng t?m th?y tour.'), { statusCode: 404 });
     const isCustom = type === 'itinerary'
-      || Boolean(await ScheduleCustom.findByPk(targetId))
       || schedule.catalog_status === 'personal'
       || Boolean(schedule.user_id);
     require('./catalog-presentation.service').assertTourBookable(schedule, { allowPersonal: isCustom });
@@ -91,7 +90,8 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
   const serviceFee = Number(settings.service_fee_vnd || 0) * (settings.service_fee_per_guest ? guests : 1);
   const total = subtotal - discount + serviceFee;
   const shouldCollectDeposit = !settings.collect_deposit_for?.length || settings.collect_deposit_for.includes(type);
-  const deposit = shouldCollectDeposit ? Math.round(total * Number(settings.deposit_percent || 0) / 100) : 0;
+  const depositPercent = Number(settings.deposit_percent || 30);
+  const deposit = shouldCollectDeposit ? Math.round(total * depositPercent / 100) : 0;
   const remaining = total - deposit;
   const amountDueNow = deposit > 0 && (!paymentMethod || shouldCollectDeposit) ? deposit : total;
   for (const [label, amount] of Object.entries({ subtotal, discount, serviceFee, addonsTotal, total, deposit, remaining, amountDueNow })) integerVnd(amount, label);
@@ -99,7 +99,7 @@ async function calculatePricing({ type, targetId, guestCount, addonIds = [], pay
     type, targetId, currency: 'VND', policyVersion: 1, guestCount: guests, paymentMethod: paymentMethod || null,
     unitTourPrice: unitTourPrice ?? null, tourSubtotal: tourPriceSubtotal, addons, addonsTotal, subtotal,
     discountPercent: flashSale ? (flashSale.discount_type === 'percent' ? flashSale.discount_value : null) : Number(settings.discount_percent || 0),
-    flashSale, discount, serviceFee, total, depositPercent: Number(settings.deposit_percent || 0), deposit, remaining, amountDueNow
+    flashSale, discount, serviceFee, total, depositPercent, deposit, remaining, amountDueNow
   };
 }
 

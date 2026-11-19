@@ -76,7 +76,13 @@ exports.status = async (req, res, next) => {
     const attempt = await SepayPaymentAttempt.findOne({ where: { booking_id: booking.id }, order: [['createdAt', 'DESC']] });
     return res.json({
       success: true,
-      booking: { id: booking.id, status: booking.status, payment_status: booking.payment_status, payment_method: booking.payment_method },
+      booking: {
+        id: booking.id,
+        status: booking.status,
+        payment_status: booking.payment_status,
+        payment_method: booking.payment_method,
+        paid_amount: Number(booking.payment_amount || 0)
+      },
       payment: attempt ? { status: attempt.status, amount: attempt.amount, transactionId: attempt.transaction_id || null, reconciliationRequired: Boolean(attempt.reconciliation_required) } : null
     });
   } catch (error) { next(error); }
@@ -147,6 +153,8 @@ exports.ipn = async (req, res, next) => {
       booking.payment_status = 'deposit_paid';
       booking.status = 'deposit';
       booking.booking_status = 'deposit';
+      booking.payment_amount = Number(currentAttempt.amount);
+      booking.paid_at = new Date();
       await booking.save({ transaction });
       settled = true;
       if (booking.user_id) {

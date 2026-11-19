@@ -64,4 +64,11 @@ describe('Transport in the existing service checkout', () => {
     expect(c.serviceFee).toBe(120000);expect(c.depositAmount).toBe(588000);
     expect(c.checkoutPaymentMethods.some(method => method.id === 'sepay')).toBe(true);
   });
+  it('treats a settled SePay attempt as paid and displays its actual settled amount', () => {
+    const {c}=create(false);
+    c.confirmationBooking={payment_method:'sepay',status:'pending',payment_status:'pending',value:1580000,
+      payment:{status:'succeeded',amount:200}} as any;
+    expect(c.confirmationIsPaid).toBe(true);
+    expect(c.confirmationPaidNow).toBe(200);
+  });
 });

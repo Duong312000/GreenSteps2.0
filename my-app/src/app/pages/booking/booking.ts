@@ -955,6 +955,28 @@ export class BookingComponent implements OnInit, OnDestroy {
   private async startSepayPayment(bookingData: any) {
     this.isBookingLoading = true;
     try {
+      const quoted = await this.apiService.getBookingQuote({
+        type: bookingData.kind,
+        targetId: bookingData.target_id,
+        guests: bookingData.guests,
+        addonIds: bookingData.addonIds || [],
+        paymentMethod: 'sepay',
+        roomId: bookingData.roomId,
+        roomCount: bookingData.roomCount,
+        bookingDate: bookingData.booking_date,
+        checkOutDate: bookingData.check_out_date,
+        flashSaleId: bookingData.flashSaleId
+      });
+      if (!quoted?.success || !quoted.pricing) throw new Error('Chưa xác nhận được giá thanh toán từ máy chủ.');
+      const previousTotal = this.totalAmount;
+      const previousDeposit = this.depositAmount;
+      this.sepayPricingSnapshot = quoted.pricing;
+      this.cdr.detectChanges();
+      if (previousTotal !== Number(quoted.pricing.total) || previousDeposit !== Number(quoted.pricing.amountDueNow)) {
+        this.showAlert('Giá đã được cập nhật', 'GreenSteps vừa xác nhận lại tổng tiền và khoản đặt cọc. Vui lòng kiểm tra số tiền mới rồi bấm thanh toán SePay thêm lần nữa.', 'info');
+        return;
+      }
+
       const config = await this.apiService.getSepayPaymentConfig();
       if (!config.configured) {
         this.showAlert('Cổng thanh toán tạm thời bảo trì', 'Cổng thanh toán trực tuyến hiện đang bảo trì kết nối. Quý khách vui lòng chọn chuyển khoản VietQR hoặc thanh toán tại quầy.', 'warning');
@@ -968,6 +990,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       }
 
       this.currentBookingId = booking.bookingId;
+      if (booking.pricing) this.sepayPricingSnapshot = booking.pricing;
       this.paymentStatus = 'pending';
       const capability = booking.sepayPaymentCapability || '';
       if (capability) {
@@ -1320,6 +1343,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   public get usesServiceQuote(): boolean { return !!this.selectedLodgingRoom || !!this.activeTour?.flashSale || !!this.bookingContext.flashSaleId; }
 
   public lodgingPricing: any = null;
+  public sepayPricingSnapshot: any = null;
   private async loadRoomPricing(): Promise<boolean> {
     try {
       const quote = await this.apiService.getBookingQuote({
@@ -1390,6 +1414,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get basePrice() {
     if (this.isTransportBooking) return Number(this.transportBooking?.total_price || 0);
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.subtotal || 0);
     if (this.selectedLodgingRoom) {
       return Number(this.selectedLodgingRoom.price_per_night || 0) * this.bookingContext.roomCount * this.nights;
     }
@@ -1406,6 +1431,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get discountAmount() {
     if (this.isTransportBooking) return 0;
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.discount || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       return Number(this.itineraryPricingSnapshot.discount) || 0;
     }
@@ -1422,6 +1448,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public get vatAmount(): number {
     if (this.isTransportBooking) return 0;
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.vat || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       return Number(this.itineraryPricingSnapshot.vat) || 0;
     }
@@ -1430,15 +1457,18 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get serviceFee() {
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.serviceFee || 0);
     return 0;
   }
 
   public get totalAmount() {
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.total || 0);
     return this.basePrice - this.discountAmount + this.vatAmount + this.serviceFee + this.addOnsTotal;
   }
 
   public get depositAmount() {
     if (this.isTransportBooking) return this.basePrice;
+    if (this.paymentMethod === 'sepay' && this.sepayPricingSnapshot) return Number(this.sepayPricingSnapshot.amountDueNow || 0);
     if (this.isItineraryBooking() && this.itineraryPricingSnapshot) {
       if (this.itineraryPricingSnapshot.deposit !== undefined && this.itineraryPricingSnapshot.deposit !== null) {
         return Number(this.itineraryPricingSnapshot.deposit);
@@ -1487,7 +1517,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     const booking = this.confirmationBooking;
     const paymentStatus = String(booking?.payment?.status || booking?.payment_status || '').toLowerCase();
     return ['deposit', 'completed', 'confirmed', 'accepted'].includes(String(booking?.status || '').toLowerCase())
-      || ['paid', 'deposit_paid', 'fully_paid', 'success'].includes(paymentStatus);
+      || ['paid', 'deposit_paid', 'fully_paid', 'success', 'succeeded'].includes(paymentStatus);
   }
 
   public get confirmationIsFailed(): boolean {
@@ -1557,7 +1587,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   }
 
   public get confirmationPaidNow(): number {
-    return Number(this.confirmationBooking?.value ?? this.confirmationBooking?.payment?.amount ?? 0);
+    return Number(this.confirmationBooking?.paid_amount || this.confirmationBooking?.payment?.amount || this.confirmationBooking?.value || 0);
   }
 
   public async loadConfirmationBooking() {

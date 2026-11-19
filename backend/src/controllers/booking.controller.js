@@ -294,7 +294,7 @@ exports.createBooking = async (req, res, next) => {
         const quote = await require('../services/booking-pricing.service').calculatePricing({
           type, targetId, guestCount: guests, paymentMethod, flashSaleId, addonIds,
         });
-        if (quote.flashSale) { lodgingSnapshot = quote; totalValue = quote.amountDueNow; }
+        if (paymentMethod === 'sepay' || quote.flashSale) { lodgingSnapshot = quote; totalValue = quote.amountDueNow; }
       }
       tourNameOrServiceName = service.name_service;
       bookingId = 'BKS-' + Date.now();
@@ -305,7 +305,15 @@ exports.createBooking = async (req, res, next) => {
       }
 
       const sampleTour = await ScheduleSample.findOne({ where: { id: targetId } });
-      if (sampleTour) {
+      const sepayQuote = paymentMethod === 'sepay'
+        ? await require('../services/booking-pricing.service').calculatePricing({
+          type, targetId, guestCount: guests, addonIds, paymentMethod, flashSaleId,
+        })
+        : null;
+      if (sepayQuote) {
+        lodgingSnapshot = sepayQuote;
+        totalValue = sepayQuote.amountDueNow;
+      } else if (sampleTour) {
         totalValue = sampleTour.cost * guests;
       } else {
         // It's a custom itinerary! Fetch costs of activities
@@ -626,6 +634,7 @@ exports.createBooking = async (req, res, next) => {
           booking_date: bookingDate,
           guests: guests,
           value: totalValue,
+          ...(lodgingSnapshot ? { pricing_snapshot: lodgingSnapshot } : {}),
           payment_method: paymentMethod || 'counter',
           evoucher_code: evoucherCode,
           status: 'pending',
@@ -645,6 +654,7 @@ exports.createBooking = async (req, res, next) => {
     const responsePayload = {
       success: true,
       payment: { amount: totalValue, status: 'pending', transfer_reference: bookingId },
+      ...(lodgingSnapshot ? { pricing: lodgingSnapshot } : {}),
       message: 'Đặt chỗ thành công!',
       bookingId,
       emailAlreadyExists: !!emailAlreadyExists

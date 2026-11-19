@@ -4,6 +4,23 @@ const { BookingAddon, BookingSetting, Schedule, ScheduleSample } = require('../s
 const { Op } = require('../src/db/mongo-store');
 const { calculatePricing, ensureDefaultBookingAddons } = require('../src/services/booking-pricing.service');
 
+test('server default quote keeps SePay deposit pricing aligned with the 30% checkout amount', async () => {
+  const originals = { schedule: Schedule.findByPk, sample: ScheduleSample.findByPk, settings: BookingSetting.findByPk };
+  try {
+    Schedule.findByPk = async id => ({ id });
+    ScheduleSample.findByPk = async () => ({ cost: 1_000_000 });
+    BookingSetting.findByPk = async () => ({ deposit_percent: 0 });
+    const quote = await calculatePricing({ type: 'tour', targetId: 'tour-default', guestCount: 1, paymentMethod: 'sepay' });
+    assert.equal(quote.total, 1_000_000);
+    assert.equal(quote.deposit, 300_000);
+    assert.equal(quote.amountDueNow, 300_000);
+  } finally {
+    Schedule.findByPk = originals.schedule;
+    ScheduleSample.findByPk = originals.sample;
+    BookingSetting.findByPk = originals.settings;
+  }
+});
+
 test('startup seeds missing default booking add-ons without overwriting admin edits', async () => {
   const originalFindOrCreate = BookingAddon.findOrCreate;
   const calls = [];
