@@ -97,10 +97,26 @@ export class ToursComponent implements OnInit {
     'Glamping'
   ];
 
-  // Modal control
+  // Full Itinerary Creation Modal State (Wanderlog / GreenSteps style)
   public isCreateModalOpen: boolean = false;
-  public modalDest = '';
-  public modalDays: number = 3;
+  public newTripName: string = '';
+  public newTripDestination: string = 'Đà Lạt';
+  public newTripOrigin: string = 'TP. Hồ Chí Minh';
+  public newTripStartDate: string = '';
+  public newTripEndDate: string = '';
+  public newTripDepartureTime: string = '07:30';
+  public newTripTransport: string = 'Xe khách Limousine';
+  public newTripFirstStop: string = '';
+  public newTripCompanionEmail: string = '';
+  public calculatedDays: number = 3;
+  public calculatedNights: number = 2;
+  public formDateError: string = '';
+
+  // Compatibility accessors
+  get modalDest(): string { return this.newTripDestination; }
+  set modalDest(val: string) { this.newTripDestination = val; }
+  get modalDays(): number { return this.calculatedDays; }
+  set modalDays(val: number) { this.calculatedDays = val; }
 
   constructor(
     private apiService: ApiService,
@@ -388,63 +404,164 @@ export class ToursComponent implements OnInit {
     this.isMobileFilterOpen = !this.isMobileFilterOpen;
   }
 
-  // Itinerary creation modal logic
+  // Itinerary creation modal logic (Full Wanderlog / GreenSteps style)
   public openCreateItineraryModal() {
     this.isCreateModalOpen = true;
+    const dest = (this.filterDest && this.filterDest !== 'all') ? this.filterDest : 'Đà Lạt';
+    this.newTripDestination = dest;
+    this.newTripOrigin = 'TP. Hồ Chí Minh';
+    this.newTripName = `Hành trình khám phá ${dest}`;
+    this.newTripDepartureTime = '07:30';
+    this.newTripTransport = 'Xe khách Limousine';
+    this.newTripFirstStop = '';
+    this.newTripCompanionEmail = '';
+    this.formDateError = '';
+
+    // Set default dates: 7 days from now, 3 days duration
+    const start = new Date();
+    start.setDate(start.getDate() + 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 2);
+    this.newTripStartDate = start.toISOString().split('T')[0];
+    this.newTripEndDate = end.toISOString().split('T')[0];
+    this.onTripDatesChange();
+    this.cdr.detectChanges();
   }
 
   public closeCreateItineraryModal() {
     this.isCreateModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  public onTripDatesChange() {
+    this.formDateError = '';
+    if (this.newTripStartDate && this.newTripEndDate) {
+      const s = new Date(this.newTripStartDate);
+      const e = new Date(this.newTripEndDate);
+      if (e < s) {
+        this.formDateError = 'Ngày về phải sau hoặc cùng ngày với ngày khởi hành!';
+        this.calculatedDays = 1;
+        this.calculatedNights = 0;
+        return;
+      }
+      const diffMs = e.getTime() - s.getTime();
+      this.calculatedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      this.calculatedNights = Math.max(0, this.calculatedDays - 1);
+    } else {
+      this.calculatedDays = 3;
+      this.calculatedNights = 2;
+    }
   }
 
   public onModalDestChange() {
-    // Map previews stay disabled until the destination coordinates and Maps use are verified.
+    if (this.newTripDestination) {
+      this.newTripName = `Hành trình khám phá ${this.newTripDestination}`;
+    }
   }
 
   public async submitNewItinerary(event: Event) {
     event.preventDefault();
-    if (!this.modalDest) return;
-    this.isCreateModalOpen = false;
+    if (!this.newTripDestination) return;
 
+    if (this.newTripStartDate && this.newTripEndDate) {
+      const s = new Date(this.newTripStartDate);
+      const e = new Date(this.newTripEndDate);
+      if (e < s) {
+        this.formDateError = 'Ngày về phải sau hoặc cùng ngày với ngày khởi hành!';
+        return;
+      }
+    }
+
+    this.isCreateModalOpen = false;
     const user = this.authService.getCurrentUser();
     const userId = user ? (user.id || user._id || '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d') : '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb7d';
-    const daysNum = Math.max(1, Number(this.modalDays) || 1);
-    const daysData = Array.from({ length: daysNum }, () => []);
+    const daysNum = Math.max(1, this.calculatedDays || 3);
     const newItiId = 'iti_' + Date.now();
-    const title = `Lịch trình tự thiết kế ${this.modalDest}`;
+    const tripTitle = this.newTripName.trim() || `Hành trình khám phá ${this.newTripDestination}`;
+    const originName = this.newTripOrigin.trim() || 'TP. Hồ Chí Minh';
+    const transportName = this.newTripTransport || 'Xe khách Limousine';
+    const depTime = this.newTripDepartureTime || '07:30';
 
-    const newIti: Itinerary = {
+    // Auto-populate initial transit & first stop for Day 1
+    const day1Activities: any[] = [];
+    const isLowCarbon = transportName.includes('điện') || transportName.includes('Tàu hỏa') || transportName.includes('thủy');
+    day1Activities.push({
+      id: 'act_' + Date.now() + '_dep',
+      time: depTime,
+      title: `Khởi hành: ${originName} → ${this.newTripDestination}`,
+      name: `Khởi hành: ${originName} → ${this.newTripDestination}`,
+      type: 'transport',
+      cost: 0,
+      carbon: isLowCarbon ? 2.5 : 8.0,
+      is_shared: true,
+      lat: null,
+      lng: null,
+      note: `Di chuyển bằng ${transportName}. Chuẩn bị hành lý và đồ dùng sinh thái.`
+    });
+
+    if (this.newTripFirstStop && this.newTripFirstStop.trim()) {
+      day1Activities.push({
+        id: 'act_' + Date.now() + '_stop1',
+        time: '11:30',
+        title: this.newTripFirstStop.trim(),
+        name: this.newTripFirstStop.trim(),
+        type: 'stay',
+        cost: 0,
+        carbon: 1.0,
+        is_shared: true,
+        lat: null,
+        lng: null,
+        note: `Điểm đến đầu tiên / Nhận phòng nghỉ ngơi tại ${this.newTripDestination}.`
+      });
+    }
+
+    const daysData = Array.from({ length: daysNum }, (_, i) => i === 0 && day1Activities.length > 0 ? day1Activities : []);
+
+    const newIti: any = {
       id: newItiId,
-      name: title,
+      name: tripTitle,
       user_id: userId,
-      destination: this.modalDest,
+      destination: this.newTripDestination,
+      origin: originName,
+      departure_time: depTime,
+      transport: transportName,
+      first_stop: this.newTripFirstStop.trim() || null,
       days: daysNum,
       totalCost: 0,
-      totalCarbon: 0,
-      daysData: daysData
+      totalCarbon: day1Activities.reduce((acc, a) => acc + (a.carbon || 0), 0),
+      daysData: daysData,
+      status: 'draft',
+      deposit_deadline: null,
+      start_date: this.newTripStartDate || null,
+      end_date: this.newTripEndDate || null,
+      companion_email: this.newTripCompanionEmail.trim() || null
     };
 
-    // Save to localStorage immediately so schedule editor loads instantly without network lag
-    const destSlug = (this.modalDest || '').toLowerCase().includes('nẵng') ? 'da-nang'
-      : (this.modalDest || '').toLowerCase().includes('phú yên') ? 'phu-yen' : 'da-lat';
-
+    const destSlug = this.mapDestToSlug(this.newTripDestination);
     const editorDays = Array.from({ length: daysNum }, (_, idx) => ({
       dayNum: idx + 1,
       title: `Ngày ${idx + 1}`,
-      activities: []
+      activities: idx === 0 && day1Activities.length > 0 ? day1Activities : []
     }));
 
     const draftPayload = {
       id: newItiId,
-      title: title,
+      title: tripTitle,
+      name: tripTitle,
       dest: destSlug,
-      destLabel: this.modalDest,
-      destination: this.modalDest,
+      destLabel: this.newTripDestination,
+      destination: this.newTripDestination,
+      origin: originName,
+      departure_time: depTime,
+      transport: transportName,
+      first_stop: this.newTripFirstStop.trim() || null,
       days: editorDays,
       daysData: daysData,
       status: 'draft',
       totalCost: 0,
-      totalCarbon: 0
+      totalCarbon: newIti.totalCarbon,
+      start_date: this.newTripStartDate || null,
+      end_date: this.newTripEndDate || null
     };
 
     try {
@@ -452,11 +569,39 @@ export class ToursComponent implements OnInit {
       localStorage.setItem(`greensteps_user_draft_${newItiId}`, JSON.stringify(draftPayload));
       localStorage.setItem(`greensteps_guest_draft_${newItiId}`, JSON.stringify(draftPayload));
       localStorage.setItem('greensteps_working_itinerary_id', newItiId);
+      const guestIds: string[] = JSON.parse(localStorage.getItem('greensteps_guest_itinerary_ids') || '[]');
+      if (!guestIds.includes(newItiId)) {
+        guestIds.unshift(newItiId);
+        localStorage.setItem('greensteps_guest_itinerary_ids', JSON.stringify(guestIds));
+      }
     } catch (e) {}
 
     this.apiService.saveItinerary(newIti).catch(err => console.warn('Background save itinerary warning:', err));
     this.router.navigate(['/schedule', newIti.id]);
   }
+  public mapDestToSlug(destName: string): string {
+    if (!destName) return "da-lat";
+    const normalized = destName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+    if (normalized.includes("dalat") || normalized.includes("da lat")) return "da-lat";
+    if (normalized.includes("phu yen")) return "phu-yen";
+    if (normalized.includes("hoi an")) return "hoi-an";
+    if (normalized.includes("da nang")) return "da-nang";
+    if (normalized.includes("vung tau")) return "vung-tau";
+    if (normalized.includes("ha noi")) return "ha-noi";
+    if (normalized.includes("phu quoc")) return "phu-quoc";
+    if (normalized.includes("nha trang")) return "nha-trang";
+    if (normalized.includes("ho chi minh") || normalized.includes("sai gon")) return "ho-chi-minh";
+    if (normalized.includes("hue")) return "hue";
+    if (normalized.includes("quy nhon")) return "quy-nhon";
+    if (normalized.includes("sapa") || normalized.includes("sa pa")) return "sapa";
+    if (normalized.includes("ninh binh")) return "ninh-binh";
+    if (normalized.includes("ha long")) return "ha-long";
+    if (normalized.includes("can tho")) return "can-tho";
+    if (normalized.includes("phan thiet") || normalized.includes("mui ne")) return "phan-thiet";
+    if (normalized.includes("hai phong")) return "hai-phong";
+    return normalized.trim().replace(/\s+/g, "-");
+  }
+
   // ── Autocomplete helpers ──────────────────────────────────────────
   public buildSearchSuggestions(): string[] {
     const all = new Set<string>();

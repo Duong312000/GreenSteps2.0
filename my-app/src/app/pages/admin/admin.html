@@ -198,26 +198,26 @@
                   </article>
                 </div>
 
-                <div *ngIf="platformBehavioralReport.providerLeaderboard?.length" style="margin-bottom: 20px;">
-                  <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">Hiệu quả tương tác theo Nhà cung cấp (Toàn quyền Quản trị viên)</h3>
-                  <div class="table-scroll">
-                    <table>
+                <div *ngIf="platformBehavioralReport.providerLeaderboard?.length" style="margin-bottom: 24px;">
+                  <h3 style="font-size: 13px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0;">Hiệu quả tương tác theo Nhà cung cấp</h3>
+                  <div class="table-scroll" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <table class="admin-data-table behavioral-table">
                       <thead>
                         <tr>
-                          <th>Nhà cung cấp</th>
-                          <th>Lượt xem dịch vụ</th>
-                          <th>Thời gian đọc TB</th>
-                          <th>Lượt bấm đặt chỗ</th>
-                          <th>Tỷ lệ chuyển đổi bước đặt</th>
+                          <th style="min-width: 220px; padding: 12px 16px;">Nhà cung cấp</th>
+                          <th style="min-width: 140px; text-align: right; padding: 12px 16px;">Lượt xem dịch vụ</th>
+                          <th style="min-width: 140px; text-align: right; padding: 12px 16px;">Thời gian đọc TB</th>
+                          <th style="min-width: 140px; text-align: right; padding: 12px 16px;">Lượt bấm đặt chỗ</th>
+                          <th style="min-width: 160px; text-align: right; padding: 12px 16px;">Tỷ lệ chuyển đổi</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr *ngFor="let p of platformBehavioralReport.providerLeaderboard">
-                          <td><strong>{{ p.providerName }}</strong></td>
-                          <td>{{ formatCount(p.views) }}</td>
-                          <td>{{ p.avgActiveSeconds }} giây</td>
-                          <td>{{ formatCount(p.bookClicks) }}</td>
-                          <td>{{ p.bookClickRatePct }}%</td>
+                          <td style="padding: 12px 16px;"><strong style="color: #0f172a; font-size: 13px;">{{ p.providerName }}</strong></td>
+                          <td style="text-align: right; font-weight: 600; color: #334155; padding: 12px 16px;">{{ formatCount(p.views) }}</td>
+                          <td style="text-align: right; color: #64748b; padding: 12px 16px;">{{ p.avgActiveSeconds }} giây</td>
+                          <td style="text-align: right; font-weight: 600; color: #047857; padding: 12px 16px;">{{ formatCount(p.bookClicks) }}</td>
+                          <td style="text-align: right; font-weight: 700; color: #047857; padding: 12px 16px;">{{ p.bookClickRatePct }}%</td>
                         </tr>
                       </tbody>
                     </table>
@@ -225,27 +225,31 @@
                 </div>
 
                 <div *ngIf="platformBehavioralReport.topItems?.length">
-                  <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">Nội dung có mức độ quan tâm cao nhất</h3>
-                  <div class="table-scroll">
-                    <table>
+                  <h3 style="font-size: 13px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0;">Nội dung có mức độ quan tâm cao nhất</h3>
+                  <div class="table-scroll" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <table class="admin-data-table behavioral-table">
                       <thead>
                         <tr>
-                          <th>Tên dịch vụ / Lịch trình</th>
-                          <th>Điểm đến</th>
-                          <th>Lượt xem</th>
-                          <th>Thời gian đọc TB</th>
-                          <th>Tỷ lệ đọc kỹ</th>
-                          <th>Lượt bấm đặt</th>
+                          <th style="min-width: 260px; padding: 12px 16px;">Tên dịch vụ / Lịch trình</th>
+                          <th style="min-width: 150px; padding: 12px 16px;">Điểm đến</th>
+                          <th style="min-width: 110px; text-align: right; padding: 12px 16px;">Lượt xem</th>
+                          <th style="min-width: 140px; text-align: right; padding: 12px 16px;">Thời gian đọc TB</th>
+                          <th style="min-width: 120px; text-align: right; padding: 12px 16px;">Tỷ lệ đọc kỹ</th>
+                          <th style="min-width: 120px; text-align: right; padding: 12px 16px;">Lượt bấm đặt</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr *ngFor="let item of platformBehavioralReport.topItems">
-                          <td><strong>{{ item.name }}</strong></td>
-                          <td>{{ item.destination || 'Việt Nam' }}</td>
-                          <td>{{ formatCount(item.views) }}</td>
-                          <td>{{ item.avgActiveSeconds }} giây</td>
-                          <td>{{ item.scrollCompletionPct }}%</td>
-                          <td>{{ formatCount(item.bookClicks) }}</td>
+                          <td style="padding: 12px 16px;"><strong style="color: #0f172a; font-size: 13px; display: block; line-height: 1.4;">{{ item.name }}</strong></td>
+                          <td style="padding: 12px 16px;">
+                            <span style="display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600;">
+                              {{ item.destination || 'Việt Nam' }}
+                            </span>
+                          </td>
+                          <td style="text-align: right; font-weight: 600; color: #334155; padding: 12px 16px;">{{ formatCount(item.views) }}</td>
+                          <td style="text-align: right; color: #64748b; padding: 12px 16px;">{{ item.avgActiveSeconds }} giây</td>
+                          <td style="text-align: right; font-weight: 600; color: #334155; padding: 12px 16px;">{{ item.scrollCompletionPct }}%</td>
+                          <td style="text-align: right; font-weight: 700; color: #047857; padding: 12px 16px;">{{ formatCount(item.bookClicks) }}</td>
                         </tr>
                       </tbody>
                     </table>

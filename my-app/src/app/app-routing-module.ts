@@ -61,6 +61,7 @@ const routes: Routes = [
   { path: 'contact', component: HelpCenterContactComponent },
   { path: 'profile', loadChildren: () => import('./pages/profile/profile.module').then(m => m.ProfileModule) },
   { path: 'community', loadChildren: () => import('./pages/community/community.module').then(m => m.CommunityModule) },
+  { path: 'ai-planner', redirectTo: 'schedule' },
   { path: 'schedule', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
   { path: 'schedule/:id', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },
   { path: 'schedule-editor', loadChildren: () => import('./pages/schedule-editor/schedule-editor.module').then(m => m.ScheduleEditorModule) },

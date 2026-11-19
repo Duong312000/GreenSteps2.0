@@ -27,7 +27,7 @@ function canonicalTour(tour) {
   return {
     id: text(tour.id, 80), name: text(tour.title || tour.name, 120), destination: text(tour.destination, 100),
     durationDays: days, durationNights: days === null ? null : Math.max(0, days - 1), price, currency: price === null ? null : 'VND',
-    imageUrl: text(tour.imageUrl || tour.image, 500) || null, highlights: highlights.length ? highlights : tags,
+    imageUrl: text(tour.imageUrl || tour.image || tour.image_url || tour.photo_url || tour.coverImage || tour.cover_image, 500) || null, highlights: highlights.length ? highlights : tags,
     ecoLabels,
     rating,
     bookingAvailable: tour.bookingAvailable === true

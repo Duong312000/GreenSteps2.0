@@ -126,7 +126,7 @@
                           <button type="button" class="planner-more" (click)="openToursPage()">Khám phá danh sách tour <span aria-hidden="true">→</span></button>
                         </div>
                       }
-                      <button type="button" class="planner-more planner-create" (click)="sendSuggestedQuestion(itineraryPrompt(result))">Tự tạo lịch trình</button>
+                      <button type="button" class="planner-more planner-create" (click)="startCustomPlanner(result)">Tự tạo lịch trình</button>
                     </section>
                   } @else if (result.type === 'itinerary_proposal') {
                     @if (result.itinerary; as plan) {

@@ -424,10 +424,50 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   // Cities centers for map coordinates fallbacks
   private cityCenters: { [key: string]: number[] } = {
-    "da-lat": [11.9404, 108.4373],
-    "phu-yen": [13.0882, 109.3025],
-    "da-nang": [16.0544, 108.2022]
+    "da-lat": [11.9360, 108.4450],      // Quảng trường Lâm Viên / Hồ Xuân Hương
+    "phu-yen": [13.0882, 109.3025],     // Tuy Hòa, Phú Yên
+    "da-nang": [16.0544, 108.2022],     // Trung tâm Đà Nẵng
+    "vung-tau": [10.3460, 107.0843],    // Bãi Sau / Trung tâm TP Vũng Tàu
+    "ha-noi": [21.0285, 105.8542],      // Hồ Hoàn Kiếm, Hà Nội
+    "hoi-an": [15.8801, 108.3380],      // Phố cổ Hội An
+    "phu-quoc": [10.2289, 103.9572],    // Dương Đông, Phú Quốc
+    "nha-trang": [12.2388, 109.1967],   // Bờ biển Trần Phú, Nha Trang
+    "ho-chi-minh": [10.7769, 106.7009], // Bến Thành, TP. Hồ Chí Minh
+    "hue": [16.4637, 107.5909],         // Đại nội Huế
+    "quy-nhon": [13.7830, 109.2197],    // TP. Quy Nhơn
+    "sapa": [22.3364, 103.8438],        // Trung tâm Sa Pa
+    "ninh-binh": [20.2506, 105.9745],   // Tràng An / Ninh Bình
+    "ha-long": [20.9505, 107.0734],     // Bãi Cháy, Vịnh Hạ Long
+    "can-tho": [10.0452, 105.7469],     // Bến Ninh Kiều, Cần Thơ
+    "phan-thiet": [10.9289, 108.1021],  // Mũi Né / Phan Thiết
+    "hai-phong": [20.8449, 106.6881]    // Trung tâm Hải Phòng
   };
+
+  public getDestinationCenterCoords(dest: string | null | undefined): [number, number] {
+    if (!dest) return [11.9360, 108.4450];
+    const slug = this.mapDestToSlug(dest);
+    if (this.cityCenters[slug]) {
+      return [this.cityCenters[slug][0], this.cityCenters[slug][1]];
+    }
+    const normalized = dest.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+    if (normalized.includes('vung tau')) return [10.3460, 107.0843];
+    if (normalized.includes('ha noi')) return [21.0285, 105.8542];
+    if (normalized.includes('hoi an')) return [15.8801, 108.3380];
+    if (normalized.includes('phu quoc')) return [10.2289, 103.9572];
+    if (normalized.includes('nha trang')) return [12.2388, 109.1967];
+    if (normalized.includes('ho chi minh') || normalized.includes('sai gon')) return [10.7769, 106.7009];
+    if (normalized.includes('hue')) return [16.4637, 107.5909];
+    if (normalized.includes('quy nhon')) return [13.7830, 109.2197];
+    if (normalized.includes('sapa')) return [22.3364, 103.8438];
+    if (normalized.includes('ninh binh')) return [20.2506, 105.9745];
+    if (normalized.includes('ha long')) return [20.9505, 107.0734];
+    if (normalized.includes('can tho')) return [10.0452, 105.7469];
+    if (normalized.includes('phan thiet') || normalized.includes('mui ne')) return [10.9289, 108.1021];
+    if (normalized.includes('hai phong')) return [20.8449, 106.6881];
+    if (normalized.includes('phu yen')) return [13.0882, 109.3025];
+    if (normalized.includes('da nang')) return [16.0544, 108.2022];
+    return [11.9360, 108.4450];
+  }
 
   // Suggestions are loaded dynamically from the database only (GreenServices)
 
@@ -496,6 +536,25 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.route.snapshot.paramMap.get('id') ||
         this.route.snapshot.queryParamMap.get('id');
 
+      const action = queryParams.get('action') || this.route.snapshot.queryParamMap.get('action');
+      const mode = queryParams.get('mode') || this.route.snapshot.queryParamMap.get('mode');
+      const destParam = queryParams.get('destination') || queryParams.get('dest') || this.route.snapshot.queryParamMap.get('destination') || this.route.snapshot.queryParamMap.get('dest');
+
+      // If user specifically requests a new itinerary creation
+      if (id === 'new' || action === 'new' || mode === 'new') {
+        this.isListMode = false;
+        this.isLoadingEditor = false;
+        if (destParam) {
+          const cleanDest = decodeURIComponent(destParam).trim();
+          this.newTripDestination = cleanDest;
+          this.modalDest = cleanDest;
+          this.newTripName = `Hành trình khám phá ${cleanDest}`;
+        }
+        this.openCreateNewModal();
+        this.cdr.detectChanges();
+        return;
+      }
+
       if (!id) {
         try {
           const segments = window.location.pathname.split('/').filter(Boolean);
@@ -517,12 +576,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       this.isLoadingEditor = true;
       this.cdr.detectChanges();
 
-      if (id) {
+      if (id && id !== 'new') {
         this.loadItineraryToEditor(id);
         localStorage.setItem('greensteps_working_itinerary_id', id);
       } else {
-        // Safe graceful fallback: load active draft or default tour without redirect loop
-        this.loadItineraryToEditor('SCH01');
+        // Safe graceful fallback: open create new modal so user can start a fresh trip
+        this.isLoadingEditor = false;
+        this.openCreateNewModal();
       }
     });
   }
@@ -841,6 +901,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public closeCreateNewModal() {
     this.isCreateNewModalOpen = false;
+    if (!this.activeItinerary) {
+      this.router.navigate(['/tours']);
+    }
     this.cdr.detectChanges();
   }
 
@@ -964,6 +1027,7 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         id: newIti.id,
         title: newIti.name,
         name: newIti.name,
+        dest: this.mapDestToSlug(newIti.destination),
         destLabel: newIti.destination,
         destination: newIti.destination,
         origin: newIti.origin,
@@ -1397,15 +1461,44 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     const normalized = destName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
     if (normalized.includes("dalat") || normalized.includes("da lat")) return "da-lat";
     if (normalized.includes("phu yen")) return "phu-yen";
-    if (normalized.includes("da nang") || normalized.includes("hoi an")) return "da-nang";
-    return "da-lat";
+    if (normalized.includes("hoi an")) return "hoi-an";
+    if (normalized.includes("da nang")) return "da-nang";
+    if (normalized.includes("vung tau")) return "vung-tau";
+    if (normalized.includes("ha noi")) return "ha-noi";
+    if (normalized.includes("phu quoc")) return "phu-quoc";
+    if (normalized.includes("nha trang")) return "nha-trang";
+    if (normalized.includes("ho chi minh") || normalized.includes("sai gon")) return "ho-chi-minh";
+    if (normalized.includes("hue")) return "hue";
+    if (normalized.includes("quy nhon")) return "quy-nhon";
+    if (normalized.includes("sapa") || normalized.includes("sa pa")) return "sapa";
+    if (normalized.includes("ninh binh")) return "ninh-binh";
+    if (normalized.includes("ha long")) return "ha-long";
+    if (normalized.includes("can tho")) return "can-tho";
+    if (normalized.includes("phan thiet") || normalized.includes("mui ne")) return "phan-thiet";
+    if (normalized.includes("hai phong")) return "hai-phong";
+    return normalized.trim().replace(/\s+/g, "-");
   }
 
   private mapSlugToDestLabel(slug: string): string {
-    if (slug === "da-lat") return "Đà Lạt";
-    if (slug === "phu-yen") return "Phú Yên";
-    if (slug === "da-nang") return "Đà Nẵng - Hội An";
-    return "Đà Lạt";
+    const s = (slug || '').toLowerCase();
+    if (s === "da-lat") return "Đà Lạt";
+    if (s === "phu-yen") return "Phú Yên";
+    if (s === "da-nang") return "Đà Nẵng";
+    if (s === "hoi-an") return "Hội An";
+    if (s === "vung-tau") return "Vũng Tàu";
+    if (s === "ha-noi") return "Hà Nội";
+    if (s === "phu-quoc") return "Phú Quốc";
+    if (s === "nha-trang") return "Nha Trang";
+    if (s === "ho-chi-minh") return "TP. Hồ Chí Minh";
+    if (s === "hue") return "Huế";
+    if (s === "quy-nhon") return "Quy Nhơn";
+    if (s === "sapa") return "Sa Pa";
+    if (s === "ninh-binh") return "Ninh Bình";
+    if (s === "ha-long") return "Hạ Long";
+    if (s === "can-tho") return "Cần Thơ";
+    if (s === "phan-thiet") return "Phan Thiết";
+    if (s === "hai-phong") return "Hải Phòng";
+    return slug || "Đà Lạt";
   }
 
   private getCoordinatesForPlace(name: string, destSlug: string): { lat: number | undefined; lng: number | undefined } {
@@ -2078,21 +2171,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
     if (tourId === 'new') {
       this.isSampleItinerary = false;
-      const newTour = {
-        id: "iti_" + Date.now(),
-        title: "Lịch trình trống của tôi",
-        dest: "da-lat",
-        destLabel: "Đà Lạt",
-        days: [
-          {
-            dayNum: 1,
-            title: "Ngày 1",
-            activities: []
-          }
-        ]
-      };
-      this.openEditorWithItinerary(newTour);
-      await this.saveItineraryToDb();
+      this.isLoadingEditor = false;
+      this.openCreateNewModal();
       return;
     }
 
@@ -3355,8 +3435,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   private initGoogleMap() {
     try {
-      const dest = this.activeItinerary.dest;
-      const centerCoords = this.cityCenters[dest] || [11.9404, 108.4373];
+      const dest = this.activeItinerary?.dest || this.activeItinerary?.destination || this.activeItinerary?.destLabel;
+      const centerCoords = this.getDestinationCenterCoords(dest);
       const center = { lat: centerCoords[0], lng: centerCoords[1] };
       const mapDiv = document.getElementById('leafletMap');
       if (!mapDiv) return;
@@ -3378,8 +3458,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       };
       const mapOptions = {
         center: center,
-        zoom: 14,
-        gestureHandling: 'cooperative',
+        zoom: 13,
+        gestureHandling: 'greedy', // Direct scrollwheel zoom and drag, eliminating the grey "Use ctrl + scroll" overlay
+        scrollwheel: true,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         mapTypeControl: true,
         mapTypeControlOptions: {
@@ -4059,8 +4140,24 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         this.plotGoogleRoutePath(coordinates);
       }
 
-      if (shouldFit && coordinates.length > 0) {
-        this.gmap.fitBounds(gBounds);
+      if (shouldFit) {
+        if (coordinates.length === 0) {
+          const dest = this.activeItinerary?.dest || this.activeItinerary?.destination || this.activeItinerary?.destLabel;
+          const centerCoords = this.getDestinationCenterCoords(dest);
+          this.gmap.setCenter({ lat: centerCoords[0], lng: centerCoords[1] });
+          this.gmap.setZoom(13);
+        } else if (coordinates.length === 1) {
+          this.gmap.setCenter({ lat: coordinates[0][0], lng: coordinates[0][1] });
+          this.gmap.setZoom(15);
+        } else {
+          this.gmap.fitBounds(gBounds);
+          const listener = google.maps.event.addListener(this.gmap, 'idle', () => {
+            if (this.gmap && this.gmap.getZoom() > 16) {
+              this.gmap.setZoom(16);
+            }
+            if (listener) google.maps.event.removeListener(listener);
+          });
+        }
       }
       return;
     }

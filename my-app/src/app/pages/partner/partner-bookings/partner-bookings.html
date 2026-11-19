@@ -107,9 +107,15 @@
                                     </span>
                                 </td>
                                 <td class="p-4">
-                                    <span [class]="getOperationStatusClass(b.operation_status)" class="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase border">
-                                        {{ getOperationStatusLabel(b.operation_status) }}
-                                    </span>
+                                    <select [ngModel]="b.operation_status || 'preparing'"
+                                            (change)="onQuickChangeOperationStatus(b, $any($event.target).value)"
+                                            class="text-[10px] font-bold px-2 py-1 rounded-lg border bg-white cursor-pointer transition-all outline-none"
+                                            [ngClass]="getOperationStatusClass(b.operation_status)">
+                                        <option value="preparing">Đang chuẩn bị</option>
+                                        <option value="ongoing">Đang phục vụ</option>
+                                        <option value="completed">Đã hoàn thành</option>
+                                        <option value="incident">Gặp sự cố</option>
+                                    </select>
                                 </td>
                                 <td class="p-4">
                                     <div class="flex items-center justify-center gap-1.5">

@@ -8,6 +8,13 @@
   <meta name="description" content="GreenSteps Travel – Nền tảng du lịch xanh hàng đầu Việt Nam, giúp tự thiết lập và tối ưu lịch trình xanh bằng AI.">
   <link rel="icon" type="image/png" href="image/greensteps_logo.png">
 
+  <!-- Suppress intrusive browser dialogs in favor of modern toast notifications -->
+  <script>
+    window.alert = function (msg) {
+      console.info('[Application Notice]', msg);
+    };
+  </script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

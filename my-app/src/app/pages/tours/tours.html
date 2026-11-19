@@ -200,7 +200,7 @@
             <h2 class="planner-hero-title">Muốn chuyến đi riêng theo sở thích của bạn?</h2>
             <p class="planner-hero-desc">Khởi tạo lịch trình sinh thái cá nhân hóa, tối ưu chi phí và tự động kết nối các điểm đến xanh cùng AI.</p>
           </div>
-          <button type="button" routerLink="/schedule" class="btn-custom-planner">
+          <button type="button" (click)="openCreateItineraryModal()" class="btn-custom-planner">
             <i class="bi bi-magic"></i> Tự Thiết Kế Lịch Trình
           </button>
         </div>
@@ -354,48 +354,183 @@
     </div>
   </div>
 
-  <!-- MODAL: Tạo Lịch Trình Tự Thiết Kế -->
-  <div *ngIf="isCreateModalOpen" class="modal-overlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <div class="flex items-center gap-2">
-          <i class="bi bi-magic text-emerald-700 text-xl"></i>
-          <h3 class="font-bold text-lg text-gray-900 m-0">Tự Thiết Kế Lịch Trình Du Lịch Xanh</h3>
+  <!-- MODAL: Tạo Lịch Trình Tự Thiết Kế (Wanderlog / GreenSteps Style) -->
+  <div *ngIf="isCreateModalOpen" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-container" style="max-width: 640px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-bottom: 1px solid rgba(16, 185, 129, 0.15); padding: 1.25rem 1.5rem;">
+        <div>
+          <h3 class="font-bold text-lg text-[#184A37] m-0 flex items-center gap-2">
+            <i class="bi bi-magic text-emerald-700"></i>
+            Lên kế hoạch chuyến đi mới
+          </h3>
+          <p class="text-xs text-gray-500 m-0 mt-1">Khởi tạo hành trình sinh thái riêng, tự do khám phá và tối ưu phát thải cùng GreenSteps</p>
         </div>
-        <button (click)="closeCreateItineraryModal()" class="close-modal-btn">
+        <button type="button" (click)="closeCreateItineraryModal()" class="close-modal-btn" aria-label="Đóng cửa sổ">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
 
-      <form (submit)="submitNewItinerary($event)" class="modal-body">
+      <!-- Modal Body -->
+      <form (submit)="submitNewItinerary($event)" class="modal-body" style="padding: 1.5rem; max-height: calc(85vh - 120px); overflow-y: auto;">
+        <!-- Tên chuyến đi -->
         <div class="form-group mb-4">
-          <label class="form-label">Chọn điểm đến mong muốn:</label>
-          <select [(ngModel)]="modalDest" name="modalDest" (change)="onModalDestChange()" class="form-select" required>
-            <option *ngFor="let destination of destinations.slice(1)" [value]="destination">{{ destination }}</option>
-          </select>
-        </div>
-
-        <div class="form-group mb-4">
-          <label class="form-label">Số ngày trải nghiệm:</label>
-          <div class="flex gap-2">
-            <button *ngFor="let d of [1,2,3,4,5]" type="button" (click)="modalDays = d" class="day-choice-btn"
-              [class.active]="modalDays === d">
-              {{ d }} Ngày
-            </button>
+          <label class="form-label" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+            Tên chuyến đi / Lịch trình
+          </label>
+          <div style="position: relative;">
+            <i class="bi bi-pencil-square" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+            <input type="text" [(ngModel)]="newTripName" name="newTripName"
+                   placeholder="Ví dụ: Kỳ nghỉ hè xanh 2026, Chuyến đi Vũng Tàu cùng người yêu..."
+                   style="width: 100%; height: 42px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; font-weight: 600; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
           </div>
         </div>
 
-        <div class="form-group mb-4">
-          <label class="form-label">Điểm đến đã xác minh:</label>
-          <div class="catalog-state" role="note">Bản đồ sẽ hiển thị sau khi tọa độ được xác minh và tích hợp Maps được cho phép.</div>
+        <!-- Hàng 1: Điểm xuất phát & Điểm đến -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Điểm xuất phát (Đi từ đâu?)
+            </label>
+            <div style="position: relative;">
+              <i class="bi bi-pin-map" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+              <input type="text" [(ngModel)]="newTripOrigin" name="newTripOrigin" list="gsToursOriginList"
+                     placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội..."
+                     style="width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+              <datalist id="gsToursOriginList">
+                <option value="TP. Hồ Chí Minh">
+                <option value="Hà Nội">
+                <option value="Đà Nẵng">
+                <option value="Cần Thơ">
+                <option value="Hải Phòng">
+                <option value="Bình Dương">
+                <option value="Đồng Nai">
+              </datalist>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Điểm đến (Đi đâu?)
+            </label>
+            <div style="position: relative;">
+              <i class="bi bi-geo-alt" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+              <select [(ngModel)]="newTripDestination" name="newTripDestination" (change)="onModalDestChange()"
+                      style="width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; font-weight: 600; color: #184A37; outline: none; background: #fafafa; cursor: pointer; box-sizing: border-box;">
+                <option value="Đà Lạt">Đà Lạt (Lâm Đồng)</option>
+                <option value="Vũng Tàu">Vũng Tàu (Bà Rịa - Vũng Tàu)</option>
+                <option value="Đà Nẵng">Đà Nẵng</option>
+                <option value="Hội An">Hội An (Quảng Nam)</option>
+                <option value="Phú Quốc">Phú Quốc (Kiên Giang)</option>
+                <option value="Phú Yên">Phú Yên</option>
+                <option value="Nha Trang">Nha Trang (Khánh Hòa)</option>
+                <option value="Quy Nhơn">Quy Nhơn (Bình Định)</option>
+                <option value="Hà Nội">Hà Nội</option>
+                <option value="Hạ Long">Hạ Long (Quảng Ninh)</option>
+                <option value="Sa Pa">Sa Pa (Lào Cai)</option>
+                <option value="Ninh Bình">Ninh Bình</option>
+                <option value="Hà Giang">Hà Giang</option>
+                <option value="Huế">Huế</option>
+                <option value="Cần Thơ">Cần Thơ</option>
+                <option value="Măng Đen">Măng Đen (Kon Tum)</option>
+                <option value="Phan Thiết">Phan Thiết - Mũi Né</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="modal-footer flex justify-end gap-3 pt-3 border-t">
-          <button type="button" (click)="closeCreateItineraryModal()" class="btn-cancel">
+        <!-- Hàng 2: Thời gian xuất phát & Ngày kết thúc -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Ngày đi & Giờ xuất phát
+            </label>
+            <div class="grid grid-cols-5 gap-2">
+              <input type="date" [(ngModel)]="newTripStartDate" name="newTripStartDate" (change)="onTripDatesChange()"
+                     style="grid-column: span 3; width: 100%; height: 40px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+              <input type="time" [(ngModel)]="newTripDepartureTime" name="newTripDepartureTime" title="Giờ khởi hành"
+                     style="grid-column: span 2; width: 100%; height: 40px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; font-weight: 600; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Ngày về (Kết thúc chuyến đi)
+            </label>
+            <input type="date" [(ngModel)]="newTripEndDate" name="newTripEndDate" (change)="onTripDatesChange()"
+                   style="width: 100%; height: 40px; padding: 0 12px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <!-- Error & Duration Banner -->
+        <div *ngIf="formDateError" class="p-2.5 mb-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill text-rose-500"></i>
+          <span>{{ formDateError }}</span>
+        </div>
+
+        <div *ngIf="newTripStartDate && newTripEndDate && !formDateError"
+             style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; margin-bottom: 1rem; font-size: 12px; color: #166534;">
+          <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-calendar-check text-emerald-600"></i> Thời lượng dự kiến:
+          </span>
+          <span style="font-weight: 800; font-size: 13px; color: #15803d;">
+            {{ calculatedDays }} ngày {{ calculatedNights }} đêm
+          </span>
+        </div>
+
+        <!-- Hàng 3: Phương tiện & Điểm đến đầu tiên -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Phương tiện di chuyển đến
+            </label>
+            <div style="position: relative;">
+              <i class="bi bi-car-front" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+              <select [(ngModel)]="newTripTransport" name="newTripTransport"
+                      style="width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; font-weight: 600; color: #184A37; outline: none; background: #fafafa; cursor: pointer; box-sizing: border-box;">
+                <option value="Xe khách Limousine">Xe khách Limousine</option>
+                <option value="Tàu hỏa (Đường sắt)">Tàu hỏa (Đường sắt Việt Nam)</option>
+                <option value="Tàu cao tốc đường thủy">Tàu cao tốc đường thủy</option>
+                <option value="Máy bay (Hàng không)">Máy bay (Hàng không)</option>
+                <option value="Xe điện Eco / Taxi">Xe điện Eco / Taxi xanh</option>
+                <option value="Xe máy / Ô tô tự lái">Xe máy / Ô tô tự lái</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+              Điểm đến đầu tiên / Nhận phòng
+            </label>
+            <div style="position: relative;">
+              <i class="bi bi-building" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+              <input type="text" [(ngModel)]="newTripFirstStop" name="newTripFirstStop"
+                     placeholder="Ví dụ: Homestay Bãi Sau, Khách sạn..."
+                     style="width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Hàng 4: Mời bạn đồng hành -->
+        <div class="form-group mb-4">
+          <label class="form-label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #184A37;">
+            Mời bạn đồng hành (tùy chọn)
+          </label>
+          <div style="position: relative;">
+            <i class="bi bi-envelope" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0E9F6E; font-size: 14px;"></i>
+            <input type="text" [(ngModel)]="newTripCompanionEmail" name="newTripCompanionEmail"
+                   placeholder="partner1@gmail.com, partner2@gmail.com..."
+                   style="width: 100%; height: 40px; padding: 0 14px 0 38px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; color: #184A37; outline: none; background: #fafafa; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+          <button type="button" (click)="closeCreateItineraryModal()" class="btn-cancel" style="height: 42px; padding: 0 20px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 13px; font-weight: 700; color: #4b5563; background: #ffffff; cursor: pointer;">
             Hủy
           </button>
-          <button type="submit" class="btn-submit-planner">
-            <i class="bi bi-check-lg mr-1"></i> Khởi Tạo Ngay
+          <button type="submit" class="btn-submit-planner" style="height: 42px; padding: 0 24px; border: none; border-radius: 12px; font-size: 13px; font-weight: 700; color: #ffffff; background: linear-gradient(135deg, #059669 0%, #10B981 100%); cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
+            <i class="bi bi-check2"></i> Bắt đầu lập kế hoạch
           </button>
         </div>
       </form>

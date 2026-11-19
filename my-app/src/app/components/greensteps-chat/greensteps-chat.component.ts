@@ -250,6 +250,29 @@ export class GreenStepsChatComponent {
     void this.submitMessage(question);
   }
 
+  startCustomPlanner(result?: GreenStepsChatResult): void {
+    let destination = result?.tours?.[0]?.destination?.trim() || '';
+    if (!destination) {
+      // Find destination in recent transcript if available
+      const transcript = this.chat.transcript();
+      for (let i = transcript.length - 1; i >= 0; i--) {
+        const text = transcript[i].content || '';
+        const match = text.match(/(?:vũng tàu|đà lạt|phú yên|đà nẵng|hội an|hà nội|phú quốc|nha trang|sài gòn|hồ chí minh|huế|quy nhơn|sapa|ninh bình|hạ long)/i);
+        if (match) {
+          destination = match[0];
+          break;
+        }
+      }
+    }
+    this.closeChat();
+    this.router.navigate(['/schedule'], {
+      queryParams: {
+        action: 'new',
+        destination: destination || undefined
+      }
+    });
+  }
+
   itineraryPrompt(result: GreenStepsChatResult): string {
     const suggested = result.suggestedQuestions.find(question => /^(?:tự tạo|lập|tạo) lịch trình/i.test(question.trim()));
     if (suggested) return suggested;

@@ -229,6 +229,26 @@ export class PartnerBookingsComponent implements OnInit {
     }
   }
 
+  public async onQuickChangeOperationStatus(booking: any, newStatus: string) {
+    if (!booking) return;
+    const oldStatus = booking.operation_status;
+    booking.operation_status = newStatus;
+    const updateData = {
+      booking_status: booking.booking_status,
+      payment_status: booking.payment_status,
+      operation_status: newStatus
+    };
+    const success = await this.apiService.updateBookingStatuses(booking.id, updateData);
+    if (success) {
+      this.showAlert(`Đã chuyển trạng thái vận hành đơn #${booking.id} sang "${this.getOperationStatusLabel(newStatus)}"`, 'success');
+      this.cdr.detectChanges();
+    } else {
+      booking.operation_status = oldStatus;
+      this.showAlert('Không thể lưu trạng thái vận hành.', 'error');
+      this.cdr.detectChanges();
+    }
+  }
+
   public async confirmBookingDirect(id: string) {
     this.showConfirm('Bạn có chắc chắn muốn phê duyệt cọc đơn này?', async () => {
       const ok = await this.apiService.approveBooking(id);
@@ -578,23 +598,25 @@ export class PartnerBookingsComponent implements OnInit {
     }
   }
 
-  public getOperationStatusClass(status: string): string {
-    switch (status) {
-      case 'preparing': return 'bg-orange-50 text-orange-700 border-orange-100';
-      case 'ongoing': return 'bg-blue-50 text-blue-700 border-blue-100';
+  public getOperationStatusClass(status?: string): string {
+    const s = (status || 'preparing').toLowerCase();
+    switch (s) {
+      case 'preparing': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'ongoing': return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'completed': return 'bg-teal-50 text-teal-700 border-teal-200';
-      case 'incident': return 'bg-red-100 text-red-800 border-red-200 font-bold animate-pulse';
-      default: return 'bg-gray-50 text-gray-600';
+      case 'incident': return 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
+      default: return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   }
 
-  public getOperationStatusLabel(status: string): string {
-    switch (status) {
+  public getOperationStatusLabel(status?: string): string {
+    const s = (status || 'preparing').toLowerCase();
+    switch (s) {
       case 'preparing': return 'Đang chuẩn bị';
-      case 'ongoing': return 'Đang đi tour';
+      case 'ongoing': return 'Đang phục vụ';
       case 'completed': return 'Đã hoàn thành';
-      case 'incident': return 'Gặp sự cố!';
-      default: return status;
+      case 'incident': return 'Gặp sự cố';
+      default: return 'Đang chuẩn bị';
     }
   }
 

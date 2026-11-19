@@ -186,18 +186,94 @@
 .count-pill { display: grid; min-width: 22px; height: 22px; place-items: center; padding: 0 6px; border-radius: 20px; background: #e84d55; color: #fff; font-size: 10px; font-weight: 800; }
 .text-action { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 6px 0; border: 0; background: transparent; color: var(--admin-green); font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .text-action:hover { color: var(--admin-green-dark); }
-.urgent-row { display: grid; grid-template-columns: 72px 20px minmax(0, 1fr) 72px 70px; align-items: center; gap: 9px; min-height: 36px; padding: 4px 13px; border-bottom: 1px solid #f0f2f4; }
+.urgent-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
 .urgent-row:last-child { border-bottom: 0; }
-.severity-tag { display: inline-flex; justify-content: center; padding: 4px 7px; border-radius: 20px; font-size: 9px; font-weight: 700; }
+.severity-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .severity-high { background: #fff0f0; color: #c93841; }
 .severity-medium { background: #fff5e7; color: #b26700; }
 .severity-low { background: #edf6ff; color: #2878bc; }
-.urgent-row-icon { color: #8090a1; font-size: 12px; text-align: center; }
-.urgent-row-label { overflow: hidden; color: #40516a; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
-.urgent-row time { color: #8491a3; font-size: 9.5px; white-space: nowrap; }
-.small-outline-button { display: inline-flex; align-items: center; justify-content: center; min-height: 27px; padding: 0 9px; border: 1px solid #dfe5eb; border-radius: 7px; background: #fff; color: #43536a; font-size: 9px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
-.small-outline-button:hover:not(:disabled) { border-color: #a8d4c1; background: #f5fbf7; color: var(--admin-green-dark); }
+.urgent-row-icon { color: #64748b; font-size: 15px; flex-shrink: 0; text-align: center; }
+.urgent-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.urgent-row time { color: #8491a3; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+.small-outline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  transition: all .15s ease;
+}
+.small-outline-button:hover:not(:disabled) {
+  border-color: var(--admin-green);
+  background: #f0fdf4;
+  color: var(--admin-green-dark);
+}
 .small-outline-button:disabled { cursor: not-allowed; opacity: .58; }
+
+/* Dashboard Behavioral Analytics Tables */
+.admin-data-table.behavioral-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.admin-data-table.behavioral-table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.admin-data-table.behavioral-table td {
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.admin-data-table.behavioral-table tbody tr:hover {
+  background: #f8fafc;
+}
+.admin-data-table.behavioral-table tbody tr:last-child td {
+  border-bottom: none;
+}
 .panel-empty { display: flex; align-items: center; gap: 12px; min-height: 84px; padding: 14px 16px; }
 .empty-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: #edf7f1; color: var(--admin-green); font-size: 17px; }
 .panel-empty strong { display: block; color: #42536b; font-size: 11px; }

@@ -19,6 +19,14 @@ export class GlobalErrorHandler implements ErrorHandler {
       });
     }
 
+    if (fatal && typeof window !== 'undefined' && ((error as Error)?.name === 'ChunkLoadError' || /failed to fetch dynamically imported module|loading chunk .* failed/i.test((error as Error)?.message || ''))) {
+      if (!sessionStorage.getItem('gs_chunk_reloaded')) {
+        sessionStorage.setItem('gs_chunk_reloaded', '1');
+        window.location.reload();
+        return;
+      }
+    }
+
     // API/network failures and ordinary component exceptions must stay local.
     // Only explicit fatal errors or an unavailable lazy-loaded app chunk
     // justify replacing the current route with the global error screen.

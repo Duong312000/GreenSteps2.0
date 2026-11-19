@@ -86,30 +86,64 @@ export class TourCardComponent {
   @Input({ required: true }) tour!: ChatTour;
   imageFailed = false;
 
-  get imageSrc(): string | null {
+  get imageSrc(): string {
     const source = this.tour?.imageUrl?.trim();
-    if (!source) return null;
-    if (/^(?:https?:|data:|blob:)/i.test(source)) return source;
-
-    // Direct frontend public asset paths
-    if (source.startsWith('image/') || source.startsWith('/image/')) {
+    if (source && /^(?:https?:|data:|blob:)/i.test(source)) return source;
+    if (source && (source.startsWith('image/') || source.startsWith('/image/'))) {
       return `/${source.replace(/^\//, '')}`;
     }
-    if (source.startsWith('images/') || source.startsWith('/images/')) {
+    if (source && (source.startsWith('images/') || source.startsWith('/images/'))) {
       return `/image/${source.replace(/^\/?images\//, '')}`;
     }
+    if (source && !source.includes('placeholder')) {
+      const origin = getBackendOrigin();
+      return `${origin}/${source.replace(/^\//, '')}`;
+    }
 
-    // Backend-hosted uploads
-    const origin = getBackendOrigin();
-    const clean = source.replace(/^\//, '');
-    return `${origin}/${clean}`;
+    // High quality destination photographic fallback from verified local assets
+    const dest = (this.tour?.destination || '').toLowerCase();
+    const name = (this.tour?.name || '').toLowerCase();
+    if (dest.includes('hà nội') || dest.includes('ha noi') || name.includes('hà nội') || name.includes('phố cổ')) {
+      return '/image/greensteps/tours/hanoi/hanoi-pho-co-old-quarter.jpg';
+    }
+    if (dest.includes('đà lạt') || dest.includes('da lat') || name.includes('đà lạt')) {
+      return '/image/greensteps/tours/dalat/dalat-xuan-huong-lake.jpg';
+    }
+    if (dest.includes('hội an') || dest.includes('đà nẵng') || dest.includes('da nang')) {
+      return '/image/greensteps/tours/da-nang-hoi-an/hoi-an-old-town.jpg';
+    }
+    if (dest.includes('phú yên') || dest.includes('phu yen')) {
+      return '/image/greensteps/tours/phu-yen/phu-yen-ganh-da-dia.jpg';
+    }
+    if (dest.includes('sa pa') || dest.includes('sapa')) {
+      return '/image/greensteps/tours/sa-pa/sa-pa-rice-terraces.jpg';
+    }
+    if (dest.includes('ninh bình') || dest.includes('ninh binh')) {
+      return '/image/greensteps/tours/ninh-binh/ninh-binh-trang-an.jpg';
+    }
+    if (dest.includes('phú quốc') || dest.includes('phu quoc')) {
+      return '/image/greensteps/tours/phu-quoc/phu-quoc-beach.jpg';
+    }
+    if (dest.includes('hạ long') || dest.includes('ha long')) {
+      return '/image/greensteps/tours/halong/halong-bay-islands.jpg';
+    }
+    if (dest.includes('hà giang') || dest.includes('ha giang')) {
+      return '/image/greensteps/tours/hagiang/hagiang-ma-pi-leng.jpg';
+    }
+    if (dest.includes('huế') || dest.includes('hue')) {
+      return '/image/greensteps/tours/hue/hue-thien-mu-pagoda.jpg';
+    }
+    if (dest.includes('cần thơ') || dest.includes('can tho')) {
+      return '/image/greensteps/tours/cantho/can-tho-cai-rang-floating-market.jpg';
+    }
+    return '/image/greensteps/tours/dalat/dalat-xuan-huong-lake.jpg';
   }
 
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
     if (img && !img.dataset['fallback']) {
       img.dataset['fallback'] = 'true';
-      img.src = '/image/greensteps/travel-placeholder.svg';
+      img.src = '/image/greensteps/tours/dalat/dalat-xuan-huong-lake.jpg';
     } else {
       this.imageFailed = true;
     }

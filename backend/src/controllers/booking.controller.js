@@ -28,7 +28,8 @@ const {
   Vender,
   Provider,
   Voucher,
-  Notification
+  Notification,
+  OperationsAssignment
 } = require('../models/index');
 
 async function expireBookingIfNeeded(booking) {
@@ -997,7 +998,7 @@ exports.getBookings = async (req, res, next) => {
     let serviceBookings = [];
     let tourBookings = [];
     const compactBookingFields = compact
-      ? ['id', 'fullname', 'name_service', 'tour_name', 'booking_date', 'guests', 'value', 'status', 'payment_status', 'createdAt', 'service_id', 'schedule_id']
+      ? ['id', 'fullname', 'name_service', 'tour_name', 'booking_date', 'guests', 'value', 'status', 'booking_status', 'payment_status', 'operation_status', 'createdAt', 'service_id', 'schedule_id']
       : undefined;
 
     if (providerId) {
@@ -1086,7 +1087,7 @@ exports.getBookings = async (req, res, next) => {
         escrow: row.escrow_status,
         escrow_status: row.escrow_status,
         payment_status: row.payment_status || (row.status === 'deposit' || row.status === 'completed' ? 'paid' : 'unpaid'),
-        operation_status: row.operation_status,
+        operation_status: row.operation_status || 'preparing',
         confirm_deadline: row.confirm_deadline,
         payment_deadline: row.payment_deadline,
         special_requests: row.special_requests,
@@ -1127,7 +1128,7 @@ exports.getBookings = async (req, res, next) => {
         escrow: row.escrow_status,
         escrow_status: row.escrow_status,
         payment_status: row.payment_status || (row.status === 'deposit' || row.status === 'completed' ? 'paid' : 'unpaid'),
-        operation_status: row.operation_status,
+        operation_status: row.operation_status || 'preparing',
         confirm_deadline: row.confirm_deadline,
         payment_deadline: row.payment_deadline,
         special_requests: row.special_requests,
@@ -1520,7 +1521,29 @@ exports.updateBookingStatuses = async (req, res, next) => {
     if (operation_status === 'completed' && booking.booking_date > new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })) { await t.rollback(); return res.status(409).json({ success: false, message: 'Chuyến đi chưa bắt đầu.' }); }
     if (booking_status !== undefined) booking.booking_status = booking_status;
     if (payment_status !== undefined) booking.payment_status = payment_status;
-    if (operation_status !== undefined) booking.operation_status = operation_status;
+    if (operation_status !== undefined) {
+      booking.operation_status = operation_status;
+      try {
+        let assignment = await OperationsAssignment.findOne({ where: { booking_id: id } });
+        if (!assignment) {
+          await OperationsAssignment.create({
+            id: 'op_' + Date.now(),
+            booking_id: id,
+            booking_type: booking.service_id ? 'service' : 'tour',
+            assigned_staff: '',
+            assigned_vehicle: '',
+            checklist: [],
+            status: operation_status,
+            incidents: ''
+          });
+        } else {
+          assignment.status = operation_status;
+          await assignment.save();
+        }
+      } catch (opErr) {
+        console.warn('Sync OperationsAssignment warning:', opErr);
+      }
+    }
     if (confirm_deadline !== undefined) booking.confirm_deadline = confirm_deadline;
     if (payment_deadline !== undefined) booking.payment_deadline = payment_deadline;
 

@@ -922,8 +922,7 @@ export class TourDetailComponent implements OnInit, OnDestroy {
       };
 
       // 1. Convert to editor format and save to localStorage immediately for 0ms instant loading
-      const destSlug = destination.toLowerCase().includes('nẵng') ? 'da-nang'
-        : destination.toLowerCase().includes('phú yên') ? 'phu-yen' : 'da-lat';
+      const destSlug = this.mapDestToSlug(destination);
 
       const editorDays = safeData.map((acts: any[], idx: number) => ({
         dayNum: idx + 1,
@@ -1259,6 +1258,29 @@ export class TourDetailComponent implements OnInit, OnDestroy {
 
   public getFirstLetter(name?: string): string {
     return name ? name.charAt(0).toUpperCase() : 'U';
+  }
+
+  public mapDestToSlug(destName: string): string {
+    if (!destName) return "da-lat";
+    const normalized = destName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+    if (normalized.includes("dalat") || normalized.includes("da lat")) return "da-lat";
+    if (normalized.includes("phu yen")) return "phu-yen";
+    if (normalized.includes("hoi an")) return "hoi-an";
+    if (normalized.includes("da nang")) return "da-nang";
+    if (normalized.includes("vung tau")) return "vung-tau";
+    if (normalized.includes("ha noi")) return "ha-noi";
+    if (normalized.includes("phu quoc")) return "phu-quoc";
+    if (normalized.includes("nha trang")) return "nha-trang";
+    if (normalized.includes("ho chi minh") || normalized.includes("sai gon")) return "ho-chi-minh";
+    if (normalized.includes("hue")) return "hue";
+    if (normalized.includes("quy nhon")) return "quy-nhon";
+    if (normalized.includes("sapa") || normalized.includes("sa pa")) return "sapa";
+    if (normalized.includes("ninh binh")) return "ninh-binh";
+    if (normalized.includes("ha long")) return "ha-long";
+    if (normalized.includes("can tho")) return "can-tho";
+    if (normalized.includes("phan thiet") || normalized.includes("mui ne")) return "phan-thiet";
+    if (normalized.includes("hai phong")) return "hai-phong";
+    return normalized.trim().replace(/\s+/g, "-");
   }
 }
 

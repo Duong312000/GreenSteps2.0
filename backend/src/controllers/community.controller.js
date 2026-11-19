@@ -430,7 +430,10 @@ async function getLeaderboardRows(limit = 10) {
   const usersById = new Map(users.map(u => [u.id, u]));
   const rows = wallets.map(wallet => {
     const user = usersById.get(wallet.user_id);
-    return user ? { userId: user.id, name: user.fullname || user.username, avatar: user.avatarUrl || '', points: wallet.green_points || 0 } : null;
+    if (!user) return null;
+    const name = (user.fullname || user.username || '').trim();
+    if (!name || /^(?:test|demo|seed|sample|qa|user\d+)/i.test(name)) return null;
+    return { userId: user.id, name, avatar: user.avatarUrl || '', points: wallet.green_points || 0 };
   });
   return rows.filter(row => row && row.points > 0).sort((a, b) => b.points - a.points).slice(0, limit);
 }
