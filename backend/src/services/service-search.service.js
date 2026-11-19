@@ -12,34 +12,39 @@ async function loadAllServicesForSearch(GreenService) {
       'id', 'vender_id', 'name_service', 'type', 'destination', 'cost',
       'carbon', 'rating', 'reviews_count', 'bookings_count', 'max_capacity',
       'status', 'views_count', 'is_partner', 'source', 'google_place_id',
-      'image_url'
+      'image_url', 'category_id', 'address', 'location', 'current_data'
     ],
     readPreference: 'primaryPreferred'
   });
 
-  return (services || []).filter(s => s.status !== 'deleted' && !s.current_data?.catalogHidden).map(s => ({
-    id: s.id,
-    provider_id: s.vender_id || 'UG26pro0001',
-    name: s.name_service,
-    type: s.type,
-    destination: s.destination,
-    cost: s.cost,
-    carbon: s.carbon,
-    icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
-    status: s.status || 'active',
-    views_count: s.views_count || 0,
-    rating: s.rating,
-    reviews_count: s.reviews_count,
-    bookings_count: s.bookings_count,
-    max_capacity: s.max_capacity || 10,
-    badges: [],
-    is_partner: s.is_partner !== false,
-    source: s.source || (s.is_partner === false ? 'google_maps' : 'partner'),
-    google_place_id: s.google_place_id || null,
-    image_url: s.image_url || (s.current_data ? s.current_data.img : null),
-    current_data: s.current_data || {},
-    ...catalogMetadata(s)
-  }));
+  return (services || []).filter(s => s.status !== 'deleted' && !s.current_data?.catalogHidden).map(s => {
+    const isGooglePlaces = s.vender_id === 'vender_google_places' || s.source === 'google_maps' || String(s.id).startsWith('GGP_');
+    const isPartner = isGooglePlaces ? false : (s.is_partner !== false);
+    return {
+      id: s.id,
+      provider_id: s.vender_id || 'UG26pro0001',
+      name: s.name_service,
+      type: s.type,
+      category_id: s.category_id || null,
+      destination: s.destination,
+      cost: s.cost,
+      carbon: s.carbon,
+      icon: s.type === 'lodging' || s.type === 'stay' ? 'bi-house-door-fill' : (s.type === 'dining' || s.type === 'food' ? 'bi-cup-hot-fill' : 'bi-tree-fill'),
+      status: s.status || 'active',
+      views_count: s.views_count || 0,
+      rating: s.rating,
+      reviews_count: s.reviews_count,
+      bookings_count: s.bookings_count,
+      max_capacity: s.max_capacity || 10,
+      badges: [],
+      is_partner: isPartner,
+      source: isGooglePlaces ? 'google_maps' : (s.source || 'partner'),
+      google_place_id: s.google_place_id || null,
+      image_url: s.image_url || (s.current_data ? s.current_data.img : null),
+      current_data: s.current_data || {},
+      ...catalogMetadata(s)
+    };
+  });
 }
 
 async function searchServices({ models, query = {}, clientIp = 'anonymous' }) {
