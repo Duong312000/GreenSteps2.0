@@ -2412,24 +2412,114 @@
         </div>
 
         <!-- Modal Body -->
-        <form (submit)="submitCreateNewTrip($event)" class="p-6 space-y-5">
-            <!-- Điểm đến & Tên chuyến đi -->
+        <form (submit)="submitCreateNewTrip($event)" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <!-- Hàng 1: Điểm xuất phát & Điểm đến -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Đi đâu?</label>
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Điểm xuất phát (Đi từ đâu?)</label>
+                    <div class="relative">
+                        <i class="bi bi-pin-map absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
+                        <input type="text" [(ngModel)]="newTripOrigin" name="newTripOrigin" list="gsOriginList"
+                            placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội..."
+                            class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-semibold text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                        <datalist id="gsOriginList">
+                            <option value="TP. Hồ Chí Minh">
+                            <option value="Hà Nội">
+                            <option value="Đà Nẵng">
+                            <option value="Cần Thơ">
+                            <option value="Hải Phòng">
+                            <option value="Bình Dương">
+                            <option value="Đồng Nai">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Điểm đến (Đi đâu?)</label>
                     <div class="relative">
                         <i class="bi bi-geo-alt absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
                         <select [(ngModel)]="newTripDestination" name="newTripDestination"
                             class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-semibold text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all cursor-pointer">
-                            <option value="Đà Lạt">Đà Lạt</option>
+                            <option value="Đà Lạt">Đà Lạt (Lâm Đồng)</option>
+                            <option value="Vũng Tàu">Vũng Tàu (Bà Rịa - Vũng Tàu)</option>
                             <option value="Đà Nẵng">Đà Nẵng</option>
+                            <option value="Hội An">Hội An (Quảng Nam)</option>
+                            <option value="Phú Quốc">Phú Quốc (Kiên Giang)</option>
                             <option value="Phú Yên">Phú Yên</option>
+                            <option value="Nha Trang">Nha Trang (Khánh Hòa)</option>
+                            <option value="Quy Nhơn">Quy Nhơn (Bình Định)</option>
+                            <option value="Hà Nội">Hà Nội</option>
+                            <option value="Hạ Long">Hạ Long (Quảng Ninh)</option>
+                            <option value="Sa Pa">Sa Pa (Lào Cai)</option>
+                            <option value="Ninh Bình">Ninh Bình</option>
+                            <option value="Hà Giang">Hà Giang</option>
+                            <option value="Huế">Huế</option>
+                            <option value="Cần Thơ">Cần Thơ</option>
+                            <option value="Măng Đen">Măng Đen (Kon Tum)</option>
                         </select>
                     </div>
                 </div>
+            </div>
+
+            <!-- Hàng 2: Thời gian xuất phát & Ngày kết thúc -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Tên chuyến đi (tùy
-                        chọn)</label>
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Ngày đi & Giờ xuất phát</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <input type="date" [(ngModel)]="newTripStartDate" name="newTripStartDate"
+                            (change)="onTripDatesChange()"
+                            class="col-span-3 w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                        <input type="time" [(ngModel)]="newTripDepartureTime" name="newTripDepartureTime"
+                            title="Giờ khởi hành"
+                            class="col-span-2 w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-semibold text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Ngày về (Kết thúc chuyến đi)</label>
+                    <input type="date" [(ngModel)]="newTripEndDate" name="newTripEndDate" (change)="onTripDatesChange()"
+                        class="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                </div>
+            </div>
+
+            <!-- Countdown notice when start date is picked -->
+            <p class="text-[11px] text-amber-600 font-semibold flex items-center gap-1.5 m-0"
+                *ngIf="newTripStartDate && countdownNotice">
+                <i class="bi bi-clock-history animate-spin" style="animation-duration: 4s;"></i> {{ countdownNotice }}
+            </p>
+
+            <!-- Hàng 3: Phương tiện di chuyển & Điểm đến đầu tiên -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Phương tiện di chuyển đến</label>
+                    <div class="relative">
+                        <i class="bi bi-car-front absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
+                        <select [(ngModel)]="newTripTransport" name="newTripTransport"
+                            class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-semibold text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all cursor-pointer">
+                            <option value="Xe khách Limousine">Xe khách Limousine</option>
+                            <option value="Tàu hỏa (Đường sắt)">Tàu hỏa (Đường sắt Việt Nam)</option>
+                            <option value="Tàu cao tốc đường thủy">Tàu cao tốc đường thủy</option>
+                            <option value="Máy bay (Hàng không)">Máy bay (Hàng không)</option>
+                            <option value="Xe điện Eco / Taxi">Xe điện Eco / Taxi xanh</option>
+                            <option value="Xe máy / Ô tô tự lái">Xe máy / Ô tô tự lái</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Điểm đến đầu tiên / Nhận phòng</label>
+                    <div class="relative">
+                        <i class="bi bi-building absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
+                        <input type="text" [(ngModel)]="newTripFirstStop" name="newTripFirstStop"
+                            placeholder="Ví dụ: Homestay Bãi Sau, Khách sạn..."
+                            class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hàng 4: Tên chuyến đi & Mời bạn đồng hành -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Tên chuyến đi (tùy chọn)</label>
                     <div class="relative">
                         <i class="bi bi-pencil-square absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
                         <input type="text" [(ngModel)]="newTripName" name="newTripName"
@@ -2437,37 +2527,15 @@
                             class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
                     </div>
                 </div>
-            </div>
 
-            <!-- Ngày bắt đầu & Ngày kết thúc -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Ngày đi</label>
-                    <input type="date" [(ngModel)]="newTripStartDate" name="newTripStartDate"
-                        (change)="onTripDatesChange()"
-                        class="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
-                </div>
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Ngày về</label>
-                    <input type="date" [(ngModel)]="newTripEndDate" name="newTripEndDate" (change)="onTripDatesChange()"
-                        class="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
-                </div>
-            </div>
-            <!-- Countdown notice when start date is picked -->
-            <p class="text-[11px] text-amber-600 font-semibold mt-1 flex items-center gap-1.5"
-                *ngIf="newTripStartDate && countdownNotice">
-                <i class="bi bi-clock-history animate-spin" style="animation-duration: 4s;"></i> {{ countdownNotice }}
-            </p>
-
-            <!-- Mời bạn đồng hành -->
-            <div class="flex flex-col gap-1.5">
-                <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Mời bạn đồng hành (nhập
-                    nhiều email cách nhau bằng dấu phẩy)</label>
-                <div class="relative">
-                    <i class="bi bi-envelope absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
-                    <input type="text" [(ngModel)]="newTripCompanionEmail" name="newTripCompanionEmail"
-                        placeholder="partner1@gmail.com, partner2@gmail.com..."
-                        class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                    <label class="text-[11px] font-bold text-[#184A37] uppercase tracking-wider">Mời bạn đồng hành (email)</label>
+                    <div class="relative">
+                        <i class="bi bi-envelope absolute left-3 top-3 text-[#0E9F6E] text-sm"></i>
+                        <input type="text" [(ngModel)]="newTripCompanionEmail" name="newTripCompanionEmail"
+                            placeholder="partner1@gmail.com, partner2@gmail.com..."
+                            class="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs text-[#184A37] outline-none focus:border-[#0E9F6E] transition-all">
+                    </div>
                 </div>
             </div>
 

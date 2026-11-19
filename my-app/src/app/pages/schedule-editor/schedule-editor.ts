@@ -64,8 +64,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   public isCreateNewModalOpen: boolean = false;
   public newTripName: string = '';
   public newTripDestination: string = 'Đà Lạt';
+  public newTripOrigin: string = 'TP. Hồ Chí Minh';
   public newTripStartDate: string = '';
   public newTripEndDate: string = '';
+  public newTripDepartureTime: string = '07:30';
+  public newTripTransport: string = 'Xe khách Limousine';
+  public newTripFirstStop: string = '';
   public newTripCompanionEmail: string = '';
 
   // Share Itinerary variables
@@ -825,8 +829,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.isCreateNewModalOpen = true;
     this.newTripName = '';
     this.newTripDestination = 'Đà Lạt';
+    this.newTripOrigin = 'TP. Hồ Chí Minh';
     this.newTripStartDate = '';
     this.newTripEndDate = '';
+    this.newTripDepartureTime = '07:30';
+    this.newTripTransport = 'Xe khách Limousine';
+    this.newTripFirstStop = '';
     this.newTripCompanionEmail = '';
     this.cdr.detectChanges();
   }
@@ -886,16 +894,58 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       calculatedDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     }
 
-    const daysData = Array.from({ length: calculatedDays }, () => []);
+    // Auto-populate initial transit & first stop for Day 1
+    const day1Activities: any[] = [];
+    if (this.newTripDepartureTime || this.newTripTransport || this.newTripOrigin) {
+      const originName = this.newTripOrigin.trim() || 'TP. Hồ Chí Minh';
+      const transportName = this.newTripTransport || 'Xe khách Limousine';
+      const depTime = this.newTripDepartureTime || '07:30';
+      const isLowCarbon = transportName.includes('điện') || transportName.includes('Tàu hỏa') || transportName.includes('thủy');
+      day1Activities.push({
+        id: 'act_' + Date.now() + '_dep',
+        time: depTime,
+        title: `Khởi hành: ${originName} → ${this.newTripDestination}`,
+        name: `Khởi hành: ${originName} → ${this.newTripDestination}`,
+        type: 'transport',
+        cost: 0,
+        carbon: isLowCarbon ? 2.5 : 8.0,
+        is_shared: true,
+        lat: null,
+        lng: null,
+        note: `Di chuyển bằng ${transportName}. Chuẩn bị hành lý và đồ dùng sinh thái.`
+      });
+    }
+
+    if (this.newTripFirstStop && this.newTripFirstStop.trim()) {
+      day1Activities.push({
+        id: 'act_' + Date.now() + '_stop1',
+        time: '11:30',
+        title: this.newTripFirstStop.trim(),
+        name: this.newTripFirstStop.trim(),
+        type: 'stay',
+        cost: 0,
+        carbon: 1.0,
+        is_shared: true,
+        lat: null,
+        lng: null,
+        note: `Điểm đến đầu tiên / Nhận phòng nghỉ ngơi tại ${this.newTripDestination}.`
+      });
+    }
+
+    const daysData = Array.from({ length: calculatedDays }, (_, i) => i === 0 && day1Activities.length > 0 ? day1Activities : []);
 
     const newIti = {
       id: 'iti_' + Date.now(),
       name: this.newTripName.trim() || `Hành trình khám phá ${this.newTripDestination}`,
       user_id: userId,
       destination: this.newTripDestination,
+      origin: this.newTripOrigin.trim() || 'TP. Hồ Chí Minh',
+      departure_time: this.newTripDepartureTime || '07:30',
+      transport: this.newTripTransport || 'Xe khách Limousine',
+      first_stop: this.newTripFirstStop.trim() || null,
       days: calculatedDays,
       totalCost: 0,
-      totalCarbon: 0,
+      totalCarbon: day1Activities.reduce((acc, a) => acc + (a.carbon || 0), 0),
       daysData: daysData,
       status: 'draft' as const,
       deposit_deadline: null,
@@ -916,9 +966,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
         name: newIti.name,
         destLabel: newIti.destination,
         destination: newIti.destination,
+        origin: newIti.origin,
+        departure_time: newIti.departure_time,
+        transport: newIti.transport,
+        first_stop: newIti.first_stop,
         days: Array.from({ length: calculatedDays }, (_, i) => ({
           title: `Ngày ${i + 1}`,
-          activities: []
+          activities: i === 0 && day1Activities.length > 0 ? day1Activities : []
         }))
       };
       try {
