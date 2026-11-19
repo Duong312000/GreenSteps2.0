@@ -9,6 +9,7 @@ type ProfileSection =
   | 'favorites'
   | 'itineraries'
   | 'map'
+  | 'wallet'
   | 'chatbot'
   | 'personal'
   | 'security'
@@ -43,7 +44,7 @@ export class ProfileNavigationComponent {
     [
       { icon: 'bi-stars', label: 'Thiết kế lịch trình AI', route: '/ai-planner' },
       { icon: 'bi-geo-alt', label: 'Bản đồ tương tác', section: 'map' },
-      { icon: 'bi-chat-dots', label: 'Chatbot hỗ trợ', section: 'chatbot', badge: 'AI' }
+      { icon: 'bi-wallet2', label: 'Ví GreenSteps', section: 'wallet' }
     ],
     [
       { icon: 'bi-person', label: 'Thông tin cá nhân', section: 'personal' },
