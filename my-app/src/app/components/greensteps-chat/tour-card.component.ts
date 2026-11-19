@@ -11,8 +11,16 @@ import { getBackendOrigin } from '../../config/api-config';
   template: `
     <article class="gs-tour-card">
       <a class="gs-tour-card__image" [routerLink]="['/tours', tour.id]" [attr.aria-label]="'Xem chi tiết ' + tour.name">
-        <img *ngIf="imageSrc; else imageFallback" [src]="imageSrc" [alt]="tour.name" loading="lazy">
-        <ng-template #imageFallback><span aria-hidden="true">🌿</span></ng-template>
+        <img *ngIf="imageSrc && !imageFailed; else imageFallback" [src]="imageSrc" [alt]="tour.name" loading="lazy" (error)="onImageError($event)">
+        <ng-template #imageFallback>
+          <div class="gs-tour-card__placeholder" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+        </ng-template>
       </a>
       <div class="gs-tour-card__body">
         <div class="gs-tour-card__eyebrow">
@@ -41,8 +49,9 @@ import { getBackendOrigin } from '../../config/api-config';
   styles: [`
     :host { display: block; width: 100%; min-width: 0; }
     .gs-tour-card { display: grid; grid-template-columns: clamp(220px, 34%, 280px) minmax(0, 1fr); align-items: start; width: 100%; height: auto; min-width: 0; box-sizing: border-box; overflow: hidden; border: 1px solid var(--gs-chat-border, #DCE2DA); border-radius: 16px; background: var(--gs-chat-card, #FFFFFF); box-shadow: 0 1px 3px #14231d08; }
-    .gs-tour-card__image { display: grid; width: 100%; height: 168px; min-width: 0; min-height: 0; place-items: center; overflow: hidden; background: var(--gs-natural-sage, #E9EEE7); color: var(--gs-natural-forest, #123D32); font-size: 30px; }
+    .gs-tour-card__image { display: grid; width: 100%; height: 168px; min-width: 0; min-height: 0; place-items: center; overflow: hidden; background: var(--gs-natural-sage, #E9EEE7); color: var(--gs-natural-forest, #123D32); }
     .gs-tour-card__image img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .gs-tour-card__placeholder { display: grid; place-items: center; width: 100%; height: 100%; color: var(--gs-natural-forest, #123D32); opacity: 0.5; }
     .gs-tour-card__body { display: grid; align-content: start; gap: 7px; min-width: 0; padding: 12px 14px; }
     .gs-tour-card__eyebrow { color: var(--gs-chat-secondary, #526159); font-size: 11px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
     .gs-tour-card h3 { margin: 0; color: var(--gs-natural-forest, #123D32); font-size: 16px; line-height: 1.35; font-weight: 750; overflow-wrap: anywhere; }
@@ -75,13 +84,34 @@ import { getBackendOrigin } from '../../config/api-config';
 })
 export class TourCardComponent {
   @Input({ required: true }) tour!: ChatTour;
+  imageFailed = false;
 
   get imageSrc(): string | null {
     const source = this.tour?.imageUrl?.trim();
     if (!source) return null;
     if (/^(?:https?:|data:|blob:)/i.test(source)) return source;
+
+    // Direct frontend public asset paths
+    if (source.startsWith('image/') || source.startsWith('/image/')) {
+      return `/${source.replace(/^\//, '')}`;
+    }
+    if (source.startsWith('images/') || source.startsWith('/images/')) {
+      return `/image/${source.replace(/^\/?images\//, '')}`;
+    }
+
+    // Backend-hosted uploads
     const origin = getBackendOrigin();
-    const path = source.replace(/^\/?image\//i, '/images/');
-    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+    const clean = source.replace(/^\//, '');
+    return `${origin}/${clean}`;
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && !img.dataset['fallback']) {
+      img.dataset['fallback'] = 'true';
+      img.src = '/image/greensteps/travel-placeholder.svg';
+    } else {
+      this.imageFailed = true;
+    }
   }
 }
