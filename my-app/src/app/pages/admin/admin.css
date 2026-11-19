@@ -225,9 +225,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 104px;
+  min-width: 116px;
   height: 32px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #ffffff;
@@ -250,6 +250,7 @@
 /* Dashboard Behavioral Analytics Tables */
 .admin-data-table.behavioral-table {
   width: 100%;
+  min-width: 820px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -262,11 +263,13 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
+  padding: 12px 18px;
 }
 .admin-data-table.behavioral-table td {
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
   vertical-align: middle;
+  padding: 12px 18px;
 }
 .admin-data-table.behavioral-table tbody tr:hover {
   background: #f8fafc;

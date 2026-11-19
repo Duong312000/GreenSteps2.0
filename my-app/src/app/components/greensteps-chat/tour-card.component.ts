@@ -141,11 +141,36 @@ export class TourCardComponent {
 
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
-    if (img && !img.dataset['fallback']) {
-      img.dataset['fallback'] = 'true';
-      img.src = '/image/greensteps/tours/dalat/dalat-xuan-huong-lake.jpg';
-    } else {
+    if (!img) {
       this.imageFailed = true;
+      return;
     }
+    const attempt = Number(img.dataset['fallbackAttempt'] || '0');
+    if (attempt === 0) {
+      img.dataset['fallbackAttempt'] = '1';
+      const origin = getBackendOrigin();
+      const rawSrc = this.tour?.imageUrl || '';
+      if (origin && !img.src.startsWith(origin)) {
+        const cleanPath = rawSrc.replace(/^\/?(?:images?\/)?/, '');
+        img.src = `${origin}/image/${cleanPath}`;
+        return;
+      }
+    }
+    if (attempt <= 1) {
+      img.dataset['fallbackAttempt'] = '2';
+      const dest = (this.tour?.destination || '').toLowerCase();
+      const name = (this.tour?.name || '').toLowerCase();
+      if (dest.includes('hà nội') || dest.includes('ha noi') || name.includes('hà nội') || name.includes('phố cổ')) {
+        img.src = '/image/greensteps/tours/hanoi/hanoi-pho-co-old-quarter.jpg';
+      } else if (dest.includes('hội an') || dest.includes('đà nẵng') || dest.includes('da nang')) {
+        img.src = '/image/greensteps/tours/da-nang-hoi-an/hoi-an-old-town.jpg';
+      } else if (dest.includes('phú yên') || dest.includes('phu yen')) {
+        img.src = '/image/greensteps/tours/phu-yen/phu-yen-ganh-da-dia.jpg';
+      } else {
+        img.src = '/image/greensteps/tours/dalat/dalat-xuan-huong-lake.jpg';
+      }
+      return;
+    }
+    this.imageFailed = true;
   }
 }

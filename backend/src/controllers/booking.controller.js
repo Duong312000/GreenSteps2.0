@@ -1147,17 +1147,27 @@ exports.getBookings = async (req, res, next) => {
 async function canManageBooking(req, booking) {
   if (req.user?.role === 'admin') return true;
   if (req.user?.role !== 'provider') return false;
-  if (booking.schedule_id) {
-    const provider = await providerForUser(req.user.id);
-    const tour = await ScheduleSample.findByPk(booking.schedule_id);
-    return Boolean(provider && tour && tour.provider_id === provider.id);
-  }
-  if (!booking.service_id) return false;
 
-  const vender = await Vender.findOne({ where: { user_id: req.user.id } });
-  if (!vender) return false;
-  const service = await GreenService.findByPk(booking.service_id);
-  return Boolean(service && service.vender_id === vender.id);
+  const [provider, vender] = await Promise.all([
+    providerForUser(req.user.id),
+    Vender.findOne({ where: { user_id: req.user.id } })
+  ]);
+  const providerId = provider?.id;
+  const venderId = vender?.id;
+  const userId = req.user.id;
+
+  if (booking.schedule_id) {
+    const tour = await ScheduleSample.findByPk(booking.schedule_id);
+    if (tour && (tour.provider_id === providerId || tour.provider_id === userId)) return true;
+  }
+  if (booking.service_id) {
+    const service = await GreenService.findByPk(booking.service_id);
+    if (service && (service.vender_id === venderId || service.vender_id === userId)) return true;
+  }
+  if (booking.provider_id && (booking.provider_id === providerId || booking.provider_id === userId)) return true;
+  if (booking.vender_id && (booking.vender_id === venderId || booking.vender_id === userId)) return true;
+
+  return false;
 }
 
 const bookingAccessDenied = (res) => res.status(403).json({ success: false, message: 'Access denied.' });
@@ -1490,9 +1500,9 @@ exports.completeBooking = async (req, res, next) => {
     booking.payment_status = 'fully_paid';
     booking.operation_status = 'completed';
     booking.status = 'completed';
-    const wasCompleted = booking.original.status === 'completed';
+    const wasCompleted = booking.original?.status === 'completed';
     await booking.save({ transaction: t });
-    if (!wasCompleted) await loyalty.earn(booking, t);
+    if (!wasCompleted && booking.status === 'completed') await loyalty.earn(booking, t);
     await t.commit();
     await sendBookingConfirmationIfNeeded(booking);
 
@@ -1517,8 +1527,6 @@ exports.updateBookingStatuses = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Đơn đặt chỗ không tồn tại!' });
     }
     if (!(await canManageBooking(req, booking))) { await t.rollback(); return bookingAccessDenied(res); }
-    if (operation_status === 'completed' && !['deposit', 'completed'].includes(booking.status)) { await t.rollback(); return res.status(409).json({ success: false, message: 'Booking chưa được xác minh thanh toán.' }); }
-    if (operation_status === 'completed' && booking.booking_date > new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })) { await t.rollback(); return res.status(409).json({ success: false, message: 'Chuyến đi chưa bắt đầu.' }); }
     if (booking_status !== undefined) booking.booking_status = booking_status;
     if (payment_status !== undefined) booking.payment_status = payment_status;
     if (operation_status !== undefined) {
@@ -1572,9 +1580,9 @@ exports.updateBookingStatuses = async (req, res, next) => {
       booking.status = 'deposit';
     }
 
-    const wasCompleted = booking.original.status === 'completed';
+    const wasCompleted = booking.original?.status === 'completed';
     await booking.save({ transaction: t });
-    if (!wasCompleted) await loyalty.earn(booking, t);
+    if (!wasCompleted && booking.status === 'completed') await loyalty.earn(booking, t);
     await t.commit();
     await sendBookingConfirmationIfNeeded(booking);
 

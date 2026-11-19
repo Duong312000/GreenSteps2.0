@@ -544,13 +544,11 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       if (id === 'new' || action === 'new' || mode === 'new') {
         this.isListMode = false;
         this.isLoadingEditor = false;
+        let dest = 'Đà Lạt';
         if (destParam) {
-          const cleanDest = decodeURIComponent(destParam).trim();
-          this.newTripDestination = cleanDest;
-          this.modalDest = cleanDest;
-          this.newTripName = `Hành trình khám phá ${cleanDest}`;
+          dest = decodeURIComponent(destParam).trim();
         }
-        this.openCreateNewModal();
+        this.openCreateNewModal(dest);
         this.cdr.detectChanges();
         return;
       }
@@ -885,11 +883,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
     this.cdr.detectChanges();
   }
 
-  public openCreateNewModal() {
+  public openCreateNewModal(customDest?: string) {
     this.isCreateNewModalOpen = true;
-    this.newTripName = '';
-    this.newTripDestination = 'Đà Lạt';
-    this.newTripOrigin = 'TP. Hồ Chí Minh';
+    const dest = customDest || this.newTripDestination || 'Đà Lạt';
+    this.newTripDestination = dest;
+    this.modalDest = dest;
+    this.newTripName = `Hành trình khám phá ${dest}`;
+    this.newTripOrigin = this.newTripOrigin || 'TP. Hồ Chí Minh';
     this.newTripStartDate = '';
     this.newTripEndDate = '';
     this.newTripDepartureTime = '07:30';

@@ -62,8 +62,12 @@ app.use(createDatabaseConnectionMiddleware({ store }));
 const fs = require('fs');
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/images', express.static(path.join(__dirname, '../../server_mongodb/public/images')));
 app.use('/images', express.static(path.join(__dirname, '../images')));
+app.use('/images', express.static(path.join(__dirname, '../../my-app/public/image')));
+app.use('/images', express.static(path.join(__dirname, '../../server_mongodb/public/images')));
+app.use('/image', express.static(path.join(__dirname, '../images')));
+app.use('/image', express.static(path.join(__dirname, '../../my-app/public/image')));
+app.use('/image', express.static(path.join(__dirname, '../../server_mongodb/public/images')));
 app.use('/uploads', express.static(path.join(__dirname, '../../server_mongodb/public/uploads')));
 
 // Fallback for missing/ephemeral uploads to prevent 404 console errors

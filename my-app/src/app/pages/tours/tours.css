@@ -1555,3 +1555,15 @@
     font-size: 0.75rem;
   }
 }
+
+/* Custom Itinerary Modal Overlay */
+.modal-overlay.active,
+.gs-create-itinerary-overlay {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+}

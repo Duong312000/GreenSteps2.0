@@ -122,7 +122,7 @@ export class CommunityComponent implements OnInit {
       if (cachedSide) {
         const sideData = JSON.parse(cachedSide);
         if (sideData.challenge) this.challenge = sideData.challenge;
-        if (sideData.leaderboard) this.leaderboard = sideData.leaderboard;
+        if (sideData.leaderboard) this.leaderboard = (sideData.leaderboard || []).filter((u: any) => !/^(?:test|demo|sample|qa|seed)/i.test((u.name || '').trim()));
         if (sideData.trendingHashtags) this.trendingHashtags = sideData.trendingHashtags;
       }
     } catch {}
@@ -191,7 +191,7 @@ export class CommunityComponent implements OnInit {
       ]);
       if (sequence !== this.feedRequestSequence) return;
       this.challenge = challenge.status === 'fulfilled' ? challenge.value : null;
-      this.leaderboard = ranking.status === 'fulfilled' ? ranking.value : [];
+      this.leaderboard = (ranking.status === 'fulfilled' ? ranking.value : []).filter((u: any) => !/^(?:test|demo|sample|qa|seed)/i.test((u.name || '').trim()));
       this.trendingHashtags = tags.status === 'fulfilled' ? tags.value : [];
       try {
         localStorage.setItem('greensteps_swr_community_side', JSON.stringify({

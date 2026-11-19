@@ -433,6 +433,12 @@ export class ToursComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  public onOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      this.closeCreateItineraryModal();
+    }
+  }
+
   public onTripDatesChange() {
     this.formDateError = '';
     if (this.newTripStartDate && this.newTripEndDate) {

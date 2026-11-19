@@ -265,7 +265,7 @@ function createChatAdapter({ env = process.env, fetchImpl = global.fetch, models
               requestIntent,
               currentTourRecommendations: aiInput.currentTours || [],
               currentItinerary: aiInput.plannerState || null,
-              uiResponseContract: 'Tư vấn du lịch sinh thái Net-Zero. Trả lời tiếng Việt tự nhiên. Nếu tìm tour: trả về type="tour_recommendations" với ID tour từ catalog. Nếu lập lịch trình: trả về type="itinerary_proposal" với activities phù hợp.'
+              uiResponseContract: 'Tư vấn du lịch sinh thái Net-Zero. Trả lời tiếng Việt tự nhiên, thân thiện. Nếu người dùng tìm tour: trả về type="tour_recommendations" với ID tour từ catalog. Nếu người dùng muốn lên lịch trình/kế hoạch đi chơi ở bất kỳ điểm đến nào (kể cả điểm đến chưa có tour trọn gói sẵn trong catalog như Vũng Tàu, Quy Nhơn, Cần Thơ...), BẮT BUỘC hỗ trợ trả về type="itinerary_proposal" với các hoạt động sinh thái, điểm check-in, ẩm thực và nơi ở gợi ý cụ thể theo từng ngày, KHÔNG ĐƯỢC TỪ CHỐI hay bảo không có tour.'
             }
           }),
           signal: requestSignal
