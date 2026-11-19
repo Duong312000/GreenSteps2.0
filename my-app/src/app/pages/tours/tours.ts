@@ -407,6 +407,7 @@ export class ToursComponent implements OnInit {
   // Itinerary creation modal logic (Full Wanderlog / GreenSteps style)
   public openCreateItineraryModal() {
     this.isCreateModalOpen = true;
+    try { document.body.style.overflow = 'hidden'; } catch (e) {}
     const dest = (this.filterDest && this.filterDest !== 'all') ? this.filterDest : 'Đà Lạt';
     this.newTripDestination = dest;
     this.newTripOrigin = 'TP. Hồ Chí Minh';
@@ -430,11 +431,13 @@ export class ToursComponent implements OnInit {
 
   public closeCreateItineraryModal() {
     this.isCreateModalOpen = false;
+    try { document.body.style.overflow = ''; } catch (e) {}
     this.cdr.detectChanges();
   }
 
   public onOverlayClick(event: MouseEvent) {
-    if (event.target === event.currentTarget) {
+    const target = event.target as HTMLElement;
+    if (target && (target.classList.contains('modal-overlay') || target.classList.contains('gs-create-itinerary-overlay'))) {
       this.closeCreateItineraryModal();
     }
   }

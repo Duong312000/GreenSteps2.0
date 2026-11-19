@@ -109,7 +109,7 @@
                                 <td class="p-4">
                                     <select [ngModel]="b.operation_status || 'preparing'"
                                             (change)="onQuickChangeOperationStatus(b, $any($event.target).value)"
-                                            class="text-[10px] font-bold px-2 py-1 rounded-lg border bg-white cursor-pointer transition-all outline-none"
+                                            class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border bg-white cursor-pointer transition-all outline-none min-w-[124px]"
                                             [ngClass]="getOperationStatusClass(b.operation_status)">
                                         <option value="preparing">Đang chuẩn bị</option>
                                         <option value="ongoing">Đang phục vụ</option>

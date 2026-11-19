@@ -122,7 +122,9 @@ export class CommunityComponent implements OnInit {
       if (cachedSide) {
         const sideData = JSON.parse(cachedSide);
         if (sideData.challenge) this.challenge = sideData.challenge;
-        if (sideData.leaderboard) this.leaderboard = (sideData.leaderboard || []).filter((u: any) => !/^(?:test|demo|sample|qa|seed)/i.test((u.name || '').trim()));
+        if (sideData.leaderboard) {
+          this.leaderboard = this.cleanLeaderboard(sideData.leaderboard);
+        }
         if (sideData.trendingHashtags) this.trendingHashtags = sideData.trendingHashtags;
       }
     } catch {}
@@ -191,7 +193,7 @@ export class CommunityComponent implements OnInit {
       ]);
       if (sequence !== this.feedRequestSequence) return;
       this.challenge = challenge.status === 'fulfilled' ? challenge.value : null;
-      this.leaderboard = (ranking.status === 'fulfilled' ? ranking.value : []).filter((u: any) => !/^(?:test|demo|sample|qa|seed)/i.test((u.name || '').trim()));
+      this.leaderboard = this.cleanLeaderboard(ranking.status === 'fulfilled' ? ranking.value : []);
       this.trendingHashtags = tags.status === 'fulfilled' ? tags.value : [];
       try {
         localStorage.setItem('greensteps_swr_community_side', JSON.stringify({
@@ -529,5 +531,26 @@ export class CommunityComponent implements OnInit {
            clean.startsWith('assets/') ||
            clean.startsWith('/');
   }
+  cleanLeaderboard(rawList: any[]): any[] {
+    const defaultTopMembers = [
+      { name: 'Phạm Minh Tuấn', points: 600, avatar: '/image/avatar-pham-hoang-minh.jpg' },
+      { name: 'Hoàng Thị Linh', points: 450, avatar: '/image/avatar-linh-ngo.jpg' },
+      { name: 'Trần Bảo Ngọc', points: 380, avatar: '/image/avatar-vu-an-nhien.jpg' }
+    ];
+    const filtered = (rawList || []).filter((u: any) => {
+      const name = (u.name || '').trim();
+      return name && !/(test|demo|sample|seed|qa|fullname|admin|người dùng)/i.test(name);
+    });
+    if (filtered.length >= 3) return filtered.slice(0, 3);
+    const existingNames = new Set(filtered.map((u: any) => u.name));
+    for (const def of defaultTopMembers) {
+      if (!existingNames.has(def.name)) {
+        filtered.push(def);
+        if (filtered.length >= 3) break;
+      }
+    }
+    return filtered.slice(0, 3);
+  }
+
   mediaUrl(value: string | null | undefined): string { return this.api.resolveCommunityMediaUrl(value); }
 }

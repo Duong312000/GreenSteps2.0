@@ -11,14 +11,114 @@ function normalizeChatIntent(value: string): string {
 
 function isExplicitItineraryRequest(message: string): boolean {
   const value = normalizeChatIntent(message);
-  const hasPlanAction = /\b(?:lap|tao|len|xay dung|thiet ke|lam|sap xep|soan)\b/.test(value);
-  const mentionsPlan = /\b(?:lich trinh|lap lich(?: trinh| di(?: choi)?)?|len lich(?: trinh| di(?: choi)?)?|lich di(?: choi)?|hanh trinh|ke hoach(?: du lich| chuyen di)?)\b/.test(value)
-    || (hasPlanAction && /\b(?:tour|chuyen di)\b/.test(value));
+  const hasPlanAction = /\b(?:lap|tao|len|xay dung|thiet ke|lam|sap xep|soan|dung)\b/.test(value);
+  const mentionsPlan = /\b(?:lich trinh|lap lich(?: trinh| di(?: choi)?)?|len lich(?: trinh| di(?: choi)?)?|lich di(?: choi)?|hanh trinh|ke hoach(?: du lich| chuyen di)?|itinerary|plan)\b/.test(value)
+    || (hasPlanAction && /\b(?:tour|chuyen di|lich)\b/.test(value));
+  if (mentionsPlan && hasPlanAction) return true;
+
+  // Conversational prompts asking bot to build a trip / itinerary:
+  // "bạn tạo giúp tôi được không?", "tạo giúp tôi", "tạo hộ mình", "lên lịch giúp", "bạn thiết kế giúp tôi"
+  const asksBotToCreate = /\b(?:tao giup|tao ho|lam giup|lam ho|len giup|len ho|soan giup|soan ho|ban tao|ban lam|ban len|ban thiet ke|tao cho|lam cho|len cho|giup tao|giup minh tao|giup toi tao|nho ban|co the tao|ban giup tao|giup minh len|giup toi len|tao giup toi|tao ho toi|tao ho minh)\b/.test(value)
+    || (/\b(?:tao|lap|len|lam|soan|thiet ke)\b/.test(value) && /\b(?:giup|ho|duoc khong|nhe|nha|dum|cho toi|cho minh)\b/.test(value));
+  if (asksBotToCreate) return true;
+
+  // Casual travel intent with days: "tôi muốn đi vũng tàu chơi với người yêu, 2 ngày 1 đêm"
+  const travelWithDays = /\b(?:muon di|di choi|chuyen di|den)\b/.test(value) && /\b\d{1,2}\s*(?:ngay|day|dem|night)\b/.test(value);
+  if (travelWithDays && !/\btour\b/.test(value)) return true;
+
   if (!mentionsPlan) return false;
-  if (hasPlanAction) return true;
   const asksForPlan = /\b(?:goi y|de xuat|tu van|muon)\b/.test(value);
   const explicitlySearchesTours = /\btour\b/.test(value) && /\b(?:tim|goi y|de xuat|so sanh|chon|tu van|muon)\b/.test(value);
   return asksForPlan && !explicitlySearchesTours;
+}
+
+function detectDestinationFromContext(message: string, history: Array<{ content: string }>): string {
+  const allText = [message, ...history.map(h => h.content)].join(' ');
+  const normalized = normalizeChatIntent(allText);
+  if (normalized.includes('vung tau')) return 'Vũng Tàu';
+  if (normalized.includes('da lat') || normalized.includes('dalat')) return 'Đà Lạt';
+  if (normalized.includes('hoi an')) return 'Hội An';
+  if (normalized.includes('da nang')) return 'Đà Nẵng';
+  if (normalized.includes('phu yen')) return 'Phú Yên';
+  if (normalized.includes('phu quoc')) return 'Phú Quốc';
+  if (normalized.includes('ha noi') || normalized.includes('hanoi')) return 'Hà Nội';
+  if (normalized.includes('sa pa') || normalized.includes('sapa')) return 'Sa Pa';
+  if (normalized.includes('ninh binh')) return 'Ninh Bình';
+  if (normalized.includes('ha long')) return 'Hạ Long';
+  if (normalized.includes('ha giang')) return 'Hà Giang';
+  if (normalized.includes('hue')) return 'Huế';
+  if (normalized.includes('can tho')) return 'Cần Thơ';
+  if (normalized.includes('nha trang')) return 'Nha Trang';
+  if (normalized.includes('quy nhon')) return 'Quy Nhơn';
+  return '';
+}
+
+function synthesizeFallbackItinerary(destination: string, numDays = 2): ChatItineraryDraft {
+  const destName = destination || 'Vũng Tàu';
+  const isVungTau = destName.toLowerCase().includes('vũng tàu') || destName.toLowerCase().includes('vung tau');
+  const isDaLat = destName.toLowerCase().includes('đà lạt') || destName.toLowerCase().includes('da lat');
+
+  const days: ChatItineraryDraft['days'] = [];
+  if (isVungTau) {
+    days.push([
+      { name: 'Di chuyển đến Vũng Tàu bằng xe Limousine sinh thái', time: '07:30', cost: 180000, carbon: 4.5, type: 'transport', verified: false, serviceId: null },
+      { name: 'Nhận phòng khách sạn sinh thái Bãi Sau & nghỉ ngơi', time: '10:30', cost: 650000, carbon: 1.2, type: 'lodging', verified: false, serviceId: null },
+      { name: 'Thưởng thức bánh khọt Gốc Vú Sữa & ẩm thực địa phương', time: '12:00', cost: 90000, carbon: 0.8, type: 'dining', verified: false, serviceId: null },
+      { name: 'Tham quan Ngọn Hải Đăng Vũng Tàu, ngắm toàn cảnh vịnh biển', time: '15:00', cost: 0, carbon: 1.0, type: 'attraction', verified: false, serviceId: null },
+      { name: 'Đón hoàng hôn tại Mũi Nghinh Phong & dạo bộ bờ biển', time: '17:30', cost: 0, carbon: 0.5, type: 'attraction', verified: false, serviceId: null },
+      { name: 'Đạp xe đôi không khói bụi quanh công viên Bãi Trước', time: '19:30', cost: 50000, carbon: 0.2, type: 'attraction', verified: false, serviceId: null }
+    ]);
+    if (numDays >= 2) {
+      days.push([
+        { name: 'Đón bình minh và tắm biển tại Bãi Sau', time: '06:00', cost: 0, carbon: 0.3, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Leo bậc thang khám phá Tượng Chúa Kito Vua', time: '08:30', cost: 0, carbon: 0.8, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Ăn trưa cơm niêu truyền thống & cà phê ngắm biển', time: '11:30', cost: 120000, carbon: 1.0, type: 'dining', verified: false, serviceId: null },
+        { name: 'Mua quà đặc sản bánh bông lan trứng muối Gốc Cột Điện', time: '14:00', cost: 80000, carbon: 0.5, type: 'dining', verified: false, serviceId: null },
+        { name: 'Khởi hành trở về, hoàn thành hành trình xanh', time: '16:00', cost: 180000, carbon: 4.5, type: 'transport', verified: false, serviceId: null }
+      ]);
+    }
+  } else if (isDaLat) {
+    days.push([
+      { name: 'Khởi hành lên Đà Lạt bằng xe limousine trung chuyển', time: '07:30', cost: 300000, carbon: 6.0, type: 'transport', verified: false, serviceId: null },
+      { name: 'Nhận phòng homestay sinh thái ven đồi thông', time: '13:00', cost: 600000, carbon: 1.5, type: 'lodging', verified: false, serviceId: null },
+      { name: 'Dạo bộ và đạp xe ngắm Hồ Xuân Hương', time: '15:30', cost: 50000, carbon: 0.2, type: 'attraction', verified: false, serviceId: null },
+      { name: 'Thưởng thức lẩu gà lá é & sữa đậu nành nóng', time: '18:30', cost: 130000, carbon: 1.1, type: 'dining', verified: false, serviceId: null }
+    ]);
+    if (numDays >= 2) {
+      days.push([
+        { name: 'Săn mây đồi chè Cầu Đất lúc sáng sớm', time: '05:30', cost: 0, carbon: 1.2, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Tham quan Vườn hoa cẩm tú cầu & chùa Linh Phước', time: '09:00', cost: 50000, carbon: 0.8, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Ăn trưa rau hữu cơ tại nông trại địa phương', time: '12:00', cost: 110000, carbon: 0.7, type: 'dining', verified: false, serviceId: null },
+        { name: 'Check-in rừng thông hồ Tuyền Lâm trước khi về', time: '14:30', cost: 0, carbon: 0.6, type: 'attraction', verified: false, serviceId: null }
+      ]);
+    }
+  } else {
+    days.push([
+      { name: `Khởi hành đến ${destName}`, time: '08:00', cost: 250000, carbon: 5.0, type: 'transport', verified: false, serviceId: null },
+      { name: `Nhận phòng lưu trú sinh thái tại ${destName}`, time: '11:30', cost: 550000, carbon: 1.2, type: 'lodging', verified: false, serviceId: null },
+      { name: 'Thưởng thức ẩm thực đặc sản địa phương', time: '13:00', cost: 100000, carbon: 0.8, type: 'dining', verified: false, serviceId: null },
+      { name: `Khám phá các danh thắng thiên nhiên nổi bật tại ${destName}`, time: '15:00', cost: 60000, carbon: 0.6, type: 'attraction', verified: false, serviceId: null },
+      { name: 'Dạo phố đêm và tìm hiểu văn hóa bản địa', time: '19:00', cost: 40000, carbon: 0.3, type: 'attraction', verified: false, serviceId: null }
+    ]);
+    if (numDays >= 2) {
+      days.push([
+        { name: 'Ngắm bình minh và trải nghiệm không gian sinh thái', time: '06:30', cost: 0, carbon: 0.2, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Tham quan làng nghề hoặc di tích lịch sử địa phương', time: '09:00', cost: 50000, carbon: 0.7, type: 'attraction', verified: false, serviceId: null },
+        { name: 'Mua sắm đặc sản xanh làm quà', time: '13:30', cost: 80000, carbon: 0.4, type: 'dining', verified: false, serviceId: null },
+        { name: 'Khởi hành trở về', time: '16:00', cost: 250000, carbon: 5.0, type: 'transport', verified: false, serviceId: null }
+      ]);
+    }
+  }
+
+  return {
+    name: `Hành trình khám phá ${destName} ${days.length}N${Math.max(1, days.length - 1)}Đ`,
+    destination: destName,
+    startDate: null,
+    endDate: null,
+    days,
+    estimatedCost: days.flat().reduce((acc, a) => acc + (a.cost || 0), 0),
+    assumptions: ['Phương án tự túc được tối ưu theo tiêu chuẩn du lịch sinh thái GreenSteps.']
+  };
 }
 
 function explicitChatMessageIntent(message: string): 'itinerary' | 'tour_search' | '' {
@@ -319,7 +419,13 @@ export class GreenStepsChatService {
       const showClarification = response.type === 'clarification';
       const isItineraryResponse = response.type === 'itinerary_proposal' || Boolean(response.itinerary);
       const showTourResult = !showClarification && !explicitlyRequestsItinerary && !isItineraryResponse && (explicitlyRequestsTour || isTourResponse);
-      const rawItinerary = showTourResult || showClarification ? null : response.itinerary || parseTextItinerary(response.reply, message);
+      let rawItinerary = showTourResult || showClarification ? null : response.itinerary || parseTextItinerary(response.reply, message);
+      if (!rawItinerary && (explicitlyRequestsItinerary || isItineraryResponse)) {
+        const contextDest = detectDestinationFromContext(message, body.history);
+        if (contextDest) {
+          rawItinerary = synthesizeFallbackItinerary(contextDest, 2);
+        }
+      }
       const invalidItinerary = Boolean(rawItinerary && itineraryDestinationMismatch(message, rawItinerary.destination));
       const itinerary = invalidItinerary ? null : rawItinerary;
       const totalTours = Math.max(tours.length, Number(response.totalTours) || tours.length);

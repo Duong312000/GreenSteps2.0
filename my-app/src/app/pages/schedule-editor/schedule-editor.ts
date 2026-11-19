@@ -530,8 +530,9 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngAfterViewInit() {
     combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, queryParams]) => {
-      let id = params.get('id') ||
-        queryParams.get('id') ||
+      const pathId = params.get('id');
+      const queryId = queryParams.get('id');
+      let id = pathId || queryId ||
         this.route.parent?.snapshot.paramMap.get('id') ||
         this.route.snapshot.paramMap.get('id') ||
         this.route.snapshot.queryParamMap.get('id');
@@ -540,8 +541,8 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
       const mode = queryParams.get('mode') || this.route.snapshot.queryParamMap.get('mode');
       const destParam = queryParams.get('destination') || queryParams.get('dest') || this.route.snapshot.queryParamMap.get('destination') || this.route.snapshot.queryParamMap.get('dest');
 
-      // If user specifically requests a new itinerary creation
-      if (id === 'new' || action === 'new' || mode === 'new') {
+      // If user specifically requests a new itinerary creation or navigates to /schedule without a specific ID
+      if (id === 'new' || action === 'new' || mode === 'new' || (!pathId && !queryId)) {
         this.isListMode = false;
         this.isLoadingEditor = false;
         let dest = 'Đà Lạt';
