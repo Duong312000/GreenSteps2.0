@@ -15,12 +15,16 @@ export class PublicLegalComponent implements OnInit {
   constructor(private route: ActivatedRoute, private pageTitle: Title, private meta: Meta) {}
 
   ngOnInit(): void {
-    const privacy = this.route.snapshot.data['publicPolicy'] === 'privacy';
-    this.title = privacy ? 'Chính sách bảo mật' : 'Điều khoản sử dụng';
-    this.description = privacy
-      ? 'Thông tin về dữ liệu cá nhân và cách GreenSteps xử lý thông tin khi bạn sử dụng nền tảng.'
-      : 'Các nguyên tắc sử dụng nền tảng GreenSteps Travel dành cho khách hàng và người truy cập.';
-    this.sections = privacy ? this.privacySections() : this.termsSections();
+    const policy = this.route.snapshot.data['publicPolicy'];
+    const privacy = policy === 'privacy';
+    const deletion = policy === 'deletion';
+    this.title = deletion ? 'Hướng dẫn xóa dữ liệu' : privacy ? 'Chính sách bảo mật' : 'Điều khoản sử dụng';
+    this.description = deletion
+      ? 'Cách yêu cầu GreenSteps xóa tài khoản và dữ liệu liên quan đến Facebook Login.'
+      : privacy
+        ? 'Thông tin về dữ liệu cá nhân và cách GreenSteps xử lý thông tin khi bạn sử dụng nền tảng.'
+        : 'Các nguyên tắc sử dụng nền tảng GreenSteps Travel dành cho khách hàng và người truy cập.';
+    this.sections = deletion ? this.deletionSections() : privacy ? this.privacySections() : this.termsSections();
     this.pageTitle.setTitle(`${this.title} | GreenSteps Travel`);
     this.meta.updateTag({ name: 'description', content: this.description });
   }
@@ -38,12 +42,21 @@ export class PublicLegalComponent implements OnInit {
 
   private privacySections(): LegalSection[] {
     return [
-      { id: 'du-lieu-thu-thap', heading: '1. Thông tin có thể được thu thập', paragraphs: ['GreenSteps có thể xử lý thông tin bạn chủ động cung cấp như tên, email, số điện thoại, thông tin đặt dịch vụ và nội dung trao đổi hỗ trợ. Khi sử dụng website, một số dữ liệu kỹ thuật như loại trình duyệt, nhật ký truy cập và thao tác cần thiết để vận hành, bảo vệ nền tảng cũng có thể được ghi nhận.'] },
+      { id: 'du-lieu-thu-thap', heading: '1. Thông tin có thể được thu thập', paragraphs: ['GreenSteps có thể xử lý thông tin bạn chủ động cung cấp như tên, email, số điện thoại, thông tin đặt dịch vụ và nội dung trao đổi hỗ trợ. Khi bạn đăng nhập bằng Facebook, GreenSteps có thể nhận tên, email, ảnh đại diện và mã định danh Facebook do Meta cung cấp. Khi sử dụng website, một số dữ liệu kỹ thuật cần thiết để vận hành và bảo vệ nền tảng cũng có thể được ghi nhận.'] },
       { id: 'muc-dich', heading: '2. Mục đích sử dụng', paragraphs: ['Thông tin được sử dụng để tạo và bảo vệ tài khoản, xử lý yêu cầu đặt dịch vụ và thanh toán, hỗ trợ khách hàng, cải thiện tính năng, ngăn chặn gian lận và thực hiện nghĩa vụ pháp lý. Email chỉ được thêm vào danh sách bản tin khi bạn tự nguyện đăng ký.'] },
       { id: 'chia-se', heading: '3. Chia sẻ thông tin', paragraphs: ['Thông tin cần thiết cho đơn đặt có thể được chia sẻ với nhà cung cấp liên quan để thực hiện dịch vụ. GreenSteps không bán thông tin cá nhân; thông tin chỉ được cung cấp cho đơn vị xử lý hoặc cơ quan có thẩm quyền khi cần thiết cho các mục đích nêu trong chính sách này hoặc theo yêu cầu pháp luật.'] },
       { id: 'luu-tru-bao-ve', heading: '4. Lưu trữ và bảo vệ', paragraphs: ['GreenSteps áp dụng biện pháp kỹ thuật và tổ chức phù hợp để hạn chế truy cập trái phép, mất mát hoặc sử dụng sai mục đích. Thông tin được lưu trong thời gian cần thiết cho mục đích thu thập, xử lý giao dịch, giải quyết khiếu nại và tuân thủ nghĩa vụ pháp lý.'] },
-      { id: 'quyen-nguoi-dung', heading: '5. Quyền và lựa chọn của bạn', paragraphs: ['Bạn có thể yêu cầu xem, cập nhật hoặc xóa thông tin cá nhân trong phạm vi pháp luật cho phép bằng cách liên hệ GreenSteps. Bạn cũng có thể liên hệ để yêu cầu ngừng nhận bản tin.'] },
+      { id: 'quyen-nguoi-dung', heading: '5. Quyền và lựa chọn của bạn', paragraphs: ['Bạn có thể yêu cầu xem, cập nhật hoặc xóa thông tin cá nhân trong phạm vi pháp luật cho phép bằng cách liên hệ GreenSteps. Bạn cũng có thể liên hệ để yêu cầu ngừng nhận bản tin.'], links: [{ label: 'Xem hướng dẫn xóa dữ liệu', route: '/data-deletion' }] },
       { id: 'lien-he-cap-nhat', heading: '6. Cập nhật và liên hệ', paragraphs: ['Chính sách có thể thay đổi cùng với hoạt động của nền tảng. Bản cập nhật cần được công bố trên trang này kèm ngày áp dụng. Nếu có câu hỏi về dữ liệu cá nhân, vui lòng liên hệ GreenSteps qua trang hỗ trợ.'], links: [{ label: 'Liên hệ hỗ trợ', route: '/contact' }] },
+    ];
+  }
+
+  private deletionSections(): LegalSection[] {
+    return [
+      { id: 'gui-yeu-cau', heading: '1. Gửi yêu cầu xóa dữ liệu', paragraphs: ['Gửi email đến Greensteps@gmail.com với tiêu đề “Yêu cầu xóa dữ liệu GreenSteps”. Trong email, ghi rõ địa chỉ email dùng cho tài khoản GreenSteps và yêu cầu xóa tài khoản hoặc dữ liệu Facebook. GreenSteps có thể yêu cầu bạn xác minh quyền sở hữu tài khoản trước khi xử lý.'] },
+      { id: 'thoi-gian', heading: '2. Thời gian và phạm vi xử lý', paragraphs: ['GreenSteps sẽ phản hồi và xử lý yêu cầu hợp lệ trong vòng 30 ngày. Dữ liệu hồ sơ và liên kết Facebook sẽ bị xóa hoặc ẩn danh, trừ thông tin phải lưu để tuân thủ nghĩa vụ pháp lý hoặc giải quyết giao dịch đang diễn ra.'] },
+      { id: 'go-quyen-facebook', heading: '3. Gỡ quyền trên Facebook', paragraphs: ['Bạn có thể vào Facebook, chọn Cài đặt và quyền riêng tư → Cài đặt → Ứng dụng và trang web, chọn GreenStep Login rồi nhấn Gỡ. Sau đó, hãy gửi email theo hướng dẫn trên nếu bạn muốn xóa cả dữ liệu đã lưu tại GreenSteps.'] },
+      { id: 'lien-he', heading: '4. Liên hệ', paragraphs: ['Nếu cần hỗ trợ về yêu cầu xóa dữ liệu, vui lòng gửi email đến Greensteps@gmail.com.'], links: [{ label: 'Xem chính sách bảo mật', route: '/privacy-policy' }] },
     ];
   }
 }

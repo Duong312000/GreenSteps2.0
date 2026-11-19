@@ -33,7 +33,8 @@ import { PublicLegalComponent } from '../public-legal/public-legal';
       { path: 'provider-terms', component: PartnerLegalComponent, data: { partnerPolicy: 'terms' } },
       { path: 'payment-policy', component: PartnerLegalComponent, data: { partnerPolicy: 'payment' } },
       { path: 'terms-of-use', component: PublicLegalComponent, data: { publicPolicy: 'terms' } },
-      { path: 'privacy-policy', component: PublicLegalComponent, data: { publicPolicy: 'privacy' } }
+      { path: 'privacy-policy', component: PublicLegalComponent, data: { publicPolicy: 'privacy' } },
+      { path: 'data-deletion', component: PublicLegalComponent, data: { publicPolicy: 'deletion' } }
     ])]
 })
 export class PartnerModule {}
