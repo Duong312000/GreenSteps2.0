@@ -489,7 +489,8 @@
         </div>
 
         <!-- Timeline Activities List -->
-        <div class="timeline-list-container" id="timelineList" [class.dragging-active]="isDraggingCard">
+        <div class="timeline-list-container" id="timelineList" [class.dragging-active]="isDraggingCard"
+             (dragleave)="onTimelineContainerDragLeave($event)" (dragover)="$event.preventDefault()">
             <!-- Empty state -->
             <div *ngIf="!activeItinerary.days[activeDayIdx]?.activities || activeItinerary.days[activeDayIdx]?.activities?.length === 0"
                 style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-size:14px; position:relative; z-index:2;">
@@ -511,11 +512,12 @@
                     [class.drop-target-before]="dragTargetIdx === idx && dragDropPosition === 'before'"
                     [class.drop-target-after]="dragTargetIdx === idx && dragDropPosition === 'after'"
                     [attr.data-type]="act.type" (dragover)="onDragOver($event, idx)"
-                    (dragleave)="onDragLeave($event, idx)" (drop)="onDrop($event, idx)"
+                    (drop)="onDrop($event, idx)"
                     (mouseenter)="highlightMapPin(idx, true)" (mouseleave)="highlightMapPin(idx, false)">
 
                     <!-- Ergonomic Grip Handle (Linear/Notion/Wanderlog Standard) -->
-                    <div class="drag-handle-grip" *ngIf="!isItineraryLocked()"
+                    <div class="drag-handle-grip" *ngIf="!isItineraryLocked()" [draggable]="true"
+                        (dragstart)="onDragStart($event, idx)" (dragend)="onDragEnd($event)"
                         title="Kéo thả để sắp xếp lại thứ tự">
                         <i class="bi bi-grip-vertical"></i>
                     </div>
@@ -558,7 +560,7 @@
                             <!-- Left: Thumbnail Image with Category Badge -->
                             <div class="act-min-media">
                                 <img [src]="act.img || getPlacePlaceholderImage(act.title, act.type, activeItinerary?.destLabel || activeItinerary?.destination)"
-                                    [alt]="act.title" class="act-min-img" (error)="handleActivityImgError($event, act)">
+                                    [alt]="act.title" class="act-min-img" draggable="false" style="pointer-events: none;" (error)="handleActivityImgError($event, act)">
                                 <span class="act-min-type-tag">{{ getActivityTypeLabel(act.type, act.title) }}</span>
                             </div>
 

@@ -7083,13 +7083,13 @@
 .drag-handle-grip {
   cursor: grab !important;
   user-select: none !important;
-  touch-action: none;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #94a3b8;
   transition: color 0.15s ease;
+  pointer-events: auto !important;
 }
 
 .drag-handle-grip:hover {

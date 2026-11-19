@@ -4921,18 +4921,13 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   public onDragLeave(event: DragEvent, idx: number) {
-    const currentTarget = event.currentTarget as HTMLElement;
-    const relatedTarget = event.relatedTarget as HTMLElement;
-    if (currentTarget && relatedTarget && currentTarget.contains(relatedTarget)) {
-      return;
-    }
-    if (relatedTarget && relatedTarget.closest('.drag-placeholder-slot')) {
-      return; // Keep placeholder slot open when hovering directly inside the placeholder slot!
-    }
-    if (relatedTarget && relatedTarget.closest('#timelineList')) {
-      return; // Keep slot stable while dragging within the timeline list
-    }
-    if (this.dragTargetIdx === idx) {
+    // Retain drop target during movement inside timeline to prevent flickering or losing target on drop
+  }
+
+  public onTimelineContainerDragLeave(event: DragEvent) {
+    const list = document.getElementById('timelineList');
+    const related = event.relatedTarget as HTMLElement;
+    if (!related || !list || !list.contains(related)) {
       this.dragTargetIdx = null;
       this.dragDropPosition = null;
       this.cdr.detectChanges();
@@ -4941,11 +4936,12 @@ export class ScheduleEditorComponent implements OnInit, AfterViewInit, OnDestroy
 
   public onDrop(event: DragEvent, targetIdx: number) {
     event.preventDefault();
+    event.stopPropagation();
     if (this.isItineraryLocked()) return;
     const srcIdx = this.dragSrcIdx;
     const position = this.dragDropPosition || 'after';
 
-    if (srcIdx !== null && this.activeItinerary) {
+    if (srcIdx !== null && srcIdx !== undefined && this.activeItinerary) {
       const activeDay = this.activeItinerary.days[this.activeDayIdx];
       if (activeDay && activeDay.activities && activeDay.activities.length > 1) {
         let insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
