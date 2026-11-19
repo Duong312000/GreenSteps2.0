@@ -246,6 +246,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
     await this.loadActiveTour();
     if (this.usesServiceQuote && !this.isCompleteStep) await this.loadRoomPricing();
+    if (this.isPaymentStep && !this.currentBookingId) await this.loadSepayPricing();
     if (this.isPaymentStep && ['bank', 'card'].includes(this.paymentMethod) && this.currentBookingId) {
       await this.resumePendingPayment();
     }
@@ -1344,6 +1345,34 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   public lodgingPricing: any = null;
   public sepayPricingSnapshot: any = null;
+  private async loadSepayPricing(): Promise<void> {
+    const targetId = this.bookingContext.serviceId || this.bookingContext.tourId || this.activeTour?.id;
+    if (!targetId) return;
+
+    const isService = Boolean(this.bookingContext.serviceId) || Boolean((this.activeTour as any)?.isService)
+      || /^srv[_-]/i.test(targetId);
+    const type = isService ? 'service' : this.isItineraryBooking() ? 'itinerary' : 'tour';
+    try {
+      const quote = await this.apiService.getBookingQuote({
+        type,
+        targetId,
+        guests: this.bookingContext.guestCount,
+        addonIds: this.addOns,
+        paymentMethod: 'sepay',
+        roomId: this.selectedLodgingRoom?.id,
+        roomCount: this.bookingContext.roomCount,
+        bookingDate: this.bookingContext.checkIn,
+        checkOutDate: this.bookingContext.checkOut,
+        flashSaleId: this.bookingContext.flashSaleId || this.activeTour?.flashSale?.id
+      });
+      if (!quote?.success || !quote.pricing) throw new Error('Chưa nhận được giá từ máy chủ.');
+      this.sepayPricingSnapshot = quote.pricing;
+      this.cdr.detectChanges();
+    } catch (error: any) {
+      this.showAlert('Chưa thể xác nhận giá', error?.error?.message || error?.message || 'Vui lòng tải lại trang đặt chỗ để nhận giá mới.', 'error');
+    }
+  }
+
   private async loadRoomPricing(): Promise<boolean> {
     try {
       const quote = await this.apiService.getBookingQuote({

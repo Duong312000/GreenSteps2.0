@@ -64,6 +64,33 @@ describe('Transport in the existing service checkout', () => {
     expect(c.serviceFee).toBe(120000);expect(c.depositAmount).toBe(588000);
     expect(c.checkoutPaymentMethods.some(method => method.id === 'sepay')).toBe(true);
   });
+  it('loads the current server quote before showing a cached tour price at checkout', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    const params = convertToParamMap({ tourId: 'SCHDL005', guestCount: '2' });
+    const route = { snapshot: { queryParamMap: params }, queryParamMap: new BehaviorSubject(params) };
+    const events = new Subject<any>();
+    const router = { url: '/booking/payment?tourId=SCHDL005', events, navigate: vi.fn().mockResolvedValue(true) };
+    const pricing = { subtotal: 1580000, discount: 0, vat: 0, serviceFee: 0, total: 1580000, depositPercent: 30, amountDueNow: 474000 };
+    const api = {
+      getWalletInfo: vi.fn().mockResolvedValue({ registered: false, balance: 0 }),
+      getItinerary: vi.fn().mockResolvedValue(null),
+      getPresetTour: vi.fn().mockResolvedValue({ id: 'SCHDL005', cost: 310000, title: 'Đà Lạt chill' }),
+      getBookingQuote: vi.fn().mockResolvedValue({ success: true, pricing })
+    };
+    const auth = { currentUser$: new BehaviorSubject(null), getCurrentUser: () => null };
+    const c = new BookingComponent(route as any, router as any, api as any, auth as any,
+      { open: vi.fn() } as any, { markForCheck: vi.fn(), detectChanges: vi.fn() } as any, {} as any);
+    c.paymentMethod = 'sepay';
+
+    await c.ngOnInit();
+
+    expect(api.getBookingQuote).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'tour', targetId: 'SCHDL005', guests: 2, paymentMethod: 'sepay'
+    }));
+    expect(c.totalAmount).toBe(1580000);
+    expect(c.depositAmount).toBe(474000);
+    c.ngOnDestroy();
+  });
   it('treats a settled SePay attempt as paid and displays its actual settled amount', () => {
     const {c}=create(false);
     c.confirmationBooking={payment_method:'sepay',status:'pending',payment_status:'pending',value:1580000,
